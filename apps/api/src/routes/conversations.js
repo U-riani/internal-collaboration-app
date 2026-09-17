@@ -82,23 +82,13 @@ export default async function conversationRoutes(app) {
     });
     const enriched = await Promise.all(
       data.map(async (conversation) => {
-        const membership = conversation.members.find(
-          (member) => member.userId === request.authUser.id,
-        );
-        const lastRead = membership?.lastReadMessageId
-          ? await app.prisma.message.findUnique({
-              where: { id: membership.lastReadMessageId },
-              select: { createdAt: true },
-            })
-          : null;
-        const unreadCount = await app.prisma.message.count({
+        const unreadCount = await app.prisma.notification.count({
           where: {
-            conversationId: conversation.id,
-            deletedAt: null,
-            createdAt: lastRead?.createdAt
-              ? { gt: lastRead.createdAt }
-              : undefined,
-            senderId: { not: request.authUser.id },
+            userId: request.authUser.id,
+            isRead: false,
+            type: "MESSAGE",
+            relatedEntityType: "CONVERSATION",
+            relatedEntityId: conversation.id,
           },
         });
         return { ...conversation, unreadCount };
@@ -378,21 +368,39 @@ export default async function conversationRoutes(app) {
         "MESSAGE_NOT_IN_CONVERSATION",
         "Message is not in this conversation",
       );
-    await app.prisma.conversationMember.update({
-      where: {
-        conversationId_userId: {
-          conversationId: request.params.id,
-          userId: request.authUser.id,
+    const readAt = new Date();
+    const [, notificationUpdate] = await Promise.all([
+      app.prisma.conversationMember.update({
+        where: {
+          conversationId_userId: {
+            conversationId: request.params.id,
+            userId: request.authUser.id,
+          },
         },
-      },
-      data: { lastReadMessageId: input.messageId },
-    });
+        data: { lastReadMessageId: input.messageId },
+      }),
+      app.prisma.notification.updateMany({
+        where: {
+          userId: request.authUser.id,
+          isRead: false,
+          type: "MESSAGE",
+          relatedEntityType: "CONVERSATION",
+          relatedEntityId: request.params.id,
+        },
+        data: { isRead: true, readAt },
+      }),
+    ]);
     app.io
       ?.to(`conversation:${request.params.id}`)
       .emit("conversation:read-updated", {
         conversationId: request.params.id,
         userId: request.authUser.id,
         messageId: input.messageId,
+      });
+    if (notificationUpdate.count)
+      app.io?.to(`user:${request.authUser.id}`).emit("notification:updated", {
+        conversationId: request.params.id,
+        messagesRead: notificationUpdate.count,
       });
     return { success: true, data: null };
   });
