@@ -106,13 +106,14 @@ Object.assign(process.env, {
   MINIO_ROOT_USER: process.env.MINIO_ROOT_USER || "local",
   MINIO_ROOT_PASSWORD:
     process.env.MINIO_ROOT_PASSWORD || "local-development-only",
-  SEED_DEMO: "true",
-  SEED_ADMIN_EMAIL: "admin@example.com",
-  SEED_ADMIN_PASSWORD: "Admin123!",
-  SEED_MANAGER_EMAIL: "manager@example.com",
-  SEED_MANAGER_PASSWORD: "Manager123!",
-  SEED_EMPLOYEE_EMAIL: "employee@example.com",
-  SEED_EMPLOYEE_PASSWORD: "Employee123!",
+  SEED_DEMO: process.env.SEED_DEMO || "true",
+  SEED_ADMIN_EMAIL: process.env.SEED_ADMIN_EMAIL || "admin@example.com",
+  SEED_ADMIN_PASSWORD: process.env.SEED_ADMIN_PASSWORD || "Admin123!",
+  SEED_MANAGER_EMAIL: process.env.SEED_MANAGER_EMAIL || "manager@example.com",
+  SEED_MANAGER_PASSWORD: process.env.SEED_MANAGER_PASSWORD || "Manager123!",
+  SEED_EMPLOYEE_EMAIL: process.env.SEED_EMPLOYEE_EMAIL || "employee@example.com",
+  SEED_EMPLOYEE_PASSWORD:
+    process.env.SEED_EMPLOYEE_PASSWORD || "Employee123!",
 });
 
 try {
