@@ -362,6 +362,7 @@ function TaskForm({ existing, onClose }) {
 }
 export default function TasksPage() {
   const { user, hasPermission } = useAuth();
+  const qc = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const linkedTaskId = searchParams.get("task");
   const [search, setSearch] = useState("");
@@ -372,6 +373,17 @@ export default function TasksPage() {
   const query = useQuery({
     queryKey: ["tasks"],
     queryFn: () => api("/tasks").then((r) => r.data),
+  });
+  const quickStatus = useMutation({
+    mutationFn: ({ taskId, status }) =>
+      api(`/tasks/${taskId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      }),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: ["tasks"] });
+      qc.invalidateQueries({ queryKey: ["task", variables.taskId] });
+    },
   });
 
   useEffect(() => {
@@ -402,6 +414,20 @@ export default function TasksPage() {
       ),
     [query.data, filter, search, user.id],
   );
+
+  const isOverdue = (task) =>
+    task.dueDate &&
+    !["COMPLETED", "CANCELLED"].includes(task.status) &&
+    new Date(task.dueDate).getTime() < Date.now();
+
+  const toggleCompleted = (event, task) => {
+    event.stopPropagation();
+    quickStatus.mutate({
+      taskId: task.id,
+      status: task.status === "COMPLETED" ? "OPEN" : "COMPLETED",
+    });
+  };
+
   const card = (t) => (
     <button
       key={t.id}
@@ -432,6 +458,88 @@ export default function TasksPage() {
       </div>
     </button>
   );
+
+  const listRow = (t) => {
+    const completed = t.status === "COMPLETED";
+    const overdue = isOverdue(t);
+    const updating = quickStatus.isPending && quickStatus.variables?.taskId === t.id;
+
+    return (
+      <div
+        key={t.id}
+        role="button"
+        tabIndex={0}
+        className="grid min-w-[940px] grid-cols-[minmax(300px,1.8fr)_180px_165px_110px_145px_70px] items-center gap-4 border-t border-slate-100 px-5 py-3.5 text-left transition hover:bg-slate-50 focus:bg-slate-50 focus:outline-none"
+        onClick={() => setId(t.id)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            setId(t.id);
+          }
+        }}
+      >
+        <div className="flex min-w-0 items-start gap-3">
+          <button
+            type="button"
+            aria-label={completed ? `Reopen ${t.title}` : `Complete ${t.title}`}
+            title={completed ? "Mark as open" : "Mark as completed"}
+            className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-md text-blue-600 transition hover:bg-blue-50 disabled:opacity-50"
+            disabled={updating}
+            onClick={(event) => toggleCompleted(event, t)}
+          >
+            {completed ? (
+              <CheckSquare size={19} />
+            ) : (
+              <span className="h-[18px] w-[18px] rounded-[5px] border-2 border-slate-300 bg-white" />
+            )}
+          </button>
+          <div className="min-w-0">
+            <p
+              className={`truncate text-sm font-semibold ${
+                completed ? "text-slate-400 line-through" : "text-slate-700"
+              }`}
+            >
+              {t.title}
+            </p>
+            <div className="mt-1 flex min-w-0 items-center gap-2 text-xs text-slate-400">
+              {t.description ? (
+                <span className="max-w-[360px] truncate">{t.description}</span>
+              ) : (
+                <span>No description</span>
+              )}
+              {t._count.subtasks > 0 && (
+                <span className="shrink-0">· {t._count.subtasks} subtasks</span>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="flex min-w-0 items-center gap-2 text-sm text-slate-600">
+          <Avatar small name={t.assignee?.displayName || "?"} />
+          <span className="truncate">{t.assignee?.displayName || "Unassigned"}</span>
+        </div>
+        <div
+          className={`flex items-center gap-2 text-sm ${
+            overdue ? "font-semibold text-red-600" : "text-slate-500"
+          }`}
+        >
+          <CalendarDays size={15} />
+          <span className="truncate">{t.dueDate ? prettyDate(t.dueDate) : "No due date"}</span>
+          {overdue && <span className="text-[10px] uppercase">Overdue</span>}
+        </div>
+        <div>
+          <Badge value={t.priority} />
+        </div>
+        <div>
+          <Badge value={t.status} />
+        </div>
+        <div className="flex items-center justify-end gap-1.5 text-xs text-slate-400">
+          <MessageSquare size={14} />
+          {t._count.comments}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <>
       <PageHeader
@@ -477,16 +585,38 @@ export default function TasksPage() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <button
-            aria-label={board ? "List view" : "Board view"}
-            className="btn-secondary px-3"
-            onClick={() => setBoard(!board)}
+          <div
+            className="inline-flex rounded-xl border border-slate-200 bg-white p-1"
+            aria-label="Task view"
           >
-            {board ? <List size={17} /> : <Columns3 size={17} />}
-          </button>
+            <button
+              type="button"
+              className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                !board
+                  ? "bg-slate-100 text-slate-800"
+                  : "text-slate-500 hover:text-slate-800"
+              }`}
+              onClick={() => setBoard(false)}
+            >
+              <List size={15} />
+              List
+            </button>
+            <button
+              type="button"
+              className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                board
+                  ? "bg-slate-100 text-slate-800"
+                  : "text-slate-500 hover:text-slate-800"
+              }`}
+              onClick={() => setBoard(true)}
+            >
+              <Columns3 size={15} />
+              Board
+            </button>
+          </div>
         </div>
       </div>
-      <ErrorBox error={query.error} />
+      <ErrorBox error={query.error || quickStatus.error} />
       {query.isLoading ? (
         <Loading />
       ) : !tasks.length ? (
@@ -518,11 +648,21 @@ export default function TasksPage() {
           ))}
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {tasks.map(card)}
+        <div className="card overflow-hidden">
+          <div className="overflow-x-auto">
+            <div className="grid min-w-[940px] grid-cols-[minmax(300px,1.8fr)_180px_165px_110px_145px_70px] items-center gap-4 bg-slate-50 px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-slate-400">
+              <span>Task</span>
+              <span>Assignee</span>
+              <span>Due date</span>
+              <span>Priority</span>
+              <span>Status</span>
+              <span className="text-right">Comments</span>
+            </div>
+            <div>{tasks.map(listRow)}</div>
+          </div>
         </div>
       )}
-      {create && <TaskForm onClose={() => setCreate(false)} />}{" "}
+      {create && <TaskForm onClose={() => setCreate(false)} />} {" "}
       {id && <TaskDetail id={id} onClose={closeTask} />}
     </>
   );
