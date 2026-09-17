@@ -1,0 +1,32 @@
+{
+  "name": "@collab/worker",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --env-file-if-exists=../../.env --watch src/worker.js",
+    "start": "node --env-file-if-exists=../../.env src/worker.js",
+    "check": "node --check src/worker.js && node scripts/validate-schema.cjs",
+    "db:generate": "prisma generate"
+  },
+  "dependencies": {
+    "@prisma/client": "6.19.0",
+    "bullmq": "5.80.5",
+    "ioredis": "5.11.1",
+    "prisma": "6.19.0",
+    "@prisma/adapter-pg": "6.19.0",
+    "pg": "8.22.0"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "devDependencies": {
+    "@prisma/prisma-schema-wasm": "6.19.0-26.2ba551f319ab1df4bc874a89965d8b3641056773"
+  },
+  "overrides": {
+    "@prisma/config": {
+      "deepmerge-ts": "8.0.0",
+      "effect": "3.20.0"
+    }
+  }
+}

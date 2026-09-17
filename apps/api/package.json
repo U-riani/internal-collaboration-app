@@ -1,0 +1,53 @@
+{
+  "name": "@collab/api",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --env-file-if-exists=../../.env --watch src/server.js",
+    "start": "node --env-file-if-exists=../../.env src/server.js",
+    "check": "node scripts/check-syntax.js && node scripts/validate-schema.cjs",
+    "test": "node --test tests/*.test.js",
+    "db:generate": "node --env-file-if-exists=../../.env node_modules/prisma/build/index.js generate",
+    "db:push": "node --env-file-if-exists=../../.env node_modules/prisma/build/index.js db push",
+    "db:migrate": "node --env-file-if-exists=../../.env node_modules/prisma/build/index.js migrate dev",
+    "db:seed": "node --env-file-if-exists=../../.env prisma/seed.js",
+    "db:deploy": "node --env-file-if-exists=../../.env node_modules/prisma/build/index.js migrate deploy"
+  },
+  "dependencies": {
+    "@fastify/cookie": "11.1.2",
+    "@fastify/cors": "11.3.0",
+    "@fastify/helmet": "13.1.0",
+    "@fastify/jwt": "10.2.0",
+    "@fastify/multipart": "10.1.0",
+    "@fastify/rate-limit": "11.1.0",
+    "@fastify/swagger": "9.8.1",
+    "@fastify/swagger-ui": "6.1.1",
+    "@prisma/adapter-pg": "6.19.0",
+    "@prisma/client": "6.19.0",
+    "argon2": "0.44.0",
+    "fastify": "5.12.5",
+    "fastify-plugin": "6.0.0",
+    "ioredis": "5.11.1",
+    "minio": "8.0.7",
+    "pg": "8.22.0",
+    "prisma": "6.19.0",
+    "socket.io": "4.8.3",
+    "zod": "4.4.3"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@electric-sql/pglite-socket": "^0.2.11",
+    "@prisma/prisma-schema-wasm": "6.19.0-26.2ba551f319ab1df4bc874a89965d8b3641056773",
+    "socket.io-client": "4.8.3"
+  },
+  "overrides": {
+    "@prisma/config": {
+      "deepmerge-ts": "8.0.0",
+      "effect": "3.20.0"
+    }
+  }
+}

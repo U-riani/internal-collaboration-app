@@ -1,0 +1,514 @@
+import { z } from "zod";
+import { parse } from "../lib/validation.js";
+import { hasRole, hasPermission, requirePermission } from "../lib/authz.js";
+import { HttpError } from "../lib/http-error.js";
+import { resolveApprover, requireResolvedApprover } from "../lib/approval.js";
+import { createNotification } from "../lib/notifications.js";
+import { requireOwnUploads } from "../lib/file-access.js";
+import { formSchema, validateForm } from "../lib/approval-form.js";
+
+const typeSchema = z.object({
+  code: z
+    .string()
+    .trim()
+    .min(2)
+    .max(50)
+    .regex(/^[a-zA-Z0-9_]+$/)
+    .transform((x) => x.toUpperCase()),
+  name: z.string().trim().min(2).max(200),
+  description: z.string().max(2000).optional(),
+  formSchema,
+  steps: z
+    .array(
+      z.object({
+        stepNumber: z.number().int().positive(),
+        name: z.string().trim().min(2).max(150),
+        approverRule: z.enum([
+          "USER",
+          "REQUESTER_MANAGER",
+          "DEPARTMENT_MANAGER",
+          "ROLE",
+        ]),
+        approverValue: z.string().nullable().optional(),
+      }),
+    )
+    .min(1)
+    .max(20),
+});
+const requestSchema = z.object({
+  approvalTypeId: z.uuid(),
+  title: z.string().trim().min(2).max(250),
+  data: z.record(z.string(), z.unknown()),
+  attachmentIds: z.array(z.uuid()).max(10).default([]),
+  submit: z.boolean().default(false),
+});
+const revisionSchema = z.object({ revision: z.number().int().nonnegative() });
+const requestInclude = {
+  approvalType: true,
+  requester: { select: { id: true, displayName: true, email: true } },
+  steps: {
+    include: { approver: { select: { id: true, displayName: true } } },
+    orderBy: { stepNumber: "asc" },
+  },
+  comments: {
+    include: { author: { select: { id: true, displayName: true } } },
+    orderBy: { createdAt: "asc" },
+  },
+  attachments: {
+    include: {
+      file: { select: { id: true, originalName: true, sizeBytes: true } },
+    },
+  },
+};
+function allowed(user, item) {
+  return (
+    hasRole(user, "SYSTEM_ADMIN") ||
+    item.requesterId === user.id ||
+    item.steps.some((s) => s.approverId === user.id)
+  );
+}
+function conflict() {
+  throw new HttpError(
+    409,
+    "APPROVAL_CHANGED",
+    "This request changed. Refresh and try again",
+  );
+}
+async function claim(tx, item, data, expected = item.revision) {
+  const changed = await tx.approvalRequest.updateMany({
+    where: { id: item.id, revision: expected, status: item.status },
+    data: { ...data, revision: { increment: 1 } },
+  });
+  if (changed.count !== 1) conflict();
+}
+async function log(tx, user, id, action, metadata = {}) {
+  await tx.auditLog.create({
+    data: {
+      actorId: user.id,
+      entityType: "APPROVAL_REQUEST",
+      entityId: id,
+      actionType: action,
+      metadata,
+    },
+  });
+}
+async function submit(tx, id, actor, revision) {
+  const item = await tx.approvalRequest.findUnique({
+    where: { id },
+    include: {
+      ...requestInclude,
+      requester: { include: { department: true } },
+    },
+  });
+  if (!item)
+    throw new HttpError(404, "APPROVAL_NOT_FOUND", "Request was not found");
+  if (item.requesterId !== actor.id)
+    throw new HttpError(
+      403,
+      "REQUESTER_REQUIRED",
+      "Only the requester can submit",
+    );
+  if (!["DRAFT", "CHANGES_REQUESTED"].includes(item.status)) conflict();
+  const snapshot = item.workflowSnapshot;
+  validateForm(snapshot?.formSchema ?? item.approvalType.formSchema, item.data);
+  const definitions =
+    snapshot?.definitions ??
+    (await tx.approvalTypeStep.findMany({
+      where: { approvalTypeId: item.approvalTypeId },
+      orderBy: { stepNumber: "asc" },
+    }));
+  const resolved = [];
+  for (const step of definitions) {
+    const id = await resolveApprover(
+      { prisma: tx },
+      step.approverRule,
+      step.approverValue,
+      item.requester,
+    );
+    requireResolvedApprover(id, step.name);
+    if (!(await tx.user.findFirst({ where: { id, status: "ACTIVE" } })))
+      throw new HttpError(
+        409,
+        "APPROVER_INACTIVE",
+        `${step.name} needs an active approver`,
+      );
+    resolved.push({
+      stepNumber: step.stepNumber,
+      stepName: step.name,
+      approverId: id,
+      status: resolved.length ? "WAITING" : "PENDING",
+    });
+  }
+  if (!resolved.length)
+    throw new HttpError(
+      409,
+      "WORKFLOW_EMPTY",
+      "Configure an approval step first",
+    );
+  const rounds = [...(Array.isArray(item.rounds) ? item.rounds : [])];
+  if (item.steps.length)
+    rounds.push(
+      JSON.parse(
+        JSON.stringify({
+          submittedAt: item.submittedAt,
+          data: snapshot?.roundData ?? item.data,
+          steps: item.steps,
+        }),
+      ),
+    );
+  await claim(
+    tx,
+    item,
+    {
+      status: "PENDING",
+      currentStepNumber: resolved[0].stepNumber,
+      submittedAt: new Date(),
+      completedAt: null,
+      rounds,
+      workflowSnapshot: { ...snapshot, roundData: item.data },
+    },
+    revision,
+  );
+  await tx.approvalRequestStep.deleteMany({ where: { approvalRequestId: id } });
+  await tx.approvalRequestStep.createMany({
+    data: resolved.map((x) => ({ ...x, approvalRequestId: id })),
+  });
+  await log(tx, actor, id, "APPROVAL_SUBMITTED");
+  return tx.approvalRequest.findUnique({
+    where: { id },
+    include: requestInclude,
+  });
+}
+export default async function approvalRoutes(app) {
+  app.addHook("preHandler", app.authenticate);
+  async function notify(item) {
+    const current = item.steps.find((x) => x.status === "PENDING");
+    const ids = [
+      ...new Set([item.requesterId, current?.approverId].filter(Boolean)),
+    ];
+    for (const userId of ids) {
+      await createNotification(app, {
+        userId,
+        type:
+          userId === current?.approverId
+            ? "APPROVAL_PENDING"
+            : "APPROVAL_UPDATED",
+        title:
+          userId === current?.approverId
+            ? "A request needs your review"
+            : "Your request was updated",
+        body: item.title,
+        relatedEntityType: "APPROVAL_REQUEST",
+        relatedEntityId: item.id,
+      });
+      app.io?.to(`user:${userId}`).emit("approval:updated", { id: item.id });
+    }
+  }
+  app.get("/approval-types", async () => ({
+    success: true,
+    data: await app.prisma.approvalType.findMany({
+      where: { status: "ACTIVE" },
+      include: { steps: { orderBy: { stepNumber: "asc" } } },
+      orderBy: { name: "asc" },
+    }),
+  }));
+  app.post("/approval-types", async (request, reply) => {
+    requirePermission(request.authUser, "approvals.configure");
+    const input = parse(typeSchema, request.body);
+    input.steps.sort((a, b) => a.stepNumber - b.stepNumber);
+    if (input.steps.some((step, i) => step.stepNumber !== i + 1))
+      throw new HttpError(
+        400,
+        "WORKFLOW_STEPS",
+        "Steps must be numbered consecutively from 1",
+      );
+    const { steps, ...fields } = input;
+    const data = await app.prisma.approvalType.create({
+      data: {
+        ...fields,
+        status: "ACTIVE",
+        createdById: request.authUser.id,
+        steps: { create: steps },
+      },
+      include: { steps: true },
+    });
+    reply.code(201);
+    return { success: true, data };
+  });
+  app.get("/approval-requests", async (request) => ({
+    success: true,
+    data: await app.prisma.approvalRequest.findMany({
+      where: hasPermission(request.authUser, "approvals.audit")
+        ? {}
+        : {
+            OR: [
+              { requesterId: request.authUser.id },
+              { steps: { some: { approverId: request.authUser.id } } },
+            ],
+          },
+      include: requestInclude,
+      orderBy: { createdAt: "desc" },
+    }),
+  }));
+  app.post("/approval-requests", async (request, reply) => {
+    requirePermission(request.authUser, "approvals.submit");
+    const input = parse(requestSchema, request.body);
+    const type = await app.prisma.approvalType.findUnique({
+      where: { id: input.approvalTypeId },
+      include: { steps: { orderBy: { stepNumber: "asc" } } },
+    });
+    if (!type || type.status !== "ACTIVE")
+      throw new HttpError(
+        404,
+        "TYPE_NOT_FOUND",
+        "Select an active request type",
+      );
+    validateForm(type.formSchema, input.data, { draft: !input.submit });
+    await requireOwnUploads(app, request.authUser, input.attachmentIds);
+    const item = await app.prisma.$transaction(async (tx) => {
+      const item = await tx.approvalRequest.create({
+        data: {
+          approvalTypeId: type.id,
+          approvalTypeVersion: type.version,
+          requesterId: request.authUser.id,
+          departmentId: request.authUser.departmentId,
+          title: input.title,
+          data: input.data,
+          workflowSnapshot: {
+            formSchema: type.formSchema,
+            definitions: type.steps.map(
+              ({ stepNumber, name, approverRule, approverValue }) => ({
+                stepNumber,
+                name,
+                approverRule,
+                approverValue,
+              }),
+            ),
+          },
+          attachments: {
+            create: input.attachmentIds.map((fileId) => ({ fileId })),
+          },
+        },
+        include: requestInclude,
+      });
+      return input.submit
+        ? submit(tx, item.id, request.authUser, item.revision)
+        : item;
+    });
+    if (input.submit) await notify(item);
+    reply.code(201);
+    return { success: true, data: item };
+  });
+  app.get("/approval-requests/:id", async (request) => {
+    const item = await app.prisma.approvalRequest.findUnique({
+      where: { id: request.params.id },
+      include: requestInclude,
+    });
+    if (!item)
+      throw new HttpError(404, "APPROVAL_NOT_FOUND", "Request was not found");
+    if (
+      !allowed(request.authUser, item) &&
+      !hasPermission(request.authUser, "approvals.audit")
+    )
+      throw new HttpError(
+        403,
+        "APPROVAL_ACCESS_DENIED",
+        "You cannot view this request",
+      );
+    return { success: true, data: item };
+  });
+  app.patch("/approval-requests/:id", async (request) => {
+    const input = parse(
+      z.object({
+        title: z.string().trim().min(2).max(250),
+        data: z.record(z.string(), z.unknown()),
+        revision: z.number().int().nonnegative(),
+      }),
+      request.body,
+    );
+    await app.prisma.$transaction(async (tx) => {
+      const item = await tx.approvalRequest.findUnique({
+        where: { id: request.params.id },
+        include: requestInclude,
+      });
+      if (!item || item.requesterId !== request.authUser.id)
+        throw new HttpError(
+          403,
+          "REQUESTER_REQUIRED",
+          "Only the requester can edit",
+        );
+      if (!["DRAFT", "CHANGES_REQUESTED"].includes(item.status)) conflict();
+      validateForm(
+        item.workflowSnapshot?.formSchema ?? item.approvalType.formSchema,
+        input.data,
+        { draft: true },
+      );
+      await log(tx, request.authUser, item.id, "APPROVAL_EDITED", {
+        previousData: item.data,
+      });
+      await claim(
+        tx,
+        item,
+        { title: input.title, data: input.data },
+        input.revision,
+      );
+    });
+    return { success: true, data: null };
+  });
+  app.post("/approval-requests/:id/submit", async (request) => {
+    requirePermission(request.authUser, "approvals.submit");
+    const { revision } = parse(revisionSchema, request.body);
+    const item = await app.prisma.$transaction((tx) =>
+      submit(tx, request.params.id, request.authUser, revision),
+    );
+    await notify(item);
+    return { success: true, data: item };
+  });
+  app.post("/approval-requests/:id/cancel", async (request) => {
+    const { revision } = parse(revisionSchema, request.body);
+    await app.prisma.$transaction(async (tx) => {
+      const item = await tx.approvalRequest.findUnique({
+        where: { id: request.params.id },
+      });
+      if (!item || item.requesterId !== request.authUser.id)
+        throw new HttpError(
+          403,
+          "REQUESTER_REQUIRED",
+          "Only the requester can cancel",
+        );
+      if (["APPROVED", "REJECTED", "CANCELLED"].includes(item.status))
+        conflict();
+      await claim(
+        tx,
+        item,
+        {
+          status: "CANCELLED",
+          currentStepNumber: null,
+          cancelledAt: new Date(),
+        },
+        revision,
+      );
+      await tx.approvalRequestStep.updateMany({
+        where: {
+          approvalRequestId: item.id,
+          status: { in: ["PENDING", "WAITING"] },
+        },
+        data: { status: "SKIPPED" },
+      });
+      await log(tx, request.authUser, item.id, "APPROVAL_CANCELLED");
+    });
+    return { success: true, data: null };
+  });
+  app.post("/approval-requests/:id/actions", async (request) => {
+    const input = parse(
+      revisionSchema.extend({
+        action: z.enum(["APPROVE", "REJECT", "REQUEST_CHANGES"]),
+        comment: z.string().trim().max(5000).default(""),
+      }),
+      request.body,
+    );
+    if (input.action !== "APPROVE" && !input.comment)
+      throw new HttpError(
+        400,
+        "COMMENT_REQUIRED",
+        "Explain the requested changes or rejection",
+      );
+    const updated = await app.prisma.$transaction(async (tx) => {
+      const item = await tx.approvalRequest.findUnique({
+        where: { id: request.params.id },
+        include: requestInclude,
+      });
+      if (
+        !item ||
+        item.status !== "PENDING" ||
+        item.revision !== input.revision
+      )
+        conflict();
+      const current = item.steps.find(
+        (s) =>
+          s.stepNumber === item.currentStepNumber && s.status === "PENDING",
+      );
+      if (!current || current.approverId !== request.authUser.id)
+        throw new HttpError(
+          403,
+          "CURRENT_APPROVER_REQUIRED",
+          "Only the current assigned approver can decide",
+        );
+      const next =
+        input.action === "APPROVE"
+          ? item.steps.find(
+              (s) =>
+                s.stepNumber > current.stepNumber && s.status === "WAITING",
+            )
+          : null;
+      const status =
+        input.action === "APPROVE"
+          ? next
+            ? "PENDING"
+            : "APPROVED"
+          : input.action === "REJECT"
+            ? "REJECTED"
+            : "CHANGES_REQUESTED";
+      await claim(
+        tx,
+        item,
+        {
+          status,
+          currentStepNumber: next?.stepNumber ?? null,
+          completedAt: ["APPROVED", "REJECTED"].includes(status)
+            ? new Date()
+            : null,
+        },
+        input.revision,
+      );
+      await tx.approvalRequestStep.update({
+        where: { id: current.id },
+        data: {
+          status: input.action === "APPROVE" ? "APPROVED" : status,
+          comment: input.comment,
+          actedAt: new Date(),
+        },
+      });
+      if (next)
+        await tx.approvalRequestStep.update({
+          where: { id: next.id },
+          data: { status: "PENDING" },
+        });
+      await log(tx, request.authUser, item.id, `APPROVAL_${input.action}`, {
+        stepNumber: current.stepNumber,
+        comment: input.comment,
+      });
+      return tx.approvalRequest.findUnique({
+        where: { id: item.id },
+        include: requestInclude,
+      });
+    });
+    await notify(updated);
+    return { success: true, data: updated };
+  });
+  app.post("/approval-requests/:id/comments", async (request, reply) => {
+    const { content } = parse(
+      z.object({ content: z.string().trim().min(1).max(5000) }),
+      request.body,
+    );
+    const item = await app.prisma.approvalRequest.findUnique({
+      where: { id: request.params.id },
+      include: { steps: true },
+    });
+    if (!item || !allowed(request.authUser, item))
+      throw new HttpError(
+        403,
+        "APPROVAL_ACCESS_DENIED",
+        "You cannot comment on this request",
+      );
+    const data = await app.prisma.approvalComment.create({
+      data: {
+        approvalRequestId: item.id,
+        authorId: request.authUser.id,
+        content,
+      },
+    });
+    reply.code(201);
+    return { success: true, data };
+  });
+}

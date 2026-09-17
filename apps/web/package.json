@@ -1,0 +1,34 @@
+{
+  "name": "@collab/web",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "5.101.2",
+    "date-fns": "4.4.0",
+    "lucide-react": "1.24.0",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "react-router-dom": "7.18.4",
+    "socket.io-client": "4.8.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "4.3.2",
+    "@testing-library/react": "16.3.3",
+    "@testing-library/user-event": "14.6.7",
+    "@vitejs/plugin-react": "6.0.3",
+    "jsdom": "30.0.1",
+    "tailwindcss": "4.3.3",
+    "vite": "8.1.4",
+    "vitest": "5.0.1"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}
