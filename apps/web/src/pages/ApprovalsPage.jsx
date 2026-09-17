@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import {
   Plus,
   ArrowRight,
@@ -609,9 +610,11 @@ function RequestDetail({ item, onClose }) {
 }
 export default function ApprovalsPage() {
   const { user, hasPermission } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const linkedRequestId = searchParams.get("request");
   const [filter, setFilter] = useState("all");
   const [modal, setModal] = useState(null);
-  const [selectedId, setSelectedId] = useState(null);
+  const [selectedId, setSelectedId] = useState(linkedRequestId);
   const query = useQuery({
     queryKey: ["approvals"],
     queryFn: () => api("/approval-requests").then((r) => r.data),
@@ -627,6 +630,16 @@ export default function ApprovalsPage() {
         )),
   );
   const item = query.data?.find((r) => r.id === selectedId);
+
+  const closeRequest = () => {
+    setSelectedId(null);
+    if (linkedRequestId) {
+      const next = new URLSearchParams(searchParams);
+      next.delete("request");
+      setSearchParams(next, { replace: true });
+    }
+  };
+
   return (
     <>
       <PageHeader
@@ -708,9 +721,7 @@ export default function ApprovalsPage() {
       </div>
       {modal === "create" && <RequestForm onClose={() => setModal(null)} />}{" "}
       {modal === "configure" && <Configure onClose={() => setModal(null)} />}{" "}
-      {item && (
-        <RequestDetail item={item} onClose={() => setSelectedId(null)} />
-      )}
+      {item && <RequestDetail item={item} onClose={closeRequest} />}
     </>
   );
 }
