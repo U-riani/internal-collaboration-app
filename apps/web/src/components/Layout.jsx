@@ -45,9 +45,25 @@ export default function Layout() {
     queryFn: () => api("/notifications"),
     refetchInterval: 60000,
   });
+  const conversationsQuery = useQuery({
+    queryKey: ["conversations"],
+    queryFn: () => api("/conversations").then((response) => response.data),
+    refetchInterval: 60000,
+  });
+
+  const acknowledgeDelivery = (payload) =>
+    api("/messages/receipts/delivered", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    })
+      .then(() => invalidate("conversations"))
+      .catch(() => {});
 
   useSocket({
-    connect: () => qc.invalidateQueries(),
+    connect: () => {
+      qc.invalidateQueries();
+      acknowledgeDelivery({ allPending: true });
+    },
     "notification:created": () => invalidate("notifications"),
     "notification:updated": () => invalidate("notifications"),
     "task:updated": () => {
@@ -62,7 +78,12 @@ export default function Layout() {
     "approval:updated": () => invalidate("approvals"),
     "conversation:updated": () => invalidate("conversations"),
     "conversation:read-updated": () => invalidate("conversations"),
-    "message:created": () => invalidate("conversations"),
+    "message:created": (message) => {
+      invalidate("conversations");
+      if (message?.senderId && message.senderId !== user.id)
+        acknowledgeDelivery({ messageIds: [message.id] });
+    },
+    "message:receipt-updated": () => invalidate("conversations"),
     "message:deleted": () => invalidate("conversations"),
     "conversation:removed": () => {
       invalidate("conversations");
@@ -70,8 +91,13 @@ export default function Layout() {
     },
   });
 
+  const unreadMessageCount =
+    conversationsQuery.data?.reduce(
+      (total, conversation) => total + (conversation.unreadCount || 0),
+      0,
+    ) || 0;
   const badgeByPath = {
-    "/chat": notificationsQuery.data?.meta?.unreadMessageCount || 0,
+    "/chat": unreadMessageCount,
     "/tasks": notificationsQuery.data?.meta?.unreadTaskCount || 0,
     "/approvals": notificationsQuery.data?.meta?.unreadApprovalCount || 0,
     "/notifications": notificationsQuery.data?.meta?.unreadCount || 0,
