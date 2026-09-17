@@ -68,6 +68,16 @@ async function requireMembership(app, conversationId, userId) {
   return membership;
 }
 
+function openedFromLinkedMessage(request) {
+  const referer = request.headers.referer;
+  if (!referer) return false;
+  try {
+    return new URL(referer).searchParams.has("message");
+  } catch {
+    return false;
+  }
+}
+
 export default async function conversationRoutes(app) {
   app.addHook("preHandler", app.authenticate);
 
@@ -369,6 +379,18 @@ export default async function conversationRoutes(app) {
         "Message is not in this conversation",
       );
     const readAt = new Date();
+    const notificationRead = openedFromLinkedMessage(request)
+      ? Promise.resolve({ count: 0 })
+      : app.prisma.notification.updateMany({
+          where: {
+            userId: request.authUser.id,
+            isRead: false,
+            type: "MESSAGE",
+            relatedEntityType: "CONVERSATION",
+            relatedEntityId: request.params.id,
+          },
+          data: { isRead: true, readAt },
+        });
     const [, notificationUpdate] = await Promise.all([
       app.prisma.conversationMember.update({
         where: {
@@ -379,16 +401,7 @@ export default async function conversationRoutes(app) {
         },
         data: { lastReadMessageId: input.messageId },
       }),
-      app.prisma.notification.updateMany({
-        where: {
-          userId: request.authUser.id,
-          isRead: false,
-          type: "MESSAGE",
-          relatedEntityType: "CONVERSATION",
-          relatedEntityId: request.params.id,
-        },
-        data: { isRead: true, readAt },
-      }),
+      notificationRead,
     ]);
     app.io
       ?.to(`conversation:${request.params.id}`)
