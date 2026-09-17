@@ -80,27 +80,27 @@ const pg = new PGLiteSocketServer({
 await pg.start();
 
 Object.assign(process.env, {
-  NODE_ENV: process.env.NODE_ENV || "development",
+  NODE_ENV: "development",
   DATABASE_URL: `postgresql://postgres:postgres@127.0.0.1:${port}/postgres`,
-  API_PORT: process.env.API_PORT || "3000",
-  APP_ORIGIN: process.env.APP_ORIGIN || "http://localhost:5173",
+  API_PORT: "3000",
+  APP_ORIGIN: "http://localhost:5173",
+  TRUST_PROXY_HOPS: "0",
   JWT_ACCESS_SECRET:
     process.env.JWT_ACCESS_SECRET ||
     "local-development-secret-change-before-production-123456",
-  COOKIE_SECURE: process.env.COOKIE_SECURE || "false",
+  COOKIE_SECURE: "false",
   STORAGE_DRIVER: "local",
   STORAGE_LOCAL_PATH: filesRoot,
   MINIO_ROOT_USER: process.env.MINIO_ROOT_USER || "local",
   MINIO_ROOT_PASSWORD:
     process.env.MINIO_ROOT_PASSWORD || "local-development-only",
-  SEED_DEMO: process.env.SEED_DEMO || "true",
-  SEED_ADMIN_EMAIL: process.env.SEED_ADMIN_EMAIL || "admin@example.com",
-  SEED_ADMIN_PASSWORD: process.env.SEED_ADMIN_PASSWORD || "Admin123!",
-  SEED_MANAGER_EMAIL: process.env.SEED_MANAGER_EMAIL || "manager@example.com",
-  SEED_MANAGER_PASSWORD: process.env.SEED_MANAGER_PASSWORD || "Manager123!",
-  SEED_EMPLOYEE_EMAIL: process.env.SEED_EMPLOYEE_EMAIL || "employee@example.com",
-  SEED_EMPLOYEE_PASSWORD:
-    process.env.SEED_EMPLOYEE_PASSWORD || "Employee123!",
+  SEED_DEMO: "true",
+  SEED_ADMIN_EMAIL: "admin@example.com",
+  SEED_ADMIN_PASSWORD: "Admin123!",
+  SEED_MANAGER_EMAIL: "manager@example.com",
+  SEED_MANAGER_PASSWORD: "Manager123!",
+  SEED_EMPLOYEE_EMAIL: "employee@example.com",
+  SEED_EMPLOYEE_PASSWORD: "Employee123!",
 });
 
 try {
