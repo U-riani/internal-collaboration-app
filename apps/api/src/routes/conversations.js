@@ -78,6 +78,48 @@ function openedFromLinkedMessage(request) {
   }
 }
 
+async function unreadMessageState(app, userId) {
+  const notifications = await app.prisma.notification.findMany({
+    where: {
+      userId,
+      isRead: false,
+      type: "MESSAGE",
+      relatedEntityId: { not: null },
+      relatedEntityType: { in: ["MESSAGE", "CONVERSATION"] },
+    },
+    select: { id: true, relatedEntityType: true, relatedEntityId: true },
+  });
+
+  const messageIds = notifications
+    .filter((item) => item.relatedEntityType === "MESSAGE")
+    .map((item) => item.relatedEntityId);
+  const messages = messageIds.length
+    ? await app.prisma.message.findMany({
+        where: { id: { in: messageIds } },
+        select: { id: true, conversationId: true },
+      })
+    : [];
+  const conversationByMessageId = new Map(
+    messages.map((message) => [message.id, message.conversationId]),
+  );
+  const counts = new Map();
+  const notificationIdsByConversation = new Map();
+
+  for (const notification of notifications) {
+    const conversationId =
+      notification.relatedEntityType === "CONVERSATION"
+        ? notification.relatedEntityId
+        : conversationByMessageId.get(notification.relatedEntityId);
+    if (!conversationId) continue;
+    counts.set(conversationId, (counts.get(conversationId) || 0) + 1);
+    const ids = notificationIdsByConversation.get(conversationId) || [];
+    ids.push(notification.id);
+    notificationIdsByConversation.set(conversationId, ids);
+  }
+
+  return { counts, notificationIdsByConversation };
+}
+
 export default async function conversationRoutes(app) {
   app.addHook("preHandler", app.authenticate);
 
@@ -90,20 +132,11 @@ export default async function conversationRoutes(app) {
       include: conversationInclude,
       orderBy: { updatedAt: "desc" },
     });
-    const enriched = await Promise.all(
-      data.map(async (conversation) => {
-        const unreadCount = await app.prisma.notification.count({
-          where: {
-            userId: request.authUser.id,
-            isRead: false,
-            type: "MESSAGE",
-            relatedEntityType: "CONVERSATION",
-            relatedEntityId: conversation.id,
-          },
-        });
-        return { ...conversation, unreadCount };
-      }),
-    );
+    const { counts } = await unreadMessageState(app, request.authUser.id);
+    const enriched = data.map((conversation) => ({
+      ...conversation,
+      unreadCount: counts.get(conversation.id) || 0,
+    }));
     return { success: true, data: enriched };
   });
 
@@ -277,9 +310,6 @@ export default async function conversationRoutes(app) {
       where: { id: request.params.id },
       data: { updatedAt: new Date() },
     });
-    app.io
-      ?.to(`conversation:${request.params.id}`)
-      .emit("message:created", message);
 
     const members = await app.prisma.conversationMember.findMany({
       where: {
@@ -296,11 +326,14 @@ export default async function conversationRoutes(app) {
           type: "MESSAGE",
           title: `New message from ${request.authUser.displayName}`,
           body: input.content.slice(0, 180),
-          relatedEntityType: "CONVERSATION",
-          relatedEntityId: request.params.id,
+          relatedEntityType: "MESSAGE",
+          relatedEntityId: message.id,
         }),
       ),
     );
+    app.io
+      ?.to(`conversation:${request.params.id}`)
+      .emit("message:created", message);
     reply.status(201);
     return { success: true, data: message };
   });
@@ -381,16 +414,16 @@ export default async function conversationRoutes(app) {
     const readAt = new Date();
     const notificationRead = openedFromLinkedMessage(request)
       ? Promise.resolve({ count: 0 })
-      : app.prisma.notification.updateMany({
-          where: {
-            userId: request.authUser.id,
-            isRead: false,
-            type: "MESSAGE",
-            relatedEntityType: "CONVERSATION",
-            relatedEntityId: request.params.id,
+      : unreadMessageState(app, request.authUser.id).then(
+          ({ notificationIdsByConversation }) => {
+            const ids = notificationIdsByConversation.get(request.params.id) || [];
+            if (!ids.length) return { count: 0 };
+            return app.prisma.notification.updateMany({
+              where: { id: { in: ids } },
+              data: { isRead: true, readAt },
+            });
           },
-          data: { isRead: true, readAt },
-        });
+        );
     const [, notificationUpdate] = await Promise.all([
       app.prisma.conversationMember.update({
         where: {
