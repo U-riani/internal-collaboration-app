@@ -111,6 +111,7 @@ model Department {
   users              User[]         @relation("UserDepartment")
   conversations      Conversation[]
   tasks              Task[]
+  taskGroups         TaskGroup[]
   approvalRequests   ApprovalRequest[]
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
@@ -145,6 +146,7 @@ model User {
   messages                  Message[]
   messageReceipts           MessageReceipt[]
   createdTasks              Task[]                    @relation("TaskCreator")
+  createdTaskGroups          TaskGroup[]               @relation("TaskGroupCreator")
   assignedTasks             Task[]                    @relation("TaskAssignee")
   taskParticipants          TaskParticipant[]
   taskComments              TaskComment[]
@@ -298,6 +300,9 @@ model Task {
   parentTaskId   String?           @db.Uuid
   parentTask     Task?             @relation("TaskHierarchy", fields: [parentTaskId], references: [id], onDelete: SetNull)
   subtasks       Task[]            @relation("TaskHierarchy")
+  groupId        String?           @db.Uuid
+  group          TaskGroup?       @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  position       Int              @default(0)
   status         TaskStatus        @default(OPEN)
   priority       TaskPriority      @default(NORMAL)
   startDate      DateTime?
@@ -314,6 +319,25 @@ model Task {
   @@index([assigneeId, status, dueDate])
   @@index([departmentId, status])
   @@index([creatorId, createdAt(sort: Desc)])
+  @@index([groupId, position])
+  @@index([parentTaskId, position])
+}
+
+model TaskGroup {
+  id           String      @id @default(uuid()) @db.Uuid
+  name         String
+  creatorId    String      @db.Uuid
+  creator      User        @relation("TaskGroupCreator", fields: [creatorId], references: [id], onDelete: Restrict)
+  departmentId String?     @db.Uuid
+  department   Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  position     Int         @default(0)
+  archivedAt   DateTime?
+  tasks        Task[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([departmentId, archivedAt, position])
+  @@index([creatorId, archivedAt])
 }
 
 model TaskParticipant {
