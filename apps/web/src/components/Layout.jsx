@@ -14,10 +14,12 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useSocket } from "../hooks/useSocket.js";
+import { api } from "../lib/api.js";
 import { Avatar } from "./UI.jsx";
+
 const links = [
   ["/dashboard", "Overview", LayoutDashboard],
   ["/chat", "Messages", MessageSquare],
@@ -27,11 +29,30 @@ const links = [
   ["/notifications", "Inbox", Bell],
   ["/directory", "People", Users],
 ];
+
+function badgeLabel(count) {
+  if (!count) return null;
+  return count > 9 ? "9+" : String(count);
+}
+
 export default function Layout() {
   const { user, logout, hasPermission } = useAuth();
   const [open, setOpen] = useState(false);
   const qc = useQueryClient();
   const invalidate = (key) => qc.invalidateQueries({ queryKey: [key] });
+
+  const notificationsQuery = useQuery({
+    queryKey: ["notifications"],
+    queryFn: () => api("/notifications"),
+    refetchInterval: 60000,
+  });
+
+  const conversationsQuery = useQuery({
+    queryKey: ["conversations"],
+    queryFn: () => api("/conversations"),
+    refetchInterval: 60000,
+  });
+
   useSocket({
     connect: () => qc.invalidateQueries(),
     "notification:created": () => invalidate("notifications"),
@@ -47,11 +68,27 @@ export default function Layout() {
     },
     "approval:updated": () => invalidate("approvals"),
     "conversation:updated": () => invalidate("conversations"),
+    "conversation:read-updated": () => invalidate("conversations"),
+    "message:created": () => invalidate("conversations"),
+    "message:deleted": () => invalidate("conversations"),
     "conversation:removed": () => {
       invalidate("conversations");
       qc.removeQueries({ queryKey: ["messages"] });
     },
   });
+
+  const messageCount =
+    conversationsQuery.data?.data?.reduce(
+      (total, conversation) => total + (conversation.unreadCount || 0),
+      0,
+    ) || 0;
+  const badgeByPath = {
+    "/chat": messageCount,
+    "/tasks": notificationsQuery.data?.meta?.unreadTaskCount || 0,
+    "/approvals": notificationsQuery.data?.meta?.unreadApprovalCount || 0,
+    "/notifications": notificationsQuery.data?.meta?.unreadCount || 0,
+  };
+
   return (
     <div className="min-h-screen">
       <div className="min-[901px]:hidden flex items-center justify-between bg-white border-b border-slate-200 p-4">
@@ -90,19 +127,27 @@ export default function Layout() {
             ...(hasPermission("users.manage")
               ? [["/admin", "Administration", Settings]]
               : []),
-          ].map(([to, label, Icon]) => (
-            <NavLink
-              key={to}
-              to={to}
-              onClick={() => setOpen(false)}
-              className={({ isActive }) =>
-                `flex items-center gap-3 rounded-xl px-3 py-3 text-[13px] font-medium ${isActive ? "bg-blue-50 text-blue-700" : "text-slate-500 hover:bg-slate-50"}`
-              }
-            >
-              <Icon size={18} />
-              {label}
-            </NavLink>
-          ))}
+          ].map(([to, label, Icon]) => {
+            const badge = badgeLabel(badgeByPath[to]);
+            return (
+              <NavLink
+                key={to}
+                to={to}
+                onClick={() => setOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 rounded-xl px-3 py-3 text-[13px] font-medium ${isActive ? "bg-blue-50 text-blue-700" : "text-slate-500 hover:bg-slate-50"}`
+                }
+              >
+                <Icon size={18} />
+                <span>{label}</span>
+                {badge && (
+                  <span className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+                    {badge}
+                  </span>
+                )}
+              </NavLink>
+            );
+          })}
         </nav>
         <div className="mt-auto border-t border-slate-100 pt-5">
           <div className="mb-4 flex items-center gap-3">
