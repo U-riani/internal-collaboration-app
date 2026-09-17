@@ -15,6 +15,7 @@ import { createS3Storage } from "./lib/minio.js";
 import { HttpError } from "./lib/http-error.js";
 import { userWithAccess } from "./lib/authz.js";
 import { localStorage } from "./lib/local-storage.js";
+import { markRelatedNotificationsRead } from "./lib/notification-read.js";
 import driveRoutes from "./routes/drive.js";
 import roleRoutes from "./routes/roles.js";
 import healthRoutes from "./routes/health.js";
@@ -100,6 +101,41 @@ export async function buildApp(dependencies = {}) {
 
   app.addHook("onRequest", async (request, reply) => {
     reply.header("x-request-id", request.id);
+  });
+
+  app.addHook("onResponse", async (request, reply) => {
+    if (reply.statusCode >= 400 || !request.authUser) return;
+    const pathname = request.raw.url?.split("?")[0] || "";
+    let target = null;
+
+    if (request.method === "GET") {
+      const task = pathname.match(/^\/api\/v1\/tasks\/([0-9a-f-]{36})$/i);
+      const approval = pathname.match(
+        /^\/api\/v1\/approval-requests\/([0-9a-f-]{36})$/i,
+      );
+      if (task) target = { entityType: "TASK", entityId: task[1] };
+      else if (approval)
+        target = { entityType: "APPROVAL_REQUEST", entityId: approval[1] };
+    } else if (request.method === "POST") {
+      const conversation = pathname.match(
+        /^\/api\/v1\/conversations\/([0-9a-f-]{36})\/read$/i,
+      );
+      if (conversation)
+        target = { entityType: "CONVERSATION", entityId: conversation[1] };
+    }
+
+    if (!target) return;
+    try {
+      await markRelatedNotificationsRead(app, {
+        userId: request.authUser.id,
+        ...target,
+      });
+    } catch (error) {
+      request.log.warn(
+        { err: error, ...target },
+        "Failed to synchronize notification read state",
+      );
+    }
   });
 
   app.setErrorHandler((error, request, reply) => {
