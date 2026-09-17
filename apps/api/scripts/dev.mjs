@@ -60,6 +60,18 @@ async function applyMigrations(db) {
   }
 }
 
+async function generatePrismaClient() {
+  console.log("[database] generating Prisma client");
+  await exec(
+    process.execPath,
+    ["node_modules/prisma/build/index.js", "generate"],
+    {
+      cwd: apiRoot,
+      env: process.env,
+    },
+  );
+}
+
 async function seedDatabase() {
   if (process.env.DEV_AUTO_SEED === "false") return;
   await exec(process.execPath, ["prisma/seed.js"], {
@@ -104,6 +116,7 @@ Object.assign(process.env, {
 });
 
 try {
+  await generatePrismaClient();
   await seedDatabase();
   const { buildApp } = await import("../src/app.js");
   const { env } = await import("../src/config/env.js");
