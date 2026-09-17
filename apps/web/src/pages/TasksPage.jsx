@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import {
   Plus,
   Search,
@@ -361,15 +362,31 @@ function TaskForm({ existing, onClose }) {
 }
 export default function TasksPage() {
   const { user, hasPermission } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const linkedTaskId = searchParams.get("task");
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("active");
   const [board, setBoard] = useState(false);
   const [create, setCreate] = useState(false);
-  const [id, setId] = useState(null);
+  const [id, setId] = useState(linkedTaskId);
   const query = useQuery({
     queryKey: ["tasks"],
     queryFn: () => api("/tasks").then((r) => r.data),
   });
+
+  useEffect(() => {
+    if (linkedTaskId) setId(linkedTaskId);
+  }, [linkedTaskId]);
+
+  const closeTask = () => {
+    setId(null);
+    if (linkedTaskId) {
+      const next = new URLSearchParams(searchParams);
+      next.delete("task");
+      setSearchParams(next, { replace: true });
+    }
+  };
+
   const tasks = useMemo(
     () =>
       (query.data || []).filter(
@@ -506,7 +523,7 @@ export default function TasksPage() {
         </div>
       )}
       {create && <TaskForm onClose={() => setCreate(false)} />}{" "}
-      {id && <TaskDetail id={id} onClose={() => setId(null)} />}
+      {id && <TaskDetail id={id} onClose={closeTask} />}
     </>
   );
 }
