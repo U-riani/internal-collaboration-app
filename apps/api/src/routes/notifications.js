@@ -39,10 +39,22 @@ async function currentPriorities(app, userId, notificationIds) {
   return result;
 }
 
-async function resolveMessageId(app, notification, userId) {
+async function resolveMessageTarget(app, notification, userId) {
   const id = notification.relatedEntityId;
   if (!id) return null;
-  if (notification.relatedEntityType === "MESSAGE") return id;
+
+  if (notification.relatedEntityType === "MESSAGE") {
+    return app.prisma.message.findFirst({
+      where: {
+        id,
+        conversation: {
+          members: { some: { userId, leftAt: null } },
+        },
+      },
+      select: { id: true, conversationId: true },
+    });
+  }
+
   if (
     notification.type !== "MESSAGE" ||
     notification.relatedEntityType !== "CONVERSATION"
@@ -52,7 +64,7 @@ async function resolveMessageId(app, notification, userId) {
   const senderName = notification.title.startsWith("New message from ")
     ? notification.title.slice("New message from ".length)
     : null;
-  const message = await app.prisma.message.findFirst({
+  return app.prisma.message.findFirst({
     where: {
       conversationId: id,
       createdAt: { lte: notification.createdAt },
@@ -65,23 +77,24 @@ async function resolveMessageId(app, notification, userId) {
         members: { some: { userId, leftAt: null } },
       },
     },
-    select: { id: true },
+    select: { id: true, conversationId: true },
     orderBy: { createdAt: "desc" },
   });
-  return message?.id || null;
 }
 
 async function targetUrl(app, notification, userId) {
   const id = notification.relatedEntityId;
   if (!id) return null;
   if (notification.relatedEntityType === "TASK")
-    return `/tasks/${encodeURIComponent(id)}`;
+    return `/tasks?task=${encodeURIComponent(id)}`;
   if (notification.relatedEntityType === "APPROVAL_REQUEST")
-    return `/approvals/${encodeURIComponent(id)}`;
+    return `/approvals?request=${encodeURIComponent(id)}`;
 
-  const messageId = await resolveMessageId(app, notification, userId);
-  if (messageId) return `/chat/message/${encodeURIComponent(messageId)}`;
-  if (notification.relatedEntityType === "CONVERSATION") return "/chat";
+  const message = await resolveMessageTarget(app, notification, userId);
+  if (message)
+    return `/chat?conversation=${encodeURIComponent(message.conversationId)}&message=${encodeURIComponent(message.id)}`;
+  if (notification.relatedEntityType === "CONVERSATION")
+    return `/chat?conversation=${encodeURIComponent(id)}`;
   return null;
 }
 
@@ -117,34 +130,6 @@ export default async function notificationRoutes(app) {
       where: { userId: request.authUser.id, isRead: false },
     });
     return { success: true, data: enriched, meta: { unreadCount } };
-  });
-
-  app.get("/messages/:id", async (request) => {
-    const message = await app.prisma.message.findFirst({
-      where: {
-        id: request.params.id,
-        conversation: {
-          members: {
-            some: { userId: request.authUser.id, leftAt: null },
-          },
-        },
-      },
-      include: {
-        sender: { select: { id: true, displayName: true, email: true } },
-        conversation: { select: { id: true, name: true, type: true } },
-        replyToMessage: {
-          select: {
-            id: true,
-            content: true,
-            sender: { select: { id: true, displayName: true } },
-          },
-        },
-        attachments: { include: { file: true } },
-      },
-    });
-    if (!message)
-      throw new HttpError(404, "MESSAGE_NOT_FOUND", "Message was not found");
-    return { success: true, data: message };
   });
 
   app.post("/:id/read", async (request) => {
