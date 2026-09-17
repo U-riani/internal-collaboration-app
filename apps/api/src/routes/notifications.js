@@ -126,10 +126,25 @@ export default async function notificationRoutes(app) {
         targetUrl: await targetUrl(app, item, request.authUser.id),
       })),
     );
-    const unreadCount = await app.prisma.notification.count({
-      where: { userId: request.authUser.id, isRead: false },
-    });
-    return { success: true, data: enriched, meta: { unreadCount } };
+    const unreadWhere = {
+      userId: request.authUser.id,
+      isRead: false,
+    };
+    const [unreadCount, unreadTaskCount, unreadApprovalCount] =
+      await Promise.all([
+        app.prisma.notification.count({ where: unreadWhere }),
+        app.prisma.notification.count({
+          where: { ...unreadWhere, relatedEntityType: "TASK" },
+        }),
+        app.prisma.notification.count({
+          where: { ...unreadWhere, relatedEntityType: "APPROVAL_REQUEST" },
+        }),
+      ]);
+    return {
+      success: true,
+      data: enriched,
+      meta: { unreadCount, unreadTaskCount, unreadApprovalCount },
+    };
   });
 
   app.post("/:id/read", async (request) => {
