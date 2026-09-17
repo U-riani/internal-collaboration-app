@@ -5,6 +5,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import {
   Plus,
   Search,
@@ -229,7 +230,11 @@ function Members({ conversation, onClose }) {
 export default function ChatPage() {
   const { user } = useAuth();
   const qc = useQueryClient();
-  const [selectedId, setSelectedId] = useState(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const linkedConversationId = searchParams.get("conversation");
+  const linkedMessageId = searchParams.get("message");
+  const [selectedId, setSelectedId] = useState(linkedConversationId);
+  const [focusMessageId, setFocusMessageId] = useState(linkedMessageId);
   const [text, setText] = useState("");
   const [file, setFile] = useState(null);
   const [reply, setReply] = useState(null);
@@ -269,21 +274,48 @@ export default function ChatPage() {
     [messages.data],
   );
   const tail = allMessages.at(-1)?.id;
+
+  const clearLinkedTarget = () => {
+    if (!linkedConversationId && !linkedMessageId) return;
+    const next = new URLSearchParams(searchParams);
+    next.delete("conversation");
+    next.delete("message");
+    setSearchParams(next, { replace: true });
+  };
+
+  const selectConversation = (id) => {
+    clearLinkedTarget();
+    setFocusMessageId(null);
+    setSelectedId(id);
+  };
+
   useEffect(() => {
+    if (!conversations.data) return;
     if (
-      conversations.data &&
-      !conversations.data.some((c) => c.id === selectedId)
-    )
+      linkedConversationId &&
+      conversations.data.some((c) => c.id === linkedConversationId)
+    ) {
+      setSelectedId(linkedConversationId);
+      return;
+    }
+    if (!conversations.data.some((c) => c.id === selectedId))
       setSelectedId(conversations.data[0]?.id || null);
-  }, [conversations.data, selectedId]);
+  }, [conversations.data, linkedConversationId, selectedId]);
+
+  useEffect(() => {
+    if (linkedMessageId) setFocusMessageId(linkedMessageId);
+  }, [linkedMessageId]);
+
   useEffect(() => {
     setText("");
     setFile(null);
     setReply(null);
     setMessageSearch("");
   }, [selectedId]);
+
   useEffect(() => {
-    bottom.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    if (!linkedMessageId)
+      bottom.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     if (tail && selectedId)
       api(`/conversations/${selectedId}/read`, {
         method: "POST",
@@ -292,6 +324,27 @@ export default function ChatPage() {
         .then(() => qc.invalidateQueries({ queryKey: ["conversations"] }))
         .catch(() => {});
   }, [tail, selectedId, qc]);
+
+  useEffect(() => {
+    if (!focusMessageId || messages.isLoading || !selectedId) return;
+    const element = document.getElementById(`message-${focusMessageId}`);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "center" });
+      clearLinkedTarget();
+      const timeout = window.setTimeout(() => setFocusMessageId(null), 2500);
+      return () => window.clearTimeout(timeout);
+    }
+    if (messages.hasNextPage && !messages.isFetchingNextPage)
+      messages.fetchNextPage();
+  }, [
+    focusMessageId,
+    allMessages,
+    messages.isLoading,
+    messages.hasNextPage,
+    messages.isFetchingNextPage,
+    selectedId,
+  ]);
+
   useSocket({
     "message:created": (p) => {
       qc.invalidateQueries({ queryKey: ["conversations"] });
@@ -383,7 +436,7 @@ export default function ChatPage() {
                 <button
                   key={c.id}
                   title={displayName(c, user.id)}
-                  onClick={() => setSelectedId(c.id)}
+                  onClick={() => selectConversation(c.id)}
                   className={`flex w-full gap-3 items-center p-4 text-left border-l-2 ${c.id === selectedId ? "border-blue-600 bg-blue-50/70" : "border-transparent hover:bg-slate-50"}`}
                 >
                   <Avatar name={displayName(c, user.id)} />
@@ -455,8 +508,9 @@ export default function ChatPage() {
                       const own = m.senderId === user.id;
                       return (
                         <div
+                          id={`message-${m.id}`}
                           key={m.id}
-                          className={`flex gap-2 ${own ? "flex-row-reverse" : ""}`}
+                          className={`flex gap-2 ${own ? "flex-row-reverse" : ""} ${focusMessageId === m.id ? "rounded-xl ring-2 ring-blue-300 ring-offset-2" : ""}`}
                         >
                           {!own && <Avatar small name={m.sender.displayName} />}
                           <div className="max-w-[90%] sm:max-w-[78%] min-w-0">
@@ -644,7 +698,7 @@ export default function ChatPage() {
               },
               ...items.filter((item) => item.id !== conversation.id),
             ]);
-            setSelectedId(conversation.id);
+            selectConversation(conversation.id);
             qc.invalidateQueries({ queryKey: ["conversations"] });
           }}
         />
