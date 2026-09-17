@@ -6,6 +6,7 @@ import { api } from "../lib/api.js";
 import PageHeader from "../components/PageHeader.jsx";
 import { ErrorBox, Loading } from "../components/UI.jsx";
 import { useSocket } from "../hooks/useSocket.js";
+import { leftBorderColors } from "../config/colors.js";
 
 const priorities = ["LOW", "NORMAL", "HIGH", "URGENT"];
 
@@ -82,8 +83,14 @@ export default function NotificationsPage() {
         {query.data?.data?.map((item) => (
           <div
             key={item.id}
-            className={`flex flex-col gap-4 p-5 sm:flex-row sm:items-start ${item.isRead ? "bg-white" : "bg-blue-50/30"}`}
+            className={`flex flex-col gap-4 p-5 sm:flex-row sm:items-start border-l-3
+              ${item.priority === "LOW" ? leftBorderColors.low : ""}
+              ${item.priority === "NORMAL" ? leftBorderColors.normal : ""}
+              ${item.priority === "HIGH" ? leftBorderColors.high : ""}
+              ${item.priority === "URGENT" ? leftBorderColors.urgent : ""}
+              `}
           >
+            {console.log(item)}
             <div className="flex min-w-0 flex-1 items-start gap-4">
               <div className="rounded-xl bg-blue-50 p-2 text-blue-600">
                 <Bell size={18} />

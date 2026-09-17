@@ -74,6 +74,9 @@ a:focus-visible {
   font-weight: 400;
 }
 .modal {
+  position: absolute;
+  top: 50%;
+  left: 50%;
   border: 0;
   padding: 0;
   width: min(560px, calc(100vw - 32px));
@@ -81,6 +84,7 @@ a:focus-visible {
   border-radius: 20px;
   color: #233047;
   box-shadow: 0 25px 90px #12203c40;
+  transform: translateY(-50%) translateX(-50%);
 }
 .modal-wide {
   width: min(850px, calc(100vw - 32px));
