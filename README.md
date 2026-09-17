@@ -31,7 +31,7 @@ The frontend keeps the existing Vite proxy, so `/api` and `/socket.io` requests 
 
 ## Requirements
 
-- Node.js 24+
+- Node.js 22.19+
 - npm
 
 No Docker Desktop, local PostgreSQL server, Redis server, or MinIO server is required for development.
@@ -54,6 +54,8 @@ Open:
 - API docs: `http://localhost:3000/docs`
 
 `npm run setup` creates a local `.env` if one does not already exist. The app can also start in development without running setup because safe local defaults are provided by the development launcher.
+
+The backend development launcher automatically generates Prisma Client before seeding the local database, so a separate `prisma generate` step is normally not required.
 
 ## Demo accounts
 
@@ -79,6 +81,9 @@ npm run dev:backend
 # Frontend only
 npm run dev:frontend
 
+# Generate Prisma Client manually if needed
+npm run db:generate
+
 # Tests
 npm test
 
@@ -101,7 +106,7 @@ apps/api/.local/
 
 This directory is ignored by Git.
 
-To reset only your local development data, stop the app and delete `apps/api/.local/`. The next `npm run dev` recreates the database, applies the Prisma SQL migrations, and seeds the local demo data.
+To reset only your local development data, stop the app and delete `apps/api/.local/`. The next `npm run dev` recreates the database, applies the Prisma SQL migrations, generates Prisma Client, and seeds the local demo data.
 
 ## Running the backend with an external PostgreSQL database
 
