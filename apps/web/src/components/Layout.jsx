@@ -19,7 +19,6 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { useSocket } from "../hooks/useSocket.js";
 import { api } from "../lib/api.js";
 import { Avatar } from "./UI.jsx";
-
 const links = [
   ["/dashboard", "Overview", LayoutDashboard],
   ["/chat", "Messages", MessageSquare],
@@ -47,12 +46,6 @@ export default function Layout() {
     refetchInterval: 60000,
   });
 
-  const conversationsQuery = useQuery({
-    queryKey: ["conversations"],
-    queryFn: () => api("/conversations"),
-    refetchInterval: 60000,
-  });
-
   useSocket({
     connect: () => qc.invalidateQueries(),
     "notification:created": () => invalidate("notifications"),
@@ -77,13 +70,8 @@ export default function Layout() {
     },
   });
 
-  const messageCount =
-    conversationsQuery.data?.data?.reduce(
-      (total, conversation) => total + (conversation.unreadCount || 0),
-      0,
-    ) || 0;
   const badgeByPath = {
-    "/chat": messageCount,
+    "/chat": notificationsQuery.data?.meta?.unreadMessageCount || 0,
     "/tasks": notificationsQuery.data?.meta?.unreadTaskCount || 0,
     "/approvals": notificationsQuery.data?.meta?.unreadApprovalCount || 0,
     "/notifications": notificationsQuery.data?.meta?.unreadCount || 0,
