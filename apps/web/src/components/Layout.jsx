@@ -35,6 +35,7 @@ export default function Layout() {
   useSocket({
     connect: () => qc.invalidateQueries(),
     "notification:created": () => invalidate("notifications"),
+    "notification:updated": () => invalidate("notifications"),
     "task:updated": () => {
       invalidate("tasks");
       invalidate("task");
