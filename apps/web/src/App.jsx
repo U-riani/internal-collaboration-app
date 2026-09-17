@@ -4,8 +4,11 @@ import Layout from "./components/Layout.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import DashboardPage from "./pages/DashboardPage.jsx";
 import TasksPage from "./pages/TasksPage.jsx";
+import LinkedTaskPage from "./pages/LinkedTaskPage.jsx";
 import ApprovalsPage from "./pages/ApprovalsPage.jsx";
+import LinkedApprovalPage from "./pages/LinkedApprovalPage.jsx";
 import ChatPage from "./pages/ChatPage.jsx";
+import LinkedMessagePage from "./pages/LinkedMessagePage.jsx";
 import NotificationsPage from "./pages/NotificationsPage.jsx";
 import DirectoryPage from "./pages/DirectoryPage.jsx";
 import DrivePage from "./pages/DrivePage.jsx";
@@ -27,8 +30,11 @@ export default function App() {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/drive" element={<DrivePage />} />
         <Route path="/tasks" element={<TasksPage />} />
+        <Route path="/tasks/:taskId" element={<LinkedTaskPage />} />
         <Route path="/approvals" element={<ApprovalsPage />} />
+        <Route path="/approvals/:requestId" element={<LinkedApprovalPage />} />
         <Route path="/chat" element={<ChatPage />} />
+        <Route path="/chat/message/:messageId" element={<LinkedMessagePage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/directory" element={<DirectoryPage />} />
         <Route path="/account" element={<AccountPage />} />
