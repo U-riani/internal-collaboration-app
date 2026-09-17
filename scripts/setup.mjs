@@ -33,4 +33,5 @@ console.log(
     ? "Demo accounts are enabled for local evaluation only."
     : "Demo accounts are disabled.",
 );
+
 console.log("Start: docker compose up --build -d");
