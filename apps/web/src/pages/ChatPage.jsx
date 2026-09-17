@@ -298,8 +298,8 @@ export default function ChatPage() {
       setSelectedId(linkedConversationId);
       return;
     }
-    if (!conversations.data.some((c) => c.id === selectedId))
-      setSelectedId(conversations.data[0]?.id || null);
+    if (selectedId && !conversations.data.some((c) => c.id === selectedId))
+      setSelectedId(null);
   }, [conversations.data, linkedConversationId, selectedId]);
 
   useEffect(() => {
@@ -680,8 +680,8 @@ export default function ChatPage() {
             </>
           ) : (
             <Empty
-              title="Bring your team together"
-              text="Start a direct message or create a group."
+              title="Select a conversation"
+              text="Choose a conversation from the list to start messaging."
             />
           )}
         </section>
