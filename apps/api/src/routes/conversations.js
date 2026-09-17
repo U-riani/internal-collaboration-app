@@ -53,6 +53,14 @@ const messageInclude = {
     },
   },
   attachments: { include: { file: true } },
+  receipts: {
+    select: {
+      userId: true,
+      deliveredAt: true,
+      readAt: true,
+      user: { select: { id: true, displayName: true } },
+    },
+  },
 };
 
 async function requireMembership(app, conversationId, userId) {
@@ -68,56 +76,76 @@ async function requireMembership(app, conversationId, userId) {
   return membership;
 }
 
-function openedFromLinkedMessage(request) {
-  const referer = request.headers.referer;
-  if (!referer) return false;
-  try {
-    return new URL(referer).searchParams.has("message");
-  } catch {
-    return false;
+async function unreadMessageState(app, userId) {
+  const receipts = await app.prisma.messageReceipt.findMany({
+    where: {
+      userId,
+      readAt: null,
+      message: { deletedAt: null },
+    },
+    select: { message: { select: { conversationId: true } } },
+  });
+  const counts = new Map();
+  for (const receipt of receipts) {
+    const conversationId = receipt.message.conversationId;
+    counts.set(conversationId, (counts.get(conversationId) || 0) + 1);
+  }
+  return counts;
+}
+
+async function messageReceiptsForUser(app, userId, messageIds, extraWhere = {}) {
+  if (!messageIds.length) return [];
+  return app.prisma.messageReceipt.findMany({
+    where: {
+      userId,
+      messageId: { in: messageIds },
+      ...extraWhere,
+    },
+    select: {
+      messageId: true,
+      deliveredAt: true,
+      readAt: true,
+      message: { select: { conversationId: true, senderId: true, createdAt: true } },
+    },
+  });
+}
+
+function emitReceiptUpdates(app, userId, receipts, changes) {
+  const byConversation = new Map();
+  for (const receipt of receipts) {
+    const conversationId = receipt.message.conversationId;
+    const ids = byConversation.get(conversationId) || [];
+    ids.push(receipt.messageId);
+    byConversation.set(conversationId, ids);
+  }
+  for (const [conversationId, messageIds] of byConversation) {
+    app.io?.to(`conversation:${conversationId}`).emit("message:receipt-updated", {
+      conversationId,
+      userId,
+      messageIds,
+      ...changes,
+    });
   }
 }
 
-async function unreadMessageState(app, userId) {
-  const notifications = await app.prisma.notification.findMany({
+async function markMessageNotificationsRead(app, userId, messageIds, readAt) {
+  if (!messageIds.length) return 0;
+  const result = await app.prisma.notification.updateMany({
     where: {
       userId,
       isRead: false,
       type: "MESSAGE",
-      relatedEntityId: { not: null },
-      relatedEntityType: { in: ["MESSAGE", "CONVERSATION"] },
+      relatedEntityType: "MESSAGE",
+      relatedEntityId: { in: messageIds },
     },
-    select: { id: true, relatedEntityType: true, relatedEntityId: true },
+    data: { isRead: true, readAt },
   });
-
-  const messageIds = notifications
-    .filter((item) => item.relatedEntityType === "MESSAGE")
-    .map((item) => item.relatedEntityId);
-  const messages = messageIds.length
-    ? await app.prisma.message.findMany({
-        where: { id: { in: messageIds } },
-        select: { id: true, conversationId: true },
-      })
-    : [];
-  const conversationByMessageId = new Map(
-    messages.map((message) => [message.id, message.conversationId]),
-  );
-  const counts = new Map();
-  const notificationIdsByConversation = new Map();
-
-  for (const notification of notifications) {
-    const conversationId =
-      notification.relatedEntityType === "CONVERSATION"
-        ? notification.relatedEntityId
-        : conversationByMessageId.get(notification.relatedEntityId);
-    if (!conversationId) continue;
-    counts.set(conversationId, (counts.get(conversationId) || 0) + 1);
-    const ids = notificationIdsByConversation.get(conversationId) || [];
-    ids.push(notification.id);
-    notificationIdsByConversation.set(conversationId, ids);
-  }
-
-  return { counts, notificationIdsByConversation };
+  if (result.count)
+    app.io?.to(`user:${userId}`).emit("notification:updated", {
+      messageIds,
+      isRead: true,
+    });
+  return result.count;
 }
 
 export default async function conversationRoutes(app) {
@@ -132,7 +160,7 @@ export default async function conversationRoutes(app) {
       include: conversationInclude,
       orderBy: { updatedAt: "desc" },
     });
-    const { counts } = await unreadMessageState(app, request.authUser.id);
+    const counts = await unreadMessageState(app, request.authUser.id);
     const enriched = data.map((conversation) => ({
       ...conversation,
       unreadCount: counts.get(conversation.id) || 0,
@@ -319,6 +347,11 @@ export default async function conversationRoutes(app) {
       },
       select: { userId: true },
     });
+    if (members.length)
+      await app.prisma.messageReceipt.createMany({
+        data: members.map(({ userId }) => ({ messageId: message.id, userId })),
+        skipDuplicates: true,
+      });
     await Promise.all(
       members.map(({ userId }) =>
         createNotification(app, {
@@ -331,11 +364,94 @@ export default async function conversationRoutes(app) {
         }),
       ),
     );
+    const enrichedMessage = await app.prisma.message.findUnique({
+      where: { id: message.id },
+      include: messageInclude,
+    });
     app.io
       ?.to(`conversation:${request.params.id}`)
-      .emit("message:created", message);
+      .emit("message:created", enrichedMessage);
     reply.status(201);
-    return { success: true, data: message };
+    return { success: true, data: enrichedMessage };
+  });
+
+  app.post("/messages/receipts/delivered", async (request) => {
+    const input = parse(
+      z
+        .object({
+          messageIds: z.array(z.uuid()).max(500).default([]),
+          allPending: z.boolean().default(false),
+        })
+        .refine((value) => value.allPending || value.messageIds.length > 0, {
+          message: "Provide messageIds or allPending",
+        }),
+      request.body,
+    );
+    const pending = await app.prisma.messageReceipt.findMany({
+      where: {
+        userId: request.authUser.id,
+        deliveredAt: null,
+        ...(input.allPending ? {} : { messageId: { in: input.messageIds } }),
+      },
+      select: {
+        messageId: true,
+        deliveredAt: true,
+        readAt: true,
+        message: { select: { conversationId: true, senderId: true, createdAt: true } },
+      },
+      take: 500,
+    });
+    if (!pending.length) return { success: true, data: { count: 0 } };
+    const deliveredAt = new Date();
+    const messageIds = pending.map((item) => item.messageId);
+    const result = await app.prisma.messageReceipt.updateMany({
+      where: {
+        userId: request.authUser.id,
+        messageId: { in: messageIds },
+        deliveredAt: null,
+      },
+      data: { deliveredAt },
+    });
+    emitReceiptUpdates(app, request.authUser.id, pending, { deliveredAt });
+    return { success: true, data: { count: result.count } };
+  });
+
+  app.post("/messages/receipts/read", async (request) => {
+    const { messageIds } = parse(
+      z.object({ messageIds: z.array(z.uuid()).min(1).max(200) }),
+      request.body,
+    );
+    const receipts = await messageReceiptsForUser(
+      app,
+      request.authUser.id,
+      messageIds,
+      { readAt: null },
+    );
+    if (!receipts.length) return { success: true, data: { count: 0 } };
+    const ids = receipts.map((item) => item.messageId);
+    const readAt = new Date();
+    await app.prisma.messageReceipt.updateMany({
+      where: {
+        userId: request.authUser.id,
+        messageId: { in: ids },
+        deliveredAt: null,
+      },
+      data: { deliveredAt: readAt },
+    });
+    const result = await app.prisma.messageReceipt.updateMany({
+      where: {
+        userId: request.authUser.id,
+        messageId: { in: ids },
+        readAt: null,
+      },
+      data: { readAt },
+    });
+    await markMessageNotificationsRead(app, request.authUser.id, ids, readAt);
+    emitReceiptUpdates(app, request.authUser.id, receipts, {
+      deliveredAt: readAt,
+      readAt,
+    });
+    return { success: true, data: { count: result.count } };
   });
 
   app.patch("/messages/:id", async (request) => {
@@ -404,6 +520,7 @@ export default async function conversationRoutes(app) {
     await requireMembership(app, request.params.id, request.authUser.id);
     const message = await app.prisma.message.findUnique({
       where: { id: input.messageId },
+      select: { id: true, conversationId: true, createdAt: true },
     });
     if (!message || message.conversationId !== request.params.id)
       throw new HttpError(
@@ -411,31 +528,46 @@ export default async function conversationRoutes(app) {
         "MESSAGE_NOT_IN_CONVERSATION",
         "Message is not in this conversation",
       );
-    const readAt = new Date();
-    const notificationRead = openedFromLinkedMessage(request)
-      ? Promise.resolve({ count: 0 })
-      : unreadMessageState(app, request.authUser.id).then(
-          ({ notificationIdsByConversation }) => {
-            const ids = notificationIdsByConversation.get(request.params.id) || [];
-            if (!ids.length) return { count: 0 };
-            return app.prisma.notification.updateMany({
-              where: { id: { in: ids } },
-              data: { isRead: true, readAt },
-            });
-          },
-        );
-    const [, notificationUpdate] = await Promise.all([
-      app.prisma.conversationMember.update({
-        where: {
-          conversationId_userId: {
-            conversationId: request.params.id,
-            userId: request.authUser.id,
-          },
+
+    const receipts = await app.prisma.messageReceipt.findMany({
+      where: {
+        userId: request.authUser.id,
+        readAt: null,
+        message: {
+          conversationId: request.params.id,
+          createdAt: { lte: message.createdAt },
         },
-        data: { lastReadMessageId: input.messageId },
-      }),
-      notificationRead,
-    ]);
+      },
+      select: {
+        messageId: true,
+        deliveredAt: true,
+        readAt: true,
+        message: { select: { conversationId: true, senderId: true, createdAt: true } },
+      },
+    });
+    const readAt = new Date();
+    const ids = receipts.map((item) => item.messageId);
+    if (ids.length) {
+      await app.prisma.messageReceipt.updateMany({
+        where: { userId: request.authUser.id, messageId: { in: ids }, deliveredAt: null },
+        data: { deliveredAt: readAt },
+      });
+      await app.prisma.messageReceipt.updateMany({
+        where: { userId: request.authUser.id, messageId: { in: ids }, readAt: null },
+        data: { readAt },
+      });
+      await markMessageNotificationsRead(app, request.authUser.id, ids, readAt);
+      emitReceiptUpdates(app, request.authUser.id, receipts, { deliveredAt: readAt, readAt });
+    }
+    await app.prisma.conversationMember.update({
+      where: {
+        conversationId_userId: {
+          conversationId: request.params.id,
+          userId: request.authUser.id,
+        },
+      },
+      data: { lastReadMessageId: input.messageId },
+    });
     app.io
       ?.to(`conversation:${request.params.id}`)
       .emit("conversation:read-updated", {
@@ -443,12 +575,7 @@ export default async function conversationRoutes(app) {
         userId: request.authUser.id,
         messageId: input.messageId,
       });
-    if (notificationUpdate.count)
-      app.io?.to(`user:${request.authUser.id}`).emit("notification:updated", {
-        conversationId: request.params.id,
-        messagesRead: notificationUpdate.count,
-      });
-    return { success: true, data: null };
+    return { success: true, data: { count: ids.length } };
   });
 
   app.post("/conversations/:id/members", async (request) => {
