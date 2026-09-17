@@ -26,5 +26,5 @@ if ($remaining) {
 }
 
 Write-Host 'Registry fix completed.' -ForegroundColor Green
-Write-Host 'Run: docker compose build --no-cache' -ForegroundColor Yellow
-Write-Host 'Then: docker compose up' -ForegroundColor Yellow
+Write-Host 'Then run: npm run install:all' -ForegroundColor Yellow
+Write-Host 'Start development: npm run dev' -ForegroundColor Yellow

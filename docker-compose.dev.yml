@@ -1,8 +1,0 @@
-# Local host-side development only. Do not use this overlay on a shared server.
-services:
-  postgres:
-    ports:
-      - "127.0.0.1:5432:5432"
-  redis:
-    ports:
-      - "127.0.0.1:6379:6379"

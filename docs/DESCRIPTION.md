@@ -1,9 +1,7 @@
-# Project description
+# Application description
 
-Workspace is a self-hosted internal collaboration application for one organization, expanded from the uploaded React/Fastify project. It covers Drive, tasks, direct/group messages, sequential approvals, and role/resource permissions.
+The application is a single-organization internal collaboration system with a React/Vite frontend and a Node.js/Fastify backend.
 
-The browser calls a modular Node.js/Fastify API. PostgreSQL stores application records, file metadata, sessions, and permissions. Private disk storage is the fresh-install default; an existing S3-compatible backend remains supported. Socket.IO sends live events after server-side authorization. Redis supports presence and BullMQ; the worker creates deadline notifications.
+The browser communicates with the backend through REST endpoints and Socket.IO. Prisma manages the PostgreSQL-compatible data model. In local development the backend starts a persistent embedded PGlite database, so a separate PostgreSQL installation is not required. Files use private local disk storage by default, while the existing S3-compatible storage implementation remains available for future external deployments.
 
-The backend remains JavaScript with Fastify because it is already the project's working foundation. Rewriting in Express or Python would add migration work without being necessary for the requested modules.
-
-This is a foundation for an internal pilot. See the README for setup, `PERMISSIONS.md` for access rules, and `IMPLEMENTATION_STATUS.md` for precise limits and unfinished areas.
+The backend provides authentication, role/permission checks, organization administration, Drive, tasks, approvals, notifications, conversations, and realtime messaging. Presence is maintained in-process for the current single-backend-instance development architecture. Task-deadline notification scanning also runs inside the backend process, replacing the previous Redis/BullMQ worker for local development.

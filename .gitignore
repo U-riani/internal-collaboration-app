@@ -16,3 +16,6 @@ backups/*.tar.gz
 data/
 backups/
 coverage/
+
+# Local no-Docker development data
+apps/api/.local/
