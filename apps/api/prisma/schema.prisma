@@ -111,7 +111,6 @@ model Department {
   users              User[]         @relation("UserDepartment")
   conversations      Conversation[]
   tasks              Task[]
-  taskGroups         TaskGroup[]
   approvalRequests   ApprovalRequest[]
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
@@ -146,7 +145,8 @@ model User {
   messages                  Message[]
   messageReceipts           MessageReceipt[]
   createdTasks              Task[]                    @relation("TaskCreator")
-  createdTaskGroups          TaskGroup[]               @relation("TaskGroupCreator")
+  taskGroups                 TaskGroup[]               @relation("TaskGroupOwner")
+  taskLayouts                UserTaskLayout[]
   assignedTasks             Task[]                    @relation("TaskAssignee")
   taskParticipants          TaskParticipant[]
   taskComments              TaskComment[]
@@ -300,9 +300,7 @@ model Task {
   parentTaskId   String?           @db.Uuid
   parentTask     Task?             @relation("TaskHierarchy", fields: [parentTaskId], references: [id], onDelete: SetNull)
   subtasks       Task[]            @relation("TaskHierarchy")
-  groupId        String?           @db.Uuid
-  group          TaskGroup?       @relation(fields: [groupId], references: [id], onDelete: SetNull)
-  position       Int              @default(0)
+  subtaskPosition Int             @default(0)
   status         TaskStatus        @default(OPEN)
   priority       TaskPriority      @default(NORMAL)
   startDate      DateTime?
@@ -313,31 +311,44 @@ model Task {
   comments       TaskComment[]
   attachments    TaskAttachment[]
   history        TaskHistory[]
+  layouts        UserTaskLayout[]
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
 
   @@index([assigneeId, status, dueDate])
   @@index([departmentId, status])
   @@index([creatorId, createdAt(sort: Desc)])
-  @@index([groupId, position])
-  @@index([parentTaskId, position])
+  @@index([parentTaskId, subtaskPosition])
 }
 
 model TaskGroup {
-  id           String      @id @default(uuid()) @db.Uuid
-  name         String
-  creatorId    String      @db.Uuid
-  creator      User        @relation("TaskGroupCreator", fields: [creatorId], references: [id], onDelete: Restrict)
-  departmentId String?     @db.Uuid
-  department   Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
-  position     Int         @default(0)
-  archivedAt   DateTime?
-  tasks        Task[]
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  id         String           @id @default(uuid()) @db.Uuid
+  name       String
+  ownerId    String           @db.Uuid
+  owner      User             @relation("TaskGroupOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  position   Int              @default(0)
+  archivedAt DateTime?
+  layouts    UserTaskLayout[]
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
 
-  @@index([departmentId, archivedAt, position])
-  @@index([creatorId, archivedAt])
+  @@index([ownerId, archivedAt, position])
+}
+
+model UserTaskLayout {
+  userId    String     @db.Uuid
+  taskId    String     @db.Uuid
+  groupId   String?    @db.Uuid
+  position  Int        @default(0)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task      Task       @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  group     TaskGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@id([userId, taskId])
+  @@index([userId, groupId, position])
+  @@index([groupId])
 }
 
 model TaskParticipant {
