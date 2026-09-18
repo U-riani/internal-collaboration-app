@@ -55,6 +55,18 @@ function presentTask(task) {
 }
 
 
+const taskStatusSchema = z.enum([
+  "DRAFT",
+  "OPEN",
+  "IN_PROGRESS",
+  "BLOCKED",
+  "WAITING_REVIEW",
+  "COMPLETED",
+  "CANCELLED",
+]);
+
+const taskPrioritySchema = z.enum(["LOW", "NORMAL", "HIGH", "URGENT"]);
+
 const createSchema = z.object({
   title: z.string().trim().min(2).max(250),
   description: z.string().max(20000).optional(),
@@ -63,18 +75,8 @@ const createSchema = z.object({
   parentTaskId: z.uuid().nullable().optional(),
   groupId: z.uuid().nullable().optional(),
   position: z.number().int().min(0).optional(),
-  status: z
-    .enum([
-      "DRAFT",
-      "OPEN",
-      "IN_PROGRESS",
-      "BLOCKED",
-      "WAITING_REVIEW",
-      "COMPLETED",
-      "CANCELLED",
-    ])
-    .default("OPEN"),
-  priority: z.enum(["LOW", "NORMAL", "HIGH", "URGENT"]).default("NORMAL"),
+  status: taskStatusSchema.default("OPEN"),
+  priority: taskPrioritySchema.default("NORMAL"),
   startDate: z.coerce.date().nullable().optional(),
   dueDate: z.coerce.date().nullable().optional(),
   participantIds: z.array(z.uuid()).default([]),
@@ -83,6 +85,8 @@ const createSchema = z.object({
 
 const updateSchema = createSchema
   .omit({
+    status: true,
+    priority: true,
     participantIds: true,
     attachmentIds: true,
     groupId: true,
@@ -90,6 +94,8 @@ const updateSchema = createSchema
   })
   .partial()
   .extend({
+    status: taskStatusSchema.optional(),
+    priority: taskPrioritySchema.optional(),
     participantIds: z.array(z.uuid()).optional(),
     attachmentIds: z.array(z.uuid()).optional(),
   });
