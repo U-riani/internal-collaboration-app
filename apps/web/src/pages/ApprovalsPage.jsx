@@ -80,33 +80,69 @@ function FormFields({ schema, values, setValues, draft = false }) {
     </>
   );
 }
-function Configure({ onClose }) {
+function nextFieldKey(fields) {
+  let n = fields.length + 1;
+  while (fields.some((field) => field.key === `field${n}`)) n += 1;
+  return `field${n}`;
+}
+function Configure({ existing, onClose }) {
   const qc = useQueryClient();
-  const [name, setName] = useState("");
-  const [code, setCode] = useState("");
-  const [fields, setFields] = useState([
-    { label: "Reason", type: "textarea", required: true },
-  ]);
-  const [steps, setSteps] = useState([
-    {
-      name: "Manager review",
-      approverRule: "REQUESTER_MANAGER",
-      approverValue: "",
-    },
-  ]);
+  const usedCount = existing?._count?.requests || 0;
+  const [name, setName] = useState(existing?.name || "");
+  const [code, setCode] = useState(existing?.code || "");
+  const [description, setDescription] = useState(existing?.description || "");
+  const [fields, setFields] = useState(() =>
+    existing
+      ? Object.entries(existing.formSchema || {}).map(([key, field]) => ({
+          key,
+          ...field,
+        }))
+      : [
+          {
+            key: "field1",
+            label: "Reason",
+            type: "textarea",
+            required: true,
+          },
+        ],
+  );
+  const [steps, setSteps] = useState(() =>
+    existing?.steps?.length
+      ? existing.steps.map(({ name, approverRule, approverValue }) => ({
+          name,
+          approverRule,
+          approverValue: approverValue || "",
+        }))
+      : [
+          {
+            name: "Manager review",
+            approverRule: "REQUESTER_MANAGER",
+            approverValue: "",
+          },
+        ],
+  );
   const users = useQuery({
     queryKey: ["users"],
     queryFn: () => api("/users").then((r) => r.data),
   });
   const save = useMutation({
     mutationFn: () =>
-      api("/approval-types", {
-        method: "POST",
+      api(existing ? `/approval-types/${existing.id}` : "/approval-types", {
+        method: existing ? "PATCH" : "POST",
         body: JSON.stringify({
           name,
           code,
+          description: description || undefined,
           formSchema: Object.fromEntries(
-            fields.map((f, i) => [`field${i + 1}`, f]),
+            fields.map(({ key, label, type, required, options }) => [
+              key,
+              {
+                label,
+                type,
+                required,
+                ...(type === "select" ? { options } : {}),
+              },
+            ]),
           ),
           steps: steps.map((s, i) => ({
             ...s,
@@ -117,17 +153,31 @@ function Configure({ onClose }) {
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["approval-types"] });
+      qc.invalidateQueries({ queryKey: ["approval-types-manage"] });
       onClose();
     },
   });
   return (
-    <Modal title="New approval type" wide onClose={onClose}>
+    <Modal
+      title={existing ? `Edit ${existing.name}` : "New approval type"}
+      wide
+      onClose={onClose}
+    >
       <form
         onSubmit={(e) => {
           e.preventDefault();
           save.mutate();
         }}
       >
+        {existing && (
+          <div className="mb-5 rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-500">
+            <strong className="text-slate-700">Version {existing.version}</strong>
+            {" · "}
+            {usedCount} request{usedCount === 1 ? "" : "s"} created from this type.
+            Saving configuration changes creates version {existing.version + 1};
+            existing requests keep their saved workflow.
+          </div>
+        )}
         <div className="grid sm:grid-cols-2 gap-4">
           <Field
             label="Name"
@@ -135,69 +185,142 @@ function Configure({ onClose }) {
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
-          <Field
-            label="Code (letters, numbers, underscores)"
-            required
-            value={code}
-            onChange={(e) => setCode(e.target.value.toUpperCase())}
-          />
+          <Field label="Code (letters, numbers, underscores)">
+            <input
+              className="input"
+              required
+              disabled={Boolean(existing && usedCount > 0)}
+              value={code}
+              onChange={(e) => setCode(e.target.value.toUpperCase())}
+            />
+            {existing && usedCount > 0 && (
+              <p className="mt-1 text-xs text-slate-400">
+                The code is locked because this request type is already in use.
+              </p>
+            )}
+          </Field>
         </div>
+        <Field label="Description">
+          <textarea
+            className="input min-h-20"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
+        </Field>
         <h3 className="text-sm font-bold mt-6 mb-3">Request form</h3>
         <div className="space-y-3">
           {fields.map((f, i) => (
-            <div className="flex flex-wrap gap-2" key={i}>
-              <input
-                className="input flex-1 min-w-40"
-                aria-label={`Field ${i + 1} label`}
-                placeholder="Field label"
-                required
-                value={f.label}
-                onChange={(e) =>
-                  setFields(
-                    fields.map((x, j) =>
-                      i === j ? { ...x, label: e.target.value } : x,
-                    ),
-                  )
-                }
-              />
-              <select
-                className="input w-32"
-                aria-label={`Field ${i + 1} type`}
-                value={f.type}
-                onChange={(e) =>
-                  setFields(
-                    fields.map((x, j) =>
-                      i === j ? { ...x, type: e.target.value } : x,
-                    ),
-                  )
-                }
-              >
-                {["text", "textarea", "number", "date", "checkbox"].map((t) => (
-                  <option key={t}>{t}</option>
-                ))}
-              </select>
-              <label className="flex gap-2 items-center text-xs">
+            <div
+              className="rounded-xl border border-slate-200 p-3"
+              key={f.key}
+            >
+              <div className="flex flex-wrap gap-2">
                 <input
-                  type="checkbox"
-                  checked={f.required}
+                  className="input w-32"
+                  aria-label={`Field ${i + 1} key`}
+                  title="Technical field key"
+                  required
+                  pattern="[A-Za-z][A-Za-z0-9_]*"
+                  value={f.key}
                   onChange={(e) =>
                     setFields(
                       fields.map((x, j) =>
-                        i === j ? { ...x, required: e.target.checked } : x,
+                        i === j ? { ...x, key: e.target.value } : x,
                       ),
                     )
                   }
                 />
-                Required
-              </label>
-              <button
-                type="button"
-                className="icon-btn"
-                aria-label={`Remove field ${i + 1}`}
-                onClick={() => setFields(fields.filter((_, j) => j !== i))}
-              >
-                ×
-              </button>
+                <input
+                  className="input flex-1 min-w-40"
+                  aria-label={`Field ${i + 1} label`}
+                  placeholder="Field label"
+                  required
+                  value={f.label}
+                  onChange={(e) =>
+                    setFields(
+                      fields.map((x, j) =>
+                        i === j ? { ...x, label: e.target.value } : x,
+                      ),
+                    )
+                  }
+                />
+                <select
+                  className="input w-32"
+                  aria-label={`Field ${i + 1} type`}
+                  value={f.type}
+                  onChange={(e) =>
+                    setFields(
+                      fields.map((x, j) =>
+                        i === j
+                          ? {
+                              ...x,
+                              type: e.target.value,
+                              ...(e.target.value === "select"
+                                ? { options: x.options?.length ? x.options : ["Option 1"] }
+                                : { options: undefined }),
+                            }
+                          : x,
+                      ),
+                    )
+                  }
+                >
+                  {[
+                    "text",
+                    "textarea",
+                    "number",
+                    "date",
+                    "select",
+                    "checkbox",
+                  ].map((t) => (
+                    <option key={t}>{t}</option>
+                  ))}
+                </select>
+                <label className="flex gap-2 items-center text-xs">
+                  <input
+                    type="checkbox"
+                    checked={f.required}
+                    onChange={(e) =>
+                      setFields(
+                        fields.map((x, j) =>
+                          i === j ? { ...x, required: e.target.checked } : x,
+                        ),
+                      )
+                    }
+                  />
+                  Required
+                </label>
+                <button
+                  type="button"
+                  className="icon-btn"
+                  aria-label={`Remove field ${i + 1}`}
+                  onClick={() => setFields(fields.filter((_, j) => j !== i))}
+                >
+                  ×
+                </button>
+              </div>
+              {f.type === "select" && (
+                <input
+                  className="input mt-2"
+                  aria-label={`Field ${i + 1} options`}
+                  placeholder="Options separated by commas"
+                  value={(f.options || []).join(", ")}
+                  onChange={(e) =>
+                    setFields(
+                      fields.map((x, j) =>
+                        i === j
+                          ? {
+                              ...x,
+                              options: e.target.value
+                                .split(",")
+                                .map((value) => value.trim())
+                                .filter(Boolean),
+                            }
+                          : x,
+                      ),
+                    )
+                  }
+                />
+              )}
             </div>
           ))}
         </div>
@@ -205,7 +328,15 @@ function Configure({ onClose }) {
           type="button"
           className="btn-secondary mt-3"
           onClick={() =>
-            setFields([...fields, { label: "", type: "text", required: false }])
+            setFields([
+              ...fields,
+              {
+                key: nextFieldKey(fields),
+                label: "",
+                type: "text",
+                required: false,
+              },
+            ])
           }
         >
           Add field
@@ -305,10 +436,130 @@ function Configure({ onClose }) {
         <ErrorBox error={save.error} />
         <div className="form-actions">
           <button className="btn-primary" disabled={save.isPending}>
-            Create approval type
+            {existing ? "Save new version" : "Create approval type"}
           </button>
         </div>
       </form>
+    </Modal>
+  );
+}
+function RequestTypesManager({ onClose }) {
+  const qc = useQueryClient();
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("all");
+  const [editing, setEditing] = useState(null);
+  const query = useQuery({
+    queryKey: ["approval-types-manage"],
+    queryFn: () => api("/approval-types/manage").then((r) => r.data),
+  });
+  const changeStatus = useMutation({
+    mutationFn: ({ id, status }) =>
+      api(`/approval-types/${id}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["approval-types"] });
+      qc.invalidateQueries({ queryKey: ["approval-types-manage"] });
+    },
+  });
+
+  if (editing !== null)
+    return (
+      <Configure
+        existing={editing === "new" ? null : editing}
+        onClose={() => setEditing(null)}
+      />
+    );
+
+  const normalized = search.trim().toLowerCase();
+  const items = (query.data || []).filter(
+    (item) =>
+      (status === "all" || item.status === status) &&
+      (!normalized ||
+        item.name.toLowerCase().includes(normalized) ||
+        item.code.toLowerCase().includes(normalized)),
+  );
+
+  return (
+    <Modal title="Request types" wide onClose={onClose}>
+      <div className="flex flex-wrap gap-2 mb-4">
+        <input
+          className="input flex-1 min-w-52"
+          aria-label="Search request types"
+          placeholder="Search request types…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <select
+          className="input w-36"
+          aria-label="Request type status"
+          value={status}
+          onChange={(e) => setStatus(e.target.value)}
+        >
+          <option value="all">All statuses</option>
+          <option value="ACTIVE">Active</option>
+          <option value="INACTIVE">Inactive</option>
+          <option value="DRAFT">Draft</option>
+        </select>
+        <button className="btn-primary" onClick={() => setEditing("new")}>
+          <Plus size={16} />
+          New type
+        </button>
+      </div>
+      <ErrorBox error={query.error || changeStatus.error} />
+      {query.isLoading ? (
+        <Loading />
+      ) : items.length ? (
+        <div className="space-y-2">
+          {items.map((item) => {
+            const requestCount = item._count?.requests || 0;
+            return (
+              <div
+                key={item.id}
+                className="rounded-xl border border-slate-200 p-4 flex flex-wrap items-center gap-3"
+              >
+                <div className="flex-1 min-w-52">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-semibold text-sm">{item.name}</h3>
+                    <Badge value={item.status} />
+                  </div>
+                  <p className="text-xs text-slate-400 mt-1">
+                    {item.code} · v{item.version} · {requestCount} request
+                    {requestCount === 1 ? "" : "s"}
+                    {item.createdBy?.displayName
+                      ? ` · Created by ${item.createdBy.displayName}`
+                      : ""}
+                  </p>
+                </div>
+                <button
+                  className="btn-secondary"
+                  onClick={() => setEditing(item)}
+                >
+                  Edit
+                </button>
+                <button
+                  className="btn-secondary"
+                  disabled={changeStatus.isPending}
+                  onClick={() =>
+                    changeStatus.mutate({
+                      id: item.id,
+                      status: item.status === "ACTIVE" ? "INACTIVE" : "ACTIVE",
+                    })
+                  }
+                >
+                  {item.status === "ACTIVE" ? "Deactivate" : "Activate"}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <Empty
+          title="No request types"
+          text="Create a request type or change the current filter."
+        />
+      )}
     </Modal>
   );
 }
@@ -461,7 +712,7 @@ function RequestDetail({ item, onClose }) {
     <Modal title={item.title} onClose={onClose} wide>
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm text-slate-400">
-          {item.requester.displayName} · {prettyDate(item.createdAt)}
+          {item.requester.displayName} · {item.workflowSnapshot?.type?.name || item.approvalType.name} · v{item.workflowSnapshot?.type?.version || item.approvalTypeVersion} · {prettyDate(item.createdAt)}
         </p>
         <Badge value={item.status} />
       </div>
@@ -702,7 +953,7 @@ export default function ApprovalsPage() {
               <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-sm truncate">{r.title}</h3>
                 <p className="text-xs text-slate-400 mt-1">
-                  {r.approvalType.name} · {r.requester.displayName}
+                  {r.workflowSnapshot?.type?.name || r.approvalType.name} · {r.requester.displayName}
                 </p>
               </div>
               <span className="hidden sm:block text-xs text-slate-400">
@@ -720,7 +971,9 @@ export default function ApprovalsPage() {
         )}
       </div>
       {modal === "create" && <RequestForm onClose={() => setModal(null)} />}{" "}
-      {modal === "configure" && <Configure onClose={() => setModal(null)} />}{" "}
+      {modal === "configure" && (
+        <RequestTypesManager onClose={() => setModal(null)} />
+      )}{" "}
       {item && <RequestDetail item={item} onClose={closeRequest} />}
     </>
   );
