@@ -47,6 +47,19 @@ function completedCount(items = []) {
   return items.filter((item) => item.status === "COMPLETED").length;
 }
 
+function canUserChangeTaskStatus(task, user, hasPermission) {
+  if (!task || !user) return false;
+  return (
+    task.creatorId === user.id ||
+    task.assigneeId === user.id ||
+    task.participants?.some((participant) => participant.userId === user.id) ||
+    user.roles.includes("SYSTEM_ADMIN") ||
+    (hasPermission("tasks.manage_department") &&
+      user.departmentId &&
+      user.departmentId === task.departmentId)
+  );
+}
+
 function GroupForm({ existing, onClose }) {
   const qc = useQueryClient();
   const [name, setName] = useState(existing?.name || "");
@@ -357,11 +370,7 @@ function TaskDetail({ id, onClose }) {
       user.roles.includes("SYSTEM_ADMIN") ||
       (hasPermission("tasks.manage_department") &&
         user.departmentId === task.departmentId));
-  const canChangeStatus =
-    task &&
-    (canManage ||
-      task.assigneeId === user.id ||
-      task.participants?.some((participant) => participant.userId === user.id));
+  const canChangeStatus = canUserChangeTaskStatus(task, user, hasPermission);
   const subtasks = task?.subtasks || [];
   const done = completedCount(subtasks);
 
@@ -513,6 +522,11 @@ function TaskDetail({ id, onClose }) {
                 <div>
                   {subtasks.map((subtask) => {
                     const completed = subtask.status === "COMPLETED";
+                    const canChangeSubtaskStatus = canUserChangeTaskStatus(
+                      subtask,
+                      user,
+                      hasPermission,
+                    );
                     return (
                       <div
                         key={subtask.id}
@@ -521,7 +535,8 @@ function TaskDetail({ id, onClose }) {
                         <button
                           type="button"
                           aria-label={completed ? `Reopen ${subtask.title}` : `Complete ${subtask.title}`}
-                          className="grid h-6 w-6 shrink-0 place-items-center rounded-md text-blue-600 hover:bg-blue-50"
+                          className="grid h-6 w-6 shrink-0 place-items-center rounded-md text-blue-600 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-40"
+                          disabled={updateStatus.isPending || !canChangeSubtaskStatus}
                           onClick={() =>
                             updateStatus.mutate({
                               taskId: subtask.id,
@@ -866,6 +881,7 @@ export default function TasksPage() {
     const done = completedCount(children);
     const expanded = expandedTasks.has(task.id);
     const updating = quickStatus.isPending && quickStatus.variables?.taskId === task.id;
+    const canChangeStatus = canUserChangeTaskStatus(task, user, hasPermission);
 
     return (
       <div key={task.id}>
@@ -899,7 +915,7 @@ export default function TasksPage() {
               aria-label={completed ? `Reopen ${task.title}` : `Complete ${task.title}`}
               title={completed ? "Mark as open" : "Mark as completed"}
               className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-md text-blue-600 transition hover:bg-blue-50 disabled:opacity-50"
-              disabled={updating}
+              disabled={updating || !canChangeStatus}
               onClick={(event) => toggleCompleted(event, task)}
             >
               {completed ? (
