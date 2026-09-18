@@ -185,20 +185,22 @@ function Configure({ existing, onClose }) {
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
-          <Field label="Code (letters, numbers, underscores)">
-            <input
-              className="input"
-              required
-              disabled={Boolean(existing && usedCount > 0)}
-              value={code}
-              onChange={(e) => setCode(e.target.value.toUpperCase())}
-            />
+          <div>
+            <Field label="Code (letters, numbers, underscores)">
+              <input
+                className="input"
+                required
+                disabled={Boolean(existing && usedCount > 0)}
+                value={code}
+                onChange={(e) => setCode(e.target.value.toUpperCase())}
+              />
+            </Field>
             {existing && usedCount > 0 && (
               <p className="mt-1 text-xs text-slate-400">
                 The code is locked because this request type is already in use.
               </p>
             )}
-          </Field>
+          </div>
         </div>
         <Field label="Description">
           <textarea
