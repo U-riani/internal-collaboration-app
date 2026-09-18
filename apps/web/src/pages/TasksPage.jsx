@@ -99,9 +99,15 @@ function TaskForm({ existing, parentTask, defaultGroupId = "", onClose }) {
   const [form, setForm] = useState({
     title: existing?.title || "",
     description: existing?.description || "",
-    assigneeId: existing?.assigneeId || parentTask?.assigneeId || "",
+    assigneeId:
+      existing?.assigneeId ||
+      (parentTask
+        ? hasPermission("tasks.assign")
+          ? parentTask.assigneeId || user.id
+          : user.id
+        : ""),
     priority: existing?.priority || parentTask?.priority || "NORMAL",
-    groupId: existing?.groupId || parentTask?.groupId || defaultGroupId || "",
+    groupId: existing?.personalLayout?.groupId || defaultGroupId || "",
     dueDate: existing?.dueDate
       ? new Date(
           new Date(existing.dueDate).getTime() -
@@ -123,21 +129,31 @@ function TaskForm({ existing, parentTask, defaultGroupId = "", onClose }) {
     queryFn: () => api("/tasks/groups").then((response) => response.data),
   });
   const save = useMutation({
-    mutationFn: async () =>
-      api(existing ? `/tasks/${existing.id}` : "/tasks", {
+    mutationFn: async () => {
+      const attachmentIds = [
+        ...(existing?.attachments.map((attachment) => attachment.fileId) || []),
+        ...(file ? [(await uploadFile(file)).id] : []),
+      ];
+      const { groupId, ...sharedForm } = form;
+      const response = await api(existing ? `/tasks/${existing.id}` : "/tasks", {
         method: existing ? "PATCH" : "POST",
         body: JSON.stringify({
-          ...form,
+          ...sharedForm,
+          ...(existing || isSubtask ? {} : { groupId: groupId || null }),
           assigneeId: form.assigneeId || null,
-          groupId: parentTask ? parentTask.groupId || null : form.groupId || null,
           parentTaskId: existing ? undefined : parentTask?.id || null,
           dueDate: form.dueDate ? new Date(form.dueDate).toISOString() : null,
-          attachmentIds: [
-            ...(existing?.attachments.map((attachment) => attachment.fileId) || []),
-            ...(file ? [(await uploadFile(file)).id] : []),
-          ],
+          attachmentIds,
         }),
-      }),
+      });
+      if (existing && !isSubtask) {
+        await api(`/tasks/${existing.id}/layout`, {
+          method: "PUT",
+          body: JSON.stringify({ groupId: groupId || null }),
+        });
+      }
+      return response;
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["tasks"] });
       qc.invalidateQueries({ queryKey: ["task"] });
@@ -221,7 +237,7 @@ function TaskForm({ existing, parentTask, defaultGroupId = "", onClose }) {
               onChange={(event) => change("groupId", event.target.value)}
             >
               <option value="">Ungrouped</option>
-              {groups.data?.filter((group) => group.canUse !== false).map((group) => (
+              {groups.data?.map((group) => (
                 <option key={group.id} value={group.id}>
                   {group.name}
                 </option>
@@ -290,6 +306,10 @@ function TaskDetail({ id, onClose }) {
     queryKey: ["task", id],
     queryFn: () => api(`/tasks/${id}`).then((response) => response.data),
   });
+  const groups = useQuery({
+    queryKey: ["task-groups"],
+    queryFn: () => api("/tasks/groups").then((response) => response.data),
+  });
   const task = query.data;
   const addComment = useMutation({
     mutationFn: async () =>
@@ -317,6 +337,18 @@ function TaskDetail({ id, onClose }) {
       qc.invalidateQueries({ queryKey: ["task", id] });
       qc.invalidateQueries({ queryKey: ["task", variables.taskId] });
       qc.invalidateQueries({ queryKey: ["tasks"] });
+    },
+  });
+  const updateLayout = useMutation({
+    mutationFn: (groupId) =>
+      api(`/tasks/${id}/layout`, {
+        method: "PUT",
+        body: JSON.stringify({ groupId: groupId || null }),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["task", id] });
+      qc.invalidateQueries({ queryKey: ["tasks"] });
+      qc.invalidateQueries({ queryKey: ["task-groups"] });
     },
   });
   const canManage =
@@ -362,9 +394,9 @@ function TaskDetail({ id, onClose }) {
               <div className="flex flex-wrap gap-2">
                 <Badge value={task.priority} />
                 <Badge value={task.status} />
-                {task.group && (
+                {task.personalLayout?.group && (
                   <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-500">
-                    {task.group.name}
+                    My group · {task.personalLayout.group.name}
                   </span>
                 )}
               </div>
@@ -378,7 +410,11 @@ function TaskDetail({ id, onClose }) {
           <p className="whitespace-pre-wrap text-sm leading-6 text-slate-500 mt-6">
             {task.description || "No description provided."}
           </p>
-          <div className="grid sm:grid-cols-3 gap-4 my-6 rounded-xl bg-slate-50 p-4 text-sm">
+          <div
+            className={`grid gap-4 my-6 rounded-xl bg-slate-50 p-4 text-sm ${
+              task.parentTaskId ? "sm:grid-cols-3" : "sm:grid-cols-4"
+            }`}
+          >
             <div>
               <p className="text-xs text-slate-400 mb-2">Assigned to</p>
               {task.assignee?.displayName || "Unassigned"}
@@ -403,6 +439,25 @@ function TaskDetail({ id, onClose }) {
                 ))}
               </select>
             </div>
+            {!task.parentTaskId && (
+              <div>
+                <p className="text-xs text-slate-400 mb-2">My group</p>
+                <select
+                  aria-label="My task group"
+                  className="input"
+                  value={task.personalLayout?.groupId || ""}
+                  disabled={updateLayout.isPending}
+                  onChange={(event) => updateLayout.mutate(event.target.value)}
+                >
+                  <option value="">Ungrouped</option>
+                  {(groups.data || []).map((group) => (
+                    <option key={group.id} value={group.id}>
+                      {group.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
 
           {!task.parentTaskId && (
@@ -478,7 +533,7 @@ function TaskDetail({ id, onClose }) {
               Participants: {task.participants.map((participant) => participant.user.displayName).join(", ")}
             </p>
           )}
-          <ErrorBox error={updateStatus.error} />
+          <ErrorBox error={updateStatus.error || updateLayout.error || groups.error} />
           <h3 className="font-semibold text-sm mt-8 mb-4">
             Discussion · {task.comments.length}
           </h3>
@@ -698,9 +753,23 @@ export default function TasksPage() {
     const data = groups.data || [];
     const sections = data.map((group) => ({
       ...group,
-      tasks: visibleParents.filter((task) => task.groupId === group.id),
+      tasks: visibleParents
+        .filter((task) => task.personalLayout?.groupId === group.id)
+        .slice()
+        .sort(
+          (left, right) =>
+            (left.personalLayout?.position ?? Number.MAX_SAFE_INTEGER) -
+            (right.personalLayout?.position ?? Number.MAX_SAFE_INTEGER),
+        ),
     }));
-    const ungrouped = visibleParents.filter((task) => !task.groupId);
+    const ungrouped = visibleParents
+      .filter((task) => !task.personalLayout?.groupId)
+      .slice()
+      .sort(
+        (left, right) =>
+          (left.personalLayout?.position ?? Number.MAX_SAFE_INTEGER) -
+          (right.personalLayout?.position ?? Number.MAX_SAFE_INTEGER),
+      );
     if (ungrouped.length || !sections.length) {
       sections.push({
         id: UNGROUPED,
@@ -735,9 +804,9 @@ export default function TasksPage() {
         <p className="line-clamp-2 mt-3 text-xs leading-5 text-slate-400">
           {task.description}
         </p>
-        {task.group && (
+        {task.personalLayout?.group && (
           <p className="mt-3 truncate text-[11px] font-medium text-slate-400">
-            {task.group.name}
+            My group · {task.personalLayout.group.name}
           </p>
         )}
         <div className="mt-4 flex items-center gap-2 text-xs text-slate-400">
@@ -858,14 +927,14 @@ export default function TasksPage() {
     <>
       <PageHeader
         title="Tasks"
-        description="Organize work into groups, tasks, and focused subtasks."
+        description="Organize shared work with your own personal groups and focused subtasks."
         action={
-          hasPermission("tasks.create") && (
-            <div className="flex items-center gap-2">
-              <button className="btn-secondary" onClick={() => setGroupForm({})}>
-                <FolderPlus size={17} />
-                New group
-              </button>
+          <div className="flex items-center gap-2">
+            <button className="btn-secondary" onClick={() => setGroupForm({})}>
+              <FolderPlus size={17} />
+              New group
+            </button>
+            {hasPermission("tasks.create") && (
               <button
                 className="btn-primary"
                 onClick={() => {
@@ -876,8 +945,8 @@ export default function TasksPage() {
                 <Plus size={17} />
                 New task
               </button>
-            </div>
-          )
+            )}
+          </div>
         }
       />
       <div className="toolbar">
@@ -1011,7 +1080,7 @@ export default function TasksPage() {
                             onClick={() => {
                               if (
                                 window.confirm(
-                                  `Delete “${group.name}”? Its tasks will be moved to Ungrouped.`,
+                                  `Delete “${group.name}”? Your tasks in this group will move to Ungrouped. Other users are not affected.`,
                                 )
                               )
                                 deleteGroup.mutate(group.id);
