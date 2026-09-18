@@ -42,6 +42,9 @@ const requestSchema = z.object({
   attachmentIds: z.array(z.uuid()).max(10).default([]),
   submit: z.boolean().default(false),
 });
+const typeUpdateSchema = typeSchema.extend({
+  status: z.enum(["ACTIVE", "INACTIVE"]).optional(),
+});
 const revisionSchema = z.object({ revision: z.number().int().nonnegative() });
 const requestInclude = {
   approvalType: true,
@@ -91,6 +94,27 @@ async function log(tx, user, id, action, metadata = {}) {
       metadata,
     },
   });
+}
+async function logType(tx, user, id, action, metadata = {}) {
+  await tx.auditLog.create({
+    data: {
+      actorId: user.id,
+      entityType: "APPROVAL_TYPE",
+      entityId: id,
+      actionType: action,
+      metadata,
+    },
+  });
+}
+function normalizeSteps(steps) {
+  const sorted = [...steps].sort((a, b) => a.stepNumber - b.stepNumber);
+  if (sorted.some((step, i) => step.stepNumber !== i + 1))
+    throw new HttpError(
+      400,
+      "WORKFLOW_STEPS",
+      "Steps must be numbered consecutively from 1",
+    );
+  return sorted;
 }
 async function submit(tx, id, actor, revision) {
   const item = await tx.approvalRequest.findUnique({
@@ -212,27 +236,123 @@ export default async function approvalRoutes(app) {
       orderBy: { name: "asc" },
     }),
   }));
+  app.get("/approval-types/manage", async (request) => {
+    requirePermission(request.authUser, "approvals.configure");
+    return {
+      success: true,
+      data: await app.prisma.approvalType.findMany({
+        include: {
+          steps: { orderBy: { stepNumber: "asc" } },
+          createdBy: { select: { id: true, displayName: true } },
+          _count: { select: { requests: true } },
+        },
+        orderBy: [{ status: "asc" }, { name: "asc" }],
+      }),
+    };
+  });
   app.post("/approval-types", async (request, reply) => {
     requirePermission(request.authUser, "approvals.configure");
     const input = parse(typeSchema, request.body);
-    input.steps.sort((a, b) => a.stepNumber - b.stepNumber);
-    if (input.steps.some((step, i) => step.stepNumber !== i + 1))
-      throw new HttpError(
-        400,
-        "WORKFLOW_STEPS",
-        "Steps must be numbered consecutively from 1",
-      );
-    const { steps, ...fields } = input;
-    const data = await app.prisma.approvalType.create({
-      data: {
-        ...fields,
-        status: "ACTIVE",
-        createdById: request.authUser.id,
-        steps: { create: steps },
-      },
-      include: { steps: true },
+    const steps = normalizeSteps(input.steps);
+    const { steps: _steps, ...fields } = input;
+    const data = await app.prisma.$transaction(async (tx) => {
+      const created = await tx.approvalType.create({
+        data: {
+          ...fields,
+          status: "ACTIVE",
+          createdById: request.authUser.id,
+          steps: { create: steps },
+        },
+        include: { steps: { orderBy: { stepNumber: "asc" } } },
+      });
+      await logType(tx, request.authUser, created.id, "APPROVAL_TYPE_CREATED", {
+        version: created.version,
+      });
+      return created;
     });
     reply.code(201);
+    return { success: true, data };
+  });
+  app.patch("/approval-types/:id", async (request) => {
+    requirePermission(request.authUser, "approvals.configure");
+    const input = parse(typeUpdateSchema, request.body);
+    const steps = normalizeSteps(input.steps);
+    const data = await app.prisma.$transaction(async (tx) => {
+      const existing = await tx.approvalType.findUnique({
+        where: { id: request.params.id },
+        include: {
+          steps: { orderBy: { stepNumber: "asc" } },
+          _count: { select: { requests: true } },
+        },
+      });
+      if (!existing)
+        throw new HttpError(404, "TYPE_NOT_FOUND", "Request type was not found");
+      if (existing._count.requests > 0 && input.code !== existing.code)
+        throw new HttpError(
+          409,
+          "TYPE_CODE_LOCKED",
+          "The code cannot be changed after this request type has been used",
+        );
+      await tx.approvalTypeStep.deleteMany({
+        where: { approvalTypeId: existing.id },
+      });
+      const updated = await tx.approvalType.update({
+        where: { id: existing.id },
+        data: {
+          code: input.code,
+          name: input.name,
+          description: input.description ?? null,
+          formSchema: input.formSchema,
+          status: input.status ?? existing.status,
+          version: { increment: 1 },
+          steps: { create: steps },
+        },
+        include: {
+          steps: { orderBy: { stepNumber: "asc" } },
+          createdBy: { select: { id: true, displayName: true } },
+          _count: { select: { requests: true } },
+        },
+      });
+      await logType(tx, request.authUser, updated.id, "APPROVAL_TYPE_UPDATED", {
+        fromVersion: existing.version,
+        toVersion: updated.version,
+      });
+      return updated;
+    });
+    return { success: true, data };
+  });
+  app.patch("/approval-types/:id/status", async (request) => {
+    requirePermission(request.authUser, "approvals.configure");
+    const { status } = parse(
+      z.object({ status: z.enum(["ACTIVE", "INACTIVE"]) }),
+      request.body,
+    );
+    const data = await app.prisma.$transaction(async (tx) => {
+      const existing = await tx.approvalType.findUnique({
+        where: { id: request.params.id },
+      });
+      if (!existing)
+        throw new HttpError(404, "TYPE_NOT_FOUND", "Request type was not found");
+      const updated = await tx.approvalType.update({
+        where: { id: existing.id },
+        data: { status },
+        include: {
+          steps: { orderBy: { stepNumber: "asc" } },
+          createdBy: { select: { id: true, displayName: true } },
+          _count: { select: { requests: true } },
+        },
+      });
+      await logType(
+        tx,
+        request.authUser,
+        updated.id,
+        status === "ACTIVE"
+          ? "APPROVAL_TYPE_ACTIVATED"
+          : "APPROVAL_TYPE_DEACTIVATED",
+        { previousStatus: existing.status, status },
+      );
+      return updated;
+    });
     return { success: true, data };
   });
   app.get("/approval-requests", async (request) => ({
@@ -275,6 +395,11 @@ export default async function approvalRoutes(app) {
           title: input.title,
           data: input.data,
           workflowSnapshot: {
+            type: {
+              name: type.name,
+              code: type.code,
+              version: type.version,
+            },
             formSchema: type.formSchema,
             definitions: type.steps.map(
               ({ stepNumber, name, approverRule, approverValue }) => ({
