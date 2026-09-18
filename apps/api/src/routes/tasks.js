@@ -145,6 +145,54 @@ export default async function taskRoutes(app) {
       );
   }
 
+  function taskStakeholderIds(task, { includeParent = false } = {}) {
+    const ids = new Set(
+      [
+        task.creatorId,
+        task.assigneeId,
+        ...(task.participants || []).map((participant) => participant.userId),
+      ].filter(Boolean),
+    );
+
+    if (includeParent && task.parentTask) {
+      ids.add(task.parentTask.creatorId);
+      if (task.parentTask.assigneeId) ids.add(task.parentTask.assigneeId);
+      for (const participant of task.parentTask.participants || []) {
+        ids.add(participant.userId);
+      }
+    }
+
+    return ids;
+  }
+
+  async function notifyTaskCommentStakeholders(task, comment, actorId) {
+    const recipientIds = [
+      ...taskStakeholderIds(task, {
+        includeParent: Boolean(task.parentTaskId),
+      }),
+    ].filter((userId) => userId !== actorId);
+
+    if (!recipientIds.length) return;
+
+    const preview =
+      comment.content.length > 180
+        ? `${comment.content.slice(0, 177)}...`
+        : comment.content;
+
+    await Promise.all(
+      recipientIds.map((userId) =>
+        createNotification(app, {
+          userId,
+          type: "TASK_COMMENT",
+          title: `New comment on "${task.title}"`,
+          body: `${comment.author.displayName}: ${preview}`,
+          relatedEntityType: "TASK",
+          relatedEntityId: task.id,
+        }),
+      ),
+    );
+  }
+
   function directTaskAccessClauses(user) {
     return [
       { creatorId: user.id },
@@ -716,7 +764,12 @@ export default async function taskRoutes(app) {
     const input = parse(commentSchema, request.body);
     const task = await app.prisma.task.findUnique({
       where: { id: request.params.id },
-      include: { participants: true },
+      include: {
+        participants: true,
+        parentTask: {
+          include: { participants: true },
+        },
+      },
     });
     if (!task) throw new HttpError(404, "TASK_NOT_FOUND", "Task was not found");
     requireTaskAccess(request.authUser, task);
@@ -743,6 +796,7 @@ export default async function taskRoutes(app) {
         metadata: { commentId: comment.id },
       },
     });
+    await notifyTaskCommentStakeholders(task, comment, request.authUser.id);
     await emitTaskEvent(app, task.id, "task:comment-created");
     reply.status(201);
     return { success: true, data: comment };
