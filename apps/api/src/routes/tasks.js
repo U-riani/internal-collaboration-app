@@ -8,18 +8,52 @@ import { canAccessTask, requireTaskAccess } from "../lib/task-access.js";
 import { audit } from "../lib/audit.js";
 import { createNotification } from "../lib/notifications.js";
 
-const taskInclude = {
-  creator: { select: { id: true, displayName: true, email: true } },
-  assignee: { select: { id: true, displayName: true, email: true } },
-  department: { select: { id: true, name: true, code: true } },
-  group: { select: { id: true, name: true, position: true } },
-  parentTask: { select: { id: true, title: true } },
-  participants: {
-    include: { user: { select: { id: true, displayName: true, email: true } } },
-  },
-  attachments: { include: { file: true } },
-  _count: { select: { comments: true, subtasks: true } },
-};
+function taskIncludeFor(userId) {
+  return {
+    creator: { select: { id: true, displayName: true, email: true } },
+    assignee: { select: { id: true, displayName: true, email: true } },
+    department: { select: { id: true, name: true, code: true } },
+    parentTask: {
+      select: {
+        id: true,
+        title: true,
+        creatorId: true,
+        assigneeId: true,
+        departmentId: true,
+        participants: { select: { userId: true } },
+      },
+    },
+    participants: {
+      include: { user: { select: { id: true, displayName: true, email: true } } },
+    },
+    attachments: { include: { file: true } },
+    layouts: {
+      where: { userId },
+      select: {
+        groupId: true,
+        position: true,
+        group: { select: { id: true, name: true, position: true } },
+      },
+    },
+    _count: { select: { comments: true, subtasks: true } },
+  };
+}
+
+function presentTask(task) {
+  if (!task) return task;
+  const { layouts = [], subtasks, parentTask, ...rest } = task;
+  return {
+    ...rest,
+    parentTask: parentTask
+      ? { id: parentTask.id, title: parentTask.title }
+      : parentTask,
+    personalLayout: layouts[0] || null,
+    ...(subtasks
+      ? { subtasks: subtasks.map((subtask) => presentTask(subtask)) }
+      : {}),
+  };
+}
+
 
 const createSchema = z.object({
   title: z.string().trim().min(2).max(250),
@@ -48,8 +82,13 @@ const createSchema = z.object({
 });
 
 const updateSchema = createSchema
+  .omit({
+    participantIds: true,
+    attachmentIds: true,
+    groupId: true,
+    position: true,
+  })
   .partial()
-  .omit({ participantIds: true, attachmentIds: true })
   .extend({
     participantIds: z.array(z.uuid()).optional(),
     attachmentIds: z.array(z.uuid()).optional(),
@@ -62,13 +101,22 @@ const commentSchema = z.object({
 
 const groupCreateSchema = z.object({
   name: z.string().trim().min(1).max(120),
-  departmentId: z.uuid().nullable().optional(),
 });
 
 const groupUpdateSchema = z.object({
   name: z.string().trim().min(1).max(120).optional(),
   position: z.number().int().min(0).optional(),
 });
+
+const layoutSchema = z
+  .object({
+    groupId: z.uuid().nullable().optional(),
+    position: z.number().int().min(0).optional(),
+  })
+  .refine(
+    (value) => value.groupId !== undefined || value.position !== undefined,
+    "Provide a group or position",
+  );
 
 function validateDates(startDate, dueDate) {
   if (startDate && dueDate && dueDate < startDate) {
@@ -97,140 +145,162 @@ export default async function taskRoutes(app) {
       );
   }
 
-  function canManageGroup(user, group) {
-    return (
-      hasRole(user, "SYSTEM_ADMIN") ||
-      group.creatorId === user.id ||
-      (hasPermission(user, "tasks.manage_department") &&
-        user.departmentId &&
-        group.departmentId === user.departmentId)
+  function directTaskAccessClauses(user) {
+    return [
+      { creatorId: user.id },
+      { assigneeId: user.id },
+      { participants: { some: { userId: user.id } } },
+      ...(hasPermission(user, "tasks.manage_department") && user.departmentId
+        ? [{ departmentId: user.departmentId }]
+        : []),
+    ];
+  }
+
+  function taskAccessWhere(user) {
+    if (hasRole(user, "SYSTEM_ADMIN")) return {};
+    const direct = directTaskAccessClauses(user);
+    return {
+      OR: [
+        ...direct,
+        { subtasks: { some: { OR: direct } } },
+        { parentTask: { is: { OR: direct } } },
+      ],
+    };
+  }
+
+  function canAccessTaskFamily(user, task) {
+    if (canAccessTask(user, task)) return true;
+    if (task.parentTask && canAccessTask(user, task.parentTask)) return true;
+    return Boolean(
+      task.subtasks?.some((subtask) => canAccessTask(user, subtask)),
     );
   }
 
-  function canUseGroup(user, group) {
-    return (
-      canManageGroup(user, group) ||
-      (user.departmentId && group.departmentId === user.departmentId)
-    );
-  }
-
-  async function requireUsableGroup(user, groupId) {
+  async function requireOwnedGroup(userId, groupId) {
     if (!groupId) return null;
     const group = await app.prisma.taskGroup.findFirst({
-      where: { id: groupId, archivedAt: null },
+      where: { id: groupId, ownerId: userId, archivedAt: null },
     });
     if (!group)
-      throw new HttpError(404, "TASK_GROUP_NOT_FOUND", "Task group was not found");
-    if (!canUseGroup(user, group))
-      throw new HttpError(403, "TASK_GROUP_DENIED", "You cannot use this task group");
+      throw new HttpError(
+        404,
+        "TASK_GROUP_NOT_FOUND",
+        "Your task group was not found",
+      );
     return group;
   }
 
-  async function nextTaskPosition({ parentTaskId = null, groupId = null }) {
-    const result = await app.prisma.task.aggregate({
-      where: { parentTaskId, groupId, archivedAt: null },
+  async function nextGroupPosition(userId) {
+    const result = await app.prisma.taskGroup.aggregate({
+      where: { ownerId: userId, archivedAt: null },
       _max: { position: true },
     });
     return (result._max.position ?? -1000) + 1000;
   }
 
-  async function nextGroupPosition(departmentId) {
-    const result = await app.prisma.taskGroup.aggregate({
-      where: { departmentId, archivedAt: null },
+  async function nextLayoutPosition(userId, groupId) {
+    const result = await app.prisma.userTaskLayout.aggregate({
+      where: { userId, groupId },
       _max: { position: true },
     });
     return (result._max.position ?? -1000) + 1000;
+  }
+
+  async function nextSubtaskPosition(parentTaskId) {
+    const result = await app.prisma.task.aggregate({
+      where: { parentTaskId, archivedAt: null },
+      _max: { subtaskPosition: true },
+    });
+    return (result._max.subtaskPosition ?? -1000) + 1000;
+  }
+
+  async function loadTaskForFamilyAccess(taskId) {
+    return app.prisma.task.findUnique({
+      where: { id: taskId },
+      include: {
+        participants: true,
+        parentTask: { include: { participants: true } },
+        subtasks: { include: { participants: true } },
+      },
+    });
   }
 
   app.get("/groups", async (request) => {
-    const access = hasRole(request.authUser, "SYSTEM_ADMIN")
-      ? {}
-      : {
-          OR: [
-            { creatorId: request.authUser.id },
-            ...(request.authUser.departmentId
-              ? [{ departmentId: request.authUser.departmentId }]
-              : []),
-            {
-              tasks: {
-                some: {
-                  OR: [
-                    { creatorId: request.authUser.id },
-                    { assigneeId: request.authUser.id },
-                    { participants: { some: { userId: request.authUser.id } } },
-                  ],
-                },
-              },
-            },
-          ],
-        };
     const groups = await app.prisma.taskGroup.findMany({
-      where: { AND: [access], archivedAt: null },
-      include: { _count: { select: { tasks: true } } },
+      where: { ownerId: request.authUser.id, archivedAt: null },
+      include: { _count: { select: { layouts: true } } },
       orderBy: [{ position: "asc" }, { createdAt: "asc" }],
     });
     return {
       success: true,
       data: groups.map((group) => ({
         ...group,
-        canManage: canManageGroup(request.authUser, group),
-        canUse: canUseGroup(request.authUser, group),
+        canManage: true,
+        canUse: true,
       })),
     };
   });
 
   app.post("/groups", async (request, reply) => {
-    if (!hasPermission(request.authUser, "tasks.create"))
-      throw new HttpError(403, "PERMISSION_DENIED", "You cannot create task groups");
     const input = parse(groupCreateSchema, request.body);
-    const departmentId = input.departmentId ?? request.authUser.departmentId ?? null;
-    if (
-      departmentId &&
-      departmentId !== request.authUser.departmentId &&
-      !hasRole(request.authUser, "SYSTEM_ADMIN")
-    )
-      throw new HttpError(403, "TASK_GROUP_DENIED", "You cannot create a group for another department");
     const group = await app.prisma.taskGroup.create({
       data: {
         name: input.name,
-        creatorId: request.authUser.id,
-        departmentId,
-        position: await nextGroupPosition(departmentId),
+        ownerId: request.authUser.id,
+        position: await nextGroupPosition(request.authUser.id),
       },
-      include: { _count: { select: { tasks: true } } },
+      include: { _count: { select: { layouts: true } } },
     });
     reply.status(201);
-    return { success: true, data: { ...group, canManage: true, canUse: true } };
+    return {
+      success: true,
+      data: { ...group, canManage: true, canUse: true },
+    };
   });
 
   app.patch("/groups/:groupId", async (request) => {
     const input = parse(groupUpdateSchema, request.body);
     const group = await app.prisma.taskGroup.findFirst({
-      where: { id: request.params.groupId, archivedAt: null },
+      where: {
+        id: request.params.groupId,
+        ownerId: request.authUser.id,
+        archivedAt: null,
+      },
     });
     if (!group)
-      throw new HttpError(404, "TASK_GROUP_NOT_FOUND", "Task group was not found");
-    if (!canManageGroup(request.authUser, group))
-      throw new HttpError(403, "TASK_GROUP_DENIED", "You cannot change this task group");
+      throw new HttpError(
+        404,
+        "TASK_GROUP_NOT_FOUND",
+        "Your task group was not found",
+      );
     const updated = await app.prisma.taskGroup.update({
       where: { id: group.id },
       data: input,
-      include: { _count: { select: { tasks: true } } },
+      include: { _count: { select: { layouts: true } } },
     });
-    return { success: true, data: { ...updated, canManage: true, canUse: true } };
+    return {
+      success: true,
+      data: { ...updated, canManage: true, canUse: true },
+    };
   });
 
   app.delete("/groups/:groupId", async (request) => {
     const group = await app.prisma.taskGroup.findFirst({
-      where: { id: request.params.groupId, archivedAt: null },
+      where: {
+        id: request.params.groupId,
+        ownerId: request.authUser.id,
+        archivedAt: null,
+      },
     });
     if (!group)
-      throw new HttpError(404, "TASK_GROUP_NOT_FOUND", "Task group was not found");
-    if (!canManageGroup(request.authUser, group))
-      throw new HttpError(403, "TASK_GROUP_DENIED", "You cannot delete this task group");
+      throw new HttpError(
+        404,
+        "TASK_GROUP_NOT_FOUND",
+        "Your task group was not found",
+      );
     await app.prisma.$transaction([
-      app.prisma.task.updateMany({
-        where: { groupId: group.id },
+      app.prisma.userTaskLayout.updateMany({
+        where: { userId: request.authUser.id, groupId: group.id },
         data: { groupId: null },
       }),
       app.prisma.taskGroup.update({
@@ -247,38 +317,13 @@ export default async function taskRoutes(app) {
         status: z.string().optional(),
         assigneeId: z.uuid().optional(),
         departmentId: z.uuid().optional(),
-        groupId: z.uuid().optional(),
         q: z.string().optional(),
         archived: z.enum(["true", "false"]).optional(),
       }),
       request.query,
     );
 
-    const access = hasRole(request.authUser, "SYSTEM_ADMIN")
-      ? {}
-      : {
-          OR: [
-            { creatorId: request.authUser.id },
-            { assigneeId: request.authUser.id },
-            { participants: { some: { userId: request.authUser.id } } },
-            {
-              subtasks: {
-                some: {
-                  OR: [
-                    { creatorId: request.authUser.id },
-                    { assigneeId: request.authUser.id },
-                    { participants: { some: { userId: request.authUser.id } } },
-                  ],
-                },
-              },
-            },
-            ...(hasPermission(request.authUser, "tasks.manage_department") &&
-            request.authUser.departmentId
-              ? [{ departmentId: request.authUser.departmentId }]
-              : []),
-          ],
-        };
-
+    const access = taskAccessWhere(request.authUser);
     const searchFilter = query.q
       ? {
           OR: [
@@ -294,13 +339,12 @@ export default async function taskRoutes(app) {
         status: query.status || undefined,
         assigneeId: query.assigneeId,
         departmentId: query.departmentId,
-        groupId: query.groupId,
         archivedAt: query.archived === "true" ? { not: null } : null,
       },
-      include: taskInclude,
-      orderBy: [{ position: "asc" }, { dueDate: "asc" }, { createdAt: "desc" }],
+      include: taskIncludeFor(request.authUser.id),
+      orderBy: [{ dueDate: "asc" }, { createdAt: "desc" }],
     });
-    return { success: true, data };
+    return { success: true, data: data.map((task) => presentTask(task)) };
   });
 
   app.post("/", async (request, reply) => {
@@ -310,6 +354,7 @@ export default async function taskRoutes(app) {
     validateDates(input.startDate, input.dueDate);
     await activePeople([input.assigneeId, ...input.participantIds]);
     await requireOwnUploads(app, request.authUser, input.attachmentIds);
+
     let parent = null;
     if (input.parentTaskId) {
       parent = await app.prisma.task.findUnique({
@@ -325,30 +370,34 @@ export default async function taskRoutes(app) {
           "TASK_NESTING_LIMIT",
           "Only one level of subtasks is supported",
         );
-      if (input.groupId && input.groupId !== parent.groupId)
-        throw new HttpError(
-          400,
-          "TASK_GROUP_MISMATCH",
-          "Subtasks use the same group as their parent task",
-        );
     }
-    const effectiveGroupId = parent ? parent.groupId : (input.groupId ?? null);
+
     const effectiveDepartmentId = parent
       ? parent.departmentId
       : (input.departmentId ?? request.authUser.departmentId ?? null);
-    if (parent && input.departmentId && input.departmentId !== parent.departmentId)
+    if (
+      parent &&
+      input.departmentId &&
+      input.departmentId !== parent.departmentId
+    )
       throw new HttpError(
         400,
         "TASK_DEPARTMENT_MISMATCH",
         "Subtasks use the same department as their parent task",
       );
-    if (!parent) await requireUsableGroup(request.authUser, effectiveGroupId);
-    const position =
-      input.position ??
-      (await nextTaskPosition({
-        parentTaskId: input.parentTaskId ?? null,
-        groupId: effectiveGroupId,
-      }));
+
+    const personalGroupId = parent ? null : (input.groupId ?? null);
+    if (!parent)
+      await requireOwnedGroup(request.authUser.id, personalGroupId);
+
+    const subtaskPosition = parent
+      ? (input.position ?? (await nextSubtaskPosition(parent.id)))
+      : 0;
+    const layoutPosition = parent
+      ? null
+      : (input.position ??
+        (await nextLayoutPosition(request.authUser.id, personalGroupId)));
+
     if (
       input.assigneeId &&
       input.assigneeId !== request.authUser.id &&
@@ -369,8 +418,7 @@ export default async function taskRoutes(app) {
         assigneeId: input.assigneeId,
         departmentId: effectiveDepartmentId,
         parentTaskId: input.parentTaskId,
-        groupId: effectiveGroupId,
-        position,
+        subtaskPosition,
         status: input.status,
         priority: input.priority,
         startDate: input.startDate,
@@ -382,6 +430,15 @@ export default async function taskRoutes(app) {
         attachments: {
           create: input.attachmentIds.map((fileId) => ({ fileId })),
         },
+        layouts: parent
+          ? undefined
+          : {
+              create: {
+                userId: request.authUser.id,
+                groupId: personalGroupId,
+                position: layoutPosition,
+              },
+            },
         history: {
           create: {
             actorId: request.authUser.id,
@@ -390,7 +447,7 @@ export default async function taskRoutes(app) {
           },
         },
       },
-      include: taskInclude,
+      include: taskIncludeFor(request.authUser.id),
     });
 
     if (task.assigneeId && task.assigneeId !== request.authUser.id) {
@@ -411,14 +468,71 @@ export default async function taskRoutes(app) {
       afterData: { title: task.title, status: task.status },
     });
     reply.status(201);
-    return { success: true, data: task };
+    return { success: true, data: presentTask(task) };
+  });
+
+  app.put("/:id/layout", async (request) => {
+    const input = parse(layoutSchema, request.body);
+    const task = await loadTaskForFamilyAccess(request.params.id);
+    if (!task)
+      throw new HttpError(404, "TASK_NOT_FOUND", "Task was not found");
+    if (!canAccessTaskFamily(request.authUser, task))
+      throw new HttpError(
+        403,
+        "TASK_ACCESS_DENIED",
+        "You cannot organize this task",
+      );
+    if (task.parentTaskId)
+      throw new HttpError(
+        400,
+        "TASK_LAYOUT_PARENT_ONLY",
+        "Subtasks follow their parent task's personal group",
+      );
+
+    const existing = await app.prisma.userTaskLayout.findUnique({
+      where: {
+        userId_taskId: {
+          userId: request.authUser.id,
+          taskId: task.id,
+        },
+      },
+    });
+    const groupId =
+      input.groupId === undefined ? (existing?.groupId ?? null) : input.groupId;
+    await requireOwnedGroup(request.authUser.id, groupId);
+
+    const position =
+      input.position ??
+      (existing && existing.groupId === groupId
+        ? existing.position
+        : await nextLayoutPosition(request.authUser.id, groupId));
+
+    const layout = await app.prisma.userTaskLayout.upsert({
+      where: {
+        userId_taskId: {
+          userId: request.authUser.id,
+          taskId: task.id,
+        },
+      },
+      create: {
+        userId: request.authUser.id,
+        taskId: task.id,
+        groupId,
+        position,
+      },
+      update: { groupId, position },
+      include: {
+        group: { select: { id: true, name: true, position: true } },
+      },
+    });
+    return { success: true, data: layout };
   });
 
   app.get("/:id", async (request) => {
     const task = await app.prisma.task.findUnique({
       where: { id: request.params.id },
       include: {
-        ...taskInclude,
+        ...taskIncludeFor(request.authUser.id),
         comments: {
           where: { deletedAt: null },
           include: {
@@ -433,18 +547,20 @@ export default async function taskRoutes(app) {
         },
         subtasks: {
           where: { archivedAt: null },
-          include: taskInclude,
-          orderBy: [{ position: "asc" }, { createdAt: "asc" }],
+          include: taskIncludeFor(request.authUser.id),
+          orderBy: [{ subtaskPosition: "asc" }, { createdAt: "asc" }],
         },
       },
     });
-    if (!task) throw new HttpError(404, "TASK_NOT_FOUND", "Task was not found");
-    const canAccessParent =
-      canAccessTask(request.authUser, task) ||
-      task.subtasks.some((subtask) => canAccessTask(request.authUser, subtask));
-    if (!canAccessParent)
-      throw new HttpError(403, "TASK_ACCESS_DENIED", "You cannot access this task");
-    return { success: true, data: task };
+    if (!task)
+      throw new HttpError(404, "TASK_NOT_FOUND", "Task was not found");
+    if (!canAccessTaskFamily(request.authUser, task))
+      throw new HttpError(
+        403,
+        "TASK_ACCESS_DENIED",
+        "You cannot access this task",
+      );
+    return { success: true, data: presentTask(task) };
   });
 
   app.patch("/:id", async (request) => {
@@ -459,7 +575,7 @@ export default async function taskRoutes(app) {
     await activePeople([
       input.assigneeId !== existing.assigneeId ? input.assigneeId : null,
       ...(input.participantIds || []).filter(
-        (id) => !existing.participants.some((p) => p.userId === id),
+        (id) => !existing.participants.some((participant) => participant.userId === id),
       ),
     ]);
     validateDates(
@@ -478,6 +594,7 @@ export default async function taskRoutes(app) {
         "TASK_ASSIGN_DENIED",
         "You cannot assign tasks to other users",
       );
+
     const canManage =
       existing.creatorId === request.authUser.id ||
       hasRole(request.authUser, "SYSTEM_ADMIN") ||
@@ -493,8 +610,6 @@ export default async function taskRoutes(app) {
         input.participantIds,
         input.attachmentIds,
         input.parentTaskId,
-        input.groupId,
-        input.position,
         input.title,
         input.description,
         input.startDate,
@@ -516,14 +631,6 @@ export default async function taskRoutes(app) {
         "TASK_PARENT_IMMUTABLE",
         "Create subtasks under their parent; reparenting is not supported",
       );
-    if (existing.parentTaskId && input.groupId !== undefined && input.groupId !== existing.groupId)
-      throw new HttpError(
-        400,
-        "TASK_GROUP_MISMATCH",
-        "Subtasks use the same group as their parent task",
-      );
-    if (input.groupId !== undefined)
-      await requireUsableGroup(request.authUser, input.groupId);
 
     if (input.attachmentIds) {
       const old = await app.prisma.taskAttachment.findMany({
@@ -532,9 +639,12 @@ export default async function taskRoutes(app) {
       await requireOwnUploads(
         app,
         request.authUser,
-        input.attachmentIds.filter((id) => !old.some((x) => x.fileId === id)),
+        input.attachmentIds.filter(
+          (id) => !old.some((attachment) => attachment.fileId === id),
+        ),
       );
     }
+
     const before = {
       title: existing.title,
       status: existing.status,
@@ -550,8 +660,6 @@ export default async function taskRoutes(app) {
         assigneeId: input.assigneeId,
         departmentId: input.departmentId,
         parentTaskId: input.parentTaskId,
-        groupId: input.groupId,
-        position: input.position,
         status: input.status,
         priority: input.priority,
         startDate: input.startDate,
@@ -583,19 +691,8 @@ export default async function taskRoutes(app) {
           },
         },
       },
-      include: taskInclude,
+      include: taskIncludeFor(request.authUser.id),
     });
-
-    if (
-      !existing.parentTaskId &&
-      input.groupId !== undefined &&
-      input.groupId !== existing.groupId
-    ) {
-      await app.prisma.task.updateMany({
-        where: { parentTaskId: existing.id },
-        data: { groupId: input.groupId },
-      });
-    }
 
     if (
       input.assigneeId &&
@@ -612,7 +709,7 @@ export default async function taskRoutes(app) {
       });
     }
     await emitTaskEvent(app, task.id, "task:updated");
-    return { success: true, data: task };
+    return { success: true, data: presentTask(task) };
   });
 
   app.post("/:id/comments", async (request, reply) => {
