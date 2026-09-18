@@ -342,6 +342,125 @@ test("approval fields, sequential permissions, concurrency, corrections and froz
   );
 });
 
+test("approval type management versions edits and preserves existing request snapshots", async () => {
+  const { employee, admin } = h.users;
+  assert.equal(
+    (await h.call(employee, "GET", "/approval-types/manage")).statusCode,
+    403,
+  );
+  const created = ok(
+    await h.call(admin, "POST", "/approval-types", {
+      code: "TRAVEL_TEST",
+      name: "Travel request",
+      description: "Original configuration",
+      formSchema: {},
+      steps: [
+        {
+          stepNumber: 1,
+          name: "Manager review",
+          approverRule: "REQUESTER_MANAGER",
+          approverValue: null,
+        },
+      ],
+    }),
+    201,
+  );
+  const request = ok(
+    await h.call(employee, "POST", "/approval-requests", {
+      approvalTypeId: created.id,
+      title: "Conference travel",
+      data: {},
+      submit: false,
+    }),
+    201,
+  );
+  assert.equal(request.workflowSnapshot.type.name, "Travel request");
+  assert.equal(request.workflowSnapshot.type.version, 1);
+
+  const managed = ok(await h.call(admin, "GET", "/approval-types/manage"));
+  const managedCreated = managed.find((item) => item.id === created.id);
+  assert.equal(managedCreated._count.requests, 1);
+
+  const updated = ok(
+    await h.call(admin, "PATCH", `/approval-types/${created.id}`, {
+      code: created.code,
+      name: "Business travel request",
+      description: "Updated configuration",
+      formSchema: {
+        destination: {
+          label: "Destination",
+          type: "text",
+          required: false,
+        },
+      },
+      steps: [
+        {
+          stepNumber: 1,
+          name: "Manager approval",
+          approverRule: "REQUESTER_MANAGER",
+          approverValue: null,
+        },
+      ],
+    }),
+  );
+  assert.equal(updated.version, 2);
+  assert.equal(updated.name, "Business travel request");
+
+  assert.equal(
+    (
+      await h.call(admin, "PATCH", `/approval-types/${created.id}`, {
+        code: "TRAVEL_TEST_RENAMED",
+        name: updated.name,
+        description: updated.description,
+        formSchema: updated.formSchema,
+        steps: updated.steps.map(
+          ({ stepNumber, name, approverRule, approverValue }) => ({
+            stepNumber,
+            name,
+            approverRule,
+            approverValue,
+          }),
+        ),
+      })
+    ).statusCode,
+    409,
+  );
+
+  const historical = ok(
+    await h.call(employee, "GET", `/approval-requests/${request.id}`),
+  );
+  assert.equal(historical.workflowSnapshot.type.name, "Travel request");
+  assert.equal(historical.workflowSnapshot.type.version, 1);
+
+  const inactive = ok(
+    await h.call(admin, "PATCH", `/approval-types/${created.id}/status`, {
+      status: "INACTIVE",
+    }),
+  );
+  assert.equal(inactive.status, "INACTIVE");
+  assert.equal(inactive.version, 2);
+  const activeTypes = ok(await h.call(employee, "GET", "/approval-types"));
+  assert.ok(!activeTypes.some((item) => item.id === created.id));
+  assert.equal(
+    (
+      await h.call(employee, "POST", "/approval-requests", {
+        approvalTypeId: created.id,
+        title: "Blocked new request",
+        data: {},
+      })
+    ).statusCode,
+    404,
+  );
+
+  const restored = ok(
+    await h.call(admin, "PATCH", `/approval-types/${created.id}/status`, {
+      status: "ACTIVE",
+    }),
+  );
+  assert.equal(restored.status, "ACTIVE");
+  assert.equal(restored.version, 2);
+});
+
 test("group membership is enforced on messages and attachments after removal", async () => {
   const { employee, manager, admin } = h.users;
   const group = ok(
