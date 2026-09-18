@@ -412,12 +412,16 @@ function TaskDetail({ id, onClose }) {
           </p>
           <div
             className={`grid gap-4 my-6 rounded-xl bg-slate-50 p-4 text-sm ${
-              task.parentTaskId ? "sm:grid-cols-3" : "sm:grid-cols-4"
+              task.parentTaskId ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-2 lg:grid-cols-5"
             }`}
           >
             <div>
               <p className="text-xs text-slate-400 mb-2">Assigned to</p>
               {task.assignee?.displayName || "Unassigned"}
+            </div>
+            <div>
+              <p className="text-xs text-slate-400 mb-2">Created by</p>
+              {task.creator?.displayName || "Unknown"}
             </div>
             <div>
               <p className="text-xs text-slate-400 mb-2">Due date</p>
@@ -459,6 +463,32 @@ function TaskDetail({ id, onClose }) {
               </div>
             )}
           </div>
+
+          <section className="my-7 rounded-xl border border-slate-200 overflow-hidden">
+            <div className="bg-slate-50 px-4 py-3">
+              <h3 className="text-sm font-semibold">Participants</h3>
+              <p className="mt-0.5 text-xs text-slate-400">
+                People involved in this task. Use Edit task to change participants.
+              </p>
+            </div>
+            {task.participants?.length ? (
+              <div className="flex flex-wrap gap-2 border-t border-slate-100 px-4 py-4">
+                {task.participants.map((participant) => (
+                  <div
+                    key={participant.userId}
+                    className="flex items-center gap-2 rounded-full border border-slate-200 bg-white py-1.5 pl-1.5 pr-3 text-sm text-slate-600"
+                  >
+                    <Avatar small name={participant.user.displayName} />
+                    <span className="font-medium">{participant.user.displayName}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="border-t border-slate-100 px-4 py-4 text-sm text-slate-400">
+                No participants.
+              </div>
+            )}
+          </section>
 
           {!task.parentTaskId && (
             <section className="my-7 rounded-xl border border-slate-200 overflow-hidden">
@@ -528,11 +558,6 @@ function TaskDetail({ id, onClose }) {
           )}
 
           <Attachments items={task.attachments} />
-          {task.participants.length > 0 && (
-            <p className="text-xs text-slate-400 mt-4">
-              Participants: {task.participants.map((participant) => participant.user.displayName).join(", ")}
-            </p>
-          )}
           <ErrorBox error={updateStatus.error || updateLayout.error || groups.error} />
           <h3 className="font-semibold text-sm mt-8 mb-4">
             Discussion · {task.comments.length}
@@ -684,6 +709,9 @@ export default function TasksPage() {
     const filterMatch =
       filter === "all" ||
       (filter === "mine" && task.assigneeId === user.id) ||
+      (filter === "created" && task.creatorId === user.id) ||
+      (filter === "participant" &&
+        task.participants?.some((participant) => participant.userId === user.id)) ||
       (filter === "active" && !["COMPLETED", "CANCELLED"].includes(task.status)) ||
       (filter === "completed" && task.status === "COMPLETED");
     return textMatch && filterMatch;
@@ -701,11 +729,7 @@ export default function TasksPage() {
     [allTasks, childrenByParent, filter, search, user.id],
   );
 
-  const boardParents = useMemo(
-    () => allTasks.filter((task) => !task.parentTaskId && matches(task)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [allTasks, filter, search, user.id],
-  );
+  const boardParents = visibleParents;
 
   const isOverdue = (task) =>
     task.dueDate &&
@@ -954,6 +978,8 @@ export default function TasksPage() {
           {[
             ["active", "Active"],
             ["mine", "Assigned to me"],
+            ["created", "Created by me"],
+            ["participant", "Participant"],
             ["completed", "Completed"],
             ["all", "All"],
           ].map(([value, label]) => (
