@@ -131,6 +131,7 @@ export function driveAccess(user, item, tree, { allowTrash = false } = {}) {
 
   const managerAccess = driveSpaceAccess(user, space);
   if (managerAccess === "MANAGER") return "MANAGER";
+  if (space.type === "GROUP" && !managerAccess) return null;
 
   let inherited = managerAccess;
   let currentAccess = inherited;
