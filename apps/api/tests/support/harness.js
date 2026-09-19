@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { execFile } from "node:child_process";
@@ -14,18 +14,18 @@ export async function harness() {
   const port = reservation.address().port;
   await new Promise((r) => reservation.close(r));
   const db = await PGlite.create();
-  for (const migration of [
-    "202609160001_initial",
-    "202609160002_drive_and_approvals",
-  ])
+  const migrationsRoot = path.resolve(
+    import.meta.dirname,
+    "../../prisma/migrations",
+  );
+  const migrations = (await readdir(migrationsRoot, { withFileTypes: true }))
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort();
+  for (const migration of migrations)
     await db.exec(
       await readFile(
-        path.resolve(
-          import.meta.dirname,
-          "../../prisma/migrations",
-          migration,
-          "migration.sql",
-        ),
+        path.join(migrationsRoot, migration, "migration.sql"),
         "utf8",
       ),
     );
