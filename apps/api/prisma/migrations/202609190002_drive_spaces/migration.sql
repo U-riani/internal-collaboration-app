@@ -37,12 +37,12 @@ ALTER TABLE "DriveGrant" ADD COLUMN "scope" "DriveGrantScope" NOT NULL DEFAULT '
 
 -- Every user gets a personal space. Existing Drive trees are assigned to their owner's space.
 INSERT INTO "DriveSpace" ("id","key","name","type","ownerUserId","createdById","createdAt","updatedAt")
-SELECT gen_random_uuid(), 'personal:' || u."id"::text, 'Personal', 'PERSONAL', u."id", u."id", CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+SELECT u."id", 'personal:' || u."id"::text, 'Personal', 'PERSONAL', u."id", u."id", CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 FROM "User" u
 ON CONFLICT ("key") DO NOTHING;
 
 INSERT INTO "DriveSpace" ("id","key","name","type","ownerUserId","createdById","createdAt","updatedAt")
-VALUES (gen_random_uuid(), 'global', 'Global', 'GLOBAL', NULL, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+VALUES ('00000000-0000-4000-8000-000000000001', 'global', 'Global', 'GLOBAL', NULL, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 ON CONFLICT ("key") DO NOTHING;
 
 UPDATE "DriveItem" i
