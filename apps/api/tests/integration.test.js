@@ -283,6 +283,21 @@ test("Drive spaces keep personal shares explicit and shared workspaces inherited
     "selected group members can receive access while other members are excluded",
   );
 
+  ok(
+    await h.call(manager, "PUT", `/drive/spaces/${group.id}/members`, {
+      members: [
+        { userId: manager.user.id, role: "MANAGER" },
+        { userId: employee.user.id, role: "EDITOR" },
+      ],
+    }),
+  );
+  assert.equal(
+    (await h.call(admin, "GET", `/drive?parentId=${teamFolder.id}`))
+      .statusCode,
+    403,
+    "removing a Group member also removes access granted on Group items",
+  );
+
   const employeeSpaces = ok(await h.call(employee, "GET", "/drive/spaces"));
   const global = employeeSpaces.find((space) => space.type === "GLOBAL");
   assert.ok(global);
