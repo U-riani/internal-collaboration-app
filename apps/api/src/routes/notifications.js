@@ -1,9 +1,14 @@
 import { z } from "zod";
 import { parse } from "../lib/validation.js";
 import { HttpError } from "../lib/http-error.js";
+import { markRelatedNotificationsRead } from "../lib/notification-read.js";
 
 const priorities = ["LOW", "NORMAL", "HIGH", "URGENT"];
 const prioritySchema = z.object({ priority: z.enum(priorities) });
+const relatedReadSchema = z.object({
+  entityType: z.enum(["TASK", "APPROVAL_REQUEST", "CONVERSATION"]),
+  entityId: z.uuid(),
+});
 
 async function requireNotification(app, userId, id) {
   const notification = await app.prisma.notification.findFirst({
@@ -157,6 +162,16 @@ export default async function notificationRoutes(app) {
         unreadApprovalCount,
       },
     };
+  });
+
+  app.post("/read-related", async (request) => {
+    const input = parse(relatedReadSchema, request.body);
+    const count = await markRelatedNotificationsRead(app, {
+      userId: request.authUser.id,
+      entityType: input.entityType,
+      entityId: input.entityId,
+    });
+    return { success: true, data: { count } };
   });
 
   app.post("/:id/read", async (request) => {
