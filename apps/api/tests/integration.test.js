@@ -245,6 +245,7 @@ test("Drive spaces keep personal shares explicit and shared workspaces inherited
       members: [
         { userId: manager.user.id, role: "MANAGER" },
         { userId: employee.user.id, role: "EDITOR" },
+        { userId: admin.user.id, role: "VIEWER" },
       ],
     }),
   );
@@ -279,7 +280,7 @@ test("Drive spaces keep personal shares explicit and shared workspaces inherited
     (await h.call(admin, "GET", `/drive?parentId=${teamFolder.id}`))
       .statusCode,
     200,
-    "selected recipients can receive access even outside the group membership",
+    "selected group members can receive access while other members are excluded",
   );
 
   const employeeSpaces = ok(await h.call(employee, "GET", "/drive/spaces"));
