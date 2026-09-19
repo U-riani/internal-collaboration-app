@@ -522,6 +522,87 @@ test("approval type management versions edits and preserves existing request sna
   assert.equal(restored.version, 2);
 });
 
+test("approval groups and layouts are personal to each user", async () => {
+  const { employee, manager, admin } = h.users;
+  const type = ok(
+    await h.call(admin, "POST", "/approval-types", {
+      code: "GROUPING_TEST",
+      name: "Grouping test",
+      formSchema: {},
+      steps: [
+        {
+          stepNumber: 1,
+          name: "Manager review",
+          approverRule: "REQUESTER_MANAGER",
+          approverValue: null,
+        },
+      ],
+    }),
+    201,
+  );
+  const request = ok(
+    await h.call(employee, "POST", "/approval-requests", {
+      approvalTypeId: type.id,
+      title: "Personal grouping request",
+      data: {},
+      submit: true,
+    }),
+    201,
+  );
+
+  const employeeGroup = ok(
+    await h.call(employee, "POST", "/approval-groups", {
+      name: "Employee finance",
+    }),
+    201,
+  );
+  const managerGroup = ok(
+    await h.call(manager, "POST", "/approval-groups", {
+      name: "Manager urgent",
+    }),
+    201,
+  );
+
+  assert.equal(
+    (
+      await h.call(manager, "PUT", `/approval-requests/${request.id}/layout`, {
+        groupId: employeeGroup.id,
+      })
+    ).statusCode,
+    404,
+  );
+
+  ok(
+    await h.call(employee, "PUT", `/approval-requests/${request.id}/layout`, {
+      groupId: employeeGroup.id,
+    }),
+  );
+  ok(
+    await h.call(manager, "PUT", `/approval-requests/${request.id}/layout`, {
+      groupId: managerGroup.id,
+    }),
+  );
+
+  const employeeView = ok(
+    await h.call(employee, "GET", `/approval-requests/${request.id}`),
+  );
+  const managerView = ok(
+    await h.call(manager, "GET", `/approval-requests/${request.id}`),
+  );
+  assert.equal(employeeView.personalLayout.groupId, employeeGroup.id);
+  assert.equal(managerView.personalLayout.groupId, managerGroup.id);
+
+  ok(await h.call(employee, "DELETE", `/approval-groups/${employeeGroup.id}`));
+  const employeeAfterDelete = ok(
+    await h.call(employee, "GET", `/approval-requests/${request.id}`),
+  );
+  const managerAfterDelete = ok(
+    await h.call(manager, "GET", `/approval-requests/${request.id}`),
+  );
+  assert.equal(employeeAfterDelete.personalLayout.groupId, null);
+  assert.equal(managerAfterDelete.personalLayout.groupId, managerGroup.id);
+});
+
 test("group membership is enforced on messages and attachments after removal", async () => {
   const { employee, manager, admin } = h.users;
   const group = ok(
