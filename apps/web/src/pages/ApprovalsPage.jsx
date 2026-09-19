@@ -10,6 +10,7 @@ import {
   ChevronRight,
   Columns3,
   FolderPlus,
+  GripVertical,
   List,
   Pencil,
   Search,
@@ -1058,6 +1059,7 @@ export default function ApprovalsPage() {
   const [selectedId, setSelectedId] = useState(linkedRequestId);
   const [collapsedGroups, setCollapsedGroups] = useState(() => new Set());
   const [draggingId, setDraggingId] = useState(null);
+  const [draggingGroupId, setDraggingGroupId] = useState(null);
 
   const query = useQuery({
     queryKey: ["approvals"],
@@ -1077,6 +1079,25 @@ export default function ApprovalsPage() {
       qc.invalidateQueries({ queryKey: ["approvals"] });
       qc.invalidateQueries({ queryKey: ["approval-groups"] });
     },
+  });
+  const reorderGroup = useMutation({
+    mutationFn: async ({ sourceId, targetId }) => {
+      const source = (groups.data || []).find((group) => group.id === sourceId);
+      const target = (groups.data || []).find((group) => group.id === targetId);
+      if (!source || !target || source.id === target.id) return;
+      await Promise.all([
+        api(`/approval-groups/${source.id}`, {
+          method: "PATCH",
+          body: JSON.stringify({ position: target.position }),
+        }),
+        api(`/approval-groups/${target.id}`, {
+          method: "PATCH",
+          body: JSON.stringify({ position: source.position }),
+        }),
+      ]);
+    },
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: ["approval-groups"] }),
   });
   const deleteGroup = useMutation({
     mutationFn: (groupId) =>
@@ -1523,7 +1544,8 @@ export default function ApprovalsPage() {
           query.error ||
           groups.error ||
           moveLayout.error ||
-          deleteGroup.error
+          deleteGroup.error ||
+          reorderGroup.error
         }
       />
 
@@ -1541,6 +1563,22 @@ export default function ApprovalsPage() {
               }}
               onDrop={(event) => {
                 event.preventDefault();
+                const sourceGroupId = event.dataTransfer.getData(
+                  "application/x-approval-group",
+                );
+                if (
+                  sourceGroupId &&
+                  group.id !== UNGROUPED &&
+                  sourceGroupId !== group.id
+                ) {
+                  reorderGroup.mutate({
+                    sourceId: sourceGroupId,
+                    targetId: group.id,
+                  });
+                  setDraggingGroupId(null);
+                  return;
+                }
+
                 const requestId =
                   draggingId || event.dataTransfer.getData("text/plain");
                 if (!requestId) return;
@@ -1552,6 +1590,27 @@ export default function ApprovalsPage() {
               }}
             >
               <div className="mb-4 flex items-center gap-2 px-1">
+                {group.canManage && (
+                  <span
+                    draggable
+                    title="Drag to reorder group"
+                    className={`cursor-grab text-slate-400 ${
+                      draggingGroupId === group.id ? "opacity-40" : ""
+                    }`}
+                    onDragStart={(event) => {
+                      event.stopPropagation();
+                      setDraggingGroupId(group.id);
+                      event.dataTransfer.effectAllowed = "move";
+                      event.dataTransfer.setData(
+                        "application/x-approval-group",
+                        group.id,
+                      );
+                    }}
+                    onDragEnd={() => setDraggingGroupId(null)}
+                  >
+                    <GripVertical size={14} />
+                  </span>
+                )}
                 <h3 className="min-w-0 flex-1 truncate text-xs font-bold text-slate-600">
                   {group.name}
                 </h3>
@@ -1612,7 +1671,51 @@ export default function ApprovalsPage() {
               const collapsed = collapsedGroups.has(group.id);
               return (
                 <section key={group.id}>
-                  <div className="flex min-w-[900px] items-center gap-2 border-t border-slate-200 bg-slate-50/70 px-4 py-2.5">
+                  <div
+                    className="flex min-w-[900px] items-center gap-2 border-t border-slate-200 bg-slate-50/70 px-4 py-2.5"
+                    onDragOver={(event) => {
+                      event.preventDefault();
+                      event.dataTransfer.dropEffect = "move";
+                    }}
+                    onDrop={(event) => {
+                      event.preventDefault();
+                      const sourceGroupId = event.dataTransfer.getData(
+                        "application/x-approval-group",
+                      );
+                      if (
+                        sourceGroupId &&
+                        group.id !== UNGROUPED &&
+                        sourceGroupId !== group.id
+                      ) {
+                        reorderGroup.mutate({
+                          sourceId: sourceGroupId,
+                          targetId: group.id,
+                        });
+                        setDraggingGroupId(null);
+                      }
+                    }}
+                  >
+                    {group.canManage && (
+                      <span
+                        draggable
+                        title="Drag to reorder group"
+                        className={`cursor-grab text-slate-400 ${
+                          draggingGroupId === group.id ? "opacity-40" : ""
+                        }`}
+                        onDragStart={(event) => {
+                          event.stopPropagation();
+                          setDraggingGroupId(group.id);
+                          event.dataTransfer.effectAllowed = "move";
+                          event.dataTransfer.setData(
+                            "application/x-approval-group",
+                            group.id,
+                          );
+                        }}
+                        onDragEnd={() => setDraggingGroupId(null)}
+                      >
+                        <GripVertical size={14} />
+                      </span>
+                    )}
                     <button
                       type="button"
                       className="grid h-7 w-7 place-items-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700"
