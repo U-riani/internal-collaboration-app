@@ -14,6 +14,7 @@ import {
   List,
   Pencil,
   Search,
+  SlidersHorizontal,
   Trash2,
 } from "lucide-react";
 import { api, uploadFile } from "../lib/api.js";
@@ -1054,6 +1055,7 @@ export default function ApprovalsPage() {
   const [requesterFilter, setRequesterFilter] = useState("all");
   const [groupFilter, setGroupFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [modal, setModal] = useState(null);
   const [groupForm, setGroupForm] = useState(null);
   const [selectedId, setSelectedId] = useState(linkedRequestId);
@@ -1346,13 +1348,15 @@ export default function ApprovalsPage() {
     );
   };
 
-  const activeFilterCount =
-    (involvement !== "all" ? 1 : 0) +
-    selectedStatuses.length +
+  const advancedFilterCount =
     (typeFilter !== "all" ? 1 : 0) +
     (requesterFilter !== "all" ? 1 : 0) +
     (groupFilter !== "all" ? 1 : 0) +
-    (dateFilter !== "all" ? 1 : 0) +
+    (dateFilter !== "all" ? 1 : 0);
+  const activeFilterCount =
+    (involvement !== "all" ? 1 : 0) +
+    selectedStatuses.length +
+    advancedFilterCount +
     (search ? 1 : 0);
 
   return (
@@ -1389,22 +1393,67 @@ export default function ApprovalsPage() {
       />
 
       <div className="toolbar flex-wrap gap-3">
-        <div className="tabs">
-          {[
-            ["all", "All"],
-            ["review", "Needs my review"],
-            ["mine", "My requests"],
-            ["involved", "I'm involved"],
-          ].map(([value, label]) => (
-            <button
-              key={value}
-              className={involvement === value ? "active" : ""}
-              onClick={() => setInvolvement(value)}
-            >
-              {label}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="tabs">
+            {[
+              ["all", "All"],
+              ["review", "Needs my review"],
+              ["mine", "My requests"],
+              ["involved", "I'm involved"],
+            ].map(([value, label]) => (
+              <button
+                key={value}
+                className={involvement === value ? "active" : ""}
+                onClick={() => setInvolvement(value)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          <details className="relative">
+            <summary className="btn-secondary cursor-pointer list-none">
+              Status
+              {selectedStatuses.length
+                ? ` (${selectedStatuses.length})`
+                : ""}
+            </summary>
+            <div className="absolute left-0 top-11 z-10 w-56 rounded-xl border border-slate-200 bg-white p-3 shadow-xl">
+              <div className="space-y-2">
+                {approvalStatuses.map((status) => (
+                  <label
+                    key={status}
+                    className="flex items-center gap-2 text-xs text-slate-600"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedStatuses.includes(status)}
+                      onChange={() => toggleStatus(status)}
+                    />
+                    {status.replaceAll("_", " ")}
+                  </label>
+                ))}
+              </div>
+            </div>
+          </details>
+
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => setShowAdvancedFilters((current) => !current)}
+          >
+            <SlidersHorizontal size={15} />
+            {showAdvancedFilters ? "Hide filters" : "Show filters"}
+            {advancedFilterCount ? ` (${advancedFilterCount})` : ""}
+          </button>
+
+          {activeFilterCount > 0 && (
+            <button className="btn-secondary" onClick={resetFilters}>
+              Clear filters
             </button>
-          ))}
+          )}
         </div>
+
         <div className="ml-auto flex flex-wrap items-center gap-2">
           <div className="relative">
             <Search
@@ -1451,93 +1500,68 @@ export default function ApprovalsPage() {
         </div>
       </div>
 
-      <div className="mb-5 flex flex-wrap items-center gap-2">
-        <details className="relative">
-          <summary className="btn-secondary cursor-pointer list-none">
-            Status{selectedStatuses.length ? ` (${selectedStatuses.length})` : ""}
-          </summary>
-          <div className="absolute left-0 top-11 z-10 w-56 rounded-xl border border-slate-200 bg-white p-3 shadow-xl">
-            <div className="space-y-2">
-              {approvalStatuses.map((status) => (
-                <label
-                  key={status}
-                  className="flex items-center gap-2 text-xs text-slate-600"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedStatuses.includes(status)}
-                    onChange={() => toggleStatus(status)}
-                  />
-                  {status.replaceAll("_", " ")}
-                </label>
-              ))}
-            </div>
-          </div>
-        </details>
+      {showAdvancedFilters && (
+        <div className="mb-5 flex flex-wrap items-center gap-2">
+          <select
+            className="input w-auto min-w-40"
+            aria-label="Filter by request type"
+            value={typeFilter}
+            onChange={(event) => setTypeFilter(event.target.value)}
+          >
+            <option value="all">All request types</option>
+            {typeOptions.map((type) => (
+              <option key={type.id} value={type.id}>
+                {type.name}
+              </option>
+            ))}
+          </select>
 
-        <select
-          className="input w-auto min-w-40"
-          aria-label="Filter by request type"
-          value={typeFilter}
-          onChange={(event) => setTypeFilter(event.target.value)}
-        >
-          <option value="all">All request types</option>
-          {typeOptions.map((type) => (
-            <option key={type.id} value={type.id}>
-              {type.name}
-            </option>
-          ))}
-        </select>
+          <select
+            className="input w-auto min-w-40"
+            aria-label="Filter by requester"
+            value={requesterFilter}
+            onChange={(event) => setRequesterFilter(event.target.value)}
+          >
+            <option value="all">All requesters</option>
+            {requesterOptions.map((requester) => (
+              <option key={requester.id} value={requester.id}>
+                {requester.displayName}
+              </option>
+            ))}
+          </select>
 
-        <select
-          className="input w-auto min-w-40"
-          aria-label="Filter by requester"
-          value={requesterFilter}
-          onChange={(event) => setRequesterFilter(event.target.value)}
-        >
-          <option value="all">All requesters</option>
-          {requesterOptions.map((requester) => (
-            <option key={requester.id} value={requester.id}>
-              {requester.displayName}
-            </option>
-          ))}
-        </select>
+          <select
+            className="input w-auto min-w-36"
+            aria-label="Filter by group"
+            value={groupFilter}
+            onChange={(event) => setGroupFilter(event.target.value)}
+          >
+            <option value="all">All groups</option>
+            {(groups.data || []).map((group) => (
+              <option key={group.id} value={group.id}>
+                {group.name}
+              </option>
+            ))}
+            <option value={UNGROUPED}>Ungrouped</option>
+          </select>
 
-        <select
-          className="input w-auto min-w-36"
-          aria-label="Filter by group"
-          value={groupFilter}
-          onChange={(event) => setGroupFilter(event.target.value)}
-        >
-          <option value="all">All groups</option>
-          {(groups.data || []).map((group) => (
-            <option key={group.id} value={group.id}>
-              {group.name}
-            </option>
-          ))}
-          <option value={UNGROUPED}>Ungrouped</option>
-        </select>
+          <select
+            className="input w-auto min-w-32"
+            aria-label="Filter by date"
+            value={dateFilter}
+            onChange={(event) => setDateFilter(event.target.value)}
+          >
+            <option value="all">Any date</option>
+            <option value="7">Last 7 days</option>
+            <option value="30">Last 30 days</option>
+          </select>
 
-        <select
-          className="input w-auto min-w-32"
-          aria-label="Filter by date"
-          value={dateFilter}
-          onChange={(event) => setDateFilter(event.target.value)}
-        >
-          <option value="all">Any date</option>
-          <option value="7">Last 7 days</option>
-          <option value="30">Last 30 days</option>
-        </select>
-
-        {activeFilterCount > 0 && (
-          <button className="btn-secondary" onClick={resetFilters}>
-            Clear filters
-          </button>
-        )}
-        <span className="ml-auto text-xs text-slate-400">
-          {visibleRequests.length} request{visibleRequests.length === 1 ? "" : "s"}
-        </span>
-      </div>
+          <span className="ml-auto text-xs text-slate-400">
+            {visibleRequests.length} request
+            {visibleRequests.length === 1 ? "" : "s"}
+          </span>
+        </div>
+      )}
 
       <ErrorBox
         error={
