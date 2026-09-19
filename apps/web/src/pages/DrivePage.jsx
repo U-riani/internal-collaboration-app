@@ -56,6 +56,11 @@ function Permissions({ item, onClose, reload }) {
     queryKey: ["drive-shares", item.id],
     queryFn: () => api(`/drive/${item.id}/shares`),
   });
+  const groupMembers = useQuery({
+    queryKey: ["drive-space-members", item.space.id],
+    queryFn: () => api(`/drive/spaces/${item.space.id}/members`),
+    enabled: item.space.type === "GROUP",
+  });
 
   useEffect(() => {
     if (!shares.data) return;
@@ -72,29 +77,42 @@ function Permissions({ item, onClose, reload }) {
   }, [shares.data]);
 
   const recipients = useMemo(() => {
+    const groupMemberIds = new Set(
+      (groupMembers.data?.data || []).map((member) => member.userId),
+    );
     const rows = [
       ...(people.data || [])
         .filter(
           (person) =>
             person.status === "ACTIVE" &&
-            !(item.space.type === "PERSONAL" && person.id === item.ownerId),
+            !(item.space.type === "PERSONAL" && person.id === item.ownerId) &&
+            (item.space.type !== "GROUP" || groupMemberIds.has(person.id)),
         )
         .map((person) => ({
           key: `u:${person.id}`,
           label: person.displayName,
-          kind: "Person",
+          kind: item.space.type === "GROUP" ? "Group member" : "Person",
         })),
-      ...(departments.data || []).map((department) => ({
-        key: `d:${department.id}`,
-        label: department.name,
-        kind: "Department",
-      })),
+      ...(item.space.type === "GROUP" ? [] : departments.data || []).map(
+        (department) => ({
+          key: `d:${department.id}`,
+          label: department.name,
+          kind: "Department",
+        }),
+      ),
     ];
     const needle = filter.trim().toLocaleLowerCase();
     return needle
       ? rows.filter((row) => row.label.toLocaleLowerCase().includes(needle))
       : rows;
-  }, [people.data, departments.data, filter, item.ownerId, item.space.type]);
+  }, [
+    people.data,
+    departments.data,
+    groupMembers.data,
+    filter,
+    item.ownerId,
+    item.space.type,
+  ]);
 
   function setVisible(access) {
     setAssignments((current) => {
@@ -228,7 +246,15 @@ function Permissions({ item, onClose, reload }) {
         </div>
       </div>
 
-      <ErrorBox error={error || shares.error || people.error || departments.error} />
+      <ErrorBox
+        error={
+          error ||
+          shares.error ||
+          people.error ||
+          departments.error ||
+          groupMembers.error
+        }
+      />
       <div className="form-actions">
         <button className="btn-secondary" onClick={onClose}>
           Cancel
