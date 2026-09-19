@@ -12,6 +12,7 @@
     "setup": "node scripts/setup.mjs",
     "test": "npm --prefix apps/api test && npm --prefix apps/web test",
     "db:generate": "npm --prefix apps/api run db:generate",
+    "db:migrate": "npm --prefix apps/api run db:migrate",
     "format": "prettier --write \"apps/*/src/**/*.{js,jsx,css}\" \"apps/api/tests/**/*.js\" \"apps/web/tests/**/*.{js,jsx}\" \"scripts/*.mjs\""
   },
   "devDependencies": {
