@@ -342,6 +342,67 @@ test("approval fields, sequential permissions, concurrency, corrections and froz
   );
 });
 
+test("related approval notifications can be marked read together", async () => {
+  const { employee, manager } = h.users;
+  const type = ok(await h.call(employee, "GET", "/approval-types"))[0];
+  const request = ok(
+    await h.call(employee, "POST", "/approval-requests", {
+      approvalTypeId: type.id,
+      title: "Notification read test",
+      data: {},
+      submit: false,
+    }),
+    201,
+  );
+
+  const first = await h.prisma.notification.create({
+    data: {
+      userId: employee.user.id,
+      type: "APPROVAL_UPDATED",
+      title: "Approval updated",
+      body: request.title,
+      relatedEntityType: "APPROVAL_REQUEST",
+      relatedEntityId: request.id,
+    },
+  });
+  const second = await h.prisma.notification.create({
+    data: {
+      userId: employee.user.id,
+      type: "APPROVAL_PENDING",
+      title: "Approval pending",
+      body: request.title,
+      relatedEntityType: "APPROVAL_REQUEST",
+      relatedEntityId: request.id,
+    },
+  });
+  const other = await h.prisma.notification.create({
+    data: {
+      userId: manager.user.id,
+      type: "APPROVAL_PENDING",
+      title: "Approval pending",
+      body: request.title,
+      relatedEntityType: "APPROVAL_REQUEST",
+      relatedEntityId: request.id,
+    },
+  });
+
+  const result = ok(
+    await h.call(employee, "POST", "/notifications/read-related", {
+      entityType: "APPROVAL_REQUEST",
+      entityId: request.id,
+    }),
+  );
+  assert.equal(result.count, 2);
+
+  const rows = await h.prisma.notification.findMany({
+    where: { id: { in: [first.id, second.id, other.id] } },
+  });
+  const byId = new Map(rows.map((row) => [row.id, row]));
+  assert.equal(byId.get(first.id).isRead, true);
+  assert.equal(byId.get(second.id).isRead, true);
+  assert.equal(byId.get(other.id).isRead, false);
+});
+
 test("approval type management versions edits and preserves existing request snapshots", async () => {
   const { employee, admin } = h.users;
   assert.equal(
