@@ -148,6 +148,8 @@ model User {
   createdTasks              Task[]                    @relation("TaskCreator")
   taskGroups                 TaskGroup[]               @relation("TaskGroupOwner")
   taskLayouts                UserTaskLayout[]
+  approvalGroups             ApprovalGroup[]           @relation("ApprovalGroupOwner")
+  approvalLayouts            UserApprovalLayout[]
   assignedTasks             Task[]                    @relation("TaskAssignee")
   taskParticipants          TaskParticipant[]
   taskComments              TaskComment[]
@@ -443,11 +445,42 @@ model ApprovalRequest {
   steps               ApprovalRequestStep[]
   comments            ApprovalComment[]
   attachments         ApprovalAttachment[]
+  layouts             UserApprovalLayout[]
   createdAt           DateTime                 @default(now())
   updatedAt           DateTime                 @updatedAt
 
   @@index([requesterId, createdAt(sort: Desc)])
   @@index([status, createdAt(sort: Desc)])
+}
+
+model ApprovalGroup {
+  id         String               @id @default(uuid()) @db.Uuid
+  name       String
+  ownerId    String               @db.Uuid
+  owner      User                 @relation("ApprovalGroupOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  position   Int                  @default(0)
+  archivedAt DateTime?
+  layouts    UserApprovalLayout[]
+  createdAt  DateTime             @default(now())
+  updatedAt  DateTime             @updatedAt
+
+  @@index([ownerId, archivedAt, position])
+}
+
+model UserApprovalLayout {
+  userId            String          @db.Uuid
+  approvalRequestId String          @db.Uuid
+  groupId           String?         @db.Uuid
+  position          Int             @default(0)
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  approvalRequest   ApprovalRequest @relation(fields: [approvalRequestId], references: [id], onDelete: Cascade)
+  group             ApprovalGroup?  @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@id([userId, approvalRequestId])
+  @@index([userId, groupId, position])
+  @@index([groupId])
 }
 
 model ApprovalRequestStep {
