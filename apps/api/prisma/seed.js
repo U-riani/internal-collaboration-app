@@ -14,6 +14,8 @@ const prisma = new PrismaClient({ adapter });
 
 const permissions = [
   ['drive.use', 'Use private and shared Drive folders'],
+  ['drive.groups.create', 'Create shared Drive group spaces'],
+  ['drive.global.manage', 'Manage the company-wide Global Drive space'],
   ['users.read', 'View users and organization structure'],
   ['users.manage', 'Create and manage users and departments'],
   ['roles.manage', 'Manage roles and permissions'],
@@ -30,7 +32,7 @@ const permissions = [
 
 const roleDefinitions = {
   SYSTEM_ADMIN: permissions.map(([code]) => code),
-  MANAGER: ['drive.use', 'users.read', 'conversations.create', 'messages.send', 'tasks.create', 'tasks.assign', 'tasks.manage_department', 'approvals.submit'],
+  MANAGER: ['drive.use', 'drive.groups.create', 'users.read', 'conversations.create', 'messages.send', 'tasks.create', 'tasks.assign', 'tasks.manage_department', 'approvals.submit'],
   EMPLOYEE: ['drive.use', 'users.read', 'conversations.create', 'messages.send', 'tasks.create', 'approvals.submit'],
   AUDITOR: ['users.read', 'approvals.audit', 'system.audit.read'],
 };

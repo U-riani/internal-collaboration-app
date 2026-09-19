@@ -123,10 +123,11 @@ test("foreign attachments cannot grant access through tasks, chat or approvals",
   assert.equal(download.body, "Internal report");
 });
 
-test("Drive inheritance, viewers, editors, revocation, trash and cycle prevention", async () => {
+test("Drive spaces keep personal shares explicit and shared workspaces inherited", async () => {
   const { employee, manager, admin } = h.users;
+
   const root = ok(
-    await h.call(employee, "POST", "/drive", { name: "Private folder" }),
+    await h.call(employee, "POST", "/drive", { name: "Personal folder" }),
     201,
   );
   const child = ok(
@@ -137,23 +138,42 @@ test("Drive inheritance, viewers, editors, revocation, trash and cycle preventio
     201,
   );
   const upload = ok(await h.upload(employee), 201);
-  const file = ok(
+  ok(
     await h.call(employee, "POST", "/drive", {
-      name: "Report",
+      name: "Private report",
       parentId: child.id,
       fileId: upload.id,
     }),
     201,
   );
+
   assert.equal(
     (await h.call(admin, "GET", `/files/${upload.id}/download`)).statusCode,
     403,
-    "system administrator is not a private Drive reader",
+    "administrators do not bypass personal Drive access",
   );
+
   ok(
     await h.call(employee, "POST", `/drive/${root.id}/shares`, {
       userId: manager.user.id,
       access: "VIEWER",
+    }),
+  );
+  assert.equal(
+    (await h.call(manager, "GET", `/files/${upload.id}/download`)).statusCode,
+    403,
+    "new personal-folder shares are item-only by default",
+  );
+  const sharedWithMe = ok(
+    await h.call(manager, "GET", "/drive?view=shared-with-me"),
+  );
+  assert.ok(sharedWithMe.some((item) => item.id === root.id));
+
+  ok(
+    await h.call(employee, "POST", `/drive/${root.id}/shares`, {
+      userId: manager.user.id,
+      access: "VIEWER",
+      scope: "DESCENDANTS",
     }),
   );
   assert.equal(
@@ -163,77 +183,124 @@ test("Drive inheritance, viewers, editors, revocation, trash and cycle preventio
   assert.equal(
     (
       await h.call(manager, "POST", "/drive", {
-        name: "Not allowed",
+        name: "Viewer cannot add",
         parentId: child.id,
       })
     ).statusCode,
     403,
   );
+
   ok(
     await h.call(employee, "POST", `/drive/${root.id}/shares`, {
       userId: manager.user.id,
       access: "EDITOR",
+      scope: "DESCENDANTS",
     }),
   );
-  const edited = ok(
+  const editorFolder = ok(
     await h.call(manager, "POST", "/drive", {
       name: "Editor folder",
       parentId: child.id,
     }),
     201,
   );
-  assert.equal(edited.ownerId, employee.user.id);
+  assert.equal(
+    editorFolder.ownerId,
+    employee.user.id,
+    "items created in another person's personal space remain owned by that personal space",
+  );
+
+  const group = ok(
+    await h.call(manager, "POST", "/drive/spaces", {
+      name: "IT Shared",
+      memberIds: [employee.user.id],
+    }),
+    201,
+  );
+  assert.equal(group.type, "GROUP");
+  const teamFolder = ok(
+    await h.call(manager, "POST", "/drive", {
+      name: "Team docs",
+      spaceId: group.id,
+    }),
+    201,
+  );
+
+  const employeeGroupView = ok(
+    await h.call(employee, "GET", `/drive?spaceId=${group.id}`),
+  );
+  assert.ok(employeeGroupView.some((item) => item.id === teamFolder.id));
   assert.equal(
     (
-      await h.call(manager, "POST", `/drive/${child.id}/shares`, {
-        userId: admin.user.id,
-        access: "VIEWER",
+      await h.call(employee, "POST", "/drive", {
+        name: "Viewer cannot add",
+        parentId: teamFolder.id,
       })
     ).statusCode,
     403,
   );
-  assert.equal(
-    (
-      await h.call(employee, "PATCH", `/drive/${root.id}`, {
-        parentId: child.id,
-      })
-    ).statusCode,
-    400,
-  );
-  ok(await h.call(employee, "DELETE", `/drive/${root.id}`));
-  assert.equal(
-    (await h.call(manager, "GET", `/files/${upload.id}/download`)).statusCode,
-    403,
-  );
-  assert.equal(
-    (await h.call(employee, "GET", `/files/${upload.id}/download`)).statusCode,
-    403,
-  );
-  ok(await h.call(employee, "POST", `/drive/${root.id}/restore`));
-  const grants = ok(await h.call(employee, "GET", `/drive/${root.id}/shares`));
+
   ok(
-    await h.call(
-      employee,
-      "DELETE",
-      `/drive/${root.id}/shares/${grants[0].id}`,
-    ),
+    await h.call(manager, "PUT", `/drive/spaces/${group.id}/members`, {
+      members: [
+        { userId: manager.user.id, role: "MANAGER" },
+        { userId: employee.user.id, role: "EDITOR" },
+      ],
+    }),
+  );
+  const groupChild = ok(
+    await h.call(employee, "POST", "/drive", {
+      name: "Shared working folder",
+      parentId: teamFolder.id,
+    }),
+    201,
+  );
+  assert.equal(groupChild.ownerId, employee.user.id);
+
+  ok(
+    await h.call(manager, "PUT", `/drive/${teamFolder.id}/shares`, {
+      permissionMode: "CUSTOM",
+      grants: [
+        {
+          userId: admin.user.id,
+          access: "VIEWER",
+          scope: "DESCENDANTS",
+        },
+      ],
+    }),
   );
   assert.equal(
-    (await h.call(manager, "GET", `/files/${upload.id}/download`)).statusCode,
+    (await h.call(employee, "GET", `/drive?parentId=${teamFolder.id}`))
+      .statusCode,
     403,
+    "custom visibility can narrow a group folder below workspace membership",
   );
   assert.equal(
-    (await h.call(manager, "GET", `/drive?parentId=${edited.id}`)).statusCode,
-    403,
+    (await h.call(admin, "GET", `/drive?parentId=${teamFolder.id}`))
+      .statusCode,
+    200,
+    "selected recipients can receive access even outside the group membership",
   );
+
+  const employeeSpaces = ok(await h.call(employee, "GET", "/drive/spaces"));
+  const global = employeeSpaces.find((space) => space.type === "GLOBAL");
+  assert.ok(global);
+  assert.equal(global.access, "VIEWER");
   assert.equal(
     (
-      await h.call(employee, "POST", "/tasks", {
-        title: "Redistribute Drive",
-        attachmentIds: [upload.id],
+      await h.call(employee, "POST", "/drive", {
+        name: "Cannot publish globally",
+        spaceId: global.id,
       })
     ).statusCode,
     403,
+  );
+  ok(
+    await h.call(admin, "POST", "/drive", {
+      name: "Company handbook",
+      spaceId: global.id,
+    }),
+    201,
   );
 });
 

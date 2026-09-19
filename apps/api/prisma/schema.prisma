@@ -160,6 +160,9 @@ model User {
   approvalComments          ApprovalComment[]
   driveItems                DriveItem[]
   driveGrants               DriveGrant[]
+  ownedDriveSpaces          DriveSpace[]                @relation("PersonalDriveSpaceOwner")
+  createdDriveSpaces        DriveSpace[]                @relation("DriveSpaceCreator")
+  driveSpaceMemberships     DriveSpaceMember[]
   uploadedFiles             FileObject[]
   notifications             Notification[]
   auditLogs                 AuditLog[]
@@ -614,36 +617,94 @@ enum DriveAccess {
   EDITOR
 }
 
-model DriveItem {
-  id        String @id @default(uuid()) @db.Uuid
-  name      String
-  kind      DriveKind
-  ownerId   String @db.Uuid
-  owner     User @relation(fields: [ownerId], references: [id], onDelete: Restrict)
-  parentId  String? @db.Uuid
-  parent    DriveItem? @relation("DriveTree", fields: [parentId], references: [id], onDelete: Restrict)
-  children  DriveItem[] @relation("DriveTree")
-  fileId    String? @unique @db.Uuid
-  file      FileObject? @relation(fields: [fileId], references: [id], onDelete: Restrict)
-  grants    DriveGrant[]
-  deletedAt DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+enum DriveSpaceType {
+  PERSONAL
+  GLOBAL
+  GROUP
+}
 
+enum DriveSpaceRole {
+  VIEWER
+  EDITOR
+  MANAGER
+}
+
+enum DrivePermissionMode {
+  INHERIT
+  CUSTOM
+}
+
+enum DriveGrantScope {
+  ITEM_ONLY
+  DESCENDANTS
+}
+
+model DriveSpace {
+  id          String            @id @default(uuid()) @db.Uuid
+  key         String            @unique
+  name        String
+  type        DriveSpaceType
+  ownerUserId String?           @unique @db.Uuid
+  ownerUser   User?             @relation("PersonalDriveSpaceOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  createdById String?           @db.Uuid
+  createdBy   User?             @relation("DriveSpaceCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  members     DriveSpaceMember[]
+  items       DriveItem[]
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([type])
+  @@index([createdById])
+}
+
+model DriveSpaceMember {
+  spaceId   String         @db.Uuid
+  userId    String         @db.Uuid
+  role      DriveSpaceRole @default(VIEWER)
+  space     DriveSpace     @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@id([spaceId, userId])
+  @@index([userId, role])
+}
+
+model DriveItem {
+  id             String              @id @default(uuid()) @db.Uuid
+  name           String
+  kind           DriveKind
+  ownerId        String              @db.Uuid
+  owner          User                @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  spaceId        String              @db.Uuid
+  space          DriveSpace          @relation(fields: [spaceId], references: [id], onDelete: Restrict)
+  parentId       String?             @db.Uuid
+  parent         DriveItem?          @relation("DriveTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children       DriveItem[]         @relation("DriveTree")
+  fileId         String?             @unique @db.Uuid
+  file           FileObject?         @relation(fields: [fileId], references: [id], onDelete: Restrict)
+  grants         DriveGrant[]
+  permissionMode DrivePermissionMode @default(CUSTOM)
+  deletedAt      DateTime?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  @@index([spaceId, parentId, deletedAt])
   @@index([parentId, deletedAt])
   @@index([ownerId, deletedAt])
 }
 
 model DriveGrant {
-  id           String @id @default(uuid()) @db.Uuid
-  itemId       String @db.Uuid
-  item         DriveItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  userId       String? @db.Uuid
-  user         User? @relation(fields: [userId], references: [id], onDelete: Cascade)
-  departmentId String? @db.Uuid
-  department   Department? @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  id           String          @id @default(uuid()) @db.Uuid
+  itemId       String          @db.Uuid
+  item         DriveItem       @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  userId       String?         @db.Uuid
+  user         User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  departmentId String?         @db.Uuid
+  department   Department?     @relation(fields: [departmentId], references: [id], onDelete: Cascade)
   access       DriveAccess
-  createdAt    DateTime @default(now())
+  scope        DriveGrantScope @default(ITEM_ONLY)
+  createdAt    DateTime        @default(now())
 
   @@unique([itemId, userId])
   @@unique([itemId, departmentId])

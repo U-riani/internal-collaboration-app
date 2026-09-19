@@ -20,24 +20,18 @@ Success: `{ "success": true, "data": ... }`, optionally `meta`. Errors: `{ "succ
 | GET | `/roles` | Preset roles/permissions; requires `roles.manage` |
 | GET | `/audit` | Most recent 100 recorded actions; requires `system.audit.read` |
 
-## Drive and files
+## Drive
 
-| Method | Path | Input / result |
-| --- | --- | --- |
-| GET | `/drive` | `?view=mine\|shared\|trash&parentId=UUID&q=text`; items plus breadcrumbs/folder/owned-Drive bytes |
-| POST | `/files` | Multipart `file`; returns id/name/size/mime metadata |
-| GET | `/files/:id` | Authorized file metadata |
-| GET | `/files/:id/download` | Authorized binary stream with attachment disposition; no public storage URL |
-| DELETE | `/files/:id` | Soft-delete own unlinked upload |
-| POST | `/drive` | `{name,parentId?,fileId?}`; omit fileId for a folder |
-| PATCH | `/drive/:id` | `{name? ,parentId?}`; null parentId means root |
-| DELETE | `/drive/:id` | Move owned item to trash |
-| POST | `/drive/:id/restore` | Restore owned item |
-| GET | `/drive/:id/shares` | Owner reads direct grants |
-| POST | `/drive/:id/shares` | `{userId,access}` OR `{departmentId,access}`; VIEWER/EDITOR |
-| DELETE | `/drive/:id/shares/:grantId` | Owner revokes a direct grant |
-
-Upload first, then use the returned file ID to create the Drive item or attach it to the owning resource. Each upload is limited to one file and defaults to 100 MB. Drive uploads must be previously unlinked. Generic resource attachments must be own non-Drive uploads. Failed forms can leave unlinked uploads; automatic orphan cleanup is not implemented.
+- `GET /drive/spaces` — list Personal, Global, and Group spaces available to the signed-in user.
+- `POST /drive/spaces` — create a Group space (requires `drive.groups.create`).
+- `GET|PUT /drive/spaces/:id/members` — read or replace shared-space membership; Manager access required.
+- `GET /drive?spaceId=...` — browse a Personal, Global, or Group space.
+- `GET /drive?view=shared-with-me` — browse direct shares from other users' Personal spaces.
+- `GET /drive?view=trash` — browse the signed-in user's Personal Trash.
+- `POST /drive` — create a folder or link an uploaded file into a space/folder.
+- `PATCH /drive/:id` — rename or move an item within the same space.
+- `GET|POST|PUT /drive/:id/shares` — inspect, add, or replace item grants. New grants default to item-only.
+- Shared items use `INHERIT` or `CUSTOM` permission mode. Personal folders stay explicit and do not expose descendants unless the grant scope is `DESCENDANTS`.
 
 ## Tasks
 
