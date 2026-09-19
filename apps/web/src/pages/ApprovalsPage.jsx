@@ -1,13 +1,19 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import {
   Plus,
-  ArrowRight,
   Check,
-  Clock,
   FileCheck2,
   Settings2,
+  ChevronDown,
+  ChevronRight,
+  Columns3,
+  FolderPlus,
+  List,
+  Pencil,
+  Search,
+  Trash2,
 } from "lucide-react";
 import { api, uploadFile } from "../lib/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -22,6 +28,17 @@ import {
   Attachments,
   prettyDate,
 } from "../components/UI.jsx";
+const approvalStatuses = [
+  "DRAFT",
+  "SUBMITTED",
+  "PENDING",
+  "CHANGES_REQUESTED",
+  "APPROVED",
+  "REJECTED",
+  "CANCELLED",
+];
+const UNGROUPED = "__ungrouped__";
+
 function FormFields({ schema, values, setValues, draft = false }) {
   return (
     <>
@@ -627,6 +644,54 @@ function RequestTypesManager({ onClose }) {
     </Modal>
   );
 }
+function ApprovalGroupForm({ existing, onClose }) {
+  const qc = useQueryClient();
+  const [name, setName] = useState(existing?.name || "");
+  const save = useMutation({
+    mutationFn: () =>
+      api(existing ? `/approval-groups/${existing.id}` : "/approval-groups", {
+        method: existing ? "PATCH" : "POST",
+        body: JSON.stringify({ name }),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["approval-groups"] });
+      onClose();
+    },
+  });
+
+  return (
+    <Modal
+      title={existing ? "Rename approval group" : "New approval group"}
+      onClose={onClose}
+    >
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          save.mutate();
+        }}
+      >
+        <Field
+          label="Group name"
+          required
+          minLength={1}
+          maxLength={120}
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+        />
+        <ErrorBox error={save.error} />
+        <div className="form-actions">
+          <button type="button" className="btn-secondary" onClick={onClose}>
+            Cancel
+          </button>
+          <button className="btn-primary" disabled={save.isPending}>
+            {save.isPending ? "Saving…" : existing ? "Save" : "Create group"}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
 function RequestForm({ existing, onClose }) {
   const qc = useQueryClient();
   const [typeId, setTypeId] = useState(existing?.approvalTypeId || "");
@@ -742,6 +807,21 @@ function RequestDetail({ item, onClose }) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [comment, setComment] = useState("");
+  const groups = useQuery({
+    queryKey: ["approval-groups"],
+    queryFn: () => api("/approval-groups").then((response) => response.data),
+  });
+  const updateLayout = useMutation({
+    mutationFn: (groupId) =>
+      api(`/approval-requests/${item.id}/layout`, {
+        method: "PUT",
+        body: JSON.stringify({ groupId: groupId || null }),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["approvals"] });
+      qc.invalidateQueries({ queryKey: ["approval-groups"] });
+    },
+  });
 
   useEffect(() => {
     let active = true;
@@ -799,6 +879,23 @@ function RequestDetail({ item, onClose }) {
           {item.requester.displayName} · {item.workflowSnapshot?.type?.name || item.approvalType.name} · v{item.workflowSnapshot?.type?.version || item.approvalTypeVersion} · {prettyDate(item.createdAt)}
         </p>
         <Badge value={item.status} />
+      </div>
+      <div className="mt-5 max-w-xs">
+        <Field label="My group">
+          <select
+            className="input"
+            value={item.personalLayout?.groupId || ""}
+            disabled={updateLayout.isPending}
+            onChange={(event) => updateLayout.mutate(event.target.value)}
+          >
+            <option value="">Ungrouped</option>
+            {(groups.data || []).map((group) => (
+              <option key={group.id} value={group.id}>
+                {group.name}
+              </option>
+            ))}
+          </select>
+        </Field>
       </div>
       <div className="grid sm:grid-cols-2 gap-5 my-6 rounded-xl bg-slate-50 p-5">
         {Object.entries(schema).map(([key, field]) => (
@@ -881,7 +978,7 @@ function RequestDetail({ item, onClose }) {
           </button>
         </div>
       )}
-      <ErrorBox error={save.error} />
+      <ErrorBox error={save.error || updateLayout.error || groups.error} />
       <h3 className="text-sm font-semibold mt-6 mb-3">Comments</h3>
       {item.comments.map((c) => (
         <p key={c.id} className="text-sm my-3">
@@ -945,26 +1042,54 @@ function RequestDetail({ item, onClose }) {
 }
 export default function ApprovalsPage() {
   const { user, hasPermission } = useAuth();
+  const qc = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const linkedRequestId = searchParams.get("request");
-  const [filter, setFilter] = useState("all");
+  const [involvement, setInvolvement] = useState("all");
+  const [search, setSearch] = useState("");
+  const [board, setBoard] = useState(false);
+  const [selectedStatuses, setSelectedStatuses] = useState([]);
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [requesterFilter, setRequesterFilter] = useState("all");
+  const [groupFilter, setGroupFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState("all");
   const [modal, setModal] = useState(null);
+  const [groupForm, setGroupForm] = useState(null);
   const [selectedId, setSelectedId] = useState(linkedRequestId);
+  const [collapsedGroups, setCollapsedGroups] = useState(() => new Set());
+  const [draggingId, setDraggingId] = useState(null);
+
   const query = useQuery({
     queryKey: ["approvals"],
-    queryFn: () => api("/approval-requests").then((r) => r.data),
+    queryFn: () => api("/approval-requests").then((response) => response.data),
   });
-  const requests = (query.data || []).filter(
-    (r) =>
-      filter === "all" ||
-      (filter === "mine" && r.requesterId === user.id) ||
-      (filter === "review" &&
-        r.status === "PENDING" &&
-        r.steps.some(
-          (s) => s.status === "PENDING" && s.approverId === user.id,
-        )),
-  );
-  const item = query.data?.find((r) => r.id === selectedId);
+  const groups = useQuery({
+    queryKey: ["approval-groups"],
+    queryFn: () => api("/approval-groups").then((response) => response.data),
+  });
+  const moveLayout = useMutation({
+    mutationFn: ({ requestId, groupId }) =>
+      api(`/approval-requests/${requestId}/layout`, {
+        method: "PUT",
+        body: JSON.stringify({ groupId }),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["approvals"] });
+      qc.invalidateQueries({ queryKey: ["approval-groups"] });
+    },
+  });
+  const deleteGroup = useMutation({
+    mutationFn: (groupId) =>
+      api(`/approval-groups/${groupId}`, { method: "DELETE" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["approval-groups"] });
+      qc.invalidateQueries({ queryKey: ["approvals"] });
+    },
+  });
+
+  useEffect(() => {
+    if (linkedRequestId) setSelectedId(linkedRequestId);
+  }, [linkedRequestId]);
 
   const closeRequest = () => {
     setSelectedId(null);
@@ -975,13 +1100,248 @@ export default function ApprovalsPage() {
     }
   };
 
+  const allRequests = query.data || [];
+  const typeOptions = useMemo(() => {
+    const byId = new Map();
+    for (const request of allRequests) {
+      byId.set(request.approvalTypeId, {
+        id: request.approvalTypeId,
+        name: request.workflowSnapshot?.type?.name || request.approvalType.name,
+      });
+    }
+    return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name));
+  }, [allRequests]);
+  const requesterOptions = useMemo(() => {
+    const byId = new Map();
+    for (const request of allRequests)
+      byId.set(request.requester.id, request.requester);
+    return [...byId.values()].sort((a, b) =>
+      a.displayName.localeCompare(b.displayName),
+    );
+  }, [allRequests]);
+
+  const visibleRequests = useMemo(() => {
+    const normalized = search.trim().toLowerCase();
+    const now = Date.now();
+    const cutoff =
+      dateFilter === "7"
+        ? now - 7 * 24 * 60 * 60 * 1000
+        : dateFilter === "30"
+          ? now - 30 * 24 * 60 * 60 * 1000
+          : null;
+
+    return allRequests.filter((request) => {
+      const typeName =
+        request.workflowSnapshot?.type?.name || request.approvalType.name;
+      const currentApprover = request.steps.some(
+        (step) => step.status === "PENDING" && step.approverId === user.id,
+      );
+      const involved =
+        request.requesterId === user.id ||
+        request.steps.some((step) => step.approverId === user.id);
+      const involvementMatch =
+        involvement === "all" ||
+        (involvement === "review" && currentApprover) ||
+        (involvement === "mine" && request.requesterId === user.id) ||
+        (involvement === "involved" && involved);
+      const textMatch =
+        !normalized ||
+        `${request.title} ${typeName} ${request.requester.displayName}`
+          .toLowerCase()
+          .includes(normalized);
+      const statusMatch =
+        !selectedStatuses.length || selectedStatuses.includes(request.status);
+      const typeMatch =
+        typeFilter === "all" || request.approvalTypeId === typeFilter;
+      const requesterMatch =
+        requesterFilter === "all" || request.requesterId === requesterFilter;
+      const requestGroupId = request.personalLayout?.groupId || UNGROUPED;
+      const groupMatch =
+        groupFilter === "all" || requestGroupId === groupFilter;
+      const dateMatch =
+        cutoff === null || new Date(request.createdAt).getTime() >= cutoff;
+      return (
+        involvementMatch &&
+        textMatch &&
+        statusMatch &&
+        typeMatch &&
+        requesterMatch &&
+        groupMatch &&
+        dateMatch
+      );
+    });
+  }, [
+    allRequests,
+    search,
+    involvement,
+    selectedStatuses,
+    typeFilter,
+    requesterFilter,
+    groupFilter,
+    dateFilter,
+    user.id,
+  ]);
+
+  const groupSections = useMemo(() => {
+    const sortedRequests = (items) =>
+      items.slice().sort((left, right) => {
+        const positionDifference =
+          (left.personalLayout?.position ?? Number.MAX_SAFE_INTEGER) -
+          (right.personalLayout?.position ?? Number.MAX_SAFE_INTEGER);
+        if (positionDifference) return positionDifference;
+        return new Date(right.createdAt) - new Date(left.createdAt);
+      });
+
+    const sections = (groups.data || []).map((group) => ({
+      ...group,
+      requests: sortedRequests(
+        visibleRequests.filter(
+          (request) => request.personalLayout?.groupId === group.id,
+        ),
+      ),
+    }));
+    sections.push({
+      id: UNGROUPED,
+      name: "Ungrouped",
+      canManage: false,
+      canUse: true,
+      requests: sortedRequests(
+        visibleRequests.filter((request) => !request.personalLayout?.groupId),
+      ),
+    });
+    return groupFilter === "all"
+      ? sections
+      : sections.filter((group) => group.id === groupFilter);
+  }, [groups.data, visibleRequests, groupFilter]);
+
+  const item = allRequests.find((request) => request.id === selectedId);
+
+  const toggleStatus = (status) =>
+    setSelectedStatuses((current) =>
+      current.includes(status)
+        ? current.filter((value) => value !== status)
+        : [...current, status],
+    );
+
+  const toggleGroup = (groupId) =>
+    setCollapsedGroups((current) => {
+      const next = new Set(current);
+      if (next.has(groupId)) next.delete(groupId);
+      else next.add(groupId);
+      return next;
+    });
+
+  const resetFilters = () => {
+    setSearch("");
+    setInvolvement("all");
+    setSelectedStatuses([]);
+    setTypeFilter("all");
+    setRequesterFilter("all");
+    setGroupFilter("all");
+    setDateFilter("all");
+  };
+
+  const approvalCard = (request) => {
+    const typeName =
+      request.workflowSnapshot?.type?.name || request.approvalType.name;
+    const current = request.steps.find((step) => step.status === "PENDING");
+    return (
+      <button
+        key={request.id}
+        draggable
+        onDragStart={(event) => {
+          setDraggingId(request.id);
+          event.dataTransfer.effectAllowed = "move";
+          event.dataTransfer.setData("text/plain", request.id);
+        }}
+        onDragEnd={() => setDraggingId(null)}
+        onClick={() => setSelectedId(request.id)}
+        className={`card w-full p-4 text-left transition hover:border-blue-300 ${
+          draggingId === request.id ? "opacity-50" : ""
+        }`}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <span className="text-sm font-semibold text-slate-700">
+            {request.title}
+          </span>
+          <Badge value={request.status} />
+        </div>
+        <p className="mt-2 truncate text-xs font-medium text-slate-500">
+          {typeName}
+        </p>
+        <p className="mt-3 text-xs text-slate-400">
+          Requested by {request.requester.displayName}
+        </p>
+        {current && (
+          <p className="mt-2 truncate text-[11px] text-slate-400">
+            Current review · {current.approver.displayName}
+          </p>
+        )}
+        <p className="mt-3 text-[11px] text-slate-400">
+          {prettyDate(request.createdAt)}
+        </p>
+      </button>
+    );
+  };
+
+  const approvalRow = (request) => {
+    const typeName =
+      request.workflowSnapshot?.type?.name || request.approvalType.name;
+    const current = request.steps.find((step) => step.status === "PENDING");
+    return (
+      <button
+        className="grid min-w-[900px] w-full grid-cols-[minmax(280px,1.8fr)_180px_190px_145px_160px] items-center gap-4 border-t border-slate-100 px-5 py-3.5 text-left transition hover:bg-slate-50"
+        key={request.id}
+        onClick={() => setSelectedId(request.id)}
+      >
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="rounded-xl bg-blue-50 p-2 text-blue-500">
+            <FileCheck2 size={18} />
+          </span>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-slate-700">
+              {request.title}
+            </p>
+            <p className="mt-1 truncate text-xs text-slate-400">
+              {current
+                ? `Current review · ${current.approver.displayName}`
+                : "No active reviewer"}
+            </p>
+          </div>
+        </div>
+        <span className="truncate text-sm text-slate-600">
+          {request.requester.displayName}
+        </span>
+        <span className="truncate text-sm text-slate-500">{typeName}</span>
+        <span>
+          <Badge value={request.status} />
+        </span>
+        <span className="text-sm text-slate-400">
+          {prettyDate(request.createdAt)}
+        </span>
+      </button>
+    );
+  };
+
+  const activeFilterCount =
+    selectedStatuses.length +
+    (typeFilter !== "all" ? 1 : 0) +
+    (requesterFilter !== "all" ? 1 : 0) +
+    (groupFilter !== "all" ? 1 : 0) +
+    (dateFilter !== "all" ? 1 : 0) +
+    (search ? 1 : 0);
+
   return (
     <>
       <PageHeader
         title="Approvals"
-        description="Clear requests. The right reviewers. Every decision recorded."
+        description="Review requests, filter what matters, and organize approvals into your own personal groups."
         action={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <button className="btn-secondary" onClick={() => setGroupForm({})}>
+              <FolderPlus size={17} />
+              New group
+            </button>
             {hasPermission("approvals.configure") && (
               <button
                 className="btn-secondary"
@@ -1003,61 +1363,342 @@ export default function ApprovalsPage() {
           </div>
         }
       />
-      <div className="toolbar">
+
+      <div className="toolbar flex-wrap gap-3">
         <div className="tabs">
           {[
-            ["all", "All requests"],
+            ["all", "All"],
             ["review", "Needs my review"],
             ["mine", "My requests"],
-          ].map(([v, label]) => (
+            ["involved", "I'm involved"],
+          ].map(([value, label]) => (
             <button
-              key={v}
-              className={filter === v ? "active" : ""}
-              onClick={() => setFilter(v)}
+              key={value}
+              className={involvement === value ? "active" : ""}
+              onClick={() => setInvolvement(value)}
             >
               {label}
             </button>
           ))}
         </div>
-      </div>
-      <ErrorBox error={query.error} />
-      <div className="card overflow-hidden">
-        {query.isLoading ? (
-          <Loading />
-        ) : requests.length ? (
-          requests.map((r) => (
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          <div className="relative">
+            <Search
+              className="absolute left-3 top-3 text-slate-400"
+              size={15}
+            />
+            <input
+              aria-label="Search approvals"
+              className="input w-56 pl-9"
+              placeholder="Search approvals"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+          </div>
+          <div
+            className="inline-flex rounded-xl border border-slate-200 bg-white p-1"
+            aria-label="Approval view"
+          >
             <button
-              className="list-row w-full text-left"
-              key={r.id}
-              onClick={() => setSelectedId(r.id)}
+              type="button"
+              className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                !board
+                  ? "bg-slate-100 text-slate-800"
+                  : "text-slate-500 hover:text-slate-800"
+              }`}
+              onClick={() => setBoard(false)}
             >
-              <span className="p-3 rounded-xl bg-blue-50 text-blue-500">
-                <FileCheck2 size={20} />
-              </span>
-              <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-sm truncate">{r.title}</h3>
-                <p className="text-xs text-slate-400 mt-1">
-                  {r.workflowSnapshot?.type?.name || r.approvalType.name} · {r.requester.displayName}
-                </p>
-              </div>
-              <span className="hidden sm:block text-xs text-slate-400">
-                {prettyDate(r.createdAt)}
-              </span>
-              <Badge value={r.status} />
-              <ArrowRight className="text-slate-300" size={15} />
+              <List size={15} />
+              List
             </button>
-          ))
-        ) : (
-          <Empty
-            title="No requests here"
-            text="Submit a request or choose another view."
-          />
-        )}
+            <button
+              type="button"
+              className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                board
+                  ? "bg-slate-100 text-slate-800"
+                  : "text-slate-500 hover:text-slate-800"
+              }`}
+              onClick={() => setBoard(true)}
+            >
+              <Columns3 size={15} />
+              Board
+            </button>
+          </div>
+        </div>
       </div>
-      {modal === "create" && <RequestForm onClose={() => setModal(null)} />}{" "}
+
+      <div className="mb-5 flex flex-wrap items-center gap-2">
+        <details className="relative">
+          <summary className="btn-secondary cursor-pointer list-none">
+            Status{selectedStatuses.length ? ` (${selectedStatuses.length})` : ""}
+          </summary>
+          <div className="absolute left-0 top-11 z-10 w-56 rounded-xl border border-slate-200 bg-white p-3 shadow-xl">
+            <div className="space-y-2">
+              {approvalStatuses.map((status) => (
+                <label
+                  key={status}
+                  className="flex items-center gap-2 text-xs text-slate-600"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedStatuses.includes(status)}
+                    onChange={() => toggleStatus(status)}
+                  />
+                  {status.replaceAll("_", " ")}
+                </label>
+              ))}
+            </div>
+          </div>
+        </details>
+
+        <select
+          className="input w-auto min-w-40"
+          aria-label="Filter by request type"
+          value={typeFilter}
+          onChange={(event) => setTypeFilter(event.target.value)}
+        >
+          <option value="all">All request types</option>
+          {typeOptions.map((type) => (
+            <option key={type.id} value={type.id}>
+              {type.name}
+            </option>
+          ))}
+        </select>
+
+        <select
+          className="input w-auto min-w-40"
+          aria-label="Filter by requester"
+          value={requesterFilter}
+          onChange={(event) => setRequesterFilter(event.target.value)}
+        >
+          <option value="all">All requesters</option>
+          {requesterOptions.map((requester) => (
+            <option key={requester.id} value={requester.id}>
+              {requester.displayName}
+            </option>
+          ))}
+        </select>
+
+        <select
+          className="input w-auto min-w-36"
+          aria-label="Filter by group"
+          value={groupFilter}
+          onChange={(event) => setGroupFilter(event.target.value)}
+        >
+          <option value="all">All groups</option>
+          {(groups.data || []).map((group) => (
+            <option key={group.id} value={group.id}>
+              {group.name}
+            </option>
+          ))}
+          <option value={UNGROUPED}>Ungrouped</option>
+        </select>
+
+        <select
+          className="input w-auto min-w-32"
+          aria-label="Filter by date"
+          value={dateFilter}
+          onChange={(event) => setDateFilter(event.target.value)}
+        >
+          <option value="all">Any date</option>
+          <option value="7">Last 7 days</option>
+          <option value="30">Last 30 days</option>
+        </select>
+
+        {activeFilterCount > 0 && (
+          <button className="btn-secondary" onClick={resetFilters}>
+            Clear filters
+          </button>
+        )}
+        <span className="ml-auto text-xs text-slate-400">
+          {visibleRequests.length} request{visibleRequests.length === 1 ? "" : "s"}
+        </span>
+      </div>
+
+      <ErrorBox
+        error={
+          query.error ||
+          groups.error ||
+          moveLayout.error ||
+          deleteGroup.error
+        }
+      />
+
+      {query.isLoading || groups.isLoading ? (
+        <Loading />
+      ) : board ? (
+        <div className="flex gap-4 overflow-x-auto pb-4">
+          {groupSections.map((group) => (
+            <section
+              key={group.id}
+              className="w-[300px] min-w-[300px] rounded-xl bg-slate-100 p-3"
+              onDragOver={(event) => {
+                event.preventDefault();
+                event.dataTransfer.dropEffect = "move";
+              }}
+              onDrop={(event) => {
+                event.preventDefault();
+                const requestId =
+                  draggingId || event.dataTransfer.getData("text/plain");
+                if (!requestId) return;
+                moveLayout.mutate({
+                  requestId,
+                  groupId: group.id === UNGROUPED ? null : group.id,
+                });
+                setDraggingId(null);
+              }}
+            >
+              <div className="mb-4 flex items-center gap-2 px-1">
+                <h3 className="min-w-0 flex-1 truncate text-xs font-bold text-slate-600">
+                  {group.name}
+                </h3>
+                <span className="text-xs text-slate-400">
+                  {group.requests.length}
+                </span>
+                {group.canManage && (
+                  <>
+                    <button
+                      type="button"
+                      className="icon-btn"
+                      aria-label={`Rename ${group.name}`}
+                      onClick={() => setGroupForm(group)}
+                    >
+                      <Pencil size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      className="icon-btn hover:text-red-600"
+                      aria-label={`Delete ${group.name}`}
+                      disabled={deleteGroup.isPending}
+                      onClick={() => {
+                        if (
+                          window.confirm(
+                            `Delete “${group.name}”? Your approvals in this group will move to Ungrouped. Other users are not affected.`,
+                          )
+                        )
+                          deleteGroup.mutate(group.id);
+                      }}
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </>
+                )}
+              </div>
+              <div className="min-h-24 space-y-3">
+                {group.requests.map(approvalCard)}
+                {!group.requests.length && (
+                  <div className="rounded-xl border border-dashed border-slate-300 px-4 py-8 text-center text-xs text-slate-400">
+                    Drop approvals here
+                  </div>
+                )}
+              </div>
+            </section>
+          ))}
+        </div>
+      ) : (
+        <div className="card overflow-hidden">
+          <div className="overflow-x-auto">
+            <div className="grid min-w-[900px] grid-cols-[minmax(280px,1.8fr)_180px_190px_145px_160px] items-center gap-4 bg-slate-50 px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-slate-400">
+              <span>Request</span>
+              <span>Requester</span>
+              <span>Request type</span>
+              <span>Status</span>
+              <span>Created</span>
+            </div>
+            {groupSections.map((group) => {
+              const collapsed = collapsedGroups.has(group.id);
+              return (
+                <section key={group.id}>
+                  <div className="flex min-w-[900px] items-center gap-2 border-t border-slate-200 bg-slate-50/70 px-4 py-2.5">
+                    <button
+                      type="button"
+                      className="grid h-7 w-7 place-items-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                      onClick={() => toggleGroup(group.id)}
+                      aria-label={
+                        collapsed
+                          ? `Expand ${group.name}`
+                          : `Collapse ${group.name}`
+                      }
+                    >
+                      {collapsed ? (
+                        <ChevronRight size={16} />
+                      ) : (
+                        <ChevronDown size={16} />
+                      )}
+                    </button>
+                    <span className="font-semibold text-sm text-slate-700">
+                      {group.name}
+                    </span>
+                    <span className="text-xs text-slate-400">
+                      {group.requests.length} request
+                      {group.requests.length === 1 ? "" : "s"}
+                    </span>
+                    {group.canManage && (
+                      <div className="ml-auto flex items-center gap-1">
+                        <button
+                          type="button"
+                          className="icon-btn"
+                          aria-label={`Rename ${group.name}`}
+                          onClick={() => setGroupForm(group)}
+                        >
+                          <Pencil size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          className="icon-btn hover:text-red-600"
+                          aria-label={`Delete ${group.name}`}
+                          disabled={deleteGroup.isPending}
+                          onClick={() => {
+                            if (
+                              window.confirm(
+                                `Delete “${group.name}”? Your approvals in this group will move to Ungrouped. Other users are not affected.`,
+                              )
+                            )
+                              deleteGroup.mutate(group.id);
+                          }}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  {!collapsed &&
+                    (group.requests.length ? (
+                      group.requests.map(approvalRow)
+                    ) : (
+                      <div className="min-w-[900px] border-t border-slate-100 px-14 py-4 text-sm text-slate-400">
+                        No approvals in this group.
+                      </div>
+                    ))}
+                </section>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {!query.isLoading &&
+        !groups.isLoading &&
+        !visibleRequests.length &&
+        !(groups.data || []).length && (
+          <div className="card mt-4">
+            <Empty
+              title="No approvals to show"
+              text="Create a group, submit a request, or try another filter."
+            />
+          </div>
+        )}
+
+      {modal === "create" && <RequestForm onClose={() => setModal(null)} />}
       {modal === "configure" && (
         <RequestTypesManager onClose={() => setModal(null)} />
-      )}{" "}
+      )}
+      {groupForm && (
+        <ApprovalGroupForm
+          existing={groupForm.id ? groupForm : null}
+          onClose={() => setGroupForm(null)}
+        />
+      )}
       {item && <RequestDetail item={item} onClose={closeRequest} />}
     </>
   );
