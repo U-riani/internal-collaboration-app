@@ -46,23 +46,60 @@ const typeUpdateSchema = typeSchema.extend({
   status: z.enum(["ACTIVE", "INACTIVE"]).optional(),
 });
 const revisionSchema = z.object({ revision: z.number().int().nonnegative() });
-const requestInclude = {
-  approvalType: true,
-  requester: { select: { id: true, displayName: true, email: true } },
-  steps: {
-    include: { approver: { select: { id: true, displayName: true } } },
-    orderBy: { stepNumber: "asc" },
-  },
-  comments: {
-    include: { author: { select: { id: true, displayName: true } } },
-    orderBy: { createdAt: "asc" },
-  },
-  attachments: {
-    include: {
-      file: { select: { id: true, originalName: true, sizeBytes: true } },
+const approvalGroupCreateSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+});
+const approvalGroupUpdateSchema = z
+  .object({
+    name: z.string().trim().min(1).max(120).optional(),
+    position: z.number().int().min(0).optional(),
+  })
+  .refine(
+    (value) => value.name !== undefined || value.position !== undefined,
+    "Provide a name or position",
+  );
+const approvalLayoutSchema = z
+  .object({
+    groupId: z.uuid().nullable().optional(),
+    position: z.number().int().min(0).optional(),
+  })
+  .refine(
+    (value) => value.groupId !== undefined || value.position !== undefined,
+    "Provide a group or position",
+  );
+
+function requestIncludeFor(userId) {
+  return {
+    approvalType: true,
+    requester: { select: { id: true, displayName: true, email: true } },
+    steps: {
+      include: { approver: { select: { id: true, displayName: true } } },
+      orderBy: { stepNumber: "asc" },
     },
-  },
-};
+    comments: {
+      include: { author: { select: { id: true, displayName: true } } },
+      orderBy: { createdAt: "asc" },
+    },
+    attachments: {
+      include: {
+        file: { select: { id: true, originalName: true, sizeBytes: true } },
+      },
+    },
+    layouts: {
+      where: { userId },
+      select: {
+        groupId: true,
+        position: true,
+        group: { select: { id: true, name: true, position: true } },
+      },
+    },
+  };
+}
+function presentRequest(item) {
+  if (!item) return item;
+  const { layouts = [], ...rest } = item;
+  return { ...rest, personalLayout: layouts[0] || null };
+}
 function allowed(user, item) {
   return (
     hasRole(user, "SYSTEM_ADMIN") ||
@@ -120,7 +157,7 @@ async function submit(tx, id, actor, revision) {
   const item = await tx.approvalRequest.findUnique({
     where: { id },
     include: {
-      ...requestInclude,
+      ...requestIncludeFor(actor.id),
       requester: { include: { department: true } },
     },
   });
@@ -200,7 +237,7 @@ async function submit(tx, id, actor, revision) {
   await log(tx, actor, id, "APPROVAL_SUBMITTED");
   return tx.approvalRequest.findUnique({
     where: { id },
-    include: requestInclude,
+    include: requestIncludeFor(actor.id),
   });
 }
 export default async function approvalRoutes(app) {
@@ -228,6 +265,122 @@ export default async function approvalRoutes(app) {
       app.io?.to(`user:${userId}`).emit("approval:updated", { id: item.id });
     }
   }
+  async function requireOwnedApprovalGroup(userId, groupId) {
+    if (!groupId) return null;
+    const group = await app.prisma.approvalGroup.findFirst({
+      where: { id: groupId, ownerId: userId, archivedAt: null },
+    });
+    if (!group)
+      throw new HttpError(
+        404,
+        "APPROVAL_GROUP_NOT_FOUND",
+        "Your approval group was not found",
+      );
+    return group;
+  }
+
+  async function nextApprovalGroupPosition(userId) {
+    const result = await app.prisma.approvalGroup.aggregate({
+      where: { ownerId: userId, archivedAt: null },
+      _max: { position: true },
+    });
+    return (result._max.position ?? -1000) + 1000;
+  }
+
+  async function nextApprovalLayoutPosition(userId, groupId) {
+    const result = await app.prisma.userApprovalLayout.aggregate({
+      where: { userId, groupId },
+      _max: { position: true },
+    });
+    return (result._max.position ?? -1000) + 1000;
+  }
+
+  app.get("/approval-groups", async (request) => {
+    const groups = await app.prisma.approvalGroup.findMany({
+      where: { ownerId: request.authUser.id, archivedAt: null },
+      include: { _count: { select: { layouts: true } } },
+      orderBy: [{ position: "asc" }, { createdAt: "asc" }],
+    });
+    return {
+      success: true,
+      data: groups.map((group) => ({
+        ...group,
+        canManage: true,
+        canUse: true,
+      })),
+    };
+  });
+
+  app.post("/approval-groups", async (request, reply) => {
+    const input = parse(approvalGroupCreateSchema, request.body);
+    const group = await app.prisma.approvalGroup.create({
+      data: {
+        name: input.name,
+        ownerId: request.authUser.id,
+        position: await nextApprovalGroupPosition(request.authUser.id),
+      },
+      include: { _count: { select: { layouts: true } } },
+    });
+    reply.status(201);
+    return {
+      success: true,
+      data: { ...group, canManage: true, canUse: true },
+    };
+  });
+
+  app.patch("/approval-groups/:groupId", async (request) => {
+    const input = parse(approvalGroupUpdateSchema, request.body);
+    const group = await app.prisma.approvalGroup.findFirst({
+      where: {
+        id: request.params.groupId,
+        ownerId: request.authUser.id,
+        archivedAt: null,
+      },
+    });
+    if (!group)
+      throw new HttpError(
+        404,
+        "APPROVAL_GROUP_NOT_FOUND",
+        "Your approval group was not found",
+      );
+    const updated = await app.prisma.approvalGroup.update({
+      where: { id: group.id },
+      data: input,
+      include: { _count: { select: { layouts: true } } },
+    });
+    return {
+      success: true,
+      data: { ...updated, canManage: true, canUse: true },
+    };
+  });
+
+  app.delete("/approval-groups/:groupId", async (request) => {
+    const group = await app.prisma.approvalGroup.findFirst({
+      where: {
+        id: request.params.groupId,
+        ownerId: request.authUser.id,
+        archivedAt: null,
+      },
+    });
+    if (!group)
+      throw new HttpError(
+        404,
+        "APPROVAL_GROUP_NOT_FOUND",
+        "Your approval group was not found",
+      );
+    await app.prisma.$transaction([
+      app.prisma.userApprovalLayout.updateMany({
+        where: { userId: request.authUser.id, groupId: group.id },
+        data: { groupId: null },
+      }),
+      app.prisma.approvalGroup.update({
+        where: { id: group.id },
+        data: { archivedAt: new Date() },
+      }),
+    ]);
+    return { success: true, data: { id: group.id } };
+  });
+
   app.get("/approval-types", async () => ({
     success: true,
     data: await app.prisma.approvalType.findMany({
@@ -355,9 +508,8 @@ export default async function approvalRoutes(app) {
     });
     return { success: true, data };
   });
-  app.get("/approval-requests", async (request) => ({
-    success: true,
-    data: await app.prisma.approvalRequest.findMany({
+  app.get("/approval-requests", async (request) => {
+    const data = await app.prisma.approvalRequest.findMany({
       where: hasPermission(request.authUser, "approvals.audit")
         ? {}
         : {
@@ -366,10 +518,11 @@ export default async function approvalRoutes(app) {
               { steps: { some: { approverId: request.authUser.id } } },
             ],
           },
-      include: requestInclude,
+      include: requestIncludeFor(request.authUser.id),
       orderBy: { createdAt: "desc" },
-    }),
-  }));
+    });
+    return { success: true, data: data.map((item) => presentRequest(item)) };
+  });
   app.post("/approval-requests", async (request, reply) => {
     requirePermission(request.authUser, "approvals.submit");
     const input = parse(requestSchema, request.body);
@@ -414,7 +567,7 @@ export default async function approvalRoutes(app) {
             create: input.attachmentIds.map((fileId) => ({ fileId })),
           },
         },
-        include: requestInclude,
+        include: requestIncludeFor(request.authUser.id),
       });
       return input.submit
         ? submit(tx, item.id, request.authUser, item.revision)
@@ -422,12 +575,68 @@ export default async function approvalRoutes(app) {
     });
     if (input.submit) await notify(item);
     reply.code(201);
-    return { success: true, data: item };
+    return { success: true, data: presentRequest(item) };
   });
+  app.put("/approval-requests/:id/layout", async (request) => {
+    const input = parse(approvalLayoutSchema, request.body);
+    const item = await app.prisma.approvalRequest.findUnique({
+      where: { id: request.params.id },
+      include: { steps: true },
+    });
+    if (!item)
+      throw new HttpError(404, "APPROVAL_NOT_FOUND", "Request was not found");
+    if (
+      !allowed(request.authUser, item) &&
+      !hasPermission(request.authUser, "approvals.audit")
+    )
+      throw new HttpError(
+        403,
+        "APPROVAL_ACCESS_DENIED",
+        "You cannot organize this request",
+      );
+
+    const existing = await app.prisma.userApprovalLayout.findUnique({
+      where: {
+        userId_approvalRequestId: {
+          userId: request.authUser.id,
+          approvalRequestId: item.id,
+        },
+      },
+    });
+    const groupId =
+      input.groupId === undefined ? (existing?.groupId ?? null) : input.groupId;
+    await requireOwnedApprovalGroup(request.authUser.id, groupId);
+    const position =
+      input.position ??
+      (existing && existing.groupId === groupId
+        ? existing.position
+        : await nextApprovalLayoutPosition(request.authUser.id, groupId));
+
+    const layout = await app.prisma.userApprovalLayout.upsert({
+      where: {
+        userId_approvalRequestId: {
+          userId: request.authUser.id,
+          approvalRequestId: item.id,
+        },
+      },
+      create: {
+        userId: request.authUser.id,
+        approvalRequestId: item.id,
+        groupId,
+        position,
+      },
+      update: { groupId, position },
+      include: {
+        group: { select: { id: true, name: true, position: true } },
+      },
+    });
+    return { success: true, data: layout };
+  });
+
   app.get("/approval-requests/:id", async (request) => {
     const item = await app.prisma.approvalRequest.findUnique({
       where: { id: request.params.id },
-      include: requestInclude,
+      include: requestIncludeFor(request.authUser.id),
     });
     if (!item)
       throw new HttpError(404, "APPROVAL_NOT_FOUND", "Request was not found");
@@ -440,7 +649,7 @@ export default async function approvalRoutes(app) {
         "APPROVAL_ACCESS_DENIED",
         "You cannot view this request",
       );
-    return { success: true, data: item };
+    return { success: true, data: presentRequest(item) };
   });
   app.patch("/approval-requests/:id", async (request) => {
     const input = parse(
@@ -454,7 +663,7 @@ export default async function approvalRoutes(app) {
     await app.prisma.$transaction(async (tx) => {
       const item = await tx.approvalRequest.findUnique({
         where: { id: request.params.id },
-        include: requestInclude,
+        include: requestIncludeFor(request.authUser.id),
       });
       if (!item || item.requesterId !== request.authUser.id)
         throw new HttpError(
@@ -487,7 +696,7 @@ export default async function approvalRoutes(app) {
       submit(tx, request.params.id, request.authUser, revision),
     );
     await notify(item);
-    return { success: true, data: item };
+    return { success: true, data: presentRequest(item) };
   });
   app.post("/approval-requests/:id/cancel", async (request) => {
     const { revision } = parse(revisionSchema, request.body);
@@ -541,7 +750,7 @@ export default async function approvalRoutes(app) {
     const updated = await app.prisma.$transaction(async (tx) => {
       const item = await tx.approvalRequest.findUnique({
         where: { id: request.params.id },
-        include: requestInclude,
+        include: requestIncludeFor(request.authUser.id),
       });
       if (
         !item ||
@@ -605,11 +814,11 @@ export default async function approvalRoutes(app) {
       });
       return tx.approvalRequest.findUnique({
         where: { id: item.id },
-        include: requestInclude,
+        include: requestIncludeFor(request.authUser.id),
       });
     });
     await notify(updated);
-    return { success: true, data: updated };
+    return { success: true, data: presentRequest(updated) };
   });
   app.post("/approval-requests/:id/comments", async (request, reply) => {
     const { content } = parse(
