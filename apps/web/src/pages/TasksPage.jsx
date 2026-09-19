@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import {
+  ArrowUpDown,
   CalendarDays,
   CheckSquare,
   ChevronDown,
@@ -9,6 +10,7 @@ import {
   Columns3,
   FolderPlus,
   List,
+  ListFilter,
   MessageSquare,
   Paperclip,
   Pencil,
@@ -42,6 +44,35 @@ const statuses = [
 ];
 const priorities = ["LOW", "NORMAL", "HIGH", "URGENT"];
 const UNGROUPED = "__ungrouped__";
+const UNASSIGNED = "__unassigned__";
+const NO_DEPARTMENT = "__no_department__";
+
+const DEFAULT_TASK_FILTERS = {
+  statuses: [],
+  priorities: [],
+  assigneeIds: [],
+  creatorIds: [],
+  participantIds: [],
+  groupIds: [],
+  departmentIds: [],
+  due: "any",
+  createdFrom: "",
+  createdTo: "",
+  attachments: "any",
+};
+
+const SORT_OPTIONS = [
+  ["manual", "Default / manual"],
+  ["due_asc", "Due date · earliest"],
+  ["due_desc", "Due date · latest"],
+  ["priority_desc", "Priority · high to low"],
+  ["priority_asc", "Priority · low to high"],
+  ["created_desc", "Created · newest"],
+  ["created_asc", "Created · oldest"],
+  ["title_asc", "Title · A to Z"],
+  ["title_desc", "Title · Z to A"],
+  ["status", "Status"],
+];
 
 function completedCount(items = []) {
   return items.filter((item) => item.status === "COMPLETED").length;
@@ -657,6 +688,9 @@ export default function TasksPage() {
   const linkedTaskId = searchParams.get("task");
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("active");
+  const [advancedFilters, setAdvancedFilters] = useState(DEFAULT_TASK_FILTERS);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [sortBy, setSortBy] = useState("manual");
   const [board, setBoard] = useState(false);
   const [create, setCreate] = useState(false);
   const [createInGroup, setCreateInGroup] = useState("");
@@ -706,6 +740,71 @@ export default function TasksPage() {
   };
 
   const allTasks = query.data || [];
+  const filterPeople = useMemo(() => {
+    const people = new Map();
+    if (user?.id) {
+      people.set(user.id, {
+        id: user.id,
+        displayName: user.displayName || user.email || "Me",
+      });
+    }
+    for (const task of allTasks) {
+      for (const person of [task.creator, task.assignee]) {
+        if (person?.id) people.set(person.id, person);
+      }
+      for (const participant of task.participants || []) {
+        if (participant.user?.id) people.set(participant.user.id, participant.user);
+      }
+    }
+    return [...people.values()].sort((left, right) =>
+      (left.displayName || left.email || "").localeCompare(
+        right.displayName || right.email || "",
+      ),
+    );
+  }, [allTasks, user?.id, user?.displayName, user?.email]);
+
+  const filterDepartments = useMemo(() => {
+    const departments = new Map();
+    for (const task of allTasks) {
+      if (task.department?.id) departments.set(task.department.id, task.department);
+    }
+    return [...departments.values()].sort((left, right) =>
+      left.name.localeCompare(right.name),
+    );
+  }, [allTasks]);
+
+  const toggleAdvancedValue = (key, value) => {
+    setAdvancedFilters((current) => ({
+      ...current,
+      [key]: current[key].includes(value)
+        ? current[key].filter((item) => item !== value)
+        : [...current[key], value],
+    }));
+  };
+
+  const setAdvancedValues = (key, event) => {
+    const values = [...event.target.selectedOptions].map((option) => option.value);
+    setAdvancedFilters((current) => ({ ...current, [key]: values }));
+  };
+
+  const setAdvancedValue = (key, value) =>
+    setAdvancedFilters((current) => ({ ...current, [key]: value }));
+
+  const clearAdvancedFilters = () => setAdvancedFilters(DEFAULT_TASK_FILTERS);
+
+  const advancedFilterCount = [
+    advancedFilters.statuses.length,
+    advancedFilters.priorities.length,
+    advancedFilters.assigneeIds.length,
+    advancedFilters.creatorIds.length,
+    advancedFilters.participantIds.length,
+    advancedFilters.groupIds.length,
+    advancedFilters.departmentIds.length,
+    advancedFilters.due !== "any",
+    Boolean(advancedFilters.createdFrom),
+    Boolean(advancedFilters.createdTo),
+    advancedFilters.attachments !== "any",
+  ].filter(Boolean).length;
   const childrenByParent = useMemo(() => {
     const map = new Map();
     for (const task of allTasks) {
@@ -717,11 +816,12 @@ export default function TasksPage() {
     return map;
   }, [allTasks]);
 
-  const matches = (task) => {
+  const matches = (task, parentTask = null) => {
     const textMatch = `${task.title} ${task.description || ""}`
       .toLowerCase()
       .includes(search.toLowerCase());
-    const filterMatch =
+
+    const quickFilterMatch =
       filter === "all" ||
       (filter === "mine" && task.assigneeId === user.id) ||
       (filter === "created" && task.creatorId === user.id) ||
@@ -729,7 +829,91 @@ export default function TasksPage() {
         task.participants?.some((participant) => participant.userId === user.id)) ||
       (filter === "active" && !["COMPLETED", "CANCELLED"].includes(task.status)) ||
       (filter === "completed" && task.status === "COMPLETED");
-    return textMatch && filterMatch;
+
+    const layoutOwner = task.parentTaskId && parentTask ? parentTask : task;
+    const taskGroupId = layoutOwner.personalLayout?.groupId || UNGROUPED;
+    const taskAssigneeId = task.assigneeId || UNASSIGNED;
+    const taskDepartmentId = task.departmentId || NO_DEPARTMENT;
+
+    const statusMatch =
+      !advancedFilters.statuses.length ||
+      advancedFilters.statuses.includes(task.status);
+    const priorityMatch =
+      !advancedFilters.priorities.length ||
+      advancedFilters.priorities.includes(task.priority);
+    const assigneeMatch =
+      !advancedFilters.assigneeIds.length ||
+      advancedFilters.assigneeIds.includes(taskAssigneeId);
+    const creatorMatch =
+      !advancedFilters.creatorIds.length ||
+      advancedFilters.creatorIds.includes(task.creatorId);
+    const participantMatch =
+      !advancedFilters.participantIds.length ||
+      task.participants?.some((participant) =>
+        advancedFilters.participantIds.includes(participant.userId),
+      );
+    const groupMatch =
+      !advancedFilters.groupIds.length ||
+      advancedFilters.groupIds.includes(taskGroupId);
+    const departmentMatch =
+      !advancedFilters.departmentIds.length ||
+      advancedFilters.departmentIds.includes(taskDepartmentId);
+
+    const now = new Date();
+    const todayStart = new Date(now);
+    todayStart.setHours(0, 0, 0, 0);
+    const tomorrowStart = new Date(todayStart);
+    tomorrowStart.setDate(tomorrowStart.getDate() + 1);
+    const nextWeekStart = new Date(todayStart);
+    nextWeekStart.setDate(nextWeekStart.getDate() + 7);
+    const dueDate = task.dueDate ? new Date(task.dueDate) : null;
+    const dueMatch =
+      advancedFilters.due === "any" ||
+      (advancedFilters.due === "no_due" && !dueDate) ||
+      (advancedFilters.due === "overdue" &&
+        dueDate &&
+        !["COMPLETED", "CANCELLED"].includes(task.status) &&
+        dueDate.getTime() < now.getTime()) ||
+      (advancedFilters.due === "today" &&
+        dueDate &&
+        dueDate >= todayStart &&
+        dueDate < tomorrowStart) ||
+      (advancedFilters.due === "next7" &&
+        dueDate &&
+        dueDate >= todayStart &&
+        dueDate < nextWeekStart);
+
+    const createdAt = task.createdAt ? new Date(task.createdAt) : null;
+    const createdFromMatch =
+      !advancedFilters.createdFrom ||
+      (createdAt &&
+        createdAt >= new Date(`${advancedFilters.createdFrom}T00:00:00`));
+    const createdToMatch =
+      !advancedFilters.createdTo ||
+      (createdAt &&
+        createdAt <= new Date(`${advancedFilters.createdTo}T23:59:59.999`));
+
+    const attachmentCount = task.attachments?.length || 0;
+    const attachmentMatch =
+      advancedFilters.attachments === "any" ||
+      (advancedFilters.attachments === "with" && attachmentCount > 0) ||
+      (advancedFilters.attachments === "without" && attachmentCount === 0);
+
+    return (
+      textMatch &&
+      quickFilterMatch &&
+      statusMatch &&
+      priorityMatch &&
+      assigneeMatch &&
+      creatorMatch &&
+      participantMatch &&
+      groupMatch &&
+      departmentMatch &&
+      dueMatch &&
+      createdFromMatch &&
+      createdToMatch &&
+      attachmentMatch
+    );
   };
 
   const visibleParents = useMemo(
@@ -737,14 +921,12 @@ export default function TasksPage() {
       allTasks.filter((task) => {
         if (task.parentTaskId) return false;
         if (matches(task)) return true;
-        return (childrenByParent.get(task.id) || []).some(matches);
+        return (childrenByParent.get(task.id) || []).some((child) => matches(child, task));
       }),
     // matches depends on these scalar states and is intentionally local to the page.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [allTasks, childrenByParent, filter, search, user.id],
+    [allTasks, childrenByParent, filter, search, user.id, advancedFilters],
   );
-
-  const boardParents = visibleParents;
 
   const isOverdue = (task) =>
     task.dueDate &&
@@ -788,27 +970,65 @@ export default function TasksPage() {
     });
   };
 
+  const compareManualPosition = (left, right) =>
+    (left.personalLayout?.position ?? Number.MAX_SAFE_INTEGER) -
+    (right.personalLayout?.position ?? Number.MAX_SAFE_INTEGER);
+
+  const compareDueDate = (left, right, direction) => {
+    const leftDate = left.dueDate ? new Date(left.dueDate).getTime() : null;
+    const rightDate = right.dueDate ? new Date(right.dueDate).getTime() : null;
+    if (leftDate === null && rightDate === null) return 0;
+    if (leftDate === null) return 1;
+    if (rightDate === null) return -1;
+    return (leftDate - rightDate) * direction;
+  };
+
+  const sortTasks = (items) =>
+    items.slice().sort((left, right) => {
+      let result = 0;
+      if (sortBy === "due_asc") result = compareDueDate(left, right, 1);
+      else if (sortBy === "due_desc") result = compareDueDate(left, right, -1);
+      else if (sortBy === "priority_desc")
+        result = priorities.indexOf(right.priority) - priorities.indexOf(left.priority);
+      else if (sortBy === "priority_asc")
+        result = priorities.indexOf(left.priority) - priorities.indexOf(right.priority);
+      else if (sortBy === "created_desc")
+        result = new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
+      else if (sortBy === "created_asc")
+        result = new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime();
+      else if (sortBy === "title_asc")
+        result = left.title.localeCompare(right.title);
+      else if (sortBy === "title_desc")
+        result = right.title.localeCompare(left.title);
+      else if (sortBy === "status")
+        result = statuses.indexOf(left.status) - statuses.indexOf(right.status);
+      else result = compareManualPosition(left, right);
+
+      return (
+        result ||
+        compareManualPosition(left, right) ||
+        left.title.localeCompare(right.title)
+      );
+    });
+
+  const boardParents = useMemo(
+    () => sortTasks(visibleParents),
+    // sortTasks depends only on sortBy and the static ordering definitions above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [visibleParents, sortBy],
+  );
+
   const groupSections = useMemo(() => {
     const data = groups.data || [];
     const sections = data.map((group) => ({
       ...group,
-      tasks: visibleParents
-        .filter((task) => task.personalLayout?.groupId === group.id)
-        .slice()
-        .sort(
-          (left, right) =>
-            (left.personalLayout?.position ?? Number.MAX_SAFE_INTEGER) -
-            (right.personalLayout?.position ?? Number.MAX_SAFE_INTEGER),
-        ),
+      tasks: sortTasks(
+        visibleParents.filter((task) => task.personalLayout?.groupId === group.id),
+      ),
     }));
-    const ungrouped = visibleParents
-      .filter((task) => !task.personalLayout?.groupId)
-      .slice()
-      .sort(
-        (left, right) =>
-          (left.personalLayout?.position ?? Number.MAX_SAFE_INTEGER) -
-          (right.personalLayout?.position ?? Number.MAX_SAFE_INTEGER),
-      );
+    const ungrouped = sortTasks(
+      visibleParents.filter((task) => !task.personalLayout?.groupId),
+    );
     if (ungrouped.length || !sections.length) {
       sections.push({
         id: UNGROUPED,
@@ -819,7 +1039,7 @@ export default function TasksPage() {
       });
     }
     return sections;
-  }, [groups.data, visibleParents]);
+  }, [groups.data, visibleParents, sortBy]);
 
   const openCreateForGroup = (event, groupId) => {
     event.stopPropagation();
@@ -877,7 +1097,7 @@ export default function TasksPage() {
     const completed = task.status === "COMPLETED";
     const overdue = isOverdue(task);
     const children = childrenByParent.get(task.id) || [];
-    const shownChildren = children.filter((child) => matches(task) || matches(child));
+    const shownChildren = children.filter((child) => matches(task) || matches(child, task));
     const done = completedCount(children);
     const expanded = expandedTasks.has(task.id);
     const updating = quickStatus.isPending && quickStatus.variables?.taskId === task.id;
@@ -989,44 +1209,302 @@ export default function TasksPage() {
           </div>
         }
       />
-      <div className="toolbar">
-        <div className="tabs">
+      <div className="toolbar task-toolbar">
+        <div className="tabs task-quick-tabs" aria-label="Task quick filters">
           {[
-            ["active", "Active"],
-            ["mine", "Assigned to me"],
-            ["created", "Created by me"],
-            ["participant", "Participant"],
-            ["completed", "Completed"],
-            ["all", "All"],
-          ].map(([value, label]) => (
+            ["active", "Active", "Active"],
+            ["mine", "Assigned to me", "Assigned"],
+            ["created", "Created by me", "Created"],
+            ["participant", "Participant", "Participant"],
+            ["completed", "Completed", "Completed"],
+            ["all", "All", "All"],
+          ].map(([value, label, compactLabel]) => (
             <button
               key={value}
+              type="button"
               className={filter === value ? "active" : ""}
               onClick={() => setFilter(value)}
+              title={label}
             >
-              {label}
+              <span className="task-quick-label-full">{label}</span>
+              <span className="task-quick-label-short">{compactLabel}</span>
             </button>
           ))}
         </div>
-        <div className="ml-auto flex items-center gap-3">
+
+        <div className="task-toolbar-actions ml-auto flex items-center gap-2">
           <div className="relative">
             <Search className="absolute left-3 top-3 text-slate-400" size={15} />
             <input
               aria-label="Search tasks"
-              className="input pl-9 w-48"
+              className="input pl-9 w-44 xl:w-52"
               placeholder="Search tasks"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
             />
           </div>
-          <div className="inline-flex rounded-xl border border-slate-200 bg-white p-1" aria-label="Task view">
+
+          <div className="relative">
+            <button
+              type="button"
+              className={`btn-secondary relative ${advancedFilterCount ? "border-blue-300 bg-blue-50 text-blue-700" : ""}`}
+              onClick={() => setFiltersOpen((current) => !current)}
+              aria-expanded={filtersOpen}
+            >
+              <ListFilter size={16} />
+              <span className="hidden xl:inline">Filter</span>
+              {advancedFilterCount > 0 && (
+                <span className="grid h-5 min-w-5 place-items-center rounded-full bg-blue-600 px-1 text-[10px] font-bold text-white">
+                  {advancedFilterCount}
+                </span>
+              )}
+            </button>
+
+            {filtersOpen && (
+              <div className="absolute right-0 top-full z-40 mt-2 w-[680px] max-w-[calc(100vw-48px)] rounded-2xl border border-slate-200 bg-white p-5 shadow-xl">
+                <div className="mb-4 flex items-start justify-between gap-4">
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-800">Filter tasks</h3>
+                    <p className="mt-1 text-xs text-slate-400">
+                      These filters refine the selected quick filter.
+                    </p>
+                  </div>
+                  {advancedFilterCount > 0 && (
+                    <button
+                      type="button"
+                      className="text-xs font-semibold text-blue-600 hover:text-blue-800"
+                      onClick={clearAdvancedFilters}
+                    >
+                      Clear all
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid gap-5 md:grid-cols-2">
+                  <div>
+                    <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">
+                      Status
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {statuses.map((status) => (
+                        <label
+                          key={status}
+                          className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-100 px-2.5 py-2 text-xs text-slate-600 hover:bg-slate-50"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={advancedFilters.statuses.includes(status)}
+                            onChange={() => toggleAdvancedValue("statuses", status)}
+                          />
+                          <span>{status.replaceAll("_", " ")}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">
+                      Priority
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {priorities.map((priority) => (
+                        <label
+                          key={priority}
+                          className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-100 px-2.5 py-2 text-xs text-slate-600 hover:bg-slate-50"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={advancedFilters.priorities.includes(priority)}
+                            onChange={() => toggleAdvancedValue("priorities", priority)}
+                          />
+                          <span>{priority}</span>
+                        </label>
+                      ))}
+                    </div>
+
+                    <label className="mt-4 block text-xs font-semibold text-slate-500">
+                      Due date
+                      <select
+                        className="input mt-1.5"
+                        value={advancedFilters.due}
+                        onChange={(event) => setAdvancedValue("due", event.target.value)}
+                      >
+                        <option value="any">Any due date</option>
+                        <option value="overdue">Overdue</option>
+                        <option value="today">Due today</option>
+                        <option value="next7">Due in next 7 days</option>
+                        <option value="no_due">No due date</option>
+                      </select>
+                    </label>
+                  </div>
+
+                  <label className="text-xs font-semibold text-slate-500">
+                    Assigned to
+                    <select
+                      multiple
+                      className="input mt-1.5 h-28"
+                      value={advancedFilters.assigneeIds}
+                      onChange={(event) => setAdvancedValues("assigneeIds", event)}
+                    >
+                      <option value={UNASSIGNED}>Unassigned</option>
+                      {filterPeople.map((person) => (
+                        <option key={person.id} value={person.id}>
+                          {person.displayName || person.email}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="text-xs font-semibold text-slate-500">
+                    Created by
+                    <select
+                      multiple
+                      className="input mt-1.5 h-28"
+                      value={advancedFilters.creatorIds}
+                      onChange={(event) => setAdvancedValues("creatorIds", event)}
+                    >
+                      {filterPeople.map((person) => (
+                        <option key={person.id} value={person.id}>
+                          {person.displayName || person.email}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="text-xs font-semibold text-slate-500">
+                    Participant
+                    <select
+                      multiple
+                      className="input mt-1.5 h-28"
+                      value={advancedFilters.participantIds}
+                      onChange={(event) => setAdvancedValues("participantIds", event)}
+                    >
+                      {filterPeople.map((person) => (
+                        <option key={person.id} value={person.id}>
+                          {person.displayName || person.email}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="text-xs font-semibold text-slate-500">
+                    Personal group
+                    <select
+                      multiple
+                      className="input mt-1.5 h-28"
+                      value={advancedFilters.groupIds}
+                      onChange={(event) => setAdvancedValues("groupIds", event)}
+                    >
+                      <option value={UNGROUPED}>Ungrouped</option>
+                      {(groups.data || []).map((group) => (
+                        <option key={group.id} value={group.id}>
+                          {group.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="text-xs font-semibold text-slate-500">
+                    Department
+                    <select
+                      multiple
+                      className="input mt-1.5 h-28"
+                      value={advancedFilters.departmentIds}
+                      onChange={(event) => setAdvancedValues("departmentIds", event)}
+                    >
+                      <option value={NO_DEPARTMENT}>No department</option>
+                      {filterDepartments.map((department) => (
+                        <option key={department.id} value={department.id}>
+                          {department.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="text-xs font-semibold text-slate-500">
+                    Attachments
+                    <select
+                      className="input mt-1.5"
+                      value={advancedFilters.attachments}
+                      onChange={(event) =>
+                        setAdvancedValue("attachments", event.target.value)
+                      }
+                    >
+                      <option value="any">Any</option>
+                      <option value="with">Has attachments</option>
+                      <option value="without">No attachments</option>
+                    </select>
+                  </label>
+
+                  <div className="grid grid-cols-2 gap-3 md:col-span-2">
+                    <label className="text-xs font-semibold text-slate-500">
+                      Created from
+                      <input
+                        type="date"
+                        className="input mt-1.5"
+                        value={advancedFilters.createdFrom}
+                        onChange={(event) =>
+                          setAdvancedValue("createdFrom", event.target.value)
+                        }
+                      />
+                    </label>
+                    <label className="text-xs font-semibold text-slate-500">
+                      Created to
+                      <input
+                        type="date"
+                        className="input mt-1.5"
+                        value={advancedFilters.createdTo}
+                        onChange={(event) =>
+                          setAdvancedValue("createdTo", event.target.value)
+                        }
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4">
+                  <span className="text-xs text-slate-400">
+                    Hold Ctrl/Cmd to select multiple people or groups.
+                  </span>
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    onClick={() => setFiltersOpen(false)}
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <label className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600">
+            <ArrowUpDown size={15} className="text-slate-400" />
+            <select
+              aria-label="Sort tasks"
+              className="max-w-40 bg-transparent outline-none"
+              value={sortBy}
+              onChange={(event) => setSortBy(event.target.value)}
+            >
+              {SORT_OPTIONS.map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <div
+            className="inline-flex rounded-xl border border-slate-200 bg-white p-1"
+            aria-label="Task view"
+          >
             <button
               type="button"
               className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${!board ? "bg-slate-100 text-slate-800" : "text-slate-500 hover:text-slate-800"}`}
               onClick={() => setBoard(false)}
             >
               <List size={15} />
-              List
+              <span className="hidden xl:inline">List</span>
             </button>
             <button
               type="button"
@@ -1034,11 +1512,26 @@ export default function TasksPage() {
               onClick={() => setBoard(true)}
             >
               <Columns3 size={15} />
-              Board
+              <span className="hidden xl:inline">Board</span>
             </button>
           </div>
         </div>
       </div>
+
+      {advancedFilterCount > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-2 text-xs">
+          <span className="rounded-full bg-blue-50 px-3 py-1.5 font-semibold text-blue-700">
+            {advancedFilterCount} advanced filter{advancedFilterCount === 1 ? "" : "s"} active
+          </span>
+          <button
+            type="button"
+            className="font-semibold text-slate-500 hover:text-slate-800"
+            onClick={clearAdvancedFilters}
+          >
+            Clear
+          </button>
+        </div>
+      )}
       <ErrorBox error={query.error || groups.error || quickStatus.error || deleteGroup.error} />
       {query.isLoading || groups.isLoading ? (
         <Loading />

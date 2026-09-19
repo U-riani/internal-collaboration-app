@@ -237,6 +237,59 @@ a:focus-visible {
   color: #255dbb;
   box-shadow: 0 1px 4px #24385510;
 }
+
+.task-toolbar {
+  flex-wrap: nowrap;
+}
+.task-quick-tabs {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.task-quick-tabs::-webkit-scrollbar {
+  display: none;
+}
+.task-quick-tabs button {
+  flex: 0 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+}
+.task-quick-label-short {
+  display: none;
+}
+.task-toolbar-actions {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 1400px) {
+  .task-quick-tabs button {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+  .task-quick-label-full {
+    display: none;
+  }
+  .task-quick-label-short {
+    display: inline;
+  }
+}
+
+@media (max-width: 1080px) {
+  .task-toolbar {
+    flex-wrap: wrap;
+  }
+  .task-quick-tabs {
+    flex-basis: 100%;
+    width: 100%;
+  }
+  .task-toolbar-actions {
+    width: 100%;
+    margin-left: 0;
+    justify-content: flex-end;
+  }
+}
 .form-actions {
   display: flex;
   justify-content: flex-end;
