@@ -535,6 +535,23 @@ export default async function driveRoutes(app) {
         if (!user)
           throw new HttpError(400, "USER_NOT_FOUND", "Choose an active user");
       }
+      if (item.space.type === "GROUP") {
+        if (input.departmentId)
+          throw new HttpError(
+            400,
+            "GROUP_MEMBER_REQUIRED",
+            "Group custom visibility can select group members only",
+          );
+        if (
+          input.userId &&
+          !item.space.members.some((member) => member.userId === input.userId)
+        )
+          throw new HttpError(
+            400,
+            "GROUP_MEMBER_REQUIRED",
+            "Add this person to the group before selecting them for an item",
+          );
+      }
       const where = input.userId
         ? { itemId_userId: { itemId: item.id, userId: input.userId } }
         : {
@@ -585,6 +602,22 @@ export default async function driveRoutes(app) {
         });
         if (count !== userIds.length)
           throw new HttpError(400, "USER_NOT_FOUND", "Choose active users");
+      }
+
+      if (item.space.type === "GROUP") {
+        if (input.grants.some((grant) => grant.departmentId))
+          throw new HttpError(
+            400,
+            "GROUP_MEMBER_REQUIRED",
+            "Group custom visibility can select group members only",
+          );
+        const memberIds = new Set(item.space.members.map((member) => member.userId));
+        if (userIds.some((userId) => !memberIds.has(userId)))
+          throw new HttpError(
+            400,
+            "GROUP_MEMBER_REQUIRED",
+            "Add people to the group before selecting them for an item",
+          );
       }
 
       if (
