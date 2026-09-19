@@ -301,27 +301,89 @@ function Configure({ existing, onClose }) {
                 </button>
               </div>
               {f.type === "select" && (
-                <input
-                  className="input mt-2"
-                  aria-label={`Field ${i + 1} options`}
-                  placeholder="Options separated by commas"
-                  value={(f.options || []).join(", ")}
-                  onChange={(e) =>
-                    setFields(
-                      fields.map((x, j) =>
-                        i === j
-                          ? {
-                              ...x,
-                              options: e.target.value
-                                .split(",")
-                                .map((value) => value.trim())
-                                .filter(Boolean),
+                <div className="mt-3 rounded-xl bg-slate-50 p-3">
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <p className="text-xs font-semibold text-slate-600">
+                      Options
+                    </p>
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      disabled={(f.options || []).length >= 50}
+                      onClick={() =>
+                        setFields(
+                          fields.map((x, j) =>
+                            i === j
+                              ? {
+                                  ...x,
+                                  options: [...(x.options || []), ""],
+                                }
+                              : x,
+                          ),
+                        )
+                      }
+                    >
+                      <Plus size={14} />
+                      Add option
+                    </button>
+                  </div>
+                  <div className="space-y-2">
+                    {(f.options || ["Option 1"]).map((option, optionIndex) => (
+                      <div
+                        className="flex items-center gap-2"
+                        key={`option-${optionIndex}`}
+                      >
+                        <input
+                          className="input flex-1"
+                          aria-label={`Field ${i + 1} option ${optionIndex + 1}`}
+                          placeholder={`Option ${optionIndex + 1}`}
+                          required
+                          value={option}
+                          onChange={(e) =>
+                            setFields(
+                              fields.map((x, j) =>
+                                i === j
+                                  ? {
+                                      ...x,
+                                      options: (x.options || []).map(
+                                        (value, index) =>
+                                          index === optionIndex
+                                            ? e.target.value
+                                            : value,
+                                      ),
+                                    }
+                                  : x,
+                              ),
+                            )
+                          }
+                        />
+                        {(f.options || []).length > 1 && (
+                          <button
+                            type="button"
+                            className="icon-btn"
+                            aria-label={`Remove field ${i + 1} option ${optionIndex + 1}`}
+                            onClick={() =>
+                              setFields(
+                                fields.map((x, j) =>
+                                  i === j
+                                    ? {
+                                        ...x,
+                                        options: (x.options || []).filter(
+                                          (_, index) => index !== optionIndex,
+                                        ),
+                                      }
+                                    : x,
+                                ),
+                              )
                             }
-                          : x,
-                      ),
-                    )
-                  }
-                />
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
           ))}
