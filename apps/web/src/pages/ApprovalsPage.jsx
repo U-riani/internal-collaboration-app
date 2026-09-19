@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import {
@@ -742,6 +742,26 @@ function RequestDetail({ item, onClose }) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [comment, setComment] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    api("/notifications/read-related", {
+      method: "POST",
+      body: JSON.stringify({
+        entityType: "APPROVAL_REQUEST",
+        entityId: item.id,
+      }),
+    })
+      .then(() => {
+        if (active)
+          qc.invalidateQueries({ queryKey: ["notifications"] });
+      })
+      .catch(() => {});
+
+    return () => {
+      active = false;
+    };
+  }, [item.id, qc]);
   const [edit, setEdit] = useState(false);
   const [decision, setDecision] = useState("APPROVE");
   const current = item.steps.find((s) => s.status === "PENDING");
