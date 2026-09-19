@@ -1081,7 +1081,8 @@ export default function ApprovalsPage() {
   const deleteGroup = useMutation({
     mutationFn: (groupId) =>
       api(`/approval-groups/${groupId}`, { method: "DELETE" }),
-    onSuccess: () => {
+    onSuccess: (_data, groupId) => {
+      if (groupFilter === groupId) setGroupFilter("all");
       qc.invalidateQueries({ queryKey: ["approval-groups"] });
       qc.invalidateQueries({ queryKey: ["approvals"] });
     },
@@ -1104,6 +1105,7 @@ export default function ApprovalsPage() {
   const typeOptions = useMemo(() => {
     const byId = new Map();
     for (const request of allRequests) {
+      if (byId.has(request.approvalTypeId)) continue;
       byId.set(request.approvalTypeId, {
         id: request.approvalTypeId,
         name: request.workflowSnapshot?.type?.name || request.approvalType.name,
@@ -1324,6 +1326,7 @@ export default function ApprovalsPage() {
   };
 
   const activeFilterCount =
+    (involvement !== "all" ? 1 : 0) +
     selectedStatuses.length +
     (typeFilter !== "all" ? 1 : 0) +
     (requesterFilter !== "all" ? 1 : 0) +
