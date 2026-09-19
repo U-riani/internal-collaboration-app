@@ -381,12 +381,14 @@ export default async function driveRoutes(app) {
     });
 
     await record(request, "DRIVE_CREATED", item.id, { spaceId: item.spaceId });
+    const currentTree = await driveTree(app.prisma);
+    const created = currentTree.get(item.id);
     reply.code(201);
     return {
       success: true,
       data: publicDrive(
-        item,
-        item.space.type === "PERSONAL" ? "OWNER" : driveAccess(request.authUser, item, new Map([[item.id, item]])),
+        created,
+        driveAccess(request.authUser, created, currentTree),
       ),
     };
   });
