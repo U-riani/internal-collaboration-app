@@ -454,6 +454,8 @@ model ApprovalRequest {
 
   @@index([requesterId, createdAt(sort: Desc)])
   @@index([status, createdAt(sort: Desc)])
+  @@index([approvalTypeId, createdAt(sort: Desc)])
+  @@index([approvalTypeId, status, createdAt(sort: Desc)])
 }
 
 model ApprovalGroup {

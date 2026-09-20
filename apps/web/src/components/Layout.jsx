@@ -75,7 +75,11 @@ export default function Layout() {
       invalidate("tasks");
       invalidate("task");
     },
-    "approval:updated": () => invalidate("approvals"),
+    "approval:updated": () => {
+      invalidate("approvals");
+      invalidate("approval-bases");
+      invalidate("approval-base-records");
+    },
     "conversation:updated": () => invalidate("conversations"),
     "conversation:read-updated": () => invalidate("conversations"),
     "message:created": (message) => {

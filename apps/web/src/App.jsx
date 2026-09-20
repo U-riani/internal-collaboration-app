@@ -5,6 +5,7 @@ import LoginPage from "./pages/LoginPage.jsx";
 import DashboardPage from "./pages/DashboardPage.jsx";
 import TasksPage from "./pages/TasksPage.jsx";
 import ApprovalsPage from "./pages/ApprovalsPage.jsx";
+import ApprovalBasesPage from "./pages/ApprovalBasesPage.jsx";
 import ChatPage from "./pages/ChatPage.jsx";
 import NotificationsPage from "./pages/NotificationsPage.jsx";
 import DirectoryPage from "./pages/DirectoryPage.jsx";
@@ -28,6 +29,8 @@ export default function App() {
         <Route path="/drive" element={<DrivePage />} />
         <Route path="/tasks" element={<TasksPage />} />
         <Route path="/approvals" element={<ApprovalsPage />} />
+        <Route path="/approvals/bases" element={<ApprovalBasesPage />} />
+        <Route path="/approvals/bases/:typeId" element={<ApprovalBasesPage />} />
         <Route path="/chat" element={<ChatPage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/directory" element={<DirectoryPage />} />

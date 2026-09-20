@@ -45,6 +45,22 @@ const requestSchema = z.object({
 const typeUpdateSchema = typeSchema.extend({
   status: z.enum(["ACTIVE", "INACTIVE"]).optional(),
 });
+const baseRecordsQuerySchema = z.object({
+  search: z.string().trim().max(200).default(""),
+  status: z
+    .enum([
+      "DRAFT",
+      "SUBMITTED",
+      "PENDING",
+      "CHANGES_REQUESTED",
+      "APPROVED",
+      "REJECTED",
+      "CANCELLED",
+    ])
+    .optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(10).max(100).default(50),
+});
 const revisionSchema = z.object({ revision: z.number().int().nonnegative() });
 const approvalGroupCreateSchema = z.object({
   name: z.string().trim().min(1).max(120),
@@ -107,6 +123,52 @@ function allowed(user, item) {
     item.steps.some((s) => s.approverId === user.id)
   );
 }
+function approvalAccessWhere(user) {
+  if (hasRole(user, "SYSTEM_ADMIN") || hasPermission(user, "approvals.audit"))
+    return {};
+  return {
+    OR: [
+      { requesterId: user.id },
+      { steps: { some: { approverId: user.id } } },
+    ],
+  };
+}
+
+function baseColumns(type, records) {
+  const columns = new Map();
+  const addSchema = (schema, legacy = false) => {
+    for (const [key, field] of Object.entries(schema || {})) {
+      if (columns.has(key)) continue;
+      columns.set(key, {
+        key,
+        label: field?.label || key,
+        type: field?.type || "text",
+        required: Boolean(field?.required),
+        options: field?.options || undefined,
+        legacy,
+      });
+    }
+  };
+
+  addSchema(type.formSchema);
+  for (const record of records)
+    addSchema(record.workflowSnapshot?.formSchema, true);
+
+  for (const record of records) {
+    for (const key of Object.keys(record.data || {})) {
+      if (!columns.has(key))
+        columns.set(key, {
+          key,
+          label: key,
+          type: "text",
+          required: false,
+          legacy: true,
+        });
+    }
+  }
+  return [...columns.values()];
+}
+
 function conflict() {
   throw new HttpError(
     409,
@@ -508,16 +570,166 @@ export default async function approvalRoutes(app) {
     });
     return { success: true, data };
   });
-  app.get("/approval-requests", async (request) => {
-    const data = await app.prisma.approvalRequest.findMany({
-      where: hasPermission(request.authUser, "approvals.audit")
+  app.get("/approval-bases", async (request) => {
+    const accessWhere = approvalAccessWhere(request.authUser);
+    const privileged =
+      hasRole(request.authUser, "SYSTEM_ADMIN") ||
+      hasPermission(request.authUser, "approvals.audit") ||
+      hasPermission(request.authUser, "approvals.configure");
+
+    const data = await app.prisma.approvalType.findMany({
+      where: privileged
         ? {}
         : {
             OR: [
-              { requesterId: request.authUser.id },
-              { steps: { some: { approverId: request.authUser.id } } },
+              { status: "ACTIVE" },
+              { requests: { some: accessWhere } },
             ],
           },
+      include: {
+        _count: {
+          select: {
+            requests: { where: accessWhere },
+          },
+        },
+      },
+      orderBy: [{ status: "asc" }, { name: "asc" }],
+    });
+
+    return {
+      success: true,
+      data: data.map(({ _count, ...type }) => ({
+        ...type,
+        recordCount: _count.requests,
+      })),
+    };
+  });
+
+  app.get("/approval-bases/:id/records", async (request) => {
+    const input = parse(baseRecordsQuerySchema, request.query || {});
+    const type = await app.prisma.approvalType.findUnique({
+      where: { id: request.params.id },
+    });
+    if (!type)
+      throw new HttpError(404, "TYPE_NOT_FOUND", "Request type was not found");
+
+    const accessWhere = approvalAccessWhere(request.authUser);
+    const privileged =
+      hasRole(request.authUser, "SYSTEM_ADMIN") ||
+      hasPermission(request.authUser, "approvals.audit") ||
+      hasPermission(request.authUser, "approvals.configure");
+
+    if (!privileged && type.status !== "ACTIVE") {
+      const accessible = await app.prisma.approvalRequest.count({
+        where: {
+          AND: [{ approvalTypeId: type.id }, accessWhere],
+        },
+      });
+      if (!accessible)
+        throw new HttpError(
+          403,
+          "APPROVAL_BASE_ACCESS_DENIED",
+          "You cannot view this approval base",
+        );
+    }
+
+    const filters = [{ approvalTypeId: type.id }, accessWhere];
+    if (input.status) filters.push({ status: input.status });
+    if (input.search)
+      filters.push({
+        OR: [
+          {
+            title: {
+              contains: input.search,
+              mode: "insensitive",
+            },
+          },
+          {
+            requester: {
+              displayName: {
+                contains: input.search,
+                mode: "insensitive",
+              },
+            },
+          },
+          {
+            requester: {
+              email: {
+                contains: input.search,
+                mode: "insensitive",
+              },
+            },
+          },
+        ],
+      });
+
+    const where = { AND: filters };
+    const skip = (input.page - 1) * input.pageSize;
+    const [total, records] = await app.prisma.$transaction([
+      app.prisma.approvalRequest.count({ where }),
+      app.prisma.approvalRequest.findMany({
+        where,
+        select: {
+          id: true,
+          title: true,
+          data: true,
+          workflowSnapshot: true,
+          approvalTypeVersion: true,
+          status: true,
+          requester: {
+            select: { id: true, displayName: true, email: true },
+          },
+          department: { select: { id: true, name: true } },
+          currentStepNumber: true,
+          submittedAt: true,
+          completedAt: true,
+          createdAt: true,
+          updatedAt: true,
+          steps: {
+            where: { status: "PENDING" },
+            select: {
+              stepNumber: true,
+              stepName: true,
+              approver: {
+                select: { id: true, displayName: true },
+              },
+            },
+            orderBy: { stepNumber: "asc" },
+            take: 1,
+          },
+        },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: input.pageSize,
+      }),
+    ]);
+
+    return {
+      success: true,
+      data: {
+        type: {
+          id: type.id,
+          code: type.code,
+          name: type.name,
+          description: type.description,
+          version: type.version,
+          status: type.status,
+        },
+        columns: baseColumns(type, records),
+        records,
+        pagination: {
+          page: input.page,
+          pageSize: input.pageSize,
+          total,
+          pageCount: Math.max(1, Math.ceil(total / input.pageSize)),
+        },
+      },
+    };
+  });
+
+  app.get("/approval-requests", async (request) => {
+    const data = await app.prisma.approvalRequest.findMany({
+      where: approvalAccessWhere(request.authUser),
       include: requestIncludeFor(request.authUser.id),
       orderBy: { createdAt: "desc" },
     });

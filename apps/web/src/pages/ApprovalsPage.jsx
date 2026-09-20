@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Plus,
   Check,
@@ -738,9 +738,18 @@ function RequestForm({ existing, onClose }) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["approvals"] });
+      qc.invalidateQueries({ queryKey: ["approval-bases"] });
+      qc.invalidateQueries({ queryKey: ["approval-base-records"] });
+      if (existing?.id)
+        qc.invalidateQueries({ queryKey: ["approval", existing.id] });
       onClose();
     },
-    onError: () => qc.invalidateQueries({ queryKey: ["approvals"] }),
+    onError: () => {
+      qc.invalidateQueries({ queryKey: ["approvals"] });
+      qc.invalidateQueries({ queryKey: ["approval-base-records"] });
+      if (existing?.id)
+        qc.invalidateQueries({ queryKey: ["approval", existing.id] });
+    },
   });
   return (
     <Modal
@@ -805,7 +814,7 @@ function RequestForm({ existing, onClose }) {
     </Modal>
   );
 }
-function RequestDetail({ item, onClose }) {
+export function RequestDetail({ item, onClose }) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [comment, setComment] = useState("");
@@ -871,8 +880,15 @@ function RequestDetail({ item, onClose }) {
     onSuccess: () => {
       setComment("");
       qc.invalidateQueries({ queryKey: ["approvals"] });
+      qc.invalidateQueries({ queryKey: ["approval-bases"] });
+      qc.invalidateQueries({ queryKey: ["approval-base-records"] });
+      qc.invalidateQueries({ queryKey: ["approval", item.id] });
     },
-    onError: () => qc.invalidateQueries({ queryKey: ["approvals"] }),
+    onError: () => {
+      qc.invalidateQueries({ queryKey: ["approvals"] });
+      qc.invalidateQueries({ queryKey: ["approval-base-records"] });
+      qc.invalidateQueries({ queryKey: ["approval", item.id] });
+    },
   });
   return (
     <Modal title={item.title} onClose={onClose} wide>
@@ -1045,6 +1061,7 @@ function RequestDetail({ item, onClose }) {
 export default function ApprovalsPage() {
   const { user, hasPermission } = useAuth();
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const linkedRequestId = searchParams.get("request");
   const [involvement, setInvolvement] = useState("all");
@@ -1369,6 +1386,13 @@ export default function ApprovalsPage() {
             <button className="btn-secondary" onClick={() => setGroupForm({})}>
               <FolderPlus size={17} />
               New group
+            </button>
+            <button
+              className="btn-secondary"
+              onClick={() => navigate("/approvals/bases")}
+            >
+              <Columns3 size={17} />
+              Approval bases
             </button>
             {hasPermission("approvals.configure") && (
               <button
