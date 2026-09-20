@@ -425,6 +425,49 @@ test("approval fields, sequential permissions, concurrency, corrections and froz
   );
 });
 
+test("approval bases group accessible records by request type", async () => {
+  const { employee, manager } = h.users;
+  const type = ok(await h.call(employee, "GET", "/approval-types"))[0];
+  const request = ok(
+    await h.call(employee, "POST", "/approval-requests", {
+      approvalTypeId: type.id,
+      title: "Base laptop request",
+      data: {
+        equipmentType: "Laptop",
+        businessReason: "Approval base test",
+        estimatedCost: 1800,
+      },
+      submit: false,
+    }),
+    201,
+  );
+
+  const bases = ok(await h.call(employee, "GET", "/approval-bases"));
+  const base = bases.find((item) => item.id === type.id);
+  assert.ok(base);
+  assert.ok(base.recordCount >= 1);
+
+  const records = ok(
+    await h.call(
+      employee,
+      "GET",
+      `/approval-bases/${type.id}/records?search=Base%20laptop&status=DRAFT&page=1&pageSize=10`,
+    ),
+  );
+  assert.equal(records.type.id, type.id);
+  assert.ok(records.records.some((item) => item.id === request.id));
+  assert.ok(records.columns.some((column) => column.key === "equipmentType"));
+  assert.equal(records.pagination.pageSize, 10);
+
+  const managerRecords = ok(
+    await h.call(manager, "GET", `/approval-bases/${type.id}/records?pageSize=10`),
+  );
+  assert.ok(
+    !managerRecords.records.some((item) => item.id === request.id),
+    "draft requests are not exposed to users who are not involved",
+  );
+});
+
 test("related approval notifications can be marked read together", async () => {
   const { employee, manager } = h.users;
   const type = ok(await h.call(employee, "GET", "/approval-types"))[0];
