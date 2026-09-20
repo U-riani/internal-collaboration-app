@@ -1,6 +1,13 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Building2, Plus, ShieldCheck, UserPlus } from "lucide-react";
+import {
+  Building2,
+  KeyRound,
+  Plus,
+  Search,
+  ShieldCheck,
+  UserPlus,
+} from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { api } from "../lib/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -11,21 +18,47 @@ export default function AdminPage() {
   const { hasPermission } = useAuth();
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(null);
+  const [passwordForm, setPasswordForm] = useState({
+    password: "",
+    confirmPassword: "",
+  });
+  const [passwordSuccess, setPasswordSuccess] = useState("");
+  const [userFilters, setUserFilters] = useState({
+    q: "",
+    departmentId: "",
+    role: "",
+    status: "",
+  });
   const [tab, setTab] = useState("users");
   const [userForm, setUserForm] = useState({
     email: "",
     password: "",
     firstName: "",
     lastName: "",
+    phone: "",
     jobTitle: "",
     departmentId: "",
     roleCodes: ["EMPLOYEE"],
   });
   const [deptForm, setDeptForm] = useState({ name: "", code: "" });
   const [error, setError] = useState("");
+  const userQueryString = useMemo(() => {
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(userFilters)) {
+      if (value) params.set(key, value);
+    }
+    return params.toString();
+  }, [userFilters]);
   const users = useQuery({
-    queryKey: ["users"],
+    queryKey: ["users", "admin-reference"],
     queryFn: () => api("/users").then((r) => r.data),
+  });
+  const filteredUsers = useQuery({
+    queryKey: ["users", "admin-list", userQueryString],
+    queryFn: () =>
+      api(`/users${userQueryString ? `?${userQueryString}` : ""}`).then(
+        (r) => r.data,
+      ),
   });
   const departments = useQuery({
     queryKey: ["departments"],
@@ -47,6 +80,7 @@ export default function AdminPage() {
         password: "",
         firstName: "",
         lastName: "",
+        phone: "",
         jobTitle: "",
         departmentId: "",
         roleCodes: ["EMPLOYEE"],
@@ -73,6 +107,7 @@ export default function AdminPage() {
           firstName: editing.firstName,
           lastName: editing.lastName,
           displayName: editing.displayName,
+          phone: editing.phone || null,
           jobTitle: editing.jobTitle,
           departmentId: editing.departmentId || null,
           managerId: editing.managerId || null,
@@ -85,6 +120,24 @@ export default function AdminPage() {
       setEditing(null);
     },
     onError: (e) => setError(e.message),
+  });
+  const resetPassword = useMutation({
+    mutationFn: () =>
+      api(`/users/${editing.id}/password`, {
+        method: "PATCH",
+        body: JSON.stringify({ password: passwordForm.password }),
+      }),
+    onSuccess: () => {
+      setPasswordForm({ password: "", confirmPassword: "" });
+      setPasswordSuccess(
+        "Password updated. Existing sessions for this user were revoked.",
+      );
+      setError("");
+    },
+    onError: (e) => {
+      setPasswordSuccess("");
+      setError(e.message);
+    },
   });
   const updateDept = useMutation({
     mutationFn: ({ id, managerId }) =>
@@ -168,6 +221,14 @@ export default function AdminPage() {
               />
               <input
                 className="input"
+                placeholder="Phone number"
+                value={userForm.phone}
+                onChange={(e) =>
+                  setUserForm({ ...userForm, phone: e.target.value })
+                }
+              />
+              <input
+                className="input"
                 type="password"
                 placeholder="Initial password"
                 minLength={8}
@@ -221,11 +282,79 @@ export default function AdminPage() {
             </div>
           </form>
           <div className="card overflow-hidden">
-            <div className="border-b border-slate-200 p-5 font-bold">
-              Organization users
+            <div className="border-b border-slate-200 p-5">
+              <div className="font-bold">Organization users</div>
+              <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+                <label className="relative">
+                  <span className="sr-only">Search users</span>
+                  <Search
+                    size={16}
+                    className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                  />
+                  <input
+                    className="input pl-9"
+                    placeholder="Search users..."
+                    value={userFilters.q}
+                    onChange={(e) =>
+                      setUserFilters({ ...userFilters, q: e.target.value })
+                    }
+                  />
+                </label>
+                <select
+                  className="input"
+                  aria-label="Filter users by department"
+                  value={userFilters.departmentId}
+                  onChange={(e) =>
+                    setUserFilters({
+                      ...userFilters,
+                      departmentId: e.target.value,
+                    })
+                  }
+                >
+                  <option value="">All departments</option>
+                  {departments.data?.map((department) => (
+                    <option key={department.id} value={department.id}>
+                      {department.name}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  className="input"
+                  aria-label="Filter users by role"
+                  value={userFilters.role}
+                  onChange={(e) =>
+                    setUserFilters({ ...userFilters, role: e.target.value })
+                  }
+                >
+                  <option value="">All roles</option>
+                  <option value="EMPLOYEE">Employee</option>
+                  <option value="MANAGER">Manager</option>
+                  <option value="AUDITOR">Auditor</option>
+                  <option value="SYSTEM_ADMIN">System administrator</option>
+                </select>
+                <select
+                  className="input"
+                  aria-label="Filter users by status"
+                  value={userFilters.status}
+                  onChange={(e) =>
+                    setUserFilters({ ...userFilters, status: e.target.value })
+                  }
+                >
+                  <option value="">All statuses</option>
+                  <option value="ACTIVE">Active</option>
+                  <option value="INACTIVE">Inactive</option>
+                </select>
+              </div>
             </div>
-            <div className="divide-y divide-slate-100">
-              {users.data?.map((item) => (
+            {filteredUsers.isLoading ? (
+              <div className="p-5 text-sm text-slate-500">Loading…</div>
+            ) : filteredUsers.data?.length === 0 ? (
+              <div className="p-5 text-sm text-slate-500">
+                No users match the selected filters.
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100">
+              {filteredUsers.data?.map((item) => (
                 <div
                   key={item.id}
                   className="flex flex-wrap items-center justify-between gap-3 p-5"
@@ -233,7 +362,11 @@ export default function AdminPage() {
                   <div>
                     <div className="font-semibold">{item.displayName}</div>
                     <div className="text-sm text-slate-500">
-                      {item.email} · {item.jobTitle || "Employee"}
+                      {item.email} · {item.phone || "No phone"} ·{" "}
+                      {item.jobTitle || "Employee"}
+                    </div>
+                    <div className="mt-1 text-xs text-slate-400">
+                      {item.department?.name || "No department"}
                     </div>
                   </div>
                   <div className="flex gap-2">
@@ -241,6 +374,8 @@ export default function AdminPage() {
                       className="text-xs text-blue-600"
                       onClick={() => {
                         setError("");
+                        setPasswordSuccess("");
+                        setPasswordForm({ password: "", confirmPassword: "" });
                         setEditing(item);
                       }}
                     >
@@ -263,7 +398,8 @@ export default function AdminPage() {
                   </div>
                 </div>
               ))}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       ) : (
@@ -364,6 +500,13 @@ export default function AdminPage() {
               }
             />
             <Field
+              label="Phone number"
+              value={editing.phone || ""}
+              onChange={(e) =>
+                setEditing({ ...editing, phone: e.target.value })
+              }
+            />
+            <Field
               label="Job title"
               value={editing.jobTitle || ""}
               onChange={(e) =>
@@ -433,6 +576,67 @@ export default function AdminPage() {
               Changing roles or departments signs this person out so the new
               access takes effect.
             </p>
+            {hasPermission("users.password.reset") && (
+              <div className="mt-6 border-t border-slate-200 pt-5">
+                <div className="mb-3 flex items-center gap-2">
+                  <KeyRound size={17} className="text-blue-600" />
+                  <h3 className="font-semibold">Set new password</h3>
+                </div>
+                <div className="space-y-3">
+                  <Field
+                    label="New password"
+                    type="password"
+                    minLength={8}
+                    maxLength={128}
+                    value={passwordForm.password}
+                    onChange={(e) =>
+                      setPasswordForm({
+                        ...passwordForm,
+                        password: e.target.value,
+                      })
+                    }
+                  />
+                  <Field
+                    label="Confirm new password"
+                    type="password"
+                    minLength={8}
+                    maxLength={128}
+                    value={passwordForm.confirmPassword}
+                    onChange={(e) =>
+                      setPasswordForm({
+                        ...passwordForm,
+                        confirmPassword: e.target.value,
+                      })
+                    }
+                  />
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    disabled={
+                      resetPassword.isPending ||
+                      passwordForm.password.length < 8 ||
+                      passwordForm.confirmPassword.length < 8
+                    }
+                    onClick={() => {
+                      setError("");
+                      setPasswordSuccess("");
+                      if (passwordForm.password !== passwordForm.confirmPassword) {
+                        setError("Passwords do not match");
+                        return;
+                      }
+                      resetPassword.mutate();
+                    }}
+                  >
+                    Set password
+                  </button>
+                  {passwordSuccess && (
+                    <p className="text-sm text-emerald-700">
+                      {passwordSuccess}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
             <ErrorBox error={error} />
             <div className="form-actions">
               <button className="btn-primary" disabled={updateUser.isPending}>

@@ -19,6 +19,23 @@ const createSchema = z.object({
   roleCodes: z.array(z.string().min(1)).default(["EMPLOYEE"]),
 });
 
+const listSchema = z.object({
+  q: z.string().trim().max(100).optional(),
+  departmentId: z.uuid().optional(),
+  role: z
+    .string()
+    .trim()
+    .min(1)
+    .max(100)
+    .transform((value) => value.toUpperCase())
+    .optional(),
+  status: z.enum(["ACTIVE", "INACTIVE"]).optional(),
+});
+
+const passwordSchema = z.object({
+  password: z.string().min(8).max(128),
+});
+
 const updateSchema = z.object({
   firstName: z.string().trim().min(1).max(100).optional(),
   lastName: z.string().trim().min(1).max(100).optional(),
@@ -36,7 +53,25 @@ export default async function userRoutes(app) {
 
   app.get("/", async (request) => {
     requirePermission(request.authUser, "users.read");
+    const input = parse(listSchema, request.query);
     const users = await app.prisma.user.findMany({
+      where: {
+        departmentId: input.departmentId,
+        status: input.status,
+        roles: input.role
+          ? { some: { role: { is: { code: input.role } } } }
+          : undefined,
+        OR: input.q
+          ? [
+              { displayName: { contains: input.q, mode: "insensitive" } },
+              { firstName: { contains: input.q, mode: "insensitive" } },
+              { lastName: { contains: input.q, mode: "insensitive" } },
+              { email: { contains: input.q, mode: "insensitive" } },
+              { phone: { contains: input.q, mode: "insensitive" } },
+              { jobTitle: { contains: input.q, mode: "insensitive" } },
+            ]
+          : undefined,
+      },
       include: userWithAccess,
       orderBy: { displayName: "asc" },
     });
@@ -81,6 +116,38 @@ export default async function userRoutes(app) {
     });
     reply.status(201);
     return { success: true, data: publicUser(user) };
+  });
+
+  app.patch("/:id/password", async (request) => {
+    requirePermission(request.authUser, "users.password.reset");
+    const input = parse(passwordSchema, request.body);
+    const existing = await app.prisma.user.findUnique({
+      where: { id: request.params.id },
+      select: { id: true },
+    });
+    if (!existing)
+      throw new HttpError(404, "USER_NOT_FOUND", "User was not found");
+
+    await app.prisma.user.update({
+      where: { id: existing.id },
+      data: {
+        passwordHash: await hashPassword(input.password),
+        sessions: {
+          updateMany: {
+            where: { revokedAt: null },
+            data: { revokedAt: new Date() },
+          },
+        },
+      },
+    });
+    app.io?.in(`user:${existing.id}`).disconnectSockets(true);
+    await audit(app, request, {
+      actionType: "USER_PASSWORD_RESET",
+      entityType: "USER",
+      entityId: existing.id,
+      metadata: { sessionsRevoked: true },
+    });
+    return { success: true, data: { id: existing.id } };
   });
 
   app.get("/:id", async (request) => {

@@ -844,3 +844,72 @@ test("local storage readiness and upload limits work without an object-storage s
     413,
   );
 });
+
+
+test("administrators can filter users and securely reset passwords", async () => {
+  const { admin, manager } = h.users;
+  const created = ok(
+    await h.call(admin, "POST", "/users", {
+      email: "phone-filter@example.com",
+      password: "InitialPassword123!",
+      firstName: "Phone",
+      lastName: "Filter",
+      phone: "+995 555 010101",
+      jobTitle: "Support Specialist",
+      departmentId: manager.user.departmentId,
+      roleCodes: ["EMPLOYEE"],
+    }),
+    201,
+  );
+
+  const filtered = ok(
+    await h.call(
+      admin,
+      "GET",
+      `/users?q=${encodeURIComponent("555 010101")}&departmentId=${manager.user.departmentId}&role=employee&status=ACTIVE`,
+    ),
+  );
+  assert.deepEqual(
+    filtered.map((user) => user.id),
+    [created.id],
+  );
+  assert.equal(filtered[0].phone, "+995 555 010101");
+
+  assert.equal(
+    (
+      await h.call(manager, "PATCH", `/users/${created.id}/password`, {
+        password: "NewPassword123!",
+      })
+    ).statusCode,
+    403,
+  );
+
+  ok(
+    await h.call(admin, "PATCH", `/users/${created.id}/password`, {
+      password: "NewPassword123!",
+    }),
+  );
+
+  const oldLogin = await h.app.inject({
+    method: "POST",
+    url: "/api/v1/auth/login",
+    payload: {
+      email: created.email,
+      password: "InitialPassword123!",
+    },
+  });
+  assert.equal(oldLogin.statusCode, 401);
+
+  const newLogin = await h.login(created.email, "NewPassword123!");
+  assert.ok(newLogin.accessToken);
+
+  const auditEntry = await h.prisma.auditLog.findFirst({
+    where: {
+      actionType: "USER_PASSWORD_RESET",
+      entityType: "USER",
+      entityId: created.id,
+    },
+  });
+  assert.ok(auditEntry);
+  assert.deepEqual(auditEntry.metadata, { sessionsRevoked: true });
+});

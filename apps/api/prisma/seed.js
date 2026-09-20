@@ -18,6 +18,7 @@ const permissions = [
   ['drive.global.manage', 'Manage the company-wide Global Drive space'],
   ['users.read', 'View users and organization structure'],
   ['users.manage', 'Create and manage users and departments'],
+  ['users.password.reset', 'Set a new password for another user'],
   ['roles.manage', 'Manage roles and permissions'],
   ['conversations.create', 'Create direct and group conversations'],
   ['messages.send', 'Send chat messages'],
