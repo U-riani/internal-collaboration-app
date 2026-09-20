@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Plus,
   Check,
@@ -805,7 +805,7 @@ function RequestForm({ existing, onClose }) {
     </Modal>
   );
 }
-function RequestDetail({ item, onClose }) {
+export function RequestDetail({ item, onClose }) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [comment, setComment] = useState("");
@@ -1042,301 +1042,10 @@ function RequestDetail({ item, onClose }) {
     </Modal>
   );
 }
-function formatBaseValue(value, column) {
-  if (value === undefined || value === null || value === "") return "—";
-  if (column?.type === "checkbox") return value ? "Yes" : "No";
-  if (Array.isArray(value)) return value.join(", ");
-  if (typeof value === "object") return JSON.stringify(value);
-  return String(value);
-}
-
-function ApprovalBases({ onClose, onOpenRequest }) {
-  const [selectedTypeId, setSelectedTypeId] = useState(null);
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("all");
-  const [page, setPage] = useState(1);
-
-  const bases = useQuery({
-    queryKey: ["approval-bases"],
-    queryFn: () => api("/approval-bases").then((response) => response.data),
-  });
-  const activeTypeId = selectedTypeId || bases.data?.[0]?.id || null;
-  const records = useQuery({
-    queryKey: ["approval-base-records", activeTypeId, search, status, page],
-    enabled: Boolean(activeTypeId),
-    queryFn: () => {
-      const params = new URLSearchParams({
-        page: String(page),
-        pageSize: "50",
-      });
-      if (search.trim()) params.set("search", search.trim());
-      if (status !== "all") params.set("status", status);
-      return api(
-        `/approval-bases/${activeTypeId}/records?${params.toString()}`,
-      ).then((response) => response.data);
-    },
-  });
-
-  const selectType = (id) => {
-    setSelectedTypeId(id);
-    setSearch("");
-    setStatus("all");
-    setPage(1);
-  };
-  const payload = records.data;
-  const selectedBase = (bases.data || []).find(
-    (item) => item.id === activeTypeId,
-  );
-
-  return (
-    <Modal title="Approval bases" wide onClose={onClose}>
-      <div className="grid min-h-[560px] gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
-        <aside className="rounded-xl border border-slate-200 bg-slate-50 p-2">
-          <div className="mb-2 px-2 py-1">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-              Request types
-            </p>
-            <p className="mt-1 text-xs text-slate-500">
-              Each request type acts as its own data base.
-            </p>
-          </div>
-          {bases.isLoading ? (
-            <Loading />
-          ) : bases.error ? (
-            <ErrorBox error={bases.error} />
-          ) : (bases.data || []).length ? (
-            <div className="space-y-1">
-              {(bases.data || []).map((base) => (
-                <button
-                  type="button"
-                  key={base.id}
-                  className={`w-full rounded-lg px-3 py-2.5 text-left transition ${
-                    activeTypeId === base.id
-                      ? "bg-white shadow-sm ring-1 ring-slate-200"
-                      : "hover:bg-white/70"
-                  }`}
-                  onClick={() => selectType(base.id)}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="truncate text-sm font-semibold text-slate-700">
-                      {base.name}
-                    </span>
-                    <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
-                      {base.recordCount}
-                    </span>
-                  </div>
-                  <div className="mt-1 flex items-center justify-between gap-2 text-[11px] text-slate-400">
-                    <span className="truncate">{base.code}</span>
-                    <span>{base.status.toLowerCase()}</span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          ) : (
-            <Empty
-              title="No approval bases"
-              text="Create a request type to create its data base."
-            />
-          )}
-        </aside>
-
-        <section className="min-w-0">
-          {!activeTypeId ? (
-            <div className="card">
-              <Empty
-                title="Choose a request type"
-                text="Select a request type to browse its approval records."
-              />
-            </div>
-          ) : (
-            <>
-              <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="text-lg font-bold text-slate-800">
-                      {payload?.type?.name || selectedBase?.name || "Approval base"}
-                    </h3>
-                    {(payload?.type?.status || selectedBase?.status) && (
-                      <Badge value={payload?.type?.status || selectedBase?.status} />
-                    )}
-                  </div>
-                  <p className="mt-1 text-xs text-slate-400">
-                    {payload?.type?.code || selectedBase?.code}
-                    {payload?.pagination
-                      ? ` · ${payload.pagination.total} accessible record${payload.pagination.total === 1 ? "" : "s"}`
-                      : ""}
-                  </p>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="relative">
-                    <Search
-                      className="absolute left-3 top-3 text-slate-400"
-                      size={15}
-                    />
-                    <input
-                      className="input w-56 pl-9"
-                      aria-label="Search approval base"
-                      placeholder="Search title or requester"
-                      value={search}
-                      onChange={(event) => {
-                        setSearch(event.target.value);
-                        setPage(1);
-                      }}
-                    />
-                  </div>
-                  <select
-                    className="input w-44"
-                    aria-label="Approval base status"
-                    value={status}
-                    onChange={(event) => {
-                      setStatus(event.target.value);
-                      setPage(1);
-                    }}
-                  >
-                    <option value="all">All statuses</option>
-                    {approvalStatuses.map((value) => (
-                      <option key={value} value={value}>
-                        {value.replaceAll("_", " ")}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <ErrorBox error={records.error} />
-              {records.isLoading ? (
-                <Loading />
-              ) : payload?.records?.length ? (
-                <>
-                  <div className="overflow-auto rounded-xl border border-slate-200">
-                    <table className="min-w-max w-full text-left text-sm">
-                      <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-400">
-                        <tr>
-                          <th className="px-4 py-3 font-semibold">Request</th>
-                          <th className="px-4 py-3 font-semibold">Requester</th>
-                          <th className="px-4 py-3 font-semibold">Department</th>
-                          {(payload.columns || []).map((column) => (
-                            <th
-                              key={column.key}
-                              className="px-4 py-3 font-semibold"
-                              title={column.legacy ? "Field from an earlier request type version" : undefined}
-                            >
-                              {column.label}
-                              {column.legacy ? " *" : ""}
-                            </th>
-                          ))}
-                          <th className="px-4 py-3 font-semibold">Status</th>
-                          <th className="px-4 py-3 font-semibold">
-                            Current approver
-                          </th>
-                          <th className="px-4 py-3 font-semibold">Submitted</th>
-                          <th className="px-4 py-3 font-semibold">Created</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 bg-white">
-                        {payload.records.map((record) => (
-                          <tr
-                            key={record.id}
-                            className="cursor-pointer transition hover:bg-slate-50"
-                            onClick={() => onOpenRequest(record.id)}
-                          >
-                            <td className="max-w-64 px-4 py-3">
-                              <p className="truncate font-semibold text-slate-700">
-                                {record.title}
-                              </p>
-                              <p className="mt-0.5 text-[11px] text-slate-400">
-                                v{record.approvalTypeVersion}
-                              </p>
-                            </td>
-                            <td className="px-4 py-3 text-slate-600">
-                              {record.requester.displayName}
-                            </td>
-                            <td className="px-4 py-3 text-slate-500">
-                              {record.department?.name || "—"}
-                            </td>
-                            {(payload.columns || []).map((column) => (
-                              <td
-                                key={column.key}
-                                className="max-w-72 px-4 py-3 text-slate-600"
-                              >
-                                <span className="block truncate">
-                                  {formatBaseValue(record.data?.[column.key], column)}
-                                </span>
-                              </td>
-                            ))}
-                            <td className="px-4 py-3">
-                              <Badge value={record.status} />
-                            </td>
-                            <td className="px-4 py-3 text-slate-500">
-                              {record.steps?.[0]?.approver?.displayName || "—"}
-                            </td>
-                            <td className="px-4 py-3 text-slate-500">
-                              {record.submittedAt
-                                ? prettyDate(record.submittedAt)
-                                : "—"}
-                            </td>
-                            <td className="px-4 py-3 text-slate-500">
-                              {prettyDate(record.createdAt)}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  {(payload.columns || []).some((column) => column.legacy) && (
-                    <p className="mt-2 text-[11px] text-slate-400">
-                      * Field comes from an earlier saved version of this request
-                      type.
-                    </p>
-                  )}
-                  <div className="mt-4 flex items-center justify-between gap-3">
-                    <span className="text-xs text-slate-400">
-                      Page {payload.pagination.page} of{" "}
-                      {payload.pagination.pageCount}
-                    </span>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        className="btn-secondary"
-                        disabled={payload.pagination.page <= 1}
-                        onClick={() =>
-                          setPage((current) => Math.max(1, current - 1))
-                        }
-                      >
-                        Previous
-                      </button>
-                      <button
-                        type="button"
-                        className="btn-secondary"
-                        disabled={
-                          payload.pagination.page >= payload.pagination.pageCount
-                        }
-                        onClick={() => setPage((current) => current + 1)}
-                      >
-                        Next
-                      </button>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div className="card">
-                  <Empty
-                    title="No records found"
-                    text="This request type has no approvals matching the current filters."
-                  />
-                </div>
-              )}
-            </>
-          )}
-        </section>
-      </div>
-    </Modal>
-  );
-}
-
 export default function ApprovalsPage() {
   const { user, hasPermission } = useAuth();
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const linkedRequestId = searchParams.get("request");
   const [involvement, setInvolvement] = useState("all");
@@ -1664,7 +1373,7 @@ export default function ApprovalsPage() {
             </button>
             <button
               className="btn-secondary"
-              onClick={() => setModal("bases")}
+              onClick={() => navigate("/approvals/bases")}
             >
               <Columns3 size={17} />
               Approval bases
@@ -2119,18 +1828,6 @@ export default function ApprovalsPage() {
         )}
 
       {modal === "create" && <RequestForm onClose={() => setModal(null)} />}
-      {modal === "bases" && (
-        <ApprovalBases
-          onClose={() => setModal(null)}
-          onOpenRequest={(requestId) => {
-            const next = new URLSearchParams(searchParams);
-            next.set("request", requestId);
-            setSearchParams(next);
-            setSelectedId(requestId);
-            setModal(null);
-          }}
-        />
-      )}
       {modal === "configure" && (
         <RequestTypesManager onClose={() => setModal(null)} />
       )}
