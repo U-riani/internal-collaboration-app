@@ -738,9 +738,18 @@ function RequestForm({ existing, onClose }) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["approvals"] });
+      qc.invalidateQueries({ queryKey: ["approval-bases"] });
+      qc.invalidateQueries({ queryKey: ["approval-base-records"] });
+      if (existing?.id)
+        qc.invalidateQueries({ queryKey: ["approval", existing.id] });
       onClose();
     },
-    onError: () => qc.invalidateQueries({ queryKey: ["approvals"] }),
+    onError: () => {
+      qc.invalidateQueries({ queryKey: ["approvals"] });
+      qc.invalidateQueries({ queryKey: ["approval-base-records"] });
+      if (existing?.id)
+        qc.invalidateQueries({ queryKey: ["approval", existing.id] });
+    },
   });
   return (
     <Modal
@@ -871,8 +880,15 @@ export function RequestDetail({ item, onClose }) {
     onSuccess: () => {
       setComment("");
       qc.invalidateQueries({ queryKey: ["approvals"] });
+      qc.invalidateQueries({ queryKey: ["approval-bases"] });
+      qc.invalidateQueries({ queryKey: ["approval-base-records"] });
+      qc.invalidateQueries({ queryKey: ["approval", item.id] });
     },
-    onError: () => qc.invalidateQueries({ queryKey: ["approvals"] }),
+    onError: () => {
+      qc.invalidateQueries({ queryKey: ["approvals"] });
+      qc.invalidateQueries({ queryKey: ["approval-base-records"] });
+      qc.invalidateQueries({ queryKey: ["approval", item.id] });
+    },
   });
   return (
     <Modal title={item.title} onClose={onClose} wide>
