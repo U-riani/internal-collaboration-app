@@ -145,7 +145,10 @@ export default async function authRoutes(app) {
     },
   );
 
-  app.post("/refresh", async (request, reply) => {
+  app.post(
+    "/refresh",
+    { config: { rateLimit: { max: 60, timeWindow: "1 minute" } } },
+    async (request, reply) => {
     const token = request.cookies[refreshCookie];
     if (!token)
       throw new HttpError(
@@ -196,7 +199,8 @@ export default async function authRoutes(app) {
         user: publicUser(session.user),
       },
     };
-  });
+    },
+  );
 
   app.post("/logout", async (request, reply) => {
     const token = request.cookies[refreshCookie];
