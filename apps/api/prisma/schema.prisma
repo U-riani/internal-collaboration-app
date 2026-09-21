@@ -145,6 +145,8 @@ model User {
   ownedConversations        Conversation[]            @relation("ConversationOwner")
   messages                  Message[]
   messageReceipts           MessageReceipt[]
+  messageReactions          MessageReaction[]
+  messagePins               MessagePin[]                @relation("MessagePinUser")
   createdTasks              Task[]                    @relation("TaskCreator")
   taskGroups                 TaskGroup[]               @relation("TaskGroupOwner")
   taskLayouts                UserTaskLayout[]
@@ -274,10 +276,34 @@ model Message {
   deletedAt        DateTime?
   attachments      MessageAttachment[]
   receipts         MessageReceipt[]
+  reactions        MessageReaction[]
+  pin              MessagePin?
   createdAt        DateTime            @default(now())
 
   @@index([conversationId, createdAt(sort: Desc)])
   @@index([senderId, createdAt(sort: Desc)])
+}
+
+model MessageReaction {
+  messageId String   @db.Uuid
+  userId    String   @db.Uuid
+  emoji     String   @db.VarChar(32)
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([messageId, userId, emoji])
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+model MessagePin {
+  messageId  String   @id @db.Uuid
+  pinnedById String   @db.Uuid
+  message    Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  pinnedBy   User     @relation("MessagePinUser", fields: [pinnedById], references: [id], onDelete: Cascade)
+  pinnedAt   DateTime @default(now())
+
+  @@index([pinnedById, pinnedAt(sort: Desc)])
 }
 
 model MessageReceipt {

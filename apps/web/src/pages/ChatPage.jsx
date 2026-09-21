@@ -21,6 +21,8 @@ import {
   Link2,
   ExternalLink,
   ArrowRight,
+  Smile,
+  Pin,
 } from "lucide-react";
 import { api, uploadFile } from "../lib/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -48,6 +50,62 @@ const CHAT_SEARCH_TABS = [
   { id: "files", label: "Files", icon: FileText },
   { id: "links", label: "Links", icon: Link2 },
 ];
+
+const MESSAGE_EMOJIS = ["👍", "❤️", "😂", "🎉", "👏", "🙏", "😮", "😢", "😀", "🔥"];
+
+function groupedReactions(reactions = [], userId) {
+  const groups = new Map();
+  for (const reaction of reactions) {
+    const current = groups.get(reaction.emoji) || {
+      emoji: reaction.emoji,
+      users: [],
+      reactedByMe: false,
+    };
+    current.users.push(reaction.user);
+    if (reaction.userId === userId) current.reactedByMe = true;
+    groups.set(reaction.emoji, current);
+  }
+  return [...groups.values()];
+}
+
+function EmojiMenu({ onSelect, onClose, align = "left" }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const onPointerDown = (event) => {
+      if (ref.current && !ref.current.contains(event.target)) onClose();
+    };
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") onClose();
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [onClose]);
+
+  return (
+    <div
+      ref={ref}
+      className={`absolute bottom-full z-50 mb-2 grid grid-cols-5 gap-1 rounded-xl border border-slate-200 bg-white p-2 shadow-xl ${
+        align === "right" ? "right-0" : "left-0"
+      }`}
+    >
+      {MESSAGE_EMOJIS.map((emoji) => (
+        <button
+          key={emoji}
+          type="button"
+          className="rounded-lg p-1.5 text-lg hover:bg-slate-100"
+          onClick={() => onSelect(emoji)}
+          aria-label={`Use ${emoji}`}
+        >
+          {emoji}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 function chatBadgeLabel(count) {
   if (!count) return null;
@@ -399,7 +457,11 @@ export default function ChatPage() {
   const [receiptDetails, setReceiptDetails] = useState(null);
   const [unreadMarker, setUnreadMarker] = useState(null);
   const [nearBottom, setNearBottom] = useState(true);
+  const [composerEmojiOpen, setComposerEmojiOpen] = useState(false);
+  const [reactionFor, setReactionFor] = useState(null);
+  const [pinsOpen, setPinsOpen] = useState(false);
   const bottom = useRef(null);
+  const composer = useRef(null);
   const scrollArea = useRef(null);
   const positionedConversation = useRef(null);
   const previousTail = useRef({ conversationId: null, messageId: null });
@@ -423,6 +485,12 @@ export default function ChatPage() {
         `/conversations/${selectedId}/messages${pageParam ? `?cursor=${pageParam}` : ""}`,
       ),
     getNextPageParam: (page) => page.meta.nextCursor || undefined,
+  });
+  const pinsQuery = useQuery({
+    queryKey: ["message-pins", selectedId],
+    enabled: Boolean(selectedId && pinsOpen),
+    queryFn: () =>
+      api(`/conversations/${selectedId}/pins`).then((r) => r.data),
   });
   const results = useQuery({
     queryKey: [
@@ -610,6 +678,9 @@ export default function ChatPage() {
     setMessageSearch("");
     setSearchType("messages");
     setSearchOpen(false);
+    setComposerEmojiOpen(false);
+    setReactionFor(null);
+    setPinsOpen(false);
     setNearBottom(true);
     atBottom.current = true;
     conversationReadTarget.current = null;
@@ -707,6 +778,14 @@ export default function ChatPage() {
       qc.invalidateQueries({ queryKey: ["messages", p.conversationId] });
       qc.invalidateQueries({ queryKey: ["conversations"] });
       qc.invalidateQueries({ queryKey: ["message-search"] });
+      qc.invalidateQueries({ queryKey: ["message-pins", p.conversationId] });
+    },
+    "message:reaction-updated": (p) => {
+      qc.invalidateQueries({ queryKey: ["messages", p.conversationId] });
+    },
+    "message:pin-updated": (p) => {
+      qc.invalidateQueries({ queryKey: ["messages", p.conversationId] });
+      qc.invalidateQueries({ queryKey: ["message-pins", p.conversationId] });
     },
     "message:receipt-updated": (p) => {
       qc.invalidateQueries({ queryKey: ["messages", p.conversationId] });
@@ -745,6 +824,28 @@ export default function ChatPage() {
       qc.invalidateQueries({ queryKey: ["messages"] });
     },
   });
+  const react = useMutation({
+    mutationFn: ({ messageId, emoji }) =>
+      api(`/messages/${messageId}/reactions`, {
+        method: "POST",
+        body: JSON.stringify({ emoji }),
+      }),
+    onSuccess: () => {
+      setReactionFor(null);
+      qc.invalidateQueries({ queryKey: ["messages", selectedId] });
+      qc.invalidateQueries({ queryKey: ["message-search"] });
+    },
+  });
+  const pinMessage = useMutation({
+    mutationFn: ({ messageId, pinned }) =>
+      api(`/messages/${messageId}/pin`, {
+        method: pinned ? "DELETE" : "POST",
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["messages", selectedId] });
+      qc.invalidateQueries({ queryKey: ["message-pins", selectedId] });
+    },
+  });
   const submit = () => {
     if (selectedId && (text.trim() || file) && !send.isPending)
       send.mutate({
@@ -757,8 +858,27 @@ export default function ChatPage() {
   const jumpToMessage = (messageId) => {
     if (!messageId) return;
     setSearchOpen(false);
+    setPinsOpen(false);
     positionedConversation.current = null;
     setFocusMessageId(messageId);
+  };
+  const startReply = (message) => {
+    setReply(message);
+    setReactionFor(null);
+    window.requestAnimationFrame(() => composer.current?.focus());
+  };
+  const insertComposerEmoji = (emoji) => {
+    const input = composer.current;
+    const start = input?.selectionStart ?? text.length;
+    const end = input?.selectionEnd ?? start;
+    const next = `${text.slice(0, start)}${emoji}${text.slice(end)}`;
+    const cursor = start + emoji.length;
+    setText(next);
+    setComposerEmojiOpen(false);
+    window.requestAnimationFrame(() => {
+      composer.current?.focus();
+      composer.current?.setSelectionRange(cursor, cursor);
+    });
   };
   return (
     <>
@@ -1009,6 +1129,74 @@ export default function ChatPage() {
                     </div>
                   )}
                 </div>
+                <div className="relative">
+                  <button
+                    className="icon-btn"
+                    aria-label="Pinned messages"
+                    title="Pinned messages"
+                    onClick={() => setPinsOpen((open) => !open)}
+                  >
+                    <Pin size={18} />
+                  </button>
+                  {pinsOpen && (
+                    <div className="absolute right-0 top-[calc(100%+0.5rem)] z-40 w-80 max-w-[80vw] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
+                      <div className="flex items-center border-b border-slate-100 px-3 py-2">
+                        <span className="flex-1 text-sm font-semibold">
+                          Pinned messages
+                        </span>
+                        <button
+                          type="button"
+                          className="icon-btn p-1"
+                          aria-label="Close pinned messages"
+                          onClick={() => setPinsOpen(false)}
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                      <div className="max-h-80 overflow-y-auto p-2">
+                        {pinsQuery.isLoading ? (
+                          <Loading />
+                        ) : pinsQuery.error ? (
+                          <ErrorBox error={pinsQuery.error} />
+                        ) : !pinsQuery.data?.length ? (
+                          <p className="px-3 py-8 text-center text-xs text-slate-400">
+                            No pinned messages yet.
+                          </p>
+                        ) : (
+                          <div className="space-y-1">
+                            {pinsQuery.data.map((item) => (
+                              <button
+                                key={item.messageId}
+                                type="button"
+                                className="w-full rounded-lg p-3 text-left hover:bg-slate-50"
+                                onClick={() => jumpToMessage(item.messageId)}
+                              >
+                                <div className="flex items-center gap-2 text-[11px] text-slate-400">
+                                  <Pin size={12} />
+                                  <span className="font-semibold text-slate-600">
+                                    {item.message.sender.displayName}
+                                  </span>
+                                  <span>·</span>
+                                  <span>
+                                    {new Date(item.pinnedAt).toLocaleString()}
+                                  </span>
+                                </div>
+                                <p className="mt-1 line-clamp-2 text-sm text-slate-700">
+                                  {item.message.content ||
+                                    item.message.attachments[0]?.file.originalName ||
+                                    "Attachment"}
+                                </p>
+                                <p className="mt-1 text-[10px] text-slate-400">
+                                  Pinned by {item.pinnedBy.displayName}
+                                </p>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
                 <button
                   className="icon-btn"
                   aria-label="Conversation members"
@@ -1088,6 +1276,7 @@ export default function ChatPage() {
                                   minute: "2-digit",
                                 })}
                                 {m.editedAt ? " · edited" : ""}
+                                {m.pin ? " · 📌 Pinned" : ""}
                               </div>
                               <div
                                 className={`p-3.5 rounded-2xl ${own ? "bg-blue-600 text-white rounded-tr-md" : "bg-white border border-slate-200 rounded-tl-md"}`}
@@ -1113,6 +1302,36 @@ export default function ChatPage() {
                                   </div>
                                 )}
                               </div>
+                              {!m.deletedAt && m.reactions?.length > 0 && (
+                                <div
+                                  className={`mt-1 flex flex-wrap gap-1 ${own ? "justify-end" : ""}`}
+                                >
+                                  {groupedReactions(m.reactions, user.id).map(
+                                    (group) => (
+                                      <button
+                                        key={group.emoji}
+                                        type="button"
+                                        className={`rounded-full border px-2 py-0.5 text-xs ${
+                                          group.reactedByMe
+                                            ? "border-blue-300 bg-blue-50 text-blue-700"
+                                            : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                                        }`}
+                                        title={group.users
+                                          .map((item) => item.displayName)
+                                          .join(", ")}
+                                        onClick={() =>
+                                          react.mutate({
+                                            messageId: m.id,
+                                            emoji: group.emoji,
+                                          })
+                                        }
+                                      >
+                                        {group.emoji} {group.users.length}
+                                      </button>
+                                    ),
+                                  )}
+                                </div>
+                              )}
                               {!m.deletedAt && (
                                 <div
                                   className={`flex gap-1 mt-1 ${own ? "justify-end" : ""}`}
@@ -1121,9 +1340,56 @@ export default function ChatPage() {
                                     title="Reply"
                                     aria-label="Reply to message"
                                     className="icon-btn p-1"
-                                    onClick={() => setReply(m)}
+                                    onClick={() => startReply(m)}
                                   >
                                     <Reply size={12} />
+                                  </button>
+                                  <div className="relative">
+                                    <button
+                                      type="button"
+                                      title="React"
+                                      aria-label="React to message"
+                                      className="icon-btn p-1"
+                                      onMouseDown={(event) => event.stopPropagation()}
+                                      onClick={() =>
+                                        setReactionFor((current) =>
+                                          current === m.id ? null : m.id,
+                                        )
+                                      }
+                                    >
+                                      <Smile size={12} />
+                                    </button>
+                                    {reactionFor === m.id && (
+                                      <EmojiMenu
+                                        align={own ? "right" : "left"}
+                                        onClose={() => setReactionFor(null)}
+                                        onSelect={(emoji) =>
+                                          react.mutate({
+                                            messageId: m.id,
+                                            emoji,
+                                          })
+                                        }
+                                      />
+                                    )}
+                                  </div>
+                                  <button
+                                    type="button"
+                                    title={m.pin ? "Unpin message" : "Pin message"}
+                                    aria-label={
+                                      m.pin ? "Unpin message" : "Pin message"
+                                    }
+                                    className={`icon-btn p-1 ${
+                                      m.pin ? "text-blue-600" : ""
+                                    }`}
+                                    disabled={pinMessage.isPending}
+                                    onClick={() =>
+                                      pinMessage.mutate({
+                                        messageId: m.id,
+                                        pinned: Boolean(m.pin),
+                                      })
+                                    }
+                                  >
+                                    <Pin size={12} />
                                   </button>
                                   {own && (
                                     <>
@@ -1236,7 +1502,26 @@ export default function ChatPage() {
                       onChange={(e) => setFile(e.target.files[0])}
                     />
                   </label>
+                  <div className="relative mb-1">
+                    <button
+                      type="button"
+                      className="icon-btn"
+                      title="Add emoji"
+                      aria-label="Add emoji"
+                      onMouseDown={(event) => event.stopPropagation()}
+                      onClick={() => setComposerEmojiOpen((open) => !open)}
+                    >
+                      <Smile size={20} />
+                    </button>
+                    {composerEmojiOpen && (
+                      <EmojiMenu
+                        onClose={() => setComposerEmojiOpen(false)}
+                        onSelect={insertComposerEmoji}
+                      />
+                    )}
+                  </div>
                   <textarea
+                    ref={composer}
                     className="input resize-none min-h-12"
                     rows={1}
                     aria-label="Message"

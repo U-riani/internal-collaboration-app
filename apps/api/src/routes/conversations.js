@@ -25,6 +25,9 @@ const messageSchema = z
   );
 
 const editSchema = z.object({ content: z.string().trim().min(1).max(20000) });
+const reactionSchema = z.object({
+  emoji: z.string().trim().min(1).max(32),
+});
 
 const conversationInclude = {
   members: {
@@ -59,6 +62,21 @@ const messageInclude = {
       deliveredAt: true,
       readAt: true,
       user: { select: { id: true, displayName: true } },
+    },
+  },
+  reactions: {
+    select: {
+      emoji: true,
+      userId: true,
+      createdAt: true,
+      user: { select: { id: true, displayName: true } },
+    },
+    orderBy: { createdAt: "asc" },
+  },
+  pin: {
+    select: {
+      pinnedAt: true,
+      pinnedBy: { select: { id: true, displayName: true } },
     },
   },
 };
@@ -386,6 +404,129 @@ export default async function conversationRoutes(app) {
     return { success: true, data: enrichedMessage };
   });
 
+  app.get("/conversations/:id/pins", async (request) => {
+    await requireMembership(app, request.params.id, request.authUser.id);
+    const data = await app.prisma.messagePin.findMany({
+      where: {
+        message: {
+          conversationId: request.params.id,
+          deletedAt: null,
+        },
+      },
+      select: {
+        messageId: true,
+        pinnedAt: true,
+        pinnedBy: { select: { id: true, displayName: true } },
+        message: {
+          select: {
+            id: true,
+            content: true,
+            createdAt: true,
+            sender: { select: { id: true, displayName: true } },
+            attachments: {
+              select: {
+                file: {
+                  select: { id: true, originalName: true, mimeType: true },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { pinnedAt: "desc" },
+    });
+    return { success: true, data };
+  });
+
+  app.post("/messages/:id/reactions", async (request) => {
+    const input = parse(reactionSchema, request.body);
+    const message = await app.prisma.message.findUnique({
+      where: { id: request.params.id },
+      select: { id: true, conversationId: true, deletedAt: true },
+    });
+    if (!message || message.deletedAt)
+      throw new HttpError(404, "MESSAGE_NOT_FOUND", "Message was not found");
+    await requireMembership(app, message.conversationId, request.authUser.id);
+
+    const key = {
+      messageId: message.id,
+      userId: request.authUser.id,
+      emoji: input.emoji,
+    };
+    const existing = await app.prisma.messageReaction.findUnique({
+      where: { messageId_userId_emoji: key },
+    });
+    if (existing) {
+      await app.prisma.messageReaction.delete({
+        where: { messageId_userId_emoji: key },
+      });
+    } else {
+      await app.prisma.messageReaction.create({ data: key });
+    }
+
+    app.io
+      ?.to(`conversation:${message.conversationId}`)
+      .emit("message:reaction-updated", {
+        conversationId: message.conversationId,
+        messageId: message.id,
+        emoji: input.emoji,
+        userId: request.authUser.id,
+        added: !existing,
+      });
+    return {
+      success: true,
+      data: { added: !existing, emoji: input.emoji },
+    };
+  });
+
+  app.post("/messages/:id/pin", async (request) => {
+    const message = await app.prisma.message.findUnique({
+      where: { id: request.params.id },
+      select: { id: true, conversationId: true, deletedAt: true },
+    });
+    if (!message || message.deletedAt)
+      throw new HttpError(404, "MESSAGE_NOT_FOUND", "Message was not found");
+    await requireMembership(app, message.conversationId, request.authUser.id);
+
+    const pin = await app.prisma.messagePin.upsert({
+      where: { messageId: message.id },
+      create: { messageId: message.id, pinnedById: request.authUser.id },
+      update: { pinnedById: request.authUser.id, pinnedAt: new Date() },
+      select: {
+        messageId: true,
+        pinnedAt: true,
+        pinnedBy: { select: { id: true, displayName: true } },
+      },
+    });
+    app.io
+      ?.to(`conversation:${message.conversationId}`)
+      .emit("message:pin-updated", {
+        conversationId: message.conversationId,
+        messageId: message.id,
+        pinned: true,
+      });
+    return { success: true, data: pin };
+  });
+
+  app.delete("/messages/:id/pin", async (request) => {
+    const message = await app.prisma.message.findUnique({
+      where: { id: request.params.id },
+      select: { id: true, conversationId: true },
+    });
+    if (!message)
+      throw new HttpError(404, "MESSAGE_NOT_FOUND", "Message was not found");
+    await requireMembership(app, message.conversationId, request.authUser.id);
+    await app.prisma.messagePin.deleteMany({ where: { messageId: message.id } });
+    app.io
+      ?.to(`conversation:${message.conversationId}`)
+      .emit("message:pin-updated", {
+        conversationId: message.conversationId,
+        messageId: message.id,
+        pinned: false,
+      });
+    return { success: true, data: null };
+  });
+
   app.post("/messages/receipts/delivered", async (request) => {
     const input = parse(
       z
@@ -512,11 +653,15 @@ export default async function conversationRoutes(app) {
         "You cannot delete this message",
       );
     }
-    const updated = await app.prisma.message.update({
-      where: { id: message.id },
-      data: { content: "", deletedAt: new Date() },
-      include: messageInclude,
-    });
+    const [, , updated] = await app.prisma.$transaction([
+      app.prisma.messageReaction.deleteMany({ where: { messageId: message.id } }),
+      app.prisma.messagePin.deleteMany({ where: { messageId: message.id } }),
+      app.prisma.message.update({
+        where: { id: message.id },
+        data: { content: "", deletedAt: new Date() },
+        include: messageInclude,
+      }),
+    ]);
     app.io
       ?.to(`conversation:${message.conversationId}`)
       .emit("message:deleted", {

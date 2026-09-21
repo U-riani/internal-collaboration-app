@@ -167,6 +167,75 @@ test("marking a conversation read clears every unread message in it", async () =
   assert.equal(after.unreadCount, 0);
 });
 
+test("message reactions and pins persist and require conversation membership", async () => {
+  const { admin, employee, manager } = h.users;
+  const conversation = ok(
+    await h.call(employee, "POST", "/conversations", {
+      type: "DIRECT",
+      memberIds: [admin.user.id],
+    }),
+  );
+  const message = ok(
+    await h.call(employee, "POST", `/conversations/${conversation.id}/messages`, {
+      content: "Pin and react to this",
+    }),
+    201,
+  );
+
+  const added = ok(
+    await h.call(admin, "POST", `/messages/${message.id}/reactions`, {
+      emoji: "👍",
+    }),
+  );
+  assert.equal(added.added, true);
+
+  let messages = ok(
+    await h.call(admin, "GET", `/conversations/${conversation.id}/messages`),
+  );
+  const stored = messages.find((item) => item.id === message.id);
+  assert.equal(stored.reactions.length, 1);
+  assert.equal(stored.reactions[0].emoji, "👍");
+  assert.equal(stored.reactions[0].userId, admin.user.id);
+
+  const removed = ok(
+    await h.call(admin, "POST", `/messages/${message.id}/reactions`, {
+      emoji: "👍",
+    }),
+  );
+  assert.equal(removed.added, false);
+
+  const pin = ok(
+    await h.call(admin, "POST", `/messages/${message.id}/pin`),
+  );
+  assert.equal(pin.messageId, message.id);
+  assert.equal(pin.pinnedBy.id, admin.user.id);
+
+  const pins = ok(
+    await h.call(admin, "GET", `/conversations/${conversation.id}/pins`),
+  );
+  assert.equal(pins.length, 1);
+  assert.equal(pins[0].messageId, message.id);
+
+  assert.equal(
+    (
+      await h.call(manager, "POST", `/messages/${message.id}/reactions`, {
+        emoji: "🎉",
+      })
+    ).statusCode,
+    403,
+  );
+  assert.equal(
+    (await h.call(manager, "POST", `/messages/${message.id}/pin`)).statusCode,
+    403,
+  );
+
+  ok(await h.call(admin, "DELETE", `/messages/${message.id}/pin`));
+  const afterUnpin = ok(
+    await h.call(admin, "GET", `/conversations/${conversation.id}/pins`),
+  );
+  assert.equal(afterUnpin.length, 0);
+});
+
 test("deadline notification scans do not create duplicate notifications", async () => {
   const task = await h.prisma.task.create({
     data: {
