@@ -4,24 +4,38 @@ import { getAccessToken, refreshSession } from "../lib/api.js";
 let shared;
 let count = 0;
 let renewing = false;
+let renewTimer = null;
+
 function connection() {
   if (!shared) {
     shared = io({
       path: "/socket.io",
       auth: (cb) => cb({ token: getAccessToken() }),
     });
+
+    const scheduleRenew = () => {
+      if (renewTimer || !count || !shared || !getAccessToken()) return;
+      renewTimer = window.setTimeout(() => {
+        renewTimer = null;
+        renew();
+      }, 2000);
+    };
+
     const renew = async () => {
       if (renewing || !getAccessToken()) return;
       renewing = true;
       try {
         await refreshSession();
         if (count && shared) shared.connect();
-      } catch {
-        window.dispatchEvent(new Event("collab:session-ended"));
+      } catch (error) {
+        // refreshSession ends the login only for confirmed invalid sessions.
+        // Network, server and rate-limit failures should retry instead.
+        if (!error.sessionEnded) scheduleRenew();
       } finally {
         renewing = false;
       }
     };
+
     shared.on("disconnect", (reason) => {
       if (reason === "io server disconnect") renew();
     });
@@ -54,6 +68,10 @@ export function useSocket(handlers = {}) {
       socket.off("connect", connected);
       count--;
       if (!count) {
+        if (renewTimer) {
+          window.clearTimeout(renewTimer);
+          renewTimer = null;
+        }
         const old = shared;
         shared = null;
         old.disconnect();
