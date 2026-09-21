@@ -1,9 +1,12 @@
 async function createNotification(prisma, data) {
-  try {
-    await prisma.notification.create({ data });
-  } catch (error) {
-    if (error.code !== "P2002") throw error;
+  if (data.deduplicationKey) {
+    await prisma.notification.createMany({
+      data: [data],
+      skipDuplicates: true,
+    });
+    return;
   }
+  await prisma.notification.create({ data });
 }
 
 export async function scanTaskDeadlines(prisma) {
