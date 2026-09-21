@@ -88,7 +88,7 @@ function EmojiMenu({ onSelect, onClose, align = "left" }) {
   return (
     <div
       ref={ref}
-      className={`absolute bottom-full z-50 mb-2 grid grid-cols-5 gap-1 rounded-xl border border-slate-200 bg-white p-2 shadow-xl ${
+      className={`absolute bottom-full z-50 mb-2 grid min-w-max grid-cols-5 gap-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-xl ${
         align === "right" ? "right-0" : "left-0"
       }`}
     >
@@ -96,7 +96,7 @@ function EmojiMenu({ onSelect, onClose, align = "left" }) {
         <button
           key={emoji}
           type="button"
-          className="rounded-lg p-1.5 text-lg hover:bg-slate-100"
+          className="flex h-10 w-10 items-center justify-center rounded-xl border border-transparent text-xl leading-none transition hover:border-slate-200 hover:bg-slate-50 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
           onClick={() => onSelect(emoji)}
           aria-label={`Use ${emoji}`}
         >
