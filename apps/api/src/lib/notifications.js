@@ -19,6 +19,21 @@ export async function createNotification(app, input) {
     }
   }
 
+  if (data.deduplicationKey) {
+    const inserted = await app.prisma.notification.createMany({
+      data: [data],
+      skipDuplicates: true,
+    });
+    const notification = await app.prisma.notification.findUnique({
+      where: { deduplicationKey: data.deduplicationKey },
+    });
+    if (inserted.count && notification)
+      app.io
+        ?.to(`user:${input.userId}`)
+        .emit("notification:created", notification);
+    return notification;
+  }
+
   const notification = await app.prisma.notification.create({ data });
   app.io?.to(`user:${input.userId}`).emit("notification:created", notification);
   return notification;
