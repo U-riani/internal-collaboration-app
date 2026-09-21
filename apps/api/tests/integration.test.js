@@ -275,7 +275,7 @@ test("message reactions and pins persist and require conversation membership", a
       `/conversations/${conversation.id}/reactions/read`,
     ),
   );
-  const readReactionNotification = await h.prisma.notification.findUnique({
+  let readReactionNotification = await h.prisma.notification.findUnique({
     where: { id: reactionNotification.id },
   });
   assert.equal(
@@ -288,6 +288,31 @@ test("message reactions and pins persist and require conversation membership", a
   ).find((item) => item.id === conversation.id);
   assert.equal(afterReactionRead.unreadReactionCount, 0);
   assert.equal(afterReactionRead.unreadCount, 0);
+
+  ok(
+    await h.call(admin, "POST", `/messages/${message.id}/reactions`, {
+      emoji: "👍",
+    }),
+  );
+  ok(
+    await h.call(admin, "POST", `/messages/${message.id}/reactions`, {
+      emoji: "👍",
+    }),
+  );
+  readReactionNotification = await h.prisma.notification.findUnique({
+    where: { id: reactionNotification.id },
+  });
+  assert.equal(
+    readReactionNotification.isRead,
+    false,
+    "re-adding a previously read reaction should reactivate its notification",
+  );
+  assert.equal(readReactionNotification.readAt, null);
+  const afterReactionReAdd = ok(
+    await h.call(employee, "GET", "/conversations"),
+  ).find((item) => item.id === conversation.id);
+  assert.equal(afterReactionReAdd.unreadReactionCount, 1);
+  assert.equal(afterReactionReAdd.unreadCount, 1);
 
   const selfReactionMessage = ok(
     await h.call(employee, "POST", `/conversations/${conversation.id}/messages`, {
@@ -341,6 +366,64 @@ test("message reactions and pins persist and require conversation membership", a
     await h.call(admin, "GET", `/conversations/${conversation.id}/pins`),
   );
   assert.equal(afterUnpin.length, 0);
+});
+
+test("reaction notifications work in every role direction", async () => {
+  const { admin, employee, manager } = h.users;
+
+  const adminEmployeeConversation = ok(
+    await h.call(admin, "POST", "/conversations", {
+      type: "DIRECT",
+      memberIds: [employee.user.id],
+    }),
+  );
+  const adminMessage = ok(
+    await h.call(admin, "POST", `/conversations/${adminEmployeeConversation.id}/messages`, {
+      content: "Employee should notify admin",
+    }),
+    201,
+  );
+  ok(
+    await h.call(employee, "POST", `/messages/${adminMessage.id}/reactions`, {
+      emoji: "👏",
+    }),
+  );
+  const employeeToAdmin = await h.prisma.notification.findFirst({
+    where: {
+      userId: admin.user.id,
+      type: "MESSAGE_REACTION",
+      relatedEntityId: adminMessage.id,
+      isRead: false,
+    },
+  });
+  assert.ok(employeeToAdmin, "employee reaction should notify admin");
+
+  const managerEmployeeConversation = ok(
+    await h.call(manager, "POST", "/conversations", {
+      type: "DIRECT",
+      memberIds: [employee.user.id],
+    }),
+  );
+  const employeeMessage = ok(
+    await h.call(employee, "POST", `/conversations/${managerEmployeeConversation.id}/messages`, {
+      content: "Manager should notify employee",
+    }),
+    201,
+  );
+  ok(
+    await h.call(manager, "POST", `/messages/${employeeMessage.id}/reactions`, {
+      emoji: "🔥",
+    }),
+  );
+  const managerToEmployee = await h.prisma.notification.findFirst({
+    where: {
+      userId: employee.user.id,
+      type: "MESSAGE_REACTION",
+      relatedEntityId: employeeMessage.id,
+      isRead: false,
+    },
+  });
+  assert.ok(managerToEmployee, "manager reaction should notify employee");
 });
 
 test("deadline notification scans do not create duplicate notifications", async () => {

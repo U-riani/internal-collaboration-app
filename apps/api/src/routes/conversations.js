@@ -39,6 +39,33 @@ const reactionNotificationLabel = (value) =>
     ":teamwork:": "Teamwork",
   })[value] || value;
 
+async function createOrReactivateReactionNotification(app, input) {
+  const existing = await app.prisma.notification.findUnique({
+    where: { deduplicationKey: input.deduplicationKey },
+  });
+
+  if (!existing) return createNotification(app, input);
+
+  const notification = await app.prisma.notification.update({
+    where: { id: existing.id },
+    data: {
+      userId: input.userId,
+      type: input.type,
+      title: input.title,
+      body: input.body,
+      relatedEntityType: input.relatedEntityType,
+      relatedEntityId: input.relatedEntityId,
+      isRead: false,
+      readAt: null,
+      createdAt: new Date(),
+    },
+  });
+  app.io
+    ?.to(`user:${input.userId}`)
+    .emit("notification:created", notification);
+  return notification;
+}
+
 const conversationInclude = {
   members: {
     where: { leftAt: null },
@@ -621,7 +648,7 @@ export default async function conversationRoutes(app) {
       await app.prisma.messageReaction.create({ data: key });
       if (message.senderId !== request.authUser.id) {
         const reactionText = reactionNotificationLabel(input.emoji);
-        await createNotification(app, {
+        await createOrReactivateReactionNotification(app, {
           userId: message.senderId,
           type: "MESSAGE_REACTION",
           title: `${request.authUser.displayName} reacted ${reactionText} to your message`,
