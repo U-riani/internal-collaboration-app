@@ -63,6 +63,17 @@ const messageInclude = {
   },
 };
 
+function extractHttpLinks(content = "") {
+  const matches = content.match(/https?:\/\/[^\s<>"']+/gi) || [];
+  return [
+    ...new Set(
+      matches
+        .map((value) => value.replace(/[),.;!?]+$/g, ""))
+        .filter(Boolean),
+    ),
+  ];
+}
+
 async function requireMembership(app, conversationId, userId) {
   const membership = await app.prisma.conversationMember.findUnique({
     where: { conversationId_userId: { conversationId, userId } },
@@ -655,20 +666,130 @@ export default async function conversationRoutes(app) {
 
   app.get("/messages/search", async (request) => {
     const query = parse(
-      z.object({
-        q: z.string().trim().min(2),
-        conversationId: z.uuid().optional(),
-      }),
+      z
+        .object({
+          q: z.string().trim().max(500).default(""),
+          conversationId: z.uuid().optional(),
+          type: z.enum(["messages", "files", "links"]).default("messages"),
+        })
+        .superRefine((value, ctx) => {
+          if (value.type === "messages" && value.q.length < 2) {
+            ctx.addIssue({
+              code: "custom",
+              path: ["q"],
+              message: "Type at least 2 characters to search messages",
+            });
+          }
+        }),
       request.query,
     );
+
+    const membershipFilter = {
+      members: { some: { userId: request.authUser.id, leftAt: null } },
+    };
+
+    if (query.type === "files") {
+      const messages = await app.prisma.message.findMany({
+        where: {
+          deletedAt: null,
+          conversationId: query.conversationId,
+          conversation: membershipFilter,
+          attachments: {
+            some: {
+              file: {
+                deletedAt: null,
+                ...(query.q
+                  ? {
+                      originalName: {
+                        contains: query.q,
+                        mode: "insensitive",
+                      },
+                    }
+                  : {}),
+              },
+            },
+          },
+        },
+        include: {
+          sender: { select: { id: true, displayName: true } },
+          attachments: { include: { file: true } },
+          conversation: { select: { id: true, name: true, type: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 100,
+      });
+      const needle = query.q.toLowerCase();
+      const data = messages
+        .flatMap((message) =>
+          message.attachments
+            .filter(
+              ({ file }) =>
+                !file.deletedAt &&
+                (!needle || file.originalName.toLowerCase().includes(needle)),
+            )
+            .map(({ file }) => ({
+              id: `${message.id}:${file.id}`,
+              messageId: message.id,
+              conversationId: message.conversationId,
+              createdAt: message.createdAt,
+              sender: message.sender,
+              messagePreview: message.content,
+              file,
+              conversation: message.conversation,
+            })),
+        )
+        .slice(0, 100);
+      return { success: true, data };
+    }
+
+    if (query.type === "links") {
+      const messages = await app.prisma.message.findMany({
+        where: {
+          deletedAt: null,
+          conversationId: query.conversationId,
+          conversation: membershipFilter,
+          content: query.q
+            ? { contains: query.q, mode: "insensitive" }
+            : { contains: "http", mode: "insensitive" },
+        },
+        include: {
+          sender: { select: { id: true, displayName: true } },
+          conversation: { select: { id: true, name: true, type: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 300,
+      });
+      const needle = query.q.toLowerCase();
+      const data = messages
+        .flatMap((message) =>
+          extractHttpLinks(message.content)
+            .filter(
+              (url) =>
+                !needle ||
+                url.toLowerCase().includes(needle) ||
+                message.content.toLowerCase().includes(needle),
+            )
+            .map((url, index) => ({
+              id: `${message.id}:link:${index}`,
+              messageId: message.id,
+              conversationId: message.conversationId,
+              createdAt: message.createdAt,
+              sender: message.sender,
+              messagePreview: message.content,
+              url,
+              conversation: message.conversation,
+            })),
+        )
+        .slice(0, 100);
+      return { success: true, data };
+    }
+
     const data = await app.prisma.message.findMany({
       where: {
         deletedAt: null,
         content: { contains: query.q, mode: "insensitive" },
         conversationId: query.conversationId,
-        conversation: {
-          members: { some: { userId: request.authUser.id, leftAt: null } },
-        },
+        conversation: membershipFilter,
       },
       include: {
         ...messageInclude,
