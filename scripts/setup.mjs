@@ -20,6 +20,7 @@ text = text.replace(
 
 await writeFile(filename, text, { mode: 0o600, flag: "wx" });
 console.log("Created .env for local development.");
+console.log("PostgreSQL is required. Update DATABASE_URL in .env before starting.");
 console.log("Install dependencies: npm install && npm run install:all");
 console.log("Start frontend + backend: npm run dev");
 console.log("Frontend: http://localhost:5173");
