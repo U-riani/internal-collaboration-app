@@ -752,7 +752,15 @@ export default function ChatPage() {
       setUnreadMarker(null);
       qc.setQueryData(["conversations"], (items = []) =>
         items.map((item) =>
-          item.id === selectedId ? { ...item, unreadCount: 0 } : item,
+          item.id === selectedId
+            ? {
+                ...item,
+                unreadMessageCount: 0,
+                unreadReactionCount: 0,
+                unreadCount: 0,
+                unreadReactionMessageId: null,
+              }
+            : item,
         ),
       );
       qc.invalidateQueries({ queryKey: ["messages", selectedId] });
@@ -765,7 +773,7 @@ export default function ChatPage() {
   }, [
     selectedId,
     tail,
-    selected?.unreadMessageCount,
+    selected?.unreadCount,
     unreadMessageIds.size,
     qc,
   ]);
@@ -791,7 +799,7 @@ export default function ChatPage() {
   }, [
     selectedId,
     firstUnreadId,
-    selected?.unreadCount,
+    selected?.unreadMessageCount,
     unreadMessageIds.size,
     unreadMarker?.conversationId,
   ]);
