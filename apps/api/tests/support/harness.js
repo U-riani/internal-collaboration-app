@@ -12,6 +12,7 @@ const exec = promisify(execFile);
 function testDatabaseUrl(baseUrl, schema) {
   const url = new URL(baseUrl);
   const options = `-c search_path=${schema}`;
+  url.searchParams.set("schema", schema);
   url.searchParams.set("options", options);
   return url.toString();
 }
