@@ -2,19 +2,19 @@
 
 Version 0.2.0. Internal collaboration application with a React/Vite frontend and a Node.js/Fastify backend.
 
-The `dev` branch is optimized for a **classic local development workflow**. Docker is not required.
+The `dev` branch uses a classic local workflow with a real PostgreSQL database. Docker is optional and is not required by the application itself.
 
 ## Development architecture
 
 - **Frontend:** React + Vite + Tailwind, `http://localhost:5173`
 - **Backend:** Node.js + Fastify, `http://localhost:3000`
-- **Database:** persistent embedded PGlite database started by the backend development command
-- **Files:** local private storage under `apps/api/.local/files`
+- **Database:** PostgreSQL through Prisma + `@prisma/adapter-pg`
+- **Files:** local private storage under `apps/api/.local/files` by default
 - **Realtime:** Socket.IO from the backend
 - **Presence:** in-process presence store for a single local backend instance
 - **Deadline notifications:** scheduled inside the backend process
 
-The frontend keeps the existing Vite proxy, so `/api` and `/socket.io` requests are forwarded to the backend during development.
+The frontend Vite proxy forwards `/api` and `/socket.io` requests to the backend during development.
 
 ## Features
 
@@ -22,7 +22,7 @@ The frontend keeps the existing Vite proxy, so `/api` and `/socket.io` requests 
 - Role and permission control
 - User and department administration
 - Direct and group conversations
-- Realtime messages, typing events, and presence
+- Realtime messages, typing events, receipts, and presence
 - Tasks and task history
 - Deadline notifications
 - Approval workflows
@@ -33,8 +33,26 @@ The frontend keeps the existing Vite proxy, so `/api` and `/socket.io` requests 
 
 - Node.js 22.19+
 - npm
+- PostgreSQL
 
-No Docker Desktop, local PostgreSQL server, Redis server, or MinIO server is required for development.
+Redis and MinIO are not required for the default local development workflow.
+
+## PostgreSQL setup
+
+Create a PostgreSQL database and user. One example is:
+
+```sql
+CREATE USER collaboration WITH PASSWORD 'choose_a_password';
+CREATE DATABASE collaboration OWNER collaboration;
+```
+
+Then configure the root `.env`:
+
+```env
+DATABASE_URL=postgresql://collaboration:choose_a_password@127.0.0.1:5432/collaboration?schema=public
+```
+
+The database user should own the development database. API integration tests create and remove temporary PostgreSQL schemas inside this database.
 
 ## First start
 
@@ -44,6 +62,13 @@ From the project root:
 npm install
 npm run install:all
 npm run setup
+```
+
+If `.env` was just created, update `DATABASE_URL` with your PostgreSQL credentials before starting.
+
+Then run:
+
+```bash
 npm run dev
 ```
 
@@ -53,9 +78,15 @@ Open:
 - Backend health: `http://localhost:3000/health/ready`
 - API docs: `http://localhost:3000/docs`
 
-`npm run setup` creates a local `.env` if one does not already exist. The app can also start in development without running setup because safe local defaults are provided by the development launcher.
+The backend development command now:
 
-The backend development launcher automatically generates Prisma Client before seeding the local database, so a separate `prisma generate` step is normally not required.
+1. verifies that `DATABASE_URL` points to PostgreSQL;
+2. generates Prisma Client;
+3. runs `prisma migrate deploy`;
+4. seeds demo data when `DEV_AUTO_SEED` is not `false`;
+5. starts Fastify.
+
+It does not start or use PGlite.
 
 ## Demo accounts
 
@@ -81,10 +112,16 @@ npm run dev:backend
 # Frontend only
 npm run dev:frontend
 
-# Generate Prisma Client manually if needed
+# Generate Prisma Client
 npm run db:generate
 
-# Tests
+# Create/develop migrations
+npm run db:migrate
+
+# Apply committed migrations
+npm --prefix apps/api run db:deploy
+
+# Tests (uses PostgreSQL configured in .env)
 npm test
 
 # Static checks/build
@@ -96,37 +133,43 @@ npm run build
 
 ## Local development data
 
-The backend stores development data in:
+Application records are stored in PostgreSQL.
+
+Local file uploads are stored by default in:
 
 ```text
-apps/api/.local/
-├── postgres/   # embedded persistent database
-└── files/      # uploaded files
+apps/api/.local/files/
 ```
 
-This directory is ignored by Git.
+The old `apps/api/.local/postgres/` PGlite directory is no longer used and can be deleted after moving to PostgreSQL.
 
-To reset only your local development data, stop the app and delete `apps/api/.local/`. The next `npm run dev` recreates the database, applies the Prisma SQL migrations, generates Prisma Client, and seeds the local demo data.
+To reset application data, reset the PostgreSQL development database and rerun migrations/seeding rather than deleting `apps/api/.local/`.
 
-## Running the backend with an external PostgreSQL database
+## Running the backend
 
-The normal backend start command still supports an external PostgreSQL database:
+Development:
+
+```bash
+npm run dev:backend
+```
+
+Normal backend start:
 
 ```bash
 npm --prefix apps/api start
 ```
 
-For that mode, set a valid `DATABASE_URL` and production-safe secrets in `.env`. Local development does not use the example `DATABASE_URL`; it replaces it with the embedded database connection at startup.
+Both modes use the PostgreSQL `DATABASE_URL` from the root `.env`.
+
+For production, use production-safe JWT secrets, secure cookies, a production PostgreSQL instance, and the appropriate storage configuration.
 
 ## Project structure
 
 ```text
 apps/
-├── api/     # Fastify backend, Prisma schema/migrations, local dev database launcher
+├── api/     # Fastify backend, Prisma schema/migrations, PostgreSQL access
 └── web/     # React + Vite + Tailwind frontend
 
 docs/       # Project documentation
 scripts/    # Root setup helpers
 ```
-
-The previous Docker Compose files, Dockerfiles, Nginx container config, Redis worker, and MinIO development requirement were removed from the development branch. User-facing UI and application routes remain in their existing locations.
