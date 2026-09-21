@@ -41,7 +41,12 @@ export async function buildApp(dependencies = {}) {
   });
   await app.register(cookie);
   await app.register(helmet, { contentSecurityPolicy: false });
-  await app.register(rateLimit, { max: 300, timeWindow: "1 minute" });
+  const globalRateLimitMax =
+    env.NODE_ENV === "production" ? 3000 : 10000;
+  await app.register(rateLimit, {
+    max: globalRateLimitMax,
+    timeWindow: "1 minute",
+  });
   await app.register(jwt, { secret: env.JWT_ACCESS_SECRET });
   await app.register(multipart, {
     limits: { fileSize: env.MAX_UPLOAD_SIZE_MB * 1024 * 1024, files: 1 },
