@@ -173,7 +173,7 @@ async function markMessageNotificationsRead(app, userId, messageIds, readAt) {
     where: {
       userId,
       isRead: false,
-      type: "MESSAGE",
+      type: { in: ["MESSAGE", "MESSAGE_REACTION"] },
       relatedEntityType: "MESSAGE",
       relatedEntityId: { in: messageIds },
     },
@@ -488,33 +488,26 @@ export default async function conversationRoutes(app) {
     } else {
       await app.prisma.messageReaction.create({ data: key });
       if (message.senderId !== request.authUser.id) {
-        const deduplicationKey = `message-reaction:${message.id}:${request.authUser.id}:${input.emoji}`;
-        const previousNotification = await app.prisma.notification.findUnique({
-          where: { deduplicationKey },
-          select: { id: true },
+        const reactionText = reactionNotificationLabel(input.emoji);
+        const activityContent = `${request.authUser.displayName} reacted ${reactionText} to ${message.sender.displayName}'s message`;
+        let activityMessage = await app.prisma.message.findFirst({
+          where: {
+            conversationId: message.conversationId,
+            senderId: request.authUser.id,
+            type: "SYSTEM",
+            replyToMessageId: message.id,
+            content: activityContent,
+          },
+          include: messageInclude,
         });
 
-        await createNotification(app, {
-          userId: message.senderId,
-          type: "MESSAGE_REACTION",
-          title: `${request.authUser.displayName} reacted ${reactionNotificationLabel(
-            input.emoji,
-          )} to your message`,
-          body: message.content.slice(0, 180) || "Attachment",
-          relatedEntityType: "MESSAGE",
-          relatedEntityId: message.id,
-          deduplicationKey,
-        });
-
-        if (!previousNotification) {
-          const activityMessage = await app.prisma.message.create({
+        if (!activityMessage) {
+          activityMessage = await app.prisma.message.create({
             data: {
               conversationId: message.conversationId,
               senderId: request.authUser.id,
               type: "SYSTEM",
-              content: `${request.authUser.displayName} reacted ${reactionNotificationLabel(
-                input.emoji,
-              )} to ${message.sender.displayName}'s message`,
+              content: activityContent,
               replyToMessageId: message.id,
             },
             include: messageInclude,
@@ -533,6 +526,23 @@ export default async function conversationRoutes(app) {
           app.io
             ?.to(`conversation:${message.conversationId}`)
             .emit("message:created", activityMessage);
+        }
+
+        const deduplicationKey = `message-reaction:${message.id}:${request.authUser.id}:${input.emoji}`;
+        const previousNotification = await app.prisma.notification.findUnique({
+          where: { deduplicationKey },
+          select: { id: true },
+        });
+        if (!previousNotification) {
+          await createNotification(app, {
+            userId: message.senderId,
+            type: "MESSAGE_REACTION",
+            title: `${request.authUser.displayName} reacted ${reactionText} to your message`,
+            body: message.content.slice(0, 180) || "Attachment",
+            relatedEntityType: "MESSAGE",
+            relatedEntityId: activityMessage.id,
+            deduplicationKey,
+          });
         }
       }
     }

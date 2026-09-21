@@ -189,17 +189,6 @@ test("message reactions and pins persist and require conversation membership", a
   );
   assert.equal(added.added, true);
 
-  const reactionNotification = await h.prisma.notification.findFirst({
-    where: {
-      userId: employee.user.id,
-      type: "MESSAGE_REACTION",
-      relatedEntityType: "MESSAGE",
-      relatedEntityId: message.id,
-    },
-  });
-  assert.ok(reactionNotification);
-  assert.match(reactionNotification.title, /reacted/);
-
   let activityMessages = await h.prisma.message.findMany({
     where: {
       conversationId: conversation.id,
@@ -209,6 +198,17 @@ test("message reactions and pins persist and require conversation membership", a
   });
   assert.equal(activityMessages.length, 1);
   assert.match(activityMessages[0].content, /reacted/);
+
+  const reactionNotification = await h.prisma.notification.findFirst({
+    where: {
+      userId: employee.user.id,
+      type: "MESSAGE_REACTION",
+      relatedEntityType: "MESSAGE",
+      relatedEntityId: activityMessages[0].id,
+    },
+  });
+  assert.ok(reactionNotification);
+  assert.match(reactionNotification.title, /reacted/);
 
   let messages = ok(
     await h.call(admin, "GET", `/conversations/${conversation.id}/messages`),
@@ -229,7 +229,7 @@ test("message reactions and pins persist and require conversation membership", a
     where: {
       userId: employee.user.id,
       type: "MESSAGE_REACTION",
-      relatedEntityId: message.id,
+      relatedEntityId: activityMessages[0].id,
     },
   });
   assert.equal(reactionNotificationCount, 1);
@@ -251,6 +251,24 @@ test("message reactions and pins persist and require conversation membership", a
     1,
     "re-adding the same reaction should not create duplicate activity messages",
   );
+
+  ok(
+    await h.call(
+      employee,
+      "POST",
+      `/conversations/${conversation.id}/read`,
+      { all: true },
+    ),
+  );
+  const readReactionNotification = await h.prisma.notification.findUnique({
+    where: { id: reactionNotification.id },
+  });
+  assert.equal(
+    readReactionNotification.isRead,
+    true,
+    "reading the conversation should clear the matching reaction notification",
+  );
+
   assert.equal(
     (
       await h.call(admin, "PATCH", `/messages/${activityMessages[0].id}`, {
