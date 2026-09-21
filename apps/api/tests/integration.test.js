@@ -123,6 +123,49 @@ test("foreign attachments cannot grant access through tasks, chat or approvals",
   assert.equal(download.body, "Internal report");
 });
 
+test("marking a conversation read clears every unread message in it", async () => {
+  const { admin, employee } = h.users;
+  const conversation = ok(
+    await h.call(employee, "POST", "/conversations", {
+      type: "DIRECT",
+      memberIds: [admin.user.id],
+    }),
+  );
+
+  ok(
+    await h.call(admin, "POST", `/conversations/${conversation.id}/messages`, {
+      content: "Unread one",
+    }),
+    201,
+  );
+  ok(
+    await h.call(admin, "POST", `/conversations/${conversation.id}/messages`, {
+      content: "Unread two",
+    }),
+    201,
+  );
+
+  const before = ok(await h.call(employee, "GET", "/conversations")).find(
+    (item) => item.id === conversation.id,
+  );
+  assert.equal(before.unreadCount, 2);
+
+  const result = ok(
+    await h.call(
+      employee,
+      "POST",
+      `/conversations/${conversation.id}/read`,
+      { all: true },
+    ),
+  );
+  assert.equal(result.count, 2);
+
+  const after = ok(await h.call(employee, "GET", "/conversations")).find(
+    (item) => item.id === conversation.id,
+  );
+  assert.equal(after.unreadCount, 0);
+});
+
 test("Drive spaces keep personal shares explicit and shared workspaces inherited", async () => {
   const { employee, manager, admin } = h.users;
 
