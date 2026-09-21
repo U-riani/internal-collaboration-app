@@ -32,108 +32,108 @@ export default async function fileRoutes(app) {
     "/",
     { config: { rateLimit: { max: 60, timeWindow: "1 minute" } } },
     async (request, reply) => {
-    if (
-      !["drive.use", "messages.send", "tasks.create", "approvals.submit"].some(
-        (permission) => hasPermission(request.authUser, permission),
+      if (
+        !["drive.use", "messages.send", "tasks.create", "approvals.submit"].some(
+          (permission) => hasPermission(request.authUser, permission),
+        )
       )
-    )
-      throw new HttpError(
-        403,
-        "UPLOAD_DENIED",
-        "Your role cannot upload files",
-      );
-    const part = await request.file();
-    if (!part) throw new HttpError(400, "FILE_REQUIRED", "Choose a file");
-    const originalName =
-      path
-        .basename(part.filename.replaceAll("\\", "/"))
-        .normalize("NFC")
-        .replace(/[\x00-\x1f\x7f]/g, "")
-        .slice(0, 200) || "file";
-    if (blockedExtensions.has(path.extname(originalName).toLowerCase()))
-      throw new HttpError(
-        400,
-        "FILE_TYPE_NOT_ALLOWED",
-        "Executable files are not allowed",
-      );
-    const folder = await mkdtemp(path.join(os.tmpdir(), "collab-upload-"));
-    const temp = path.join(folder, "upload");
-    const hash = crypto.createHash("sha256");
-    try {
-      await pipeline(
-        part.file,
-        new Transform({
-          transform(chunk, encoding, callback) {
-            hash.update(chunk);
-            callback(null, chunk);
-          },
-        }),
-        createWriteStream(temp),
-      );
-      if (part.file.truncated)
         throw new HttpError(
-          413,
-          "FILE_TOO_LARGE",
-          `Files must be smaller than ${env.MAX_UPLOAD_SIZE_MB} MB`,
+          403,
+          "UPLOAD_DENIED",
+          "Your role cannot upload files",
         );
-      const { size } = await stat(temp);
-      if (!size) throw new HttpError(400, "FILE_EMPTY", "The file is empty");
-      const objectKey = `${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}`;
-      await app.minio.fPutObject(
-        env.MINIO_BUCKET_ATTACHMENTS,
-        objectKey,
-        temp,
-        { "Content-Type": "application/octet-stream" },
-      );
-      let file;
+      const part = await request.file();
+      if (!part) throw new HttpError(400, "FILE_REQUIRED", "Choose a file");
+      const originalName =
+        path
+          .basename(part.filename.replaceAll("\\", "/"))
+          .normalize("NFC")
+          .replace(/[\x00-\x1f\x7f]/g, "")
+          .slice(0, 200) || "file";
+      if (blockedExtensions.has(path.extname(originalName).toLowerCase()))
+        throw new HttpError(
+          400,
+          "FILE_TYPE_NOT_ALLOWED",
+          "Executable files are not allowed",
+        );
+      const folder = await mkdtemp(path.join(os.tmpdir(), "collab-upload-"));
+      const temp = path.join(folder, "upload");
+      const hash = crypto.createHash("sha256");
       try {
-        file = await app.prisma.$transaction(async (tx) => {
-          await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${request.authUser.id}))`;
-          const usage = await tx.fileObject.aggregate({
-            where: { uploadedById: request.authUser.id },
-            _sum: { sizeBytes: true },
-          });
-          if (
-            (usage._sum.sizeBytes || 0) + size >
-            env.STORAGE_QUOTA_MB * 1024 * 1024
-          )
-            throw new HttpError(
-              413,
-              "STORAGE_QUOTA_EXCEEDED",
-              "Your storage quota has been reached",
-            );
-          return tx.fileObject.create({
-            data: {
-              originalName,
-              objectKey,
-              bucket: env.MINIO_BUCKET_ATTACHMENTS,
-              mimeType: part.mimetype || "application/octet-stream",
-              sizeBytes: size,
-              checksum: hash.digest("hex"),
-              uploadedById: request.authUser.id,
-              scanStatus: "PENDING",
+        await pipeline(
+          part.file,
+          new Transform({
+            transform(chunk, encoding, callback) {
+              hash.update(chunk);
+              callback(null, chunk);
             },
+          }),
+          createWriteStream(temp),
+        );
+        if (part.file.truncated)
+          throw new HttpError(
+            413,
+            "FILE_TOO_LARGE",
+            `Files must be smaller than ${env.MAX_UPLOAD_SIZE_MB} MB`,
+          );
+        const { size } = await stat(temp);
+        if (!size) throw new HttpError(400, "FILE_EMPTY", "The file is empty");
+        const objectKey = `${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}`;
+        await app.minio.fPutObject(
+          env.MINIO_BUCKET_ATTACHMENTS,
+          objectKey,
+          temp,
+          { "Content-Type": "application/octet-stream" },
+        );
+        let file;
+        try {
+          file = await app.prisma.$transaction(async (tx) => {
+            await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${request.authUser.id}))`;
+            const usage = await tx.fileObject.aggregate({
+              where: { uploadedById: request.authUser.id },
+              _sum: { sizeBytes: true },
+            });
+            if (
+              (usage._sum.sizeBytes || 0) + size >
+              env.STORAGE_QUOTA_MB * 1024 * 1024
+            )
+              throw new HttpError(
+                413,
+                "STORAGE_QUOTA_EXCEEDED",
+                "Your storage quota has been reached",
+              );
+            return tx.fileObject.create({
+              data: {
+                originalName,
+                objectKey,
+                bucket: env.MINIO_BUCKET_ATTACHMENTS,
+                mimeType: part.mimetype || "application/octet-stream",
+                sizeBytes: size,
+                checksum: hash.digest("hex"),
+                uploadedById: request.authUser.id,
+                scanStatus: "PENDING",
+              },
+            });
           });
-        });
-      } catch (error) {
-        await app.minio
-          .removeObject(env.MINIO_BUCKET_ATTACHMENTS, objectKey)
-          .catch(() => {});
-        throw error;
+        } catch (error) {
+          await app.minio
+            .removeObject(env.MINIO_BUCKET_ATTACHMENTS, objectKey)
+            .catch(() => {});
+          throw error;
+        }
+        reply.code(201);
+        return {
+          success: true,
+          data: {
+            id: file.id,
+            originalName,
+            sizeBytes: size,
+            mimeType: file.mimeType,
+          },
+        };
+      } finally {
+        await rm(folder, { recursive: true, force: true });
       }
-      reply.code(201);
-      return {
-        success: true,
-        data: {
-          id: file.id,
-          originalName,
-          sizeBytes: size,
-          mimeType: file.mimeType,
-        },
-      };
-    } finally {
-      await rm(folder, { recursive: true, force: true });
-    }
     },
   );
   async function getFile(request) {
