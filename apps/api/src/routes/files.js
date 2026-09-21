@@ -28,7 +28,10 @@ const blockedExtensions = new Set([
 ]);
 export default async function fileRoutes(app) {
   app.addHook("preHandler", app.authenticate);
-  app.post("/", async (request, reply) => {
+  app.post(
+    "/",
+    { config: { rateLimit: { max: 60, timeWindow: "1 minute" } } },
+    async (request, reply) => {
     if (
       !["drive.use", "messages.send", "tasks.create", "approvals.submit"].some(
         (permission) => hasPermission(request.authUser, permission),
@@ -131,7 +134,8 @@ export default async function fileRoutes(app) {
     } finally {
       await rm(folder, { recursive: true, force: true });
     }
-  });
+    },
+  );
   async function getFile(request) {
     const file = await app.prisma.fileObject.findUnique({
       where: { id: request.params.id },
