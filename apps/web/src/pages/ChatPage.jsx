@@ -23,6 +23,11 @@ import {
   ArrowRight,
   Smile,
   Pin,
+  Rocket,
+  CheckCircle2,
+  Lightbulb,
+  Sparkles,
+  Trophy,
 } from "lucide-react";
 import { api, uploadFile } from "../lib/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -51,7 +56,115 @@ const CHAT_SEARCH_TABS = [
   { id: "links", label: "Links", icon: Link2 },
 ];
 
-const MESSAGE_EMOJIS = ["👍", "❤️", "😂", "🎉", "👏", "🙏", "😮", "😢", "😀", "🔥"];
+const emojiList = (value) => value.trim().split(/\\s+/);
+
+const EMOJI_GROUPS = [
+  {
+    id: "faces",
+    label: "Faces & emotion",
+    icon: "😀",
+    emojis: emojiList(`
+😀 😃 😄 😁 😆 😅 😂 🤣 😊 😇 🙂 🙃 😉 😌 😍 🥰 😘 😗 😙 😚 😋 😛 😝 😜 🤪 🤨 🧐 🤓 😎 🥸 🤩 🥳 😏 😒 😞 😔 😟 😕 🙁 ☹️ 😣 😖 😫 😩 🥺 😢 😭 😤 😠 😡 🤬 🤯 😳 🥵 🥶 😱 😨 😰 😥 😓 🤗 🤔 🫣 🤭 🫢 🫡 🤫 🫠 🤥 😶 😶‍🌫️ 😐 😑 😬 🫨 🙄 😯 😦 😧 😮 😲 🥱 😴 🤤 😪 😵 😵‍💫 🤐 🥴 🤢 🤮 🤧 😷 🤒 🤕 🤑 🤠 😈 👿 👹 👺 🤡 💩 👻 💀 ☠️ 👽 👾 🤖 🎃 😺 😸 😹 😻 😼 😽 🙀 😿 😾
+`),
+  },
+  {
+    id: "hands",
+    label: "Hands & people",
+    icon: "👋",
+    emojis: emojiList(`
+👋 🤚 🖐️ ✋ 🖖 🫱 🫲 🫳 🫴 🫷 🫸 👌 🤌 🤏 ✌️ 🤞 🫰 🤟 🤘 🤙 👈 👉 👆 👇 ☝️ 🫵 👍 👎 ✊ 👊 🤛 🤜 👏 🙌 🫶 👐 🤲 🤝 🙏 ✍️ 💅 🤳 💪 🦾 🦿 🦵 🦶 👂 🦻 👃 🧠 🫀 🫁 🦷 🦴 👀 👁️ 👅 👄 🫦 💋 👶 🧒 👦 👧 🧑 👱 👨 🧔 👩 🧓 👴 👵 🙍 🙎 🙅 🙆 💁 🙋 🧏 🙇 🤦 🤷 👮 👷 💂 🕵️ 👩‍⚕️ 👨‍⚕️ 👩‍🌾 👨‍🌾 👩‍🍳 👨‍🍳 👩‍🎓 👨‍🎓 👩‍🎤 👨‍🎤 👩‍🏫 👨‍🏫 👩‍🏭 👨‍🏭 👩‍💻 👨‍💻 👩‍💼 👨‍💼 👩‍🔧 👨‍🔧 👩‍🔬 👨‍🔬 👩‍🎨 👨‍🎨 👩‍🚒 👨‍🚒 👩‍✈️ 👨‍✈️ 👩‍🚀 👨‍🚀 👩‍⚖️ 👨‍⚖️
+`),
+  },
+  {
+    id: "animals",
+    label: "Animals & nature",
+    icon: "🐻",
+    emojis: emojiList(`
+🐶 🐱 🐭 🐹 🐰 🦊 🐻 🐼 🐻‍❄️ 🐨 🐯 🦁 🐮 🐷 🐽 🐸 🐵 🙈 🙉 🙊 🐒 🐔 🐧 🐦 🐤 🐣 🐥 🦆 🦅 🦉 🦇 🐺 🐗 🐴 🦄 🐝 🪲 🐛 🦋 🐌 🐞 🐜 🪰 🪱 🦟 🦗 🕷️ 🕸️ 🦂 🐢 🐍 🦎 🐙 🦑 🦐 🦞 🦀 🐡 🐠 🐟 🐬 🐳 🐋 🦈 🦭 🐊 🐅 🐆 🦓 🦍 🦧 🐘 🦛 🦏 🐪 🐫 🦒 🦘 🦬 🐃 🐂 🐄 🐎 🐖 🐏 🐑 🦙 🐐 🦌 🐕 🐩 🦮 🐕‍🦺 🐈 🐈‍⬛ 🪶 🐓 🦃 🦤 🦚 🦜 🦢 🦩 🕊️ 🐇 🦝 🦨 🦡 🦫 🦦 🦥 🐁 🐀 🐿️ 🦔 🌵 🎄 🌲 🌳 🌴 🪹 🪺 🌱 🌿 ☘️ 🍀 🎍 🪴 🎋 🍃 🍂 🍁 🍄 🐚 🪸 💐 🌷 🌹 🥀 🪻 🌺 🌸 🌼 🌻 🌞 🌝 🌛 🌜 🌚 🌕 🌖 🌗 🌘 🌑 🌒 🌓 🌔 ⭐ 🌟 ✨ ⚡ ☄️ 💥 🔥 🌪️ 🌈 ☀️ 🌤️ ⛅ 🌥️ ☁️ 🌦️ 🌧️ ⛈️ 🌩️ 🌨️ ❄️ ☃️ ⛄ 💨 💧 💦 🫧 ☔
+`),
+  },
+  {
+    id: "food",
+    label: "Food & drink",
+    icon: "🍕",
+    emojis: emojiList(`
+🍏 🍎 🍐 🍊 🍋 🍋‍🟩 🍌 🍉 🍇 🍓 🫐 🍈 🍒 🍑 🥭 🍍 🥥 🥝 🍅 🍆 🥑 🫛 🥦 🥬 🥒 🌶️ 🫑 🌽 🥕 🫒 🧄 🧅 🥔 🍠 🫚 🥐 🥯 🍞 🥖 🥨 🧀 🥚 🍳 🧈 🥞 🧇 🥓 🥩 🍗 🍖 🦴 🌭 🍔 🍟 🍕 🫓 🥪 🥙 🧆 🌮 🌯 🫔 🥗 🥘 🫕 🥫 🍝 🍜 🍲 🍛 🍣 🍱 🥟 🦪 🍤 🍙 🍚 🍘 🍥 🥠 🥮 🍢 🍡 🍧 🍨 🍦 🥧 🧁 🍰 🎂 🍮 🍭 🍬 🍫 🍿 🍩 🍪 🌰 🥜 🫘 🍯 🥛 🍼 🫖 ☕ 🍵 🧃 🥤 🧋 🧉 🥂 🍷 🍸 🍹 🍺 🍻 🥃 🫗 🥄 🍴 🍽️ 🥣 🥡 🥢 🧂
+`),
+  },
+  {
+    id: "activities",
+    label: "Sports & activities",
+    icon: "⚽",
+    emojis: emojiList(`
+⚽ 🏀 🏈 ⚾ 🥎 🎾 🏐 🏉 🥏 🎱 🪀 🏓 🏸 🏒 🏑 🥍 🏏 🪃 🥅 ⛳ 🪁 🏹 🎣 🤿 🥊 🥋 🎽 🛹 🛼 🛷 ⛸️ 🥌 🎿 ⛷️ 🏂 🪂 🏋️ 🤼 🤸 ⛹️ 🤺 🤾 🏌️ 🏇 🧘 🏄 🏊 🤽 🚣 🧗 🚵 🚴 🏆 🥇 🥈 🥉 🏅 🎖️ 🏵️ 🎗️ 🎫 🎟️ 🎪 🤹 🎭 🩰 🎨 🎬 🎤 🎧 🎼 🎹 🥁 🪘 🎷 🎺 🪗 🎸 🪕 🎻 🎲 ♟️ 🎯 🎳 🎮 🎰 🧩
+`),
+  },
+  {
+    id: "travel",
+    label: "Travel & places",
+    icon: "🚗",
+    emojis: emojiList(`
+🚗 🚕 🚙 🚌 🚎 🏎️ 🚓 🚑 🚒 🚐 🛻 🚚 🚛 🚜 🏍️ 🛵 🚲 🛴 🛹 🛼 🚨 🚔 🚍 🚘 🚖 🚡 🚠 🚟 🚃 🚋 🚞 🚝 🚄 🚅 🚈 🚂 🚆 🚇 🚊 🚉 ✈️ 🛫 🛬 🛩️ 💺 🛰️ 🚀 🛸 🚁 🛶 ⛵ 🚤 🛥️ 🛳️ ⛴️ 🚢 ⚓ 🛟 ⛽ 🚧 🚦 🚥 🗺️ 🗿 🗽 🗼 🏰 🏯 🏟️ 🎡 🎢 🎠 ⛲ ⛱️ 🏖️ 🏝️ 🏜️ 🌋 ⛰️ 🏔️ 🗻 🏕️ ⛺ 🛖 🏠 🏡 🏘️ 🏚️ 🏗️ 🏭 🏢 🏬 🏣 🏤 🏥 🏦 🏨 🏪 🏫 🏩 💒 🏛️ ⛪ 🕌 🛕 🕍 ⛩️ 🕋 🌁 🌃 🏙️ 🌄 🌅 🌆 🌇 🌉 ♨️ 🎑
+`),
+  },
+  {
+    id: "objects",
+    label: "Objects",
+    icon: "💡",
+    emojis: emojiList(`
+⌚ 📱 📲 💻 ⌨️ 🖥️ 🖨️ 🖱️ 🖲️ 🕹️ 🗜️ 💽 💾 💿 📀 📼 📷 📸 📹 🎥 📽️ 🎞️ 📞 ☎️ 📟 📠 📺 📻 🎙️ 🎚️ 🎛️ 🧭 ⏱️ ⏲️ ⏰ 🕰️ ⌛ ⏳ 📡 🔋 🪫 🔌 💡 🔦 🕯️ 🪔 🧯 🛢️ 💸 💵 💴 💶 💷 🪙 💰 💳 💎 ⚖️ 🪜 🧰 🪛 🔧 🔨 ⚒️ 🛠️ ⛏️ 🪚 🔩 ⚙️ 🪤 🧱 ⛓️ ⛓️‍💥 🧲 🔫 💣 🧨 🪓 🔪 🗡️ ⚔️ 🛡️ 🚬 ⚰️ 🪦 ⚱️ 🏺 🔮 📿 🧿 🪬 💈 ⚗️ 🔭 🔬 🕳️ 🩹 🩺 🩻 🩼 💊 💉 🩸 🧬 🦠 🧫 🧪 🌡️ 🧹 🪠 🧺 🧻 🚽 🚿 🛁 🪥 🪒 🧴 🧷 🧹 🧽 🪣 🧼 🫧 🛎️ 🔑 🗝️ 🚪 🪑 🛋️ 🛏️ 🪞 🪟 🛍️ 🛒 🎁 🎈 🎏 🎀 🪄 🪅 🎊 🎉 🪩 🧧 ✉️ 📩 📨 📧 💌 📥 📤 📦 🏷️ 🪧 📪 📫 📬 📭 📮 📯 📜 📃 📄 📑 🧾 📊 📈 📉 🗒️ 🗓️ 📆 📅 🗑️ 📇 🗃️ 🗳️ 🗄️ 📋 📁 📂 🗂️ 🗞️ 📰 📓 📔 📒 📕 📗 📘 📙 📚 📖 🔖 🧷 🔗 📎 🖇️ 📐 📏 🧮 📌 📍 ✂️ 🖊️ 🖋️ ✒️ 🖌️ 🖍️ 📝 ✏️ 🔍 🔎 🔏 🔐 🔒 🔓
+`),
+  },
+  {
+    id: "symbols",
+    label: "Hearts & symbols",
+    icon: "❤️",
+    emojis: emojiList(`
+❤️ 🩷 🧡 💛 💚 💙 🩵 💜 🤎 🖤 🩶 🤍 💔 ❤️‍🔥 ❤️‍🩹 ❣️ 💕 💞 💓 💗 💖 💘 💝 💟 ☮️ ✝️ ☪️ 🕉️ ☸️ ✡️ 🔯 🕎 ☯️ ☦️ 🛐 ⛎ ♈ ♉ ♊ ♋ ♌ ♍ ♎ ♏ ♐ ♑ ♒ ♓ 🆔 ⚛️ 🉑 ☢️ ☣️ 📴 📳 🈶 🈚 🈸 🈺 🈷️ ✴️ 🆚 💮 🉐 ㊙️ ㊗️ 🈴 🈵 🈹 🈲 🅰️ 🅱️ 🆎 🆑 🅾️ 🆘 ❌ ⭕ 🛑 ⛔ 📛 🚫 💯 💢 ♨️ 🚷 🚯 🚳 🚱 🔞 📵 🚭 ❗ ❕ ❓ ❔ ‼️ ⁉️ 🔅 🔆 〽️ ⚠️ 🚸 🔱 ⚜️ 🔰 ♻️ ✅ 🈯 💹 ❇️ ✳️ ❎ 🌐 💠 Ⓜ️ 🌀 💤 🏧 🚾 ♿ 🅿️ 🛗 🈳 🈂️ 🛂 🛃 🛄 🛅 🚹 🚺 🚼 ⚧️ 🚻 🚮 🎦 📶 🈁 🔣 ℹ️ 🔤 🔡 🔠 🆖 🆗 🆙 🆒 🆕 🆓 0️⃣ 1️⃣ 2️⃣ 3️⃣ 4️⃣ 5️⃣ 6️⃣ 7️⃣ 8️⃣ 9️⃣ 🔟 🔢 #️⃣ *️⃣ ⏏️ ▶️ ⏸️ ⏯️ ⏹️ ⏺️ ⏭️ ⏮️ ⏩ ⏪ 🔀 🔁 🔂 ◀️ 🔼 🔽 ⏫ ⏬ ➡️ ⬅️ ⬆️ ⬇️ ↗️ ↘️ ↙️ ↖️ ↕️ ↔️ 🔄 ↪️ ↩️ ⤴️ ⤵️ #️⃣ *️⃣ ℹ️
+`),
+  },
+  {
+    id: "flags",
+    label: "Flags",
+    icon: "🏳️",
+    emojis: emojiList(`
+🏁 🚩 🎌 🏴 🏳️ 🏳️‍🌈 🏳️‍⚧️ 🏴‍☠️ 🇦🇫 🇦🇱 🇩🇿 🇦🇸 🇦🇩 🇦🇴 🇦🇮 🇦🇶 🇦🇬 🇦🇷 🇦🇲 🇦🇼 🇦🇺 🇦🇹 🇦🇿 🇧🇸 🇧🇭 🇧🇩 🇧🇧 🇧🇾 🇧🇪 🇧🇿 🇧🇯 🇧🇲 🇧🇹 🇧🇴 🇧🇦 🇧🇼 🇧🇷 🇧🇳 🇧🇬 🇧🇫 🇧🇮 🇰🇭 🇨🇲 🇨🇦 🇨🇻 🇨🇫 🇹🇩 🇨🇱 🇨🇳 🇨🇴 🇰🇲 🇨🇬 🇨🇩 🇨🇷 🇨🇮 🇭🇷 🇨🇺 🇨🇾 🇨🇿 🇩🇰 🇩🇯 🇩🇲 🇩🇴 🇪🇨 🇪🇬 🇸🇻 🇬🇶 🇪🇷 🇪🇪 🇸🇿 🇪🇹 🇫🇯 🇫🇮 🇫🇷 🇬🇦 🇬🇲 🇬🇪 🇩🇪 🇬🇭 🇬🇷 🇬🇩 🇬🇹 🇬🇳 🇬🇼 🇬🇾 🇭🇹 🇭🇳 🇭🇰 🇭🇺 🇮🇸 🇮🇳 🇮🇩 🇮🇷 🇮🇶 🇮🇪 🇮🇱 🇮🇹 🇯🇲 🇯🇵 🇯🇴 🇰🇿 🇰🇪 🇰🇮 🇽🇰 🇰🇼 🇰🇬 🇱🇦 🇱🇻 🇱🇧 🇱🇸 🇱🇷 🇱🇾 🇱🇮 🇱🇹 🇱🇺 🇲🇬 🇲🇼 🇲🇾 🇲🇻 🇲🇱 🇲🇹 🇲🇭 🇲🇷 🇲🇺 🇲🇽 🇫🇲 🇲🇩 🇲🇨 🇲🇳 🇲🇪 🇲🇦 🇲🇿 🇲🇲 🇳🇦 🇳🇷 🇳🇵 🇳🇱 🇳🇿 🇳🇮 🇳🇪 🇳🇬 🇰🇵 🇲🇰 🇳🇴 🇴🇲 🇵🇰 🇵🇼 🇵🇸 🇵🇦 🇵🇬 🇵🇾 🇵🇪 🇵🇭 🇵🇱 🇵🇹 🇶🇦 🇷🇴 🇷🇺 🇷🇼 🇼🇸 🇸🇲 🇸🇦 🇸🇳 🇷🇸 🇸🇨 🇸🇱 🇸🇬 🇸🇰 🇸🇮 🇸🇧 🇸🇴 🇿🇦 🇰🇷 🇸🇸 🇪🇸 🇱🇰 🇸🇩 🇸🇷 🇸🇪 🇨🇭 🇸🇾 🇹🇼 🇹🇯 🇹🇿 🇹🇭 🇹🇱 🇹🇬 🇹🇴 🇹🇹 🇹🇳 🇹🇷 🇹🇲 🇹🇻 🇺🇬 🇺🇦 🇦🇪 🇬🇧 🇺🇸 🇺🇾 🇺🇿 🇻🇺 🇻🇦 🇻🇪 🇻🇳 🇾🇪 🇿🇲 🇿🇼
+`),
+  },
+];
+
+const CUSTOM_REACTIONS = [
+  { value: ":ship-it:", label: "Ship it", Icon: Rocket },
+  { value: ":approved:", label: "Approved", Icon: CheckCircle2 },
+  { value: ":great-idea:", label: "Great idea", Icon: Lightbulb },
+  { value: ":excellent:", label: "Excellent", Icon: Trophy },
+  { value: ":magic:", label: "Magic", Icon: Sparkles },
+  { value: ":teamwork:", label: "Teamwork", Icon: Users },
+];
+
+const customReaction = (value) =>
+  CUSTOM_REACTIONS.find((item) => item.value === value);
+
+function ReactionGlyph({ value, size = 18 }) {
+  const custom = customReaction(value);
+  if (custom) {
+    const Icon = custom.Icon;
+    return (
+      <span
+        className="inline-flex items-center justify-center rounded-md bg-slate-900 text-white"
+        style={{ width: size + 6, height: size + 6 }}
+        title={custom.label}
+      >
+        <Icon size={size} strokeWidth={2.2} />
+      </span>
+    );
+  }
+  return <span className="leading-none">{value}</span>;
+}
+
+function reactionLabel(value) {
+  return customReaction(value)?.label || value;
+}
 
 function groupedReactions(reactions = [], userId) {
   const groups = new Map();
@@ -68,8 +181,28 @@ function groupedReactions(reactions = [], userId) {
   return [...groups.values()];
 }
 
-function EmojiMenu({ onSelect, onClose, align = "left" }) {
+function EmojiMenu({
+  onSelect,
+  onClose,
+  align = "left",
+  includeCustom = false,
+}) {
   const ref = useRef(null);
+  const scrollRef = useRef(null);
+  const sectionRefs = useRef(new Map());
+  const [activeCategory, setActiveCategory] = useState("faces");
+  const groups = includeCustom
+    ? [
+        {
+          id: "custom",
+          label: "Custom reactions",
+          icon: "✨",
+          emojis: CUSTOM_REACTIONS.map((item) => item.value),
+        },
+        ...EMOJI_GROUPS,
+      ]
+    : EMOJI_GROUPS;
+
   useEffect(() => {
     const onPointerDown = (event) => {
       if (ref.current && !ref.current.contains(event.target)) onClose();
@@ -85,24 +218,85 @@ function EmojiMenu({ onSelect, onClose, align = "left" }) {
     };
   }, [onClose]);
 
+  const goToCategory = (id) => {
+    setActiveCategory(id);
+    const section = sectionRefs.current.get(id);
+    const container = scrollRef.current;
+    if (!section || !container) return;
+    container.scrollTo({
+      top: Math.max(0, section.offsetTop - 2),
+      behavior: "smooth",
+    });
+  };
+
   return (
     <div
       ref={ref}
-      className={`absolute bottom-full z-50 mb-2 grid min-w-max grid-cols-5 gap-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-xl ${
+      className={`absolute bottom-full z-50 mb-2 w-[326px] overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-xl ${
         align === "right" ? "right-0" : "left-0"
       }`}
     >
-      {MESSAGE_EMOJIS.map((emoji) => (
-        <button
-          key={emoji}
-          type="button"
-          className="flex h-10 w-10 items-center justify-center rounded-xl border border-transparent text-xl leading-none transition hover:border-slate-200 hover:bg-slate-50 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
-          onClick={() => onSelect(emoji)}
-          aria-label={`Use ${emoji}`}
-        >
-          {emoji}
-        </button>
-      ))}
+      <div className="flex gap-1 overflow-x-auto border-b border-slate-100 pb-2">
+        {groups.map((group) => (
+          <button
+            key={group.id}
+            type="button"
+            title={group.label}
+            aria-label={group.label}
+            className={`flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-lg text-base transition ${
+              activeCategory === group.id
+                ? "bg-blue-50 text-blue-700 ring-1 ring-blue-200"
+                : "text-slate-500 hover:bg-slate-100"
+            }`}
+            onClick={() => goToCategory(group.id)}
+          >
+            {group.id === "custom" ? <Sparkles size={15} /> : group.icon}
+          </button>
+        ))}
+      </div>
+
+      <div
+        ref={scrollRef}
+        className="relative mt-2 h-[142px] overflow-y-auto overscroll-contain pr-1"
+        onScroll={(event) => {
+          const top = event.currentTarget.scrollTop + 12;
+          let current = groups[0]?.id;
+          for (const group of groups) {
+            const section = sectionRefs.current.get(group.id);
+            if (section && section.offsetTop <= top) current = group.id;
+          }
+          if (current) setActiveCategory(current);
+        }}
+      >
+        {groups.map((group) => (
+          <section
+            key={group.id}
+            ref={(node) => {
+              if (node) sectionRefs.current.set(group.id, node);
+              else sectionRefs.current.delete(group.id);
+            }}
+            className="mb-2 last:mb-0"
+          >
+            <div className="sticky top-0 z-10 h-[18px] bg-white text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+              {group.label}
+            </div>
+            <div className="grid grid-cols-10 gap-px">
+              {group.emojis.map((emoji) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  className="flex h-[30px] w-[30px] items-center justify-center rounded-md border border-transparent text-[20px] leading-none transition hover:border-slate-200 hover:bg-slate-50 focus:outline-none focus:ring-1 focus:ring-blue-300"
+                  onClick={() => onSelect(emoji)}
+                  aria-label={`Use ${reactionLabel(emoji)}`}
+                  title={reactionLabel(emoji)}
+                >
+                  <ReactionGlyph value={emoji} size={15} />
+                </button>
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
     </div>
   );
 }
@@ -1316,9 +1510,9 @@ export default function ChatPage() {
                                             ? "border-blue-300 bg-blue-50 text-blue-700"
                                             : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
                                         }`}
-                                        title={group.users
+                                        title={`${reactionLabel(group.emoji)} · ${group.users
                                           .map((item) => item.displayName)
-                                          .join(", ")}
+                                          .join(", ")}`}
                                         onClick={() =>
                                           react.mutate({
                                             messageId: m.id,
@@ -1326,7 +1520,13 @@ export default function ChatPage() {
                                           })
                                         }
                                       >
-                                        {group.emoji} {group.users.length}
+                                        <span className="flex items-center gap-1">
+                                          <ReactionGlyph
+                                            value={group.emoji}
+                                            size={12}
+                                          />
+                                          <span>{group.users.length}</span>
+                                        </span>
                                       </button>
                                     ),
                                   )}
@@ -1362,6 +1562,7 @@ export default function ChatPage() {
                                     {reactionFor === m.id && (
                                       <EmojiMenu
                                         align={own ? "right" : "left"}
+                                        includeCustom
                                         onClose={() => setReactionFor(null)}
                                         onSelect={(emoji) =>
                                           react.mutate({

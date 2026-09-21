@@ -29,6 +29,16 @@ const reactionSchema = z.object({
   emoji: z.string().trim().min(1).max(32),
 });
 
+const reactionNotificationLabel = (value) =>
+  ({
+    ":ship-it:": "Ship it",
+    ":approved:": "Approved",
+    ":great-idea:": "Great idea",
+    ":excellent:": "Excellent",
+    ":magic:": "Magic",
+    ":teamwork:": "Teamwork",
+  })[value] || value;
+
 const conversationInclude = {
   members: {
     where: { leftAt: null },
@@ -442,7 +452,14 @@ export default async function conversationRoutes(app) {
     const input = parse(reactionSchema, request.body);
     const message = await app.prisma.message.findUnique({
       where: { id: request.params.id },
-      select: { id: true, conversationId: true, deletedAt: true },
+      select: {
+        id: true,
+        conversationId: true,
+        senderId: true,
+        content: true,
+        deletedAt: true,
+        attachments: { select: { fileId: true }, take: 1 },
+      },
     });
     if (!message || message.deletedAt)
       throw new HttpError(404, "MESSAGE_NOT_FOUND", "Message was not found");
@@ -462,6 +479,19 @@ export default async function conversationRoutes(app) {
       });
     } else {
       await app.prisma.messageReaction.create({ data: key });
+      if (message.senderId !== request.authUser.id) {
+        await createNotification(app, {
+          userId: message.senderId,
+          type: "MESSAGE_REACTION",
+          title: `${request.authUser.displayName} reacted ${reactionNotificationLabel(
+            input.emoji,
+          )} to your message`,
+          body: message.content.slice(0, 180) || "Attachment",
+          relatedEntityType: "MESSAGE",
+          relatedEntityId: message.id,
+          deduplicationKey: `message-reaction:${message.id}:${request.authUser.id}:${input.emoji}`,
+        });
+      }
     }
 
     app.io

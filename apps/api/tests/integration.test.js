@@ -189,6 +189,17 @@ test("message reactions and pins persist and require conversation membership", a
   );
   assert.equal(added.added, true);
 
+  const reactionNotification = await h.prisma.notification.findFirst({
+    where: {
+      userId: employee.user.id,
+      type: "MESSAGE_REACTION",
+      relatedEntityType: "MESSAGE",
+      relatedEntityId: message.id,
+    },
+  });
+  assert.ok(reactionNotification);
+  assert.match(reactionNotification.title, /reacted/);
+
   let messages = ok(
     await h.call(admin, "GET", `/conversations/${conversation.id}/messages`),
   );
@@ -203,6 +214,37 @@ test("message reactions and pins persist and require conversation membership", a
     }),
   );
   assert.equal(removed.added, false);
+
+  const reactionNotificationCount = await h.prisma.notification.count({
+    where: {
+      userId: employee.user.id,
+      type: "MESSAGE_REACTION",
+      relatedEntityId: message.id,
+    },
+  });
+  assert.equal(reactionNotificationCount, 1);
+
+  const selfReactionMessage = ok(
+    await h.call(employee, "POST", `/conversations/${conversation.id}/messages`, {
+      content: "Self reaction notification check",
+    }),
+    201,
+  );
+  ok(
+    await h.call(employee, "POST", `/messages/${selfReactionMessage.id}/reactions`, {
+      emoji: "🎉",
+    }),
+  );
+  assert.equal(
+    await h.prisma.notification.count({
+      where: {
+        userId: employee.user.id,
+        type: "MESSAGE_REACTION",
+        relatedEntityId: selfReactionMessage.id,
+      },
+    }),
+    0,
+  );
 
   const pin = ok(
     await h.call(admin, "POST", `/messages/${message.id}/pin`),
