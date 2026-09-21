@@ -654,6 +654,9 @@ export default function ChatPage() {
   const [composerEmojiOpen, setComposerEmojiOpen] = useState(false);
   const [reactionFor, setReactionFor] = useState(null);
   const [pinsOpen, setPinsOpen] = useState(false);
+  const [hasWindowAttention, setHasWindowAttention] = useState(
+    () => document.visibilityState === "visible" && document.hasFocus(),
+  );
   const bottom = useRef(null);
   const composer = useRef(null);
   const scrollArea = useRef(null);
@@ -664,6 +667,23 @@ export default function ChatPage() {
   const readFlushTimer = useRef(null);
   const atBottom = useRef(true);
   const conversationReadTarget = useRef(null);
+
+  useEffect(() => {
+    const syncWindowAttention = () =>
+      setHasWindowAttention(
+        document.visibilityState === "visible" && document.hasFocus(),
+      );
+    syncWindowAttention();
+    window.addEventListener("focus", syncWindowAttention);
+    window.addEventListener("blur", syncWindowAttention);
+    document.addEventListener("visibilitychange", syncWindowAttention);
+    return () => {
+      window.removeEventListener("focus", syncWindowAttention);
+      window.removeEventListener("blur", syncWindowAttention);
+      document.removeEventListener("visibilitychange", syncWindowAttention);
+    };
+  }, []);
+
   const conversations = useQuery({
     queryKey: ["conversations"],
     queryFn: () => api("/conversations").then((r) => r.data),
@@ -734,6 +754,7 @@ export default function ChatPage() {
   const markConversationRead = useCallback(async () => {
     if (
       !selectedId ||
+      !hasWindowAttention ||
       !(selected?.unreadCount > 0 || unreadMessageIds.size > 0)
     )
       return;
@@ -775,6 +796,7 @@ export default function ChatPage() {
     tail,
     selected?.unreadCount,
     unreadMessageIds.size,
+    hasWindowAttention,
     qc,
   ]);
 
@@ -854,7 +876,12 @@ export default function ChatPage() {
   );
 
   useEffect(() => {
-    if (!selectedId || !selected?.unreadReactionCount) return;
+    if (
+      !selectedId ||
+      !selected?.unreadReactionCount ||
+      !hasWindowAttention
+    )
+      return;
     let cancelled = false;
     api(`/conversations/${selectedId}/reactions/read`, {
       method: "POST",
@@ -882,7 +909,12 @@ export default function ChatPage() {
     return () => {
       cancelled = true;
     };
-  }, [selectedId, selected?.unreadReactionCount, qc]);
+  }, [
+    selectedId,
+    selected?.unreadReactionCount,
+    hasWindowAttention,
+    qc,
+  ]);
 
   useEffect(() => {
     if (!conversations.data) return;
