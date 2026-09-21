@@ -406,6 +406,8 @@ export default function ChatPage() {
   const submittedReads = useRef(new Set());
   const pendingReads = useRef(new Set());
   const readFlushTimer = useRef(null);
+  const atBottom = useRef(true);
+  const conversationReadTarget = useRef(null);
   const conversations = useQuery({
     queryKey: ["conversations"],
     queryFn: () => api("/conversations").then((r) => r.data),
@@ -466,6 +468,38 @@ export default function ChatPage() {
   const firstUnreadId = allMessages.find((message) =>
     unreadMessageIds.has(message.id),
   )?.id;
+
+  const markConversationRead = useCallback(async () => {
+    if (
+      !selectedId ||
+      !tail ||
+      !(selected?.unreadCount > 0 || unreadMessageIds.size > 0)
+    )
+      return;
+
+    const targetKey = `${selectedId}:${tail}`;
+    if (conversationReadTarget.current === targetKey) return;
+    conversationReadTarget.current = targetKey;
+
+    try {
+      await api(`/conversations/${selectedId}/read`, {
+        method: "POST",
+        body: JSON.stringify({ messageId: tail }),
+      });
+      qc.invalidateQueries({ queryKey: ["messages", selectedId] });
+      qc.invalidateQueries({ queryKey: ["conversations"] });
+      qc.invalidateQueries({ queryKey: ["notifications"] });
+    } catch {
+      if (conversationReadTarget.current === targetKey)
+        conversationReadTarget.current = null;
+    }
+  }, [
+    selectedId,
+    tail,
+    selected?.unreadCount,
+    unreadMessageIds.size,
+    qc,
+  ]);
 
   useEffect(() => {
     if (!selectedId) {
@@ -570,6 +604,8 @@ export default function ChatPage() {
     setSearchType("messages");
     setSearchOpen(false);
     setNearBottom(true);
+    atBottom.current = true;
+    conversationReadTarget.current = null;
     positionedConversation.current = null;
   }, [selectedId]);
 
@@ -600,10 +636,34 @@ export default function ChatPage() {
       previous.conversationId === selectedId &&
       previous.messageId &&
       previous.messageId !== tail;
-    if (changed && nearBottom)
+    if (changed && nearBottom) {
       bottom.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      if (atBottom.current) markConversationRead();
+    }
     previousTail.current = { conversationId: selectedId, messageId: tail };
-  }, [tail, selectedId, nearBottom]);
+  }, [tail, selectedId, nearBottom, markConversationRead]);
+
+  useEffect(() => {
+    if (!selectedId || !tail || messages.isLoading) return;
+    const frame = window.requestAnimationFrame(() => {
+      const element = scrollArea.current;
+      if (!element) return;
+      const distanceFromBottom = Math.max(
+        0,
+        element.scrollHeight - element.scrollTop - element.clientHeight,
+      );
+      const fullyAtBottom = distanceFromBottom <= 8;
+      atBottom.current = fullyAtBottom;
+      if (fullyAtBottom) markConversationRead();
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [
+    selectedId,
+    tail,
+    allMessages.length,
+    messages.isLoading,
+    markConversationRead,
+  ]);
 
   useEffect(() => {
     if (!focusMessageId || messages.isLoading || !selectedId) return;
@@ -955,10 +1015,16 @@ export default function ChatPage() {
                 className="flex-1 overflow-y-auto p-5 space-y-5 bg-slate-50/50"
                 onScroll={(event) => {
                   const element = event.currentTarget;
-                  setNearBottom(
-                    element.scrollHeight - element.scrollTop - element.clientHeight <
-                      96,
+                  const distanceFromBottom = Math.max(
+                    0,
+                    element.scrollHeight -
+                      element.scrollTop -
+                      element.clientHeight,
                   );
+                  const fullyAtBottom = distanceFromBottom <= 8;
+                  atBottom.current = fullyAtBottom;
+                  setNearBottom(distanceFromBottom < 96);
+                  if (fullyAtBottom) markConversationRead();
                 }}
               >
                 {messages.isLoading ? (
@@ -1102,12 +1168,13 @@ export default function ChatPage() {
                       <button
                         type="button"
                         className="sticky bottom-2 z-10 mx-auto block rounded-full border border-blue-200 bg-white px-3 py-1.5 text-xs font-semibold text-blue-600 shadow-sm"
-                        onClick={() =>
+                        onClick={() => {
                           bottom.current?.scrollIntoView({
                             behavior: "smooth",
                             block: "end",
-                          })
-                        }
+                          });
+                          markConversationRead();
+                        }}
                       >
                         ↓ {chatBadgeLabel(selected.unreadCount)} new messages
                       </button>
