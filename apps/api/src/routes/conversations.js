@@ -456,6 +456,8 @@ export default async function conversationRoutes(app) {
         id: true,
         conversationId: true,
         senderId: true,
+        sender: { select: { displayName: true } },
+        type: true,
         content: true,
         deletedAt: true,
         attachments: { select: { fileId: true }, take: 1 },
@@ -463,6 +465,12 @@ export default async function conversationRoutes(app) {
     });
     if (!message || message.deletedAt)
       throw new HttpError(404, "MESSAGE_NOT_FOUND", "Message was not found");
+    if (message.type === "SYSTEM")
+      throw new HttpError(
+        400,
+        "SYSTEM_MESSAGE_REACTION_DENIED",
+        "System activity messages cannot be reacted to",
+      );
     await requireMembership(app, message.conversationId, request.authUser.id);
 
     const key = {
@@ -480,6 +488,12 @@ export default async function conversationRoutes(app) {
     } else {
       await app.prisma.messageReaction.create({ data: key });
       if (message.senderId !== request.authUser.id) {
+        const deduplicationKey = `message-reaction:${message.id}:${request.authUser.id}:${input.emoji}`;
+        const previousNotification = await app.prisma.notification.findUnique({
+          where: { deduplicationKey },
+          select: { id: true },
+        });
+
         await createNotification(app, {
           userId: message.senderId,
           type: "MESSAGE_REACTION",
@@ -489,8 +503,37 @@ export default async function conversationRoutes(app) {
           body: message.content.slice(0, 180) || "Attachment",
           relatedEntityType: "MESSAGE",
           relatedEntityId: message.id,
-          deduplicationKey: `message-reaction:${message.id}:${request.authUser.id}:${input.emoji}`,
+          deduplicationKey,
         });
+
+        if (!previousNotification) {
+          const activityMessage = await app.prisma.message.create({
+            data: {
+              conversationId: message.conversationId,
+              senderId: request.authUser.id,
+              type: "SYSTEM",
+              content: `${request.authUser.displayName} reacted ${reactionNotificationLabel(
+                input.emoji,
+              )} to ${message.sender.displayName}'s message`,
+              replyToMessageId: message.id,
+            },
+            include: messageInclude,
+          });
+
+          await app.prisma.messageReceipt.create({
+            data: {
+              messageId: activityMessage.id,
+              userId: message.senderId,
+            },
+          });
+          await app.prisma.conversation.update({
+            where: { id: message.conversationId },
+            data: { updatedAt: new Date() },
+          });
+          app.io
+            ?.to(`conversation:${message.conversationId}`)
+            .emit("message:created", activityMessage);
+        }
       }
     }
 
@@ -643,6 +686,12 @@ export default async function conversationRoutes(app) {
     });
     if (!message || message.deletedAt)
       throw new HttpError(404, "MESSAGE_NOT_FOUND", "Message was not found");
+    if (message.type === "SYSTEM")
+      throw new HttpError(
+        403,
+        "SYSTEM_MESSAGE_IMMUTABLE",
+        "System activity messages cannot be edited",
+      );
     await requireMembership(app, message.conversationId, request.authUser.id);
     if (message.senderId !== request.authUser.id) {
       throw new HttpError(
@@ -675,6 +724,12 @@ export default async function conversationRoutes(app) {
     });
     if (!message || message.deletedAt)
       throw new HttpError(404, "MESSAGE_NOT_FOUND", "Message was not found");
+    if (message.type === "SYSTEM")
+      throw new HttpError(
+        403,
+        "SYSTEM_MESSAGE_IMMUTABLE",
+        "System activity messages cannot be deleted",
+      );
     await requireMembership(app, message.conversationId, request.authUser.id);
     if (message.senderId !== request.authUser.id) {
       throw new HttpError(

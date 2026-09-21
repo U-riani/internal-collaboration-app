@@ -200,6 +200,16 @@ test("message reactions and pins persist and require conversation membership", a
   assert.ok(reactionNotification);
   assert.match(reactionNotification.title, /reacted/);
 
+  let activityMessages = await h.prisma.message.findMany({
+    where: {
+      conversationId: conversation.id,
+      type: "SYSTEM",
+      replyToMessageId: message.id,
+    },
+  });
+  assert.equal(activityMessages.length, 1);
+  assert.match(activityMessages[0].content, /reacted/);
+
   let messages = ok(
     await h.call(admin, "GET", `/conversations/${conversation.id}/messages`),
   );
@@ -223,6 +233,38 @@ test("message reactions and pins persist and require conversation membership", a
     },
   });
   assert.equal(reactionNotificationCount, 1);
+
+  ok(
+    await h.call(admin, "POST", `/messages/${message.id}/reactions`, {
+      emoji: "👍",
+    }),
+  );
+  activityMessages = await h.prisma.message.findMany({
+    where: {
+      conversationId: conversation.id,
+      type: "SYSTEM",
+      replyToMessageId: message.id,
+    },
+  });
+  assert.equal(
+    activityMessages.length,
+    1,
+    "re-adding the same reaction should not create duplicate activity messages",
+  );
+  assert.equal(
+    (
+      await h.call(admin, "PATCH", `/messages/${activityMessages[0].id}`, {
+        content: "Changed",
+      })
+    ).statusCode,
+    403,
+  );
+  assert.equal(
+    (
+      await h.call(admin, "DELETE", `/messages/${activityMessages[0].id}`)
+    ).statusCode,
+    403,
+  );
 
   const selfReactionMessage = ok(
     await h.call(employee, "POST", `/conversations/${conversation.id}/messages`, {
