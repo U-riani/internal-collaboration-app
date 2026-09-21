@@ -16,6 +16,11 @@ import {
   Pencil,
   Trash2,
   X,
+  MessageSquare,
+  FileText,
+  Link2,
+  ExternalLink,
+  ArrowRight,
 } from "lucide-react";
 import { api, uploadFile } from "../lib/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -37,6 +42,12 @@ const displayName = (c, me) =>
     : c?.name;
 
 const LAST_CHAT_KEY = "collab:last-selected-chat";
+
+const CHAT_SEARCH_TABS = [
+  { id: "messages", label: "Messages", icon: MessageSquare },
+  { id: "files", label: "Files", icon: FileText },
+  { id: "links", label: "Links", icon: Link2 },
+];
 
 function chatBadgeLabel(count) {
   if (!count) return null;
@@ -380,6 +391,8 @@ export default function ChatPage() {
   const [members, setMembers] = useState(false);
   const [search, setSearch] = useState("");
   const [messageSearch, setMessageSearch] = useState("");
+  const [searchType, setSearchType] = useState("messages");
+  const [searchOpen, setSearchOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [editText, setEditText] = useState("");
   const [deleting, setDeleting] = useState(null);
@@ -398,6 +411,7 @@ export default function ChatPage() {
     queryFn: () => api("/conversations").then((r) => r.data),
   });
   const selected = conversations.data?.find((c) => c.id === selectedId);
+  const normalizedMessageSearch = messageSearch.trim();
   const messages = useInfiniteQuery({
     queryKey: ["messages", selectedId],
     enabled: Boolean(selectedId),
@@ -409,11 +423,24 @@ export default function ChatPage() {
     getNextPageParam: (page) => page.meta.nextCursor || undefined,
   });
   const results = useQuery({
-    queryKey: ["message-search", selectedId, messageSearch],
-    enabled: Boolean(selectedId && messageSearch.length >= 2),
+    queryKey: [
+      "message-search",
+      selectedId,
+      searchType,
+      normalizedMessageSearch,
+    ],
+    enabled: Boolean(
+      selectedId &&
+        searchOpen &&
+        (searchType !== "messages" || normalizedMessageSearch.length >= 2),
+    ),
     queryFn: () =>
       api(
-        `/messages/search?${new URLSearchParams({ q: messageSearch, conversationId: selectedId })}`,
+        `/messages/search?${new URLSearchParams({
+          q: normalizedMessageSearch,
+          conversationId: selectedId,
+          type: searchType,
+        })}`,
       ).then((r) => r.data),
   });
   const allMessages = useMemo(
@@ -439,8 +466,6 @@ export default function ChatPage() {
   const firstUnreadId = allMessages.find((message) =>
     unreadMessageIds.has(message.id),
   )?.id;
-  const displayedMessages =
-    messageSearch.length >= 2 ? results.data?.toReversed() || [] : allMessages;
 
   useEffect(() => {
     if (!selectedId) {
@@ -542,6 +567,8 @@ export default function ChatPage() {
     setFile(null);
     setReply(null);
     setMessageSearch("");
+    setSearchType("messages");
+    setSearchOpen(false);
     setNearBottom(true);
     positionedConversation.current = null;
   }, [selectedId]);
@@ -660,6 +687,12 @@ export default function ChatPage() {
         replyId: reply?.id || null,
       });
   };
+  const jumpToMessage = (messageId) => {
+    if (!messageId) return;
+    setSearchOpen(false);
+    positionedConversation.current = null;
+    setFocusMessageId(messageId);
+  };
   return (
     <>
       <PageHeader
@@ -731,13 +764,184 @@ export default function ChatPage() {
                     {selected.members.length} members
                   </p>
                 </div>
-                <input
-                  className="input max-w-44 hidden md:block"
-                  placeholder="Search messages"
-                  aria-label="Search messages"
-                  value={messageSearch}
-                  onChange={(e) => setMessageSearch(e.target.value)}
-                />
+                <div className="relative hidden w-64 sm:block lg:w-80">
+                  <div className="relative">
+                    <Search
+                      size={16}
+                      className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
+                    <input
+                      className="input pl-9 pr-9"
+                      placeholder={
+                        searchType === "files"
+                          ? "Search files"
+                          : searchType === "links"
+                            ? "Search links"
+                            : "Search messages"
+                      }
+                      aria-label="Search conversation"
+                      value={messageSearch}
+                      onFocus={() => setSearchOpen(true)}
+                      onChange={(e) => {
+                        setMessageSearch(e.target.value);
+                        setSearchOpen(true);
+                      }}
+                    />
+                    {searchOpen && (
+                      <button
+                        type="button"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                        aria-label="Close search"
+                        onClick={() => setSearchOpen(false)}
+                      >
+                        <X size={15} />
+                      </button>
+                    )}
+                  </div>
+                  {searchOpen && (
+                    <div className="absolute right-0 top-[calc(100%+0.5rem)] z-40 w-[420px] max-w-[80vw] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
+                      <div className="flex border-b border-slate-100 p-1.5">
+                        {CHAT_SEARCH_TABS.map(
+                          ({ id, label, icon: SearchTypeIcon }) => (
+                            <button
+                              key={id}
+                              type="button"
+                              className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs font-semibold transition ${
+                                searchType === id
+                                  ? "bg-blue-50 text-blue-700"
+                                  : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+                              }`}
+                              onClick={() => setSearchType(id)}
+                            >
+                              <SearchTypeIcon size={14} />
+                              {label}
+                            </button>
+                          ),
+                        )}
+                      </div>
+                      <div className="max-h-96 overflow-y-auto p-2">
+                        {searchType === "messages" &&
+                        normalizedMessageSearch.length < 2 ? (
+                          <p className="px-3 py-8 text-center text-xs text-slate-400">
+                            Type at least 2 characters to search messages.
+                          </p>
+                        ) : results.isLoading ? (
+                          <div className="py-6">
+                            <Loading />
+                          </div>
+                        ) : results.error ? (
+                          <ErrorBox error={results.error} />
+                        ) : !results.data?.length ? (
+                          <p className="px-3 py-8 text-center text-xs text-slate-400">
+                            No {searchType} found in this conversation.
+                          </p>
+                        ) : searchType === "messages" ? (
+                          <div className="space-y-1">
+                            {results.data.map((result) => (
+                              <button
+                                key={result.id}
+                                type="button"
+                                className="w-full rounded-lg p-3 text-left hover:bg-slate-50"
+                                onClick={() => jumpToMessage(result.id)}
+                              >
+                                <div className="flex items-center gap-2 text-[11px] text-slate-400">
+                                  <span className="font-semibold text-slate-600">
+                                    {result.sender.displayName}
+                                  </span>
+                                  <span>·</span>
+                                  <span>
+                                    {new Date(result.createdAt).toLocaleString()}
+                                  </span>
+                                  <ArrowRight
+                                    size={13}
+                                    className="ml-auto shrink-0"
+                                  />
+                                </div>
+                                <p className="mt-1 truncate text-sm text-slate-700">
+                                  {result.content || "Message"}
+                                </p>
+                              </button>
+                            ))}
+                          </div>
+                        ) : searchType === "files" ? (
+                          <div className="space-y-2">
+                            {results.data.map((result) => (
+                              <div
+                                key={result.id}
+                                className="rounded-lg border border-slate-100 p-3"
+                              >
+                                <div className="mb-2 flex items-center gap-2 text-[11px] text-slate-400">
+                                  <span className="font-semibold text-slate-600">
+                                    {result.sender.displayName}
+                                  </span>
+                                  <span>·</span>
+                                  <span>
+                                    {new Date(result.createdAt).toLocaleString()}
+                                  </span>
+                                </div>
+                                <Attachments items={[{ file: result.file }]} />
+                                <button
+                                  type="button"
+                                  className="mt-2 flex items-center gap-1 text-xs font-semibold text-blue-600 hover:underline"
+                                  onClick={() =>
+                                    jumpToMessage(result.messageId)
+                                  }
+                                >
+                                  Go to message
+                                  <ArrowRight size={12} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            {results.data.map((result) => (
+                              <div
+                                key={result.id}
+                                className="rounded-lg border border-slate-100 p-3"
+                              >
+                                <div className="flex items-center gap-2 text-[11px] text-slate-400">
+                                  <span className="font-semibold text-slate-600">
+                                    {result.sender.displayName}
+                                  </span>
+                                  <span>·</span>
+                                  <span>
+                                    {new Date(result.createdAt).toLocaleString()}
+                                  </span>
+                                </div>
+                                <a
+                                  className="mt-2 flex items-center gap-2 text-sm font-medium text-blue-600 hover:underline"
+                                  href={result.url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                >
+                                  <Link2 size={14} className="shrink-0" />
+                                  <span className="min-w-0 flex-1 truncate">
+                                    {result.url}
+                                  </span>
+                                  <ExternalLink size={13} className="shrink-0" />
+                                </a>
+                                <p className="mt-1 truncate text-xs text-slate-500">
+                                  {result.messagePreview}
+                                </p>
+                                <button
+                                  type="button"
+                                  className="mt-2 flex items-center gap-1 text-xs font-semibold text-blue-600 hover:underline"
+                                  onClick={() =>
+                                    jumpToMessage(result.messageId)
+                                  }
+                                >
+                                  Go to message
+                                  <ArrowRight size={12} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
                 <button
                   className="icon-btn"
                   aria-label="Conversation members"
@@ -761,7 +965,7 @@ export default function ChatPage() {
                   <Loading />
                 ) : (
                   <>
-                    {messages.hasNextPage && messageSearch.length < 2 && (
+                    {messages.hasNextPage && (
                       <button
                         className="btn-secondary mx-auto block text-xs"
                         onClick={() => messages.fetchNextPage()}
@@ -770,7 +974,7 @@ export default function ChatPage() {
                         Load earlier messages
                       </button>
                     )}
-                    {displayedMessages.map((m) => {
+                    {allMessages.map((m) => {
                       const own = m.senderId === user.id;
                       const unread =
                         !own &&
@@ -779,7 +983,6 @@ export default function ChatPage() {
                             receipt.userId === user.id && !receipt.readAt,
                         );
                       const showUnreadDivider =
-                        messageSearch.length < 2 &&
                         unreadMarker?.conversationId === selectedId &&
                         unreadMarker.messageId === m.id;
                       return (
@@ -895,9 +1098,7 @@ export default function ChatPage() {
                       />
                     )}
                     <div ref={bottom} />
-                    {selected.unreadCount > 0 &&
-                      !nearBottom &&
-                      messageSearch.length < 2 && (
+                    {selected.unreadCount > 0 && !nearBottom && (
                         <button
                           type="button"
                           className="sticky bottom-2 z-10 mx-auto block rounded-full border border-blue-200 bg-white px-3 py-1.5 text-xs font-semibold text-blue-600 shadow-sm"
@@ -918,7 +1119,7 @@ export default function ChatPage() {
                       )}
                   </>
                 )}
-                <ErrorBox error={messages.error || results.error} />
+                <ErrorBox error={messages.error} />
               </div>
               <div className="border-t border-slate-100 p-4">
                 {reply && (
