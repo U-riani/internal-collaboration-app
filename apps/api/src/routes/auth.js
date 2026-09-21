@@ -149,56 +149,56 @@ export default async function authRoutes(app) {
     "/refresh",
     { config: { rateLimit: { max: 60, timeWindow: "1 minute" } } },
     async (request, reply) => {
-    const token = request.cookies[refreshCookie];
-    if (!token)
-      throw new HttpError(
-        401,
-        "AUTH_REFRESH_REQUIRED",
-        "Refresh session is missing",
-      );
-    const session = await app.prisma.session.findUnique({
-      where: { refreshTokenHash: hashToken(token) },
-      include: { user: { include: userWithAccess } },
-    });
-    if (
-      !session ||
-      session.revokedAt ||
-      session.expiresAt <= new Date() ||
-      session.user.status !== "ACTIVE"
-    ) {
-      reply.clearCookie(refreshCookie, cookieOptions());
-      throw new HttpError(
-        401,
-        "AUTH_REFRESH_INVALID",
-        "Refresh session is invalid or expired",
-      );
-    }
-    const nextToken = createRefreshToken();
-    const consumed = await app.prisma.session.updateMany({
-      where: {
-        id: session.id,
-        refreshTokenHash: hashToken(token),
-        revokedAt: null,
-      },
-      data: {
-        refreshTokenHash: hashToken(nextToken),
-        expiresAt: new Date(Date.now() + env.REFRESH_TOKEN_TTL_DAYS * 86400000),
-      },
-    });
-    if (consumed.count !== 1)
-      throw new HttpError(
-        401,
-        "AUTH_REFRESH_USED",
-        "Refresh token has already been used",
-      );
-    reply.setCookie(refreshCookie, nextToken, cookieOptions());
-    return {
-      success: true,
-      data: {
-        accessToken: accessToken(app, session.user, session.id),
-        user: publicUser(session.user),
-      },
-    };
+      const token = request.cookies[refreshCookie];
+      if (!token)
+        throw new HttpError(
+          401,
+          "AUTH_REFRESH_REQUIRED",
+          "Refresh session is missing",
+        );
+      const session = await app.prisma.session.findUnique({
+        where: { refreshTokenHash: hashToken(token) },
+        include: { user: { include: userWithAccess } },
+      });
+      if (
+        !session ||
+        session.revokedAt ||
+        session.expiresAt <= new Date() ||
+        session.user.status !== "ACTIVE"
+      ) {
+        reply.clearCookie(refreshCookie, cookieOptions());
+        throw new HttpError(
+          401,
+          "AUTH_REFRESH_INVALID",
+          "Refresh session is invalid or expired",
+        );
+      }
+      const nextToken = createRefreshToken();
+      const consumed = await app.prisma.session.updateMany({
+        where: {
+          id: session.id,
+          refreshTokenHash: hashToken(token),
+          revokedAt: null,
+        },
+        data: {
+          refreshTokenHash: hashToken(nextToken),
+          expiresAt: new Date(Date.now() + env.REFRESH_TOKEN_TTL_DAYS * 86400000),
+        },
+      });
+      if (consumed.count !== 1)
+        throw new HttpError(
+          401,
+          "AUTH_REFRESH_USED",
+          "Refresh token has already been used",
+        );
+      reply.setCookie(refreshCookie, nextToken, cookieOptions());
+      return {
+        success: true,
+        data: {
+          accessToken: accessToken(app, session.user, session.id),
+          user: publicUser(session.user),
+        },
+      };
     },
   );
 
