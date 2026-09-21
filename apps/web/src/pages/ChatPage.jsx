@@ -472,20 +472,27 @@ export default function ChatPage() {
   const markConversationRead = useCallback(async () => {
     if (
       !selectedId ||
-      !tail ||
       !(selected?.unreadCount > 0 || unreadMessageIds.size > 0)
     )
       return;
 
-    const targetKey = `${selectedId}:${tail}`;
+    const targetKey = `${selectedId}:${tail || "pending"}:${
+      selected?.unreadCount || 0
+    }:${unreadMessageIds.size}`;
     if (conversationReadTarget.current === targetKey) return;
     conversationReadTarget.current = targetKey;
 
     try {
       await api(`/conversations/${selectedId}/read`, {
         method: "POST",
-        body: JSON.stringify({ messageId: tail }),
+        body: JSON.stringify({ all: true }),
       });
+      setUnreadMarker(null);
+      qc.setQueryData(["conversations"], (items = []) =>
+        items.map((item) =>
+          item.id === selectedId ? { ...item, unreadCount: 0 } : item,
+        ),
+      );
       qc.invalidateQueries({ queryKey: ["messages", selectedId] });
       qc.invalidateQueries({ queryKey: ["conversations"] });
       qc.invalidateQueries({ queryKey: ["notifications"] });
