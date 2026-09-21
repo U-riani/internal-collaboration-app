@@ -49,7 +49,7 @@ const conversationInclude = {
     },
   },
   messages: {
-    where: { deletedAt: null },
+    where: { deletedAt: null, type: { not: "SYSTEM" } },
     take: 1,
     orderBy: { createdAt: "desc" },
     include: { sender: { select: { id: true, displayName: true } } },
@@ -120,7 +120,7 @@ async function unreadMessageState(app, userId) {
     where: {
       userId,
       readAt: null,
-      message: { deletedAt: null },
+      message: { deletedAt: null, type: { not: "SYSTEM" } },
     },
     select: { message: { select: { conversationId: true } } },
   });
@@ -130,6 +130,123 @@ async function unreadMessageState(app, userId) {
     counts.set(conversationId, (counts.get(conversationId) || 0) + 1);
   }
   return counts;
+}
+
+async function unreadReactionState(app, userId) {
+  const notifications = await app.prisma.notification.findMany({
+    where: {
+      userId,
+      isRead: false,
+      type: "MESSAGE_REACTION",
+      relatedEntityType: "MESSAGE",
+      relatedEntityId: { not: null },
+    },
+    select: { relatedEntityId: true, createdAt: true },
+    orderBy: { createdAt: "desc" },
+  });
+  const relatedIds = [
+    ...new Set(notifications.map((item) => item.relatedEntityId).filter(Boolean)),
+  ];
+  if (!relatedIds.length)
+    return { counts: new Map(), targets: new Map() };
+
+  const messages = await app.prisma.message.findMany({
+    where: { id: { in: relatedIds }, deletedAt: null },
+    select: {
+      id: true,
+      conversationId: true,
+      type: true,
+      replyToMessageId: true,
+    },
+  });
+  const byId = new Map(messages.map((message) => [message.id, message]));
+  const counts = new Map();
+  const targets = new Map();
+
+  for (const notification of notifications) {
+    const related = byId.get(notification.relatedEntityId);
+    if (!related) continue;
+    const targetMessageId =
+      related.type === "SYSTEM" && related.replyToMessageId
+        ? related.replyToMessageId
+        : related.id;
+    counts.set(
+      related.conversationId,
+      (counts.get(related.conversationId) || 0) + 1,
+    );
+    if (!targets.has(related.conversationId))
+      targets.set(related.conversationId, targetMessageId);
+  }
+  return { counts, targets };
+}
+
+async function reactionNotificationIdsForConversation(
+  app,
+  userId,
+  conversationId,
+  targetMessageId = null,
+) {
+  const notifications = await app.prisma.notification.findMany({
+    where: {
+      userId,
+      isRead: false,
+      type: "MESSAGE_REACTION",
+      relatedEntityType: "MESSAGE",
+      relatedEntityId: { not: null },
+    },
+    select: { id: true, relatedEntityId: true },
+  });
+  const relatedIds = [
+    ...new Set(notifications.map((item) => item.relatedEntityId).filter(Boolean)),
+  ];
+  if (!relatedIds.length) return [];
+
+  const messages = await app.prisma.message.findMany({
+    where: { id: { in: relatedIds }, conversationId },
+    select: { id: true, type: true, replyToMessageId: true },
+  });
+  const byId = new Map(messages.map((message) => [message.id, message]));
+
+  return notifications
+    .filter((notification) => {
+      const related = byId.get(notification.relatedEntityId);
+      if (!related) return false;
+      const actualTarget =
+        related.type === "SYSTEM" && related.replyToMessageId
+          ? related.replyToMessageId
+          : related.id;
+      return !targetMessageId || actualTarget === targetMessageId;
+    })
+    .map((notification) => notification.id);
+}
+
+async function markConversationReactionNotificationsRead(
+  app,
+  userId,
+  conversationId,
+  readAt = new Date(),
+  targetMessageId = null,
+) {
+  const notificationIds = await reactionNotificationIdsForConversation(
+    app,
+    userId,
+    conversationId,
+    targetMessageId,
+  );
+  if (!notificationIds.length) return 0;
+
+  const result = await app.prisma.notification.updateMany({
+    where: { id: { in: notificationIds }, userId, isRead: false },
+    data: { isRead: true, readAt },
+  });
+  if (result.count)
+    app.io?.to(`user:${userId}`).emit("notification:updated", {
+      type: "MESSAGE_REACTION",
+      conversationId,
+      notificationIds,
+      isRead: true,
+    });
+  return result.count;
 }
 
 async function messageReceiptsForUser(app, userId, messageIds, extraWhere = {}) {
@@ -199,11 +316,23 @@ export default async function conversationRoutes(app) {
       include: conversationInclude,
       orderBy: { updatedAt: "desc" },
     });
-    const counts = await unreadMessageState(app, request.authUser.id);
-    const enriched = data.map((conversation) => ({
-      ...conversation,
-      unreadCount: counts.get(conversation.id) || 0,
-    }));
+    const [messageCounts, reactionState] = await Promise.all([
+      unreadMessageState(app, request.authUser.id),
+      unreadReactionState(app, request.authUser.id),
+    ]);
+    const enriched = data.map((conversation) => {
+      const unreadMessageCount = messageCounts.get(conversation.id) || 0;
+      const unreadReactionCount =
+        reactionState.counts.get(conversation.id) || 0;
+      return {
+        ...conversation,
+        unreadMessageCount,
+        unreadReactionCount,
+        unreadCount: unreadMessageCount + unreadReactionCount,
+        unreadReactionMessageId:
+          reactionState.targets.get(conversation.id) || null,
+      };
+    });
     return { success: true, data: enriched };
   });
 
@@ -318,7 +447,10 @@ export default async function conversationRoutes(app) {
       request.query,
     );
     const data = await app.prisma.message.findMany({
-      where: { conversationId: request.params.id },
+      where: {
+        conversationId: request.params.id,
+        type: { not: "SYSTEM" },
+      },
       include: messageInclude,
       orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       take: query.limit,
@@ -489,61 +621,15 @@ export default async function conversationRoutes(app) {
       await app.prisma.messageReaction.create({ data: key });
       if (message.senderId !== request.authUser.id) {
         const reactionText = reactionNotificationLabel(input.emoji);
-        const activityContent = `${request.authUser.displayName} reacted ${reactionText} to ${message.sender.displayName}'s message`;
-        let activityMessage = await app.prisma.message.findFirst({
-          where: {
-            conversationId: message.conversationId,
-            senderId: request.authUser.id,
-            type: "SYSTEM",
-            replyToMessageId: message.id,
-            content: activityContent,
-          },
-          include: messageInclude,
+        await createNotification(app, {
+          userId: message.senderId,
+          type: "MESSAGE_REACTION",
+          title: `${request.authUser.displayName} reacted ${reactionText} to your message`,
+          body: message.content.slice(0, 180) || "Attachment",
+          relatedEntityType: "MESSAGE",
+          relatedEntityId: message.id,
+          deduplicationKey: `message-reaction:${message.id}:${request.authUser.id}:${input.emoji}`,
         });
-
-        if (!activityMessage) {
-          activityMessage = await app.prisma.message.create({
-            data: {
-              conversationId: message.conversationId,
-              senderId: request.authUser.id,
-              type: "SYSTEM",
-              content: activityContent,
-              replyToMessageId: message.id,
-            },
-            include: messageInclude,
-          });
-
-          await app.prisma.messageReceipt.create({
-            data: {
-              messageId: activityMessage.id,
-              userId: message.senderId,
-            },
-          });
-          await app.prisma.conversation.update({
-            where: { id: message.conversationId },
-            data: { updatedAt: new Date() },
-          });
-          app.io
-            ?.to(`conversation:${message.conversationId}`)
-            .emit("message:created", activityMessage);
-        }
-
-        const deduplicationKey = `message-reaction:${message.id}:${request.authUser.id}:${input.emoji}`;
-        const previousNotification = await app.prisma.notification.findUnique({
-          where: { deduplicationKey },
-          select: { id: true },
-        });
-        if (!previousNotification) {
-          await createNotification(app, {
-            userId: message.senderId,
-            type: "MESSAGE_REACTION",
-            title: `${request.authUser.displayName} reacted ${reactionText} to your message`,
-            body: message.content.slice(0, 180) || "Attachment",
-            relatedEntityType: "MESSAGE",
-            relatedEntityId: activityMessage.id,
-            deduplicationKey,
-          });
-        }
       }
     }
 
@@ -823,6 +909,7 @@ export default async function conversationRoutes(app) {
     });
     const readAt = new Date();
     const ids = receipts.map((item) => item.messageId);
+    let reactionCount = 0;
     if (ids.length) {
       await app.prisma.messageReceipt.updateMany({
         where: {
@@ -851,6 +938,13 @@ export default async function conversationRoutes(app) {
         readAt,
       });
     }
+    reactionCount = await markConversationReactionNotificationsRead(
+      app,
+      request.authUser.id,
+      request.params.id,
+      readAt,
+      input.all ? null : message.id,
+    );
     await app.prisma.conversationMember.update({
       where: {
         conversationId_userId: {
@@ -867,7 +961,28 @@ export default async function conversationRoutes(app) {
         userId: request.authUser.id,
         messageId: message.id,
       });
-    return { success: true, data: { count: ids.length } };
+    return {
+      success: true,
+      data: { count: ids.length + reactionCount },
+    };
+  });
+
+  app.post("/conversations/:id/reactions/read", async (request) => {
+    await requireMembership(app, request.params.id, request.authUser.id);
+    const count = await markConversationReactionNotificationsRead(
+      app,
+      request.authUser.id,
+      request.params.id,
+    );
+    if (count)
+      app.io
+        ?.to(`conversation:${request.params.id}`)
+        .emit("conversation:read-updated", {
+          conversationId: request.params.id,
+          userId: request.authUser.id,
+          reactionNotifications: true,
+        });
+    return { success: true, data: { count } };
   });
 
   app.post("/conversations/:id/members", async (request) => {
@@ -973,6 +1088,7 @@ export default async function conversationRoutes(app) {
       const messages = await app.prisma.message.findMany({
         where: {
           deletedAt: null,
+          type: { not: "SYSTEM" },
           conversationId: query.conversationId,
           conversation: membershipFilter,
           attachments: {
@@ -1027,6 +1143,7 @@ export default async function conversationRoutes(app) {
       const messages = await app.prisma.message.findMany({
         where: {
           deletedAt: null,
+          type: { not: "SYSTEM" },
           conversationId: query.conversationId,
           conversation: membershipFilter,
           content: query.q
@@ -1068,6 +1185,7 @@ export default async function conversationRoutes(app) {
     const data = await app.prisma.message.findMany({
       where: {
         deletedAt: null,
+        type: { not: "SYSTEM" },
         content: { contains: query.q, mode: "insensitive" },
         conversationId: query.conversationId,
         conversation: membershipFilter,

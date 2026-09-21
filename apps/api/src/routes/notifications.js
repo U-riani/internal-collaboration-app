@@ -49,15 +49,30 @@ async function resolveMessageTarget(app, notification, userId) {
   if (!id) return null;
 
   if (notification.relatedEntityType === "MESSAGE") {
-    return app.prisma.message.findFirst({
+    const message = await app.prisma.message.findFirst({
       where: {
         id,
         conversation: {
           members: { some: { userId, leftAt: null } },
         },
       },
-      select: { id: true, conversationId: true },
+      select: {
+        id: true,
+        conversationId: true,
+        type: true,
+        replyToMessageId: true,
+      },
     });
+    if (
+      notification.type === "MESSAGE_REACTION" &&
+      message?.type === "SYSTEM" &&
+      message.replyToMessageId
+    )
+      return {
+        id: message.replyToMessageId,
+        conversationId: message.conversationId,
+      };
+    return message;
   }
 
   if (
@@ -143,7 +158,10 @@ export default async function notificationRoutes(app) {
     ] = await Promise.all([
       app.prisma.notification.count({ where: unreadWhere }),
       app.prisma.notification.count({
-        where: { ...unreadWhere, type: "MESSAGE" },
+        where: {
+          ...unreadWhere,
+          type: { in: ["MESSAGE", "MESSAGE_REACTION"] },
+        },
       }),
       app.prisma.notification.count({
         where: { ...unreadWhere, relatedEntityType: "TASK" },

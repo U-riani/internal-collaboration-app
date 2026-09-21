@@ -189,26 +189,44 @@ test("message reactions and pins persist and require conversation membership", a
   );
   assert.equal(added.added, true);
 
-  let activityMessages = await h.prisma.message.findMany({
-    where: {
-      conversationId: conversation.id,
-      type: "SYSTEM",
-      replyToMessageId: message.id,
-    },
-  });
-  assert.equal(activityMessages.length, 1);
-  assert.match(activityMessages[0].content, /reacted/);
-
   const reactionNotification = await h.prisma.notification.findFirst({
     where: {
       userId: employee.user.id,
       type: "MESSAGE_REACTION",
       relatedEntityType: "MESSAGE",
-      relatedEntityId: activityMessages[0].id,
+      relatedEntityId: message.id,
     },
   });
   assert.ok(reactionNotification);
   assert.match(reactionNotification.title, /reacted/);
+
+  assert.equal(
+    await h.prisma.message.count({
+      where: {
+        conversationId: conversation.id,
+        type: "SYSTEM",
+        replyToMessageId: message.id,
+      },
+    }),
+    0,
+    "reactions should not create messages in the conversation timeline",
+  );
+
+  const withReaction = ok(
+    await h.call(employee, "GET", "/conversations"),
+  ).find((item) => item.id === conversation.id);
+  assert.equal(withReaction.unreadMessageCount, 0);
+  assert.equal(withReaction.unreadReactionCount, 1);
+  assert.equal(withReaction.unreadCount, 1);
+  assert.equal(withReaction.unreadReactionMessageId, message.id);
+
+  const notificationsWithReaction = await h.call(
+    employee,
+    "GET",
+    "/notifications",
+  );
+  assert.equal(notificationsWithReaction.statusCode, 200);
+  assert.ok(notificationsWithReaction.json().meta.unreadMessageCount >= 1);
 
   let messages = ok(
     await h.call(admin, "GET", `/conversations/${conversation.id}/messages`),
@@ -229,7 +247,7 @@ test("message reactions and pins persist and require conversation membership", a
     where: {
       userId: employee.user.id,
       type: "MESSAGE_REACTION",
-      relatedEntityId: activityMessages[0].id,
+      relatedEntityId: message.id,
     },
   });
   assert.equal(reactionNotificationCount, 1);
@@ -239,25 +257,22 @@ test("message reactions and pins persist and require conversation membership", a
       emoji: "👍",
     }),
   );
-  activityMessages = await h.prisma.message.findMany({
-    where: {
-      conversationId: conversation.id,
-      type: "SYSTEM",
-      replyToMessageId: message.id,
-    },
-  });
   assert.equal(
-    activityMessages.length,
-    1,
-    "re-adding the same reaction should not create duplicate activity messages",
+    await h.prisma.message.count({
+      where: {
+        conversationId: conversation.id,
+        type: "SYSTEM",
+        replyToMessageId: message.id,
+      },
+    }),
+    0,
   );
 
   ok(
     await h.call(
       employee,
       "POST",
-      `/conversations/${conversation.id}/read`,
-      { all: true },
+      `/conversations/${conversation.id}/reactions/read`,
     ),
   );
   const readReactionNotification = await h.prisma.notification.findUnique({
@@ -266,23 +281,13 @@ test("message reactions and pins persist and require conversation membership", a
   assert.equal(
     readReactionNotification.isRead,
     true,
-    "reading the conversation should clear the matching reaction notification",
+    "opening the conversation should clear its reaction notification",
   );
-
-  assert.equal(
-    (
-      await h.call(admin, "PATCH", `/messages/${activityMessages[0].id}`, {
-        content: "Changed",
-      })
-    ).statusCode,
-    403,
-  );
-  assert.equal(
-    (
-      await h.call(admin, "DELETE", `/messages/${activityMessages[0].id}`)
-    ).statusCode,
-    403,
-  );
+  const afterReactionRead = ok(
+    await h.call(employee, "GET", "/conversations"),
+  ).find((item) => item.id === conversation.id);
+  assert.equal(afterReactionRead.unreadReactionCount, 0);
+  assert.equal(afterReactionRead.unreadCount, 0);
 
   const selfReactionMessage = ok(
     await h.call(employee, "POST", `/conversations/${conversation.id}/messages`, {

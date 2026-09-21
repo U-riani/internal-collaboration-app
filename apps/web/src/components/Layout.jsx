@@ -64,8 +64,16 @@ export default function Layout() {
       qc.invalidateQueries();
       acknowledgeDelivery({ allPending: true });
     },
-    "notification:created": () => invalidate("notifications"),
-    "notification:updated": () => invalidate("notifications"),
+    "notification:created": (notification) => {
+      invalidate("notifications");
+      if (notification?.type === "MESSAGE_REACTION")
+        invalidate("conversations");
+    },
+    "notification:updated": (notification) => {
+      invalidate("notifications");
+      if (notification?.type === "MESSAGE_REACTION")
+        invalidate("conversations");
+    },
     "task:updated": () => {
       invalidate("tasks");
       invalidate("task");
@@ -88,6 +96,10 @@ export default function Layout() {
         acknowledgeDelivery({ messageIds: [message.id] });
     },
     "message:receipt-updated": () => invalidate("conversations"),
+    "message:reaction-updated": () => {
+      invalidate("conversations");
+      invalidate("notifications");
+    },
     "message:deleted": () => invalidate("conversations"),
     "conversation:removed": () => {
       invalidate("conversations");

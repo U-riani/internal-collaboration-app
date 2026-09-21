@@ -765,7 +765,7 @@ export default function ChatPage() {
   }, [
     selectedId,
     tail,
-    selected?.unreadCount,
+    selected?.unreadMessageCount,
     unreadMessageIds.size,
     qc,
   ]);
@@ -782,7 +782,7 @@ export default function ChatPage() {
           : {
               conversationId: selectedId,
               messageId: firstUnreadId,
-              count: selected?.unreadCount || unreadMessageIds.size,
+              count: selected?.unreadMessageCount || unreadMessageIds.size,
             },
       );
     } else if (unreadMarker?.conversationId === selectedId) {
@@ -804,9 +804,9 @@ export default function ChatPage() {
     setSearchParams(next, { replace: true });
   };
 
-  const selectConversation = (id) => {
+  const selectConversation = (id, reactionMessageId = null) => {
     clearLinkedTarget();
-    setFocusMessageId(null);
+    setFocusMessageId(reactionMessageId);
     setSelectedId(id);
     if (id) sessionStorage.setItem(lastChatKey, id);
   };
@@ -844,6 +844,37 @@ export default function ChatPage() {
     },
     [],
   );
+
+  useEffect(() => {
+    if (!selectedId || !selected?.unreadReactionCount) return;
+    let cancelled = false;
+    api(`/conversations/${selectedId}/reactions/read`, {
+      method: "POST",
+    })
+      .then(() => {
+        if (cancelled) return;
+        qc.setQueryData(["conversations"], (items = []) =>
+          items.map((item) =>
+            item.id === selectedId
+              ? {
+                  ...item,
+                  unreadCount: Math.max(
+                    0,
+                    (item.unreadCount || 0) - (item.unreadReactionCount || 0),
+                  ),
+                  unreadReactionCount: 0,
+                  unreadReactionMessageId: null,
+                }
+              : item,
+          ),
+        );
+        qc.invalidateQueries({ queryKey: ["notifications"] });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedId, selected?.unreadReactionCount, qc]);
 
   useEffect(() => {
     if (!conversations.data) return;
@@ -976,6 +1007,8 @@ export default function ChatPage() {
     },
     "message:reaction-updated": (p) => {
       qc.invalidateQueries({ queryKey: ["messages", p.conversationId] });
+      qc.invalidateQueries({ queryKey: ["conversations"] });
+      qc.invalidateQueries({ queryKey: ["notifications"] });
     },
     "message:pin-updated": (p) => {
       qc.invalidateQueries({ queryKey: ["messages", p.conversationId] });
@@ -1109,7 +1142,9 @@ export default function ChatPage() {
                 <button
                   key={c.id}
                   title={displayName(c, user.id)}
-                  onClick={() => selectConversation(c.id)}
+                  onClick={() =>
+                    selectConversation(c.id, c.unreadReactionMessageId)
+                  }
                   className={`flex w-full gap-3 items-center p-4 text-left border-l-2 ${c.id === selectedId ? "border-blue-600 bg-blue-50/70" : "border-transparent hover:bg-slate-50"}`}
                 >
                   <Avatar name={displayName(c, user.id)} />
@@ -1441,58 +1476,6 @@ export default function ChatPage() {
                         unreadMarker?.conversationId === selectedId &&
                         unreadMarker.messageId === m.id;
 
-                      if (m.type === "SYSTEM") {
-                        return (
-                          <Fragment key={m.id}>
-                            {showUnreadDivider && (
-                              <div className="flex items-center gap-3 py-1 text-[11px] font-semibold text-blue-600">
-                                <span className="h-px flex-1 bg-blue-200" />
-                                <span>
-                                  {unreadMarker.count === 1
-                                    ? "1 new message"
-                                    : `${unreadMarker.count} new messages`}
-                                </span>
-                                <span className="h-px flex-1 bg-blue-200" />
-                              </div>
-                            )}
-                            <ReadVisibleMessage
-                              enabled={Boolean(unread)}
-                              messageId={m.id}
-                              onRead={queueMessageRead}
-                              className={`flex justify-center ${
-                                focusMessageId === m.id
-                                  ? "rounded-xl ring-2 ring-blue-300 ring-offset-2"
-                                  : ""
-                              }`}
-                            >
-                              <button
-                                type="button"
-                                className="max-w-[90%] rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-500 shadow-sm transition hover:border-blue-200 hover:text-blue-600"
-                                onClick={() =>
-                                  m.replyToMessage?.id &&
-                                  jumpToMessage(m.replyToMessage.id)
-                                }
-                                title={
-                                  m.replyToMessage?.id
-                                    ? "Go to reacted message"
-                                    : undefined
-                                }
-                              >
-                                <span className="font-medium text-slate-700">
-                                  {m.content}
-                                </span>
-                                <span className="ml-2 text-[10px] text-slate-400">
-                                  {new Date(m.createdAt).toLocaleTimeString([], {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  })}
-                                </span>
-                              </button>
-                            </ReadVisibleMessage>
-                          </Fragment>
-                        );
-                      }
-
                       return (
                         <Fragment key={m.id}>
                           {showUnreadDivider && (
@@ -1691,7 +1674,7 @@ export default function ChatPage() {
                       />
                     )}
                     <div ref={bottom} />
-                    {selected.unreadCount > 0 && !nearBottom && (
+                    {selected.unreadMessageCount > 0 && !nearBottom && (
                       <button
                         type="button"
                         className="sticky bottom-2 z-10 mx-auto block rounded-full border border-blue-200 bg-white px-3 py-1.5 text-xs font-semibold text-blue-600 shadow-sm"
@@ -1703,7 +1686,7 @@ export default function ChatPage() {
                           markConversationRead();
                         }}
                       >
-                        ↓ {chatBadgeLabel(selected.unreadCount)} new messages
+                        ↓ {chatBadgeLabel(selected.unreadMessageCount)} new messages
                       </button>
                     )}
                   </>
