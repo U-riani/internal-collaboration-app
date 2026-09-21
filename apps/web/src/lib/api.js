@@ -2,6 +2,14 @@ let accessToken = null;
 localStorage.removeItem("collab_access_token");
 let refreshPromise = null;
 
+const SESSION_ENDED_CODES = new Set([
+  "AUTH_REFRESH_REQUIRED",
+  "AUTH_REFRESH_INVALID",
+  "AUTH_REFRESH_USED",
+  "AUTH_ACCOUNT_DISABLED",
+  "AUTH_SESSION_EXPIRED",
+]);
+
 export function setAccessToken(token) {
   accessToken = token;
 }
@@ -10,10 +18,21 @@ export function getAccessToken() {
   return accessToken;
 }
 
+function sessionError(message, response, body = {}) {
+  const error = new Error(message);
+  error.status = response?.status;
+  error.code = body.error?.code;
+  error.details = body.error?.details;
+  error.sessionEnded =
+    response?.status === 401 && SESSION_ENDED_CODES.has(error.code);
+  return error;
+}
+
 export async function refreshSession() {
   if (!refreshPromise) {
     const requestRefresh = () =>
       fetch("/api/v1/auth/refresh", { method: "POST", credentials: "include" });
+
     // Serialize refresh-cookie rotation across tabs when Web Locks is available.
     refreshPromise = (
       navigator.locks
@@ -21,14 +40,22 @@ export async function refreshSession() {
         : requestRefresh()
     )
       .then(async (response) => {
-        if (!response.ok) throw new Error("Session expired");
-        const body = await response.json();
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw sessionError(
+            body.error?.message || "Could not refresh session",
+            response,
+            body,
+          );
+        }
         setAccessToken(body.data.accessToken);
         return body.data;
       })
       .catch((error) => {
-        setAccessToken(null);
-        window.dispatchEvent(new Event("collab:session-ended"));
+        if (error.sessionEnded) {
+          setAccessToken(null);
+          window.dispatchEvent(new Event("collab:session-ended"));
+        }
         throw error;
       })
       .finally(() => {
