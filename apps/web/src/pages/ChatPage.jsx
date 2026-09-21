@@ -56,7 +56,7 @@ const CHAT_SEARCH_TABS = [
   { id: "links", label: "Links", icon: Link2 },
 ];
 
-const emojiList = (value) => value.trim().split(/\\s+/);
+const emojiList = (value) => value.trim().split(/\s+/);
 
 const EMOJI_GROUPS = [
   {
@@ -281,9 +281,9 @@ function EmojiMenu({
               {group.label}
             </div>
             <div className="grid grid-cols-10 gap-px">
-              {group.emojis.map((emoji) => (
+              {group.emojis.map((emoji, index) => (
                 <button
-                  key={emoji}
+                  key={`${group.id}-${emoji}-${index}`}
                   type="button"
                   className="flex h-[30px] w-[30px] items-center justify-center rounded-md border border-transparent text-[20px] leading-none transition hover:border-slate-200 hover:bg-slate-50 focus:outline-none focus:ring-1 focus:ring-blue-300"
                   onClick={() => onSelect(emoji)}
