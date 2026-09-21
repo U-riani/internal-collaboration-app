@@ -12,6 +12,13 @@ const filesRoot = path.join(localRoot, "files");
 
 await mkdir(filesRoot, { recursive: true });
 
+const configuredStoragePath = process.env.STORAGE_LOCAL_PATH?.trim();
+const storageLocalPath =
+  !configuredStoragePath ||
+  configuredStoragePath === "./apps/api/.local/files"
+    ? filesRoot
+    : path.resolve(apiRoot, configuredStoragePath);
+
 Object.assign(process.env, {
   NODE_ENV: "development",
   API_PORT: process.env.API_PORT || "3000",
@@ -22,7 +29,7 @@ Object.assign(process.env, {
     "local-development-secret-change-before-production-123456",
   COOKIE_SECURE: process.env.COOKIE_SECURE || "false",
   STORAGE_DRIVER: process.env.STORAGE_DRIVER || "local",
-  STORAGE_LOCAL_PATH: process.env.STORAGE_LOCAL_PATH || filesRoot,
+  STORAGE_LOCAL_PATH: storageLocalPath,
   MINIO_ROOT_USER: process.env.MINIO_ROOT_USER || "local",
   MINIO_ROOT_PASSWORD:
     process.env.MINIO_ROOT_PASSWORD || "local-development-only",
