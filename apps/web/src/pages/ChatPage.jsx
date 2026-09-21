@@ -1099,24 +1099,19 @@ export default function ChatPage() {
                     )}
                     <div ref={bottom} />
                     {selected.unreadCount > 0 && !nearBottom && (
-                        <button
-                          type="button"
-                          className="sticky bottom-2 z-10 mx-auto block rounded-full border border-blue-200 bg-white px-3 py-1.5 text-xs font-semibold text-blue-600 shadow-sm"
-                          onClick={() => {
-                            const target = firstUnreadId
-                              ? document.getElementById(
-                                  `message-${firstUnreadId}`,
-                                )
-                              : bottom.current;
-                            target?.scrollIntoView({
-                              behavior: "smooth",
-                              block: "center",
-                            });
-                          }}
-                        >
-                          ↓ {chatBadgeLabel(selected.unreadCount)} new messages
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        className="sticky bottom-2 z-10 mx-auto block rounded-full border border-blue-200 bg-white px-3 py-1.5 text-xs font-semibold text-blue-600 shadow-sm"
+                        onClick={() =>
+                          bottom.current?.scrollIntoView({
+                            behavior: "smooth",
+                            block: "end",
+                          })
+                        }
+                      >
+                        ↓ {chatBadgeLabel(selected.unreadCount)} new messages
+                      </button>
+                    )}
                   </>
                 )}
                 <ErrorBox error={messages.error} />
