@@ -1,6 +1,7 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { harness } from "./support/harness.js";
+import { scanTaskDeadlines } from "../src/lib/deadline-notifications.js";
 let h;
 before(async () => {
   try {
@@ -164,6 +165,29 @@ test("marking a conversation read clears every unread message in it", async () =
     (item) => item.id === conversation.id,
   );
   assert.equal(after.unreadCount, 0);
+});
+
+test("deadline notification scans do not create duplicate notifications", async () => {
+  const task = await h.prisma.task.create({
+    data: {
+      title: "Deadline deduplication test",
+      creatorId: h.users.manager.user.id,
+      assigneeId: h.users.employee.user.id,
+      dueDate: new Date(Date.now() + 60 * 60 * 1000),
+    },
+  });
+
+  await scanTaskDeadlines(h.prisma);
+  await scanTaskDeadlines(h.prisma);
+
+  const count = await h.prisma.notification.count({
+    where: {
+      deduplicationKey: {
+        startsWith: `task-due:${task.id}:`,
+      },
+    },
+  });
+  assert.equal(count, 1);
 });
 
 test("Drive spaces keep personal shares explicit and shared workspaces inherited", async () => {
