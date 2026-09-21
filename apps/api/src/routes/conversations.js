@@ -527,13 +527,35 @@ export default async function conversationRoutes(app) {
   });
 
   app.post("/conversations/:id/read", async (request) => {
-    const input = parse(z.object({ messageId: z.uuid() }), request.body);
+    const input = parse(
+      z
+        .object({
+          messageId: z.uuid().optional(),
+          all: z.boolean().default(false),
+        })
+        .refine((value) => value.all || value.messageId, {
+          message: "Provide messageId or mark the whole conversation as read",
+        }),
+      request.body,
+    );
     await requireMembership(app, request.params.id, request.authUser.id);
-    const message = await app.prisma.message.findUnique({
-      where: { id: input.messageId },
-      select: { id: true, conversationId: true, createdAt: true },
-    });
-    if (!message || message.conversationId !== request.params.id)
+
+    const message = input.all
+      ? await app.prisma.message.findFirst({
+          where: {
+            conversationId: request.params.id,
+            deletedAt: null,
+          },
+          orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+          select: { id: true, conversationId: true, createdAt: true },
+        })
+      : await app.prisma.message.findUnique({
+          where: { id: input.messageId },
+          select: { id: true, conversationId: true, createdAt: true },
+        });
+
+    if (!message) return { success: true, data: { count: 0 } };
+    if (message.conversationId !== request.params.id)
       throw new HttpError(
         400,
         "MESSAGE_NOT_IN_CONVERSATION",
@@ -546,29 +568,48 @@ export default async function conversationRoutes(app) {
         readAt: null,
         message: {
           conversationId: request.params.id,
-          createdAt: { lte: message.createdAt },
+          deletedAt: null,
+          ...(input.all ? {} : { createdAt: { lte: message.createdAt } }),
         },
       },
       select: {
         messageId: true,
         deliveredAt: true,
         readAt: true,
-        message: { select: { conversationId: true, senderId: true, createdAt: true } },
+        message: {
+          select: { conversationId: true, senderId: true, createdAt: true },
+        },
       },
     });
     const readAt = new Date();
     const ids = receipts.map((item) => item.messageId);
     if (ids.length) {
       await app.prisma.messageReceipt.updateMany({
-        where: { userId: request.authUser.id, messageId: { in: ids }, deliveredAt: null },
+        where: {
+          userId: request.authUser.id,
+          messageId: { in: ids },
+          deliveredAt: null,
+        },
         data: { deliveredAt: readAt },
       });
       await app.prisma.messageReceipt.updateMany({
-        where: { userId: request.authUser.id, messageId: { in: ids }, readAt: null },
+        where: {
+          userId: request.authUser.id,
+          messageId: { in: ids },
+          readAt: null,
+        },
         data: { readAt },
       });
-      await markMessageNotificationsRead(app, request.authUser.id, ids, readAt);
-      emitReceiptUpdates(app, request.authUser.id, receipts, { deliveredAt: readAt, readAt });
+      await markMessageNotificationsRead(
+        app,
+        request.authUser.id,
+        ids,
+        readAt,
+      );
+      emitReceiptUpdates(app, request.authUser.id, receipts, {
+        deliveredAt: readAt,
+        readAt,
+      });
     }
     await app.prisma.conversationMember.update({
       where: {
@@ -577,14 +618,14 @@ export default async function conversationRoutes(app) {
           userId: request.authUser.id,
         },
       },
-      data: { lastReadMessageId: input.messageId },
+      data: { lastReadMessageId: message.id },
     });
     app.io
       ?.to(`conversation:${request.params.id}`)
       .emit("conversation:read-updated", {
         conversationId: request.params.id,
         userId: request.authUser.id,
-        messageId: input.messageId,
+        messageId: message.id,
       });
     return { success: true, data: { count: ids.length } };
   });
