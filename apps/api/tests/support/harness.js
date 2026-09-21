@@ -1,44 +1,45 @@
-import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { execFile } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { promisify } from "node:util";
+import pg from "pg";
+
+const { Client } = pg;
 const exec = promisify(execFile);
-import { PGlite } from "@electric-sql/pglite";
-import { PGLiteSocketServer } from "@electric-sql/pglite-socket";
-import net from "node:net";
+
+function testDatabaseUrl(baseUrl, schema) {
+  const url = new URL(baseUrl);
+  const options = `-c search_path=${schema}`;
+  url.searchParams.set("options", options);
+  return url.toString();
+}
+
 export async function harness() {
-  const dir = await mkdtemp(path.join(os.tmpdir(), "collab-test-"));
-  const reservation = net.createServer();
-  await new Promise((r) => reservation.listen(0, "127.0.0.1", r));
-  const port = reservation.address().port;
-  await new Promise((r) => reservation.close(r));
-  const db = await PGlite.create();
-  const migrationsRoot = path.resolve(
-    import.meta.dirname,
-    "../../prisma/migrations",
-  );
-  const migrations = (await readdir(migrationsRoot, { withFileTypes: true }))
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => entry.name)
-    .sort();
-  for (const migration of migrations)
-    await db.exec(
-      await readFile(
-        path.join(migrationsRoot, migration, "migration.sql"),
-        "utf8",
-      ),
+  const baseDatabaseUrl = process.env.DATABASE_URL?.trim();
+  if (!baseDatabaseUrl)
+    throw new Error(
+      "DATABASE_URL must point to PostgreSQL before running API tests.",
     );
-  const pg = new PGLiteSocketServer({
-    db,
-    port,
-    host: "127.0.0.1",
-    maxConnections: 20,
-  });
-  await pg.start();
+
+  const dir = await mkdtemp(path.join(os.tmpdir(), "collab-test-"));
+  const schema = `test_${randomUUID().replaceAll("-", "")}`;
+  const admin = new Client({ connectionString: baseDatabaseUrl });
+  await admin.connect();
+
+  try {
+    await admin.query(`CREATE SCHEMA "${schema}"`);
+  } catch (error) {
+    await admin.end().catch(() => {});
+    await rm(dir, { recursive: true, force: true });
+    throw error;
+  }
+
+  const databaseUrl = testDatabaseUrl(baseDatabaseUrl, schema);
   Object.assign(process.env, {
     NODE_ENV: "test",
-    DATABASE_URL: `postgresql://postgres:postgres@127.0.0.1:${port}/postgres`,
+    DATABASE_URL: databaseUrl,
     JWT_ACCESS_SECRET: "test-only-jwt-secret-not-for-production-1234567890",
     MINIO_ROOT_USER: "test",
     MINIO_ROOT_PASSWORD: "test-only-password",
@@ -53,14 +54,32 @@ export async function harness() {
     APP_ORIGIN: "http://localhost:5173",
     MAX_UPLOAD_SIZE_MB: "2",
   });
-  await exec(process.execPath, ["prisma/seed.js"], {
-    cwd: path.resolve(import.meta.dirname, "../.."),
-    env: process.env,
-  });
+
+  const apiRoot = path.resolve(import.meta.dirname, "../..");
+  try {
+    await exec(
+      process.execPath,
+      ["node_modules/prisma/build/index.js", "migrate", "deploy"],
+      {
+        cwd: apiRoot,
+        env: process.env,
+      },
+    );
+    await exec(process.execPath, ["prisma/seed.js"], {
+      cwd: apiRoot,
+      env: process.env,
+    });
+  } catch (error) {
+    await admin.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
+    await admin.end();
+    await rm(dir, { recursive: true, force: true });
+    throw error;
+  }
+
   const { PrismaClient } = await import("@prisma/client");
   const { PrismaPg } = await import("@prisma/adapter-pg");
   const prisma = new PrismaClient({
-    adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+    adapter: new PrismaPg({ connectionString: databaseUrl }),
   });
   const { localStorage } = await import("../../src/lib/local-storage.js");
   const storage = localStorage(path.join(dir, "files"));
@@ -78,6 +97,7 @@ export async function harness() {
   };
   const { buildApp } = await import("../../src/app.js");
   const app = await buildApp({ prisma, minio: storage, redis });
+
   async function login(email, password) {
     const result = await app.inject({
       method: "POST",
@@ -90,6 +110,7 @@ export async function harness() {
       cookie: result.headers["set-cookie"].split(";")[0],
     };
   }
+
   let users;
   try {
     users = {
@@ -100,10 +121,12 @@ export async function harness() {
   } catch (error) {
     await app.close();
     await prisma.$disconnect();
-    await pg.stop();
-    await db.close();
+    await admin.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
+    await admin.end();
+    await rm(dir, { recursive: true, force: true });
     throw error;
   }
+
   const call = (actor, method, url, payload) =>
     app.inject({
       method,
@@ -111,6 +134,7 @@ export async function harness() {
       headers: actor ? { authorization: `Bearer ${actor.accessToken}` } : {},
       ...(payload === undefined ? {} : { payload }),
     });
+
   async function upload(
     actor,
     name = "report.txt",
@@ -130,12 +154,14 @@ export async function harness() {
     });
     return result;
   }
+
   async function close() {
     await app.close();
     await prisma.$disconnect();
-    await pg.stop();
-    await db.close();
+    await admin.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
+    await admin.end();
     await rm(dir, { recursive: true, force: true });
   }
+
   return { app, prisma, users, call, upload, login, close };
 }
