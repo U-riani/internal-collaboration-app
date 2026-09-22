@@ -690,3 +690,62 @@ a:focus-visible {
     height: 40px;
   }
 }
+
+
+/* Mobile drive and directory */
+@media (max-width: 900px) {
+  .drive-toolbar,
+  .directory-filters {
+    position: static !important;
+    top: auto !important;
+  }
+
+  .drive-toolbar {
+    margin-left: -14px;
+    margin-right: -14px;
+    padding: 10px 14px;
+  }
+
+  .drive-toolbar .tabs {
+    width: 100%;
+  }
+
+  .drive-toolbar .tabs button {
+    flex: 1 0 auto;
+  }
+
+  .drive-list-card {
+    max-height: none !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .drive-space-nav {
+    max-height: 220px;
+    overflow-y: auto;
+  }
+
+  .drive-item-row {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .drive-item-row > button {
+    min-width: 0;
+  }
+
+  .drive-row-actions {
+    width: 100% !important;
+    justify-content: flex-end;
+    border-top: 1px solid #f1f5f9;
+    padding-top: 6px;
+  }
+
+  .drive-actions-header {
+    width: auto !important;
+  }
+
+  .directory-filters {
+    padding: 12px;
+  }
+}
