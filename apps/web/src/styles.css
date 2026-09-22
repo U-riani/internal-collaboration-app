@@ -749,3 +749,62 @@ a:focus-visible {
     padding: 12px;
   }
 }
+
+
+/* Mobile approval bases */
+@media (max-width: 767px) {
+  .approval-bases-layout {
+    min-height: 0 !important;
+    gap: 12px;
+  }
+
+  .approval-bases-nav {
+    padding: 10px;
+  }
+
+  .approval-bases-nav > div:first-child {
+    margin-bottom: 6px;
+  }
+
+  .approval-bases-nav-list {
+    display: flex;
+    max-height: none !important;
+    gap: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+
+  .approval-bases-nav-list::-webkit-scrollbar {
+    display: none;
+  }
+
+  .approval-bases-nav-list > button {
+    min-width: 220px;
+    flex: 0 0 220px;
+  }
+
+  .approval-bases-filters {
+    width: 100%;
+  }
+
+  .approval-bases-filters > * {
+    width: 100%;
+  }
+
+  .approval-base-table-wrap {
+    max-width: calc(100vw - 28px);
+  }
+
+  .approval-base-request-cell {
+    min-width: 190px !important;
+    max-width: 190px !important;
+  }
+
+  .approval-base-requester-cell {
+    position: static !important;
+    left: auto !important;
+    min-width: 150px !important;
+  }
+}
