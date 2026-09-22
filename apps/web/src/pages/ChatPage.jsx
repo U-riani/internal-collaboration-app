@@ -1149,7 +1149,7 @@ export default function ChatPage() {
     <>
       <PageHeader
         title="Messages"
-        description="A conversation for every person and every team."
+
         action={
           <button className="btn-primary" onClick={() => setNewChat(true)}>
             <Plus size={17} />

@@ -1283,7 +1283,6 @@ export default function TasksPage() {
     <>
       <PageHeader
         title="Tasks"
-        description="Organize shared work with your own personal groups and focused subtasks."
         action={
           <div className="flex items-center gap-2">
             <button className="btn-secondary" onClick={() => setGroupForm({})}>
@@ -1305,7 +1304,7 @@ export default function TasksPage() {
           </div>
         }
       />
-      <div className="toolbar task-toolbar sticky top-20 z-30 flex items-center gap-4 rounded-lg border border-slate-200 bg-white shadow-sm">
+      <div className="toolbar task-toolbar stickytop-20 z-30 flex items-center gap-4 rounded-lg border border-slate-200 bg-white shadow-sm">
         <div className="tabs task-quick-tabs" aria-label="Task quick filters">
           {[
             ["active", "Active", "Active"],
@@ -1702,7 +1701,7 @@ export default function TasksPage() {
           ))}
         </div>
       ) : (
-        <div className="task-list-card card overflow-auto max-h-[calc(100vh-11.7rem)]">
+        <div className="task-list-card card max-h-[calc(100vh-18rem)] md:max-h-[calc(100vh-11.7rem)] overflow-auto">
           <div className=" ">
             <div className="task-list-header sticky top-0 z-5 grid min-w-[940px] grid-cols-[minmax(300px,1.8fr)_180px_165px_110px_145px_70px] items-center gap-4 bg-slate-50 px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-slate-400">
               <span>Task</span>

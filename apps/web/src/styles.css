@@ -343,7 +343,6 @@ a:focus-visible {
   }
 
   .page-header-action {
-    width: 100%;
     overflow-x: auto;
     scrollbar-width: none;
   }
@@ -361,8 +360,7 @@ a:focus-visible {
   }
 
   .task-toolbar {
-    position: static !important;
-    top: auto !important;
+
     padding: 10px;
   }
 
@@ -473,8 +471,7 @@ a:focus-visible {
   }
 
   .task-list-card {
-    max-height: none !important;
-    overflow: visible !important;
+
     border: 0;
     background: transparent;
   }
@@ -606,8 +603,6 @@ a:focus-visible {
   }
 
   .approval-list-card {
-    height: auto !important;
-    overflow: visible !important;
     border: 0;
     background: transparent;
   }
@@ -617,8 +612,7 @@ a:focus-visible {
   }
 
   .approval-group-header {
-    position: static !important;
-    top: auto !important;
+
     z-index: 8;
     min-width: 0 !important;
     border: 1px solid #e2e8f0;
@@ -668,7 +662,7 @@ a:focus-visible {
 /* Mobile messages */
 @media (max-width: 640px) {
   .chat-shell {
-    height: calc(100dvh - 12rem) !important;
+    height: calc(100dvh - 10.5rem) !important;
     min-height: 430px;
     border-radius: 14px;
   }
@@ -694,11 +688,6 @@ a:focus-visible {
 
 /* Mobile drive and directory */
 @media (max-width: 900px) {
-  .drive-toolbar,
-  .directory-filters {
-    position: static !important;
-    top: auto !important;
-  }
 
   .drive-toolbar {
     margin-left: -14px;
@@ -714,9 +703,6 @@ a:focus-visible {
     flex: 1 0 auto;
   }
 
-  .drive-list-card {
-    max-height: none !important;
-  }
 }
 
 @media (max-width: 640px) {

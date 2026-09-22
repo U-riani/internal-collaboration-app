@@ -66,7 +66,9 @@ function Permissions({ item, onClose, reload }) {
     if (!shares.data) return;
     const next = {};
     for (const grant of shares.data.data) {
-      const key = grant.userId ? `u:${grant.userId}` : `d:${grant.departmentId}`;
+      const key = grant.userId
+        ? `u:${grant.userId}`
+        : `d:${grant.departmentId}`;
       next[key] = grant.access;
     }
     setAssignments(next);
@@ -203,10 +205,16 @@ function Permissions({ item, onClose, reload }) {
               onChange={(e) => setFilter(e.target.value)}
             />
           </div>
-          <button className="btn-secondary" onClick={() => setVisible("VIEWER")}>
+          <button
+            className="btn-secondary"
+            onClick={() => setVisible("VIEWER")}
+          >
             All Viewer
           </button>
-          <button className="btn-secondary" onClick={() => setVisible("EDITOR")}>
+          <button
+            className="btn-secondary"
+            onClick={() => setVisible("EDITOR")}
+          >
             All Editor
           </button>
           <button className="btn-secondary" onClick={() => setVisible(null)}>
@@ -221,7 +229,9 @@ function Permissions({ item, onClose, reload }) {
               className="flex items-center gap-3 border-b border-slate-100 px-3 py-2 last:border-0"
             >
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{recipient.label}</p>
+                <p className="truncate text-sm font-medium">
+                  {recipient.label}
+                </p>
                 <p className="text-[11px] text-slate-400">{recipient.kind}</p>
               </div>
               <select
@@ -296,7 +306,9 @@ function SpaceMembers({ space, onClose, reload }) {
   const visible = (people.data || []).filter(
     (person) =>
       person.status === "ACTIVE" &&
-      person.displayName.toLocaleLowerCase().includes(filter.toLocaleLowerCase()),
+      person.displayName
+        .toLocaleLowerCase()
+        .includes(filter.toLocaleLowerCase()),
   );
 
   const save = useMutation({
@@ -511,7 +523,8 @@ export default function DrivePage() {
   });
   const personal = spaces.data?.data.find((space) => space.type === "PERSONAL");
   const global = spaces.data?.data.find((space) => space.type === "GLOBAL");
-  const groups = spaces.data?.data.filter((space) => space.type === "GROUP") || [];
+  const groups =
+    spaces.data?.data.filter((space) => space.type === "GROUP") || [];
 
   useEffect(() => {
     if (section === "personal" && personal && spaceId !== personal.id)
@@ -601,7 +614,6 @@ export default function DrivePage() {
     <>
       <PageHeader
         title="Drive"
-        description="Keep personal work private and collaborate intentionally in shared spaces."
         action={
           canAdd && (
             <div className="flex gap-2">
@@ -652,7 +664,7 @@ export default function DrivePage() {
         }
       />
 
-      <div className="drive-toolbar toolbar sticky top-20 z-10 flex flex-wrap items-center gap-4 border-b border-slate-200 bg-white px-4 py-3">
+      <div className="drive-toolbar toolbar sticky top-15 md:top-20 z-10 flex flex-wrap items-center gap-4 border-b border-slate-200 bg-white px-4 py-3">
         <div className="tabs">
           {[
             ["personal", "Personal"],
@@ -686,7 +698,11 @@ export default function DrivePage() {
         )}
       </div>
 
-      <div className={section === "shared" ? "grid gap-4 lg:grid-cols-[230px_1fr]" : ""}>
+      <div
+        className={
+          section === "shared" ? "grid gap-4 lg:grid-cols-[230px_1fr]" : ""
+        }
+      >
         {section === "shared" && (
           <aside className="drive-space-nav card h-fit p-2">
             <button
@@ -731,7 +747,9 @@ export default function DrivePage() {
             {canManageSpace && (
               <button
                 className="btn-secondary mt-4 w-full"
-                onClick={() => setModal({ kind: "members", space: selectedSpace })}
+                onClick={() =>
+                  setModal({ kind: "members", space: selectedSpace })
+                }
               >
                 <Settings2 size={15} />
                 Members
@@ -767,7 +785,9 @@ export default function DrivePage() {
               <button onClick={() => setParent(null)}>
                 {section === "shared-with-me"
                   ? "Shared with me"
-                  : query.data?.meta.space?.name || selectedSpace?.name || "Personal"}
+                  : query.data?.meta.space?.name ||
+                    selectedSpace?.name ||
+                    "Personal"}
               </button>
               {query.data?.meta.breadcrumbs.map((crumb) => (
                 <button
@@ -782,12 +802,14 @@ export default function DrivePage() {
             </div>
           )}
 
-          <div className="drive-list-card card max-h-[calc(100vh-14.82rem)] overflow-y-auto">
+          <div className="drive-list-card card max-h-[calc(100vh-20.5rem)] md:max-h-[calc(100vh-14.82rem)] overflow-y-auto">
             <div className="list-row sticky top-0 bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-400 ">
               <span className="flex-1">Name</span>
               <span className="hidden w-28 md:block">Updated</span>
               <span className="hidden w-24 md:block">Size</span>
-              <span className="drive-actions-header w-40 text-right">Actions</span>
+              <span className="drive-actions-header w-40 text-right">
+                Actions
+              </span>
             </div>
 
             {query.isLoading || spaces.isLoading ? (
@@ -819,7 +841,9 @@ export default function DrivePage() {
                           : act(() => downloadFile(item.file.id, item.name))
                       }
                     >
-                      <p className="truncate text-sm font-medium">{item.name}</p>
+                      <p className="truncate text-sm font-medium">
+                        {item.name}
+                      </p>
                       <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-400">
                         <span>{item.owner.displayName}</span>
                         {item.shared && <Share2 size={11} />}
@@ -858,61 +882,77 @@ export default function DrivePage() {
                         </button>
                       ) : (
                         <>
-                          {item.kind === "FILE" && (
-                            <button
-                              aria-label={`Download ${item.name}`}
-                              title="Download"
-                              className="icon-btn"
-                              onClick={() =>
-                                act(() => downloadFile(item.file.id, item.name))
-                              }
-                            >
-                              <Download size={16} />
-                            </button>
-                          )}
-                          {canEdit && (
-                            <button
-                              title="Rename"
-                              aria-label={`Rename ${item.name}`}
-                              className="icon-btn"
-                              onClick={() => {
-                                setName(item.name);
-                                setModal({ kind: "rename", item });
-                              }}
-                            >
-                              <Pencil size={15} />
-                            </button>
-                          )}
-                          {canManage && (
-                            <button
-                              title="Permissions"
-                              aria-label={`Permissions for ${item.name}`}
-                              className="icon-btn"
-                              onClick={() => setModal({ kind: "share", item })}
-                            >
-                              <Share2 size={15} />
-                            </button>
-                          )}
-                          {canEdit && section !== "shared-with-me" && (
-                            <button
-                              title="Move"
-                              aria-label={`Move ${item.name}`}
-                              className="icon-btn"
-                              onClick={() => setModal({ kind: "move", item })}
-                            >
-                              <FolderInput size={15} />
-                            </button>
-                          )}
-                          {canDelete && (
-                            <button
-                              title="Move to trash"
-                              aria-label={`Trash ${item.name}`}
-                              className="icon-btn"
-                              onClick={() => setModal({ kind: "trash", item })}
-                            >
-                              <Trash2 size={15} />
-                            </button>
-                          )}
+                          <div className="flex flex-1 items-center gap-2 md:hidden">
+                            <span className="w-28 text-xs text-slate-400 ">
+                              {prettyDate(item.updatedAt)}
+                            </span>
+                            <span className="w-24 text-xs text-slate-400 ">
+                              {item.file ? fileSize(item.file.sizeBytes) : "—"}
+                            </span>
+                          </div>
+                          <div>
+                            {item.kind === "FILE" && (
+                              <button
+                                aria-label={`Download ${item.name}`}
+                                title="Download"
+                                className="icon-btn"
+                                onClick={() =>
+                                  act(() =>
+                                    downloadFile(item.file.id, item.name),
+                                  )
+                                }
+                              >
+                                <Download size={16} />
+                              </button>
+                            )}
+                            {canEdit && (
+                              <button
+                                title="Rename"
+                                aria-label={`Rename ${item.name}`}
+                                className="icon-btn"
+                                onClick={() => {
+                                  setName(item.name);
+                                  setModal({ kind: "rename", item });
+                                }}
+                              >
+                                <Pencil size={15} />
+                              </button>
+                            )}
+                            {canManage && (
+                              <button
+                                title="Permissions"
+                                aria-label={`Permissions for ${item.name}`}
+                                className="icon-btn"
+                                onClick={() =>
+                                  setModal({ kind: "share", item })
+                                }
+                              >
+                                <Share2 size={15} />
+                              </button>
+                            )}
+                            {canEdit && section !== "shared-with-me" && (
+                              <button
+                                title="Move"
+                                aria-label={`Move ${item.name}`}
+                                className="icon-btn"
+                                onClick={() => setModal({ kind: "move", item })}
+                              >
+                                <FolderInput size={15} />
+                              </button>
+                            )}
+                            {canDelete && (
+                              <button
+                                title="Move to trash"
+                                aria-label={`Trash ${item.name}`}
+                                className="icon-btn"
+                                onClick={() =>
+                                  setModal({ kind: "trash", item })
+                                }
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                            )}
+                          </div>
                         </>
                       )}
                     </div>

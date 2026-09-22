@@ -1384,7 +1384,6 @@ export default function ApprovalsPage() {
     <>
       <PageHeader
         title="Approvals"
-        description="Review requests, filter what matters, and organize approvals into your own personal groups."
         action={
           <div className="flex flex-wrap items-center gap-2">
             <button className="btn-secondary" onClick={() => setGroupForm({})}>
@@ -1725,7 +1724,7 @@ export default function ApprovalsPage() {
             ))}
           </div>
         ) : (
-          <div className="approval-list-card card h-[calc(100vh-11.6rem)] overflow-auto">
+          <div className="approval-list-card card h-[calc(100vh-18.6rem)] md:h-[calc(100vh-11.6rem)] overflow-auto">
             <div className="">
               <div className="approval-list-header sticky -top-[0.1px] z-5 grid min-w-[900px] grid-cols-[minmax(280px,1.8fr)_180px_190px_145px_160px] items-center gap-4 bg-slate-50 px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-slate-400">
                 <span>Request</span>
@@ -1739,7 +1738,7 @@ export default function ApprovalsPage() {
                 return (
                   <section key={group.id}>
                     <div
-                      className="approval-group-header sticky top-10 flex min-w-[900px] items-center gap-2 border-t border-slate-200 bg-slate-100 px-4 py-2.5"
+                      className="approval-group-header sticky top-0 md:top-10 flex min-w-[900px] items-center gap-2 border-t border-slate-200 bg-slate-100 px-4 py-2.5"
                       onDragOver={(event) => {
                         event.preventDefault();
                         event.dataTransfer.dropEffect = "move";
