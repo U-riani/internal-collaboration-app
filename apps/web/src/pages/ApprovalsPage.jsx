@@ -1521,14 +1521,14 @@ export default function ApprovalsPage() {
           </div>
 
           <div className="approval-toolbar-secondary ml-auto flex items-center gap-2">
-            <div className="approval-search relative">
+            <div className="approval-search relative min-w-60!">
               <Search
                 className="absolute right-3 top-3 text-slate-400"
                 size={15}
               />
               <input
                 aria-label="Search approvals"
-                className="input w-full pl-9 pe-8! sm:w-56"
+                className="input w-full  pl-9 pe-8! "
                 placeholder="Search approvals"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
@@ -1758,7 +1758,7 @@ export default function ApprovalsPage() {
           </div>
         </div>
 
-        {activeFilterCount > 0 && (
+        {/* {activeFilterCount > 0 && (
           <div className="mb-4 flex flex-wrap items-center gap-2 text-xs">
             <span className="rounded-full bg-blue-50 px-3 py-1.5 font-semibold text-blue-700">
               {activeFilterCount} filter{activeFilterCount === 1 ? "" : "s"} active
@@ -1771,7 +1771,7 @@ export default function ApprovalsPage() {
               Clear
             </button>
           </div>
-        )}
+        )} */}
 
         <ErrorBox
           error={

@@ -575,6 +575,8 @@ a:focus-visible {
 
   .approval-toolbar-secondary {
     flex-wrap: nowrap !important;
+    overflow-x: auto;
+    scrollbar-width: none;
   }
 
   .approval-search {
@@ -588,7 +590,6 @@ a:focus-visible {
     max-width: none !important;
     max-height: calc(100dvh - 16px);
     overflow-y: auto;
-    transform: translateX(-50%) !important;
     padding: 16px !important;
   }
 

@@ -1644,7 +1644,7 @@ export default function TasksPage() {
         </div>
       </div>
 
-      {advancedFilterCount > 0 && (
+      {/* {advancedFilterCount > 0 && (
         <div className="mb-4 flex flex-wrap items-center gap-2 text-xs">
           <span className="rounded-full bg-blue-50 px-3 py-1.5 font-semibold text-blue-700">
             {advancedFilterCount} advanced filter
@@ -1658,7 +1658,7 @@ export default function TasksPage() {
             Clear
           </button>
         </div>
-      )}
+      )} */}
       <ErrorBox
         error={
           query.error || groups.error || quickStatus.error || deleteGroup.error
