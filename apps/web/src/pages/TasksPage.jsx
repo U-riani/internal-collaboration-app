@@ -1176,7 +1176,7 @@ export default function TasksPage() {
         <div
           role="button"
           tabIndex={0}
-          className={`grid min-w-[940px] grid-cols-[minmax(300px,1.8fr)_180px_165px_110px_145px_70px] items-center gap-4 border-t border-slate-100 px-5 py-3.5 text-left transition hover:bg-slate-50 focus:bg-slate-50 focus:outline-none ${subtask ? "bg-slate-50/40" : ""}`}
+          className={`task-list-row grid min-w-[940px] grid-cols-[minmax(300px,1.8fr)_180px_165px_110px_145px_70px] items-center gap-4 border-t border-slate-100 px-5 py-3.5 text-left transition hover:bg-slate-50 focus:bg-slate-50 focus:outline-none ${subtask ? "bg-slate-50/40" : ""}`}
           onClick={() => setId(task.id)}
           onKeyDown={(event) => {
             if (event.key === "Enter" || event.key === " ") {
@@ -1360,7 +1360,7 @@ export default function TasksPage() {
             </button>
 
             {filtersOpen && (
-              <div className="fixed top-2 left-1/2 -translate-x-1/2  w-[680px] max-w-[calc(100vw-48px)] max-h-[calc(100vh-1rem)] overflow-y-auto rounded-2xl border border-slate-200 bg-white px-5 shadow-xl z-50">
+              <div className="task-filter-panel fixed top-2 left-1/2 -translate-x-1/2 w-[680px] max-w-[calc(100vw-48px)] max-h-[calc(100vh-1rem)] overflow-y-auto rounded-2xl border border-slate-200 bg-white px-5 shadow-xl z-50">
                 <div className="sticky top-0 z-10  bg-white pt-5 pb-3 flex items-center justify-between gap-4 border-b border-slate-200">
                   <div>
                     <h3 className="text-sm font-bold text-slate-800 sticky">
@@ -1563,7 +1563,7 @@ export default function TasksPage() {
                     </select>
                   </label>
 
-                  <div className="grid grid-cols-2 gap-3 md:col-span-2">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:col-span-2">
                     <label className="text-xs font-semibold text-slate-500">
                       Created from
                       <input
@@ -1590,7 +1590,7 @@ export default function TasksPage() {
                 </div>
 
                 <div className="sticky bottom-0 py-3 flex items-center justify-between border-t border-slate-100 bg-white pt-4">
-                  <span className="text-xs text-slate-400">
+                  <span className="hidden text-xs text-slate-400 sm:inline">
                     Hold Ctrl/Cmd to select multiple people or groups.
                   </span>
                   <button
@@ -1702,9 +1702,9 @@ export default function TasksPage() {
           ))}
         </div>
       ) : (
-        <div className="card  overflow-auto max-h-[calc(100vh-11.7rem)]">
+        <div className="task-list-card card overflow-auto max-h-[calc(100vh-11.7rem)]">
           <div className=" ">
-            <div className="sticky top-0 z-5 grid min-w-[940px] grid-cols-[minmax(300px,1.8fr)_180px_165px_110px_145px_70px] items-center gap-4 bg-slate-50 px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-slate-400">
+            <div className="task-list-header sticky top-0 z-5 grid min-w-[940px] grid-cols-[minmax(300px,1.8fr)_180px_165px_110px_145px_70px] items-center gap-4 bg-slate-50 px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-slate-400">
               <span>Task</span>
               <span>Assignee</span>
               <span>Due date</span>
@@ -1716,7 +1716,7 @@ export default function TasksPage() {
               const collapsed = collapsedGroups.has(group.id);
               return (
                 <section key={group.id}>
-                  <div className="sticky top-10 z-4 flex min-w-[940px] items-center gap-2 border-t border-slate-200 bg-slate-100 px-4 py-2.5">
+                  <div className="task-group-header sticky top-10 z-4 flex min-w-[940px] items-center gap-2 border-t border-slate-200 bg-slate-100 px-4 py-2.5">
                     <button
                       type="button"
                       className="grid h-7 w-7 place-items-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700"
@@ -1788,7 +1788,7 @@ export default function TasksPage() {
                     (group.tasks.length ? (
                       group.tasks.map((task) => listRow(task))
                     ) : (
-                      <div className="min-w-[940px] border-t border-slate-100 px-14 py-4 text-sm text-slate-400">
+                      <div className="task-empty-row min-w-[940px] border-t border-slate-100 px-14 py-4 text-sm text-slate-400">
                         No tasks in this group.
                       </div>
                     ))}
