@@ -17,7 +17,12 @@
 }
 body {
   margin: 0;
-  min-width: 360px;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+#root {
+  min-height: 100dvh;
 }
 button,
 input,
@@ -318,9 +323,138 @@ a:focus-visible {
 @media (max-width: 900px) {
   .workspace-main {
     margin-left: 0;
-    padding: 22px 16px;
+    padding: 0 14px 20px;
   }
+
+  .page-header {
+    margin-left: -14px;
+    margin-right: -14px;
+    padding: 12px 14px;
+  }
+
+  .page-header h1 {
+    font-size: 20px;
+    line-height: 1.25;
+  }
+
+  .page-header p {
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  .page-header-action {
+    width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .page-header-action::-webkit-scrollbar {
+    display: none;
+  }
+
+  .page-header-action > * {
+    min-width: max-content;
+  }
+
+  .toolbar {
+    margin-bottom: 12px;
+  }
+
+  .task-toolbar {
+    position: static !important;
+    top: auto !important;
+    padding: 10px;
+  }
+
+  .task-toolbar-actions {
+    justify-content: stretch;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+
+  .task-toolbar-actions::-webkit-scrollbar {
+    display: none;
+  }
+
+  .task-toolbar-actions > .relative:first-child {
+    min-width: min(100%, 240px);
+    flex: 1 0 190px;
+  }
+
+  .task-toolbar-actions > .relative:first-child input {
+    width: 100%;
+  }
+
+  .modal {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    width: 100vw;
+    max-height: 94dvh;
+    border-radius: 20px 20px 0 0;
+    transform: translateX(-50%);
+  }
+
+  .modal-wide {
+    width: 100vw;
+  }
+
+  .modal-head {
+    padding: 16px 18px;
+  }
+
   .modal-body {
     padding: 18px;
+    overflow-y: auto;
+  }
+
+  .form-actions {
+    position: sticky;
+    bottom: -18px;
+    margin: 18px -18px -18px;
+    padding: 14px 18px 18px;
+    border-top: 1px solid #edf0f5;
+    background: white;
+  }
+
+  .attachments {
+    flex-direction: column;
+  }
+
+  .attachment {
+    width: 100%;
+  }
+
+  .input {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 640px) {
+  .tabs {
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tabs button {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .btn-primary,
+  .btn-secondary,
+  .btn-danger {
+    min-height: 42px;
+  }
+
+  .list-row {
+    padding: 12px;
+    gap: 10px;
   }
 }
