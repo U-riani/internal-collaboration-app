@@ -1560,7 +1560,7 @@ export default function ApprovalsPage() {
             </select>
 
             <select
-              className="input w-auto min-w-40"
+              className="input w-full sm:w-auto sm:min-w-40"
               aria-label="Filter by requester"
               value={requesterFilter}
               onChange={(event) => setRequesterFilter(event.target.value)}
