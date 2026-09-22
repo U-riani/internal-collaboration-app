@@ -663,3 +663,30 @@ a:focus-visible {
     justify-self: end;
   }
 }
+
+
+/* Mobile messages */
+@media (max-width: 640px) {
+  .chat-shell {
+    height: calc(100dvh - 12rem) !important;
+    min-height: 430px;
+    border-radius: 14px;
+  }
+
+  .chat-sidebar-hidden-mobile {
+    display: none !important;
+  }
+
+  .chat-conversation {
+    width: 100%;
+  }
+
+  .chat-sidebar {
+    border-right: 0;
+  }
+
+  .chat-sidebar .avatar {
+    width: 40px;
+    height: 40px;
+  }
+}
