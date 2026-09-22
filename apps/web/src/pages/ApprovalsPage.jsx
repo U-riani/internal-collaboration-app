@@ -1336,7 +1336,7 @@ export default function ApprovalsPage() {
     const current = request.steps.find((step) => step.status === "PENDING");
     return (
       <button
-        className="grid min-w-[900px] w-full grid-cols-[minmax(280px,1.8fr)_180px_190px_145px_160px] items-center gap-4 border-t border-slate-100 px-5 py-3.5 text-left transition hover:bg-slate-50"
+        className="approval-list-row grid min-w-[900px] w-full grid-cols-[minmax(280px,1.8fr)_180px_190px_145px_160px] items-center gap-4 border-t border-slate-100 px-5 py-3.5 text-left transition hover:bg-slate-50"
         key={request.id}
         onClick={() => setSelectedId(request.id)}
       >
@@ -1421,8 +1421,8 @@ export default function ApprovalsPage() {
       />
 
       <div className="relative">
-        <div className="toolbar flex-wrap gap-3">
-          <div className="flex flex-wrap items-center gap-2">
+        <div className="approval-toolbar toolbar flex-wrap gap-3">
+          <div className="approval-toolbar-primary flex flex-wrap items-center gap-2">
             <div className="tabs">
               {[
                 ["all", "All"],
@@ -1481,15 +1481,15 @@ export default function ApprovalsPage() {
             )}
           </div>
 
-          <div className="ml-auto flex flex-wrap items-center gap-2">
-            <div className="relative">
+          <div className="approval-toolbar-secondary ml-auto flex flex-wrap items-center gap-2">
+            <div className="approval-search relative">
               <Search
                 className="absolute right-3 top-3 text-slate-400"
                 size={15}
               />
               <input
                 aria-label="Search approvals"
-                className="input w-56 pl-9 pe-7!"
+                className="input w-full sm:w-56 pl-9 pe-7!"
                 placeholder="Search approvals"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
@@ -1529,12 +1529,14 @@ export default function ApprovalsPage() {
 
         {showAdvancedFilters && (
           <div
-            className="fixed top-1/2 left-1/2 -translate-1/2  z-50 mb-5 flex flex-wrap items-center gap-2
-            bg-slate-200 p-2"
+            className="approval-filter-panel fixed left-1/2 top-1/2 z-50 flex w-[680px] max-w-[calc(100vw-48px)] -translate-x-1/2 -translate-y-1/2 flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-xl"
           >
-            <div className="w-full">
-              <div className="flex justify-between">
-                <div>filter</div>
+            <div className="w-full border-b border-slate-100 pb-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-800">Filter approvals</h3>
+                  <p className="mt-1 text-xs text-slate-400">Refine request type, requester, group, and date.</p>
+                </div>
                 <button
                   className="btn-secondary btn-sm"
                   onClick={() => setShowAdvancedFilters((current) => !current)}
@@ -1544,7 +1546,7 @@ export default function ApprovalsPage() {
               </div>
             </div>
             <select
-              className="input w-auto min-w-40"
+              className="input w-full sm:w-auto sm:min-w-40"
               aria-label="Filter by request type"
               value={typeFilter}
               onChange={(event) => setTypeFilter(event.target.value)}
@@ -1572,7 +1574,7 @@ export default function ApprovalsPage() {
             </select>
 
             <select
-              className="input w-auto min-w-36"
+              className="input w-full sm:w-auto sm:min-w-36"
               aria-label="Filter by group"
               value={groupFilter}
               onChange={(event) => setGroupFilter(event.target.value)}
@@ -1587,7 +1589,7 @@ export default function ApprovalsPage() {
             </select>
 
             <select
-              className="input w-auto min-w-32"
+              className="input w-full sm:w-auto sm:min-w-32"
               aria-label="Filter by date"
               value={dateFilter}
               onChange={(event) => setDateFilter(event.target.value)}
@@ -1621,7 +1623,7 @@ export default function ApprovalsPage() {
             {groupSections.map((group) => (
               <section
                 key={group.id}
-                className="w-[300px] min-w-[300px] rounded-xl bg-slate-100 p-3"
+                className="approval-board-column w-[300px] min-w-[300px] rounded-xl bg-slate-100 p-3"
                 onDragOver={(event) => {
                   event.preventDefault();
                   event.dataTransfer.dropEffect = "move";
@@ -1723,9 +1725,9 @@ export default function ApprovalsPage() {
             ))}
           </div>
         ) : (
-          <div className="card h-[calc(100vh-11.6rem)] overflow-auto ">
+          <div className="approval-list-card card h-[calc(100vh-11.6rem)] overflow-auto">
             <div className="">
-              <div className="sticky -top-[0.1px] z-5 grid min-w-[900px] grid-cols-[minmax(280px,1.8fr)_180px_190px_145px_160px] items-center gap-4 bg-slate-50 px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-slate-400">
+              <div className="approval-list-header sticky -top-[0.1px] z-5 grid min-w-[900px] grid-cols-[minmax(280px,1.8fr)_180px_190px_145px_160px] items-center gap-4 bg-slate-50 px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-slate-400">
                 <span>Request</span>
                 <span>Requester</span>
                 <span>Request type</span>
@@ -1737,7 +1739,7 @@ export default function ApprovalsPage() {
                 return (
                   <section key={group.id}>
                     <div
-                      className="sticky top-10 flex min-w-[900px] items-center gap-2 border-t border-slate-200 bg-slate-100 px-4 py-2.5"
+                      className="approval-group-header sticky top-10 flex min-w-[900px] items-center gap-2 border-t border-slate-200 bg-slate-100 px-4 py-2.5"
                       onDragOver={(event) => {
                         event.preventDefault();
                         event.dataTransfer.dropEffect = "move";
@@ -1837,7 +1839,7 @@ export default function ApprovalsPage() {
                       (group.requests.length ? (
                         group.requests.map(approvalRow)
                       ) : (
-                        <div className="min-w-[900px] border-t border-slate-100 px-14 py-4 text-sm text-slate-400">
+                        <div className="approval-empty-row min-w-[900px] border-t border-slate-100 px-14 py-4 text-sm text-slate-400">
                           No approvals in this group.
                         </div>
                       ))}
