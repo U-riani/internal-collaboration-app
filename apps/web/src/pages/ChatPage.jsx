@@ -28,6 +28,7 @@ import {
   Link2,
   ExternalLink,
   ArrowRight,
+  ArrowLeft,
   Smile,
   Pin,
   Rocket,
@@ -239,7 +240,7 @@ function EmojiMenu({
   return (
     <div
       ref={ref}
-      className={`absolute bottom-full z-50 mb-2 w-[326px] overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-xl ${
+      className={`absolute bottom-full z-50 mb-2 w-[326px] max-w-[calc(100vw-24px)] overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-xl ${
         align === "right" ? "right-0" : "left-0"
       }`}
     >
@@ -1157,9 +1158,9 @@ export default function ChatPage() {
         }
       />
       <ErrorBox error={conversations.error} />
-      <div className="card flex overflow-hidden h-[calc(100vh-7.54rem)]">
-        <aside className="w-20 sm:w-64 shrink-0 border-r border-slate-200 flex flex-col">
-          <div className="p-4 hidden sm:block">
+      <div className="chat-shell card flex overflow-hidden h-[calc(100vh-7.54rem)]">
+        <aside className={`chat-sidebar w-full sm:w-64 shrink-0 border-r border-slate-200 flex flex-col ${selectedId ? "chat-sidebar-hidden-mobile" : ""}`}>
+          <div className="p-3 sm:p-4">
             <input
               className="input"
               aria-label="Search conversations"
@@ -1185,7 +1186,7 @@ export default function ChatPage() {
                   className={`flex w-full gap-3 items-center p-4 text-left border-l-2 ${c.id === selectedId ? "border-blue-600 bg-blue-50/70" : "border-transparent hover:bg-slate-50"}`}
                 >
                   <Avatar name={displayName(c, user.id)} />
-                  <div className="hidden sm:block min-w-0 flex-1">
+                  <div className="min-w-0 flex-1">
                     <div className="flex justify-between items-center gap-2">
                       <span className="truncate text-sm font-semibold">
                         {displayName(c, user.id)}
@@ -1205,10 +1206,18 @@ export default function ChatPage() {
               ))}
           </div>
         </aside>
-        <section className="flex flex-1 min-w-0 flex-col">
+        <section className={`chat-conversation flex-1 min-w-0 flex-col ${selectedId ? "flex" : "hidden sm:flex"}`}>
           {selected ? (
             <>
-              <header className="flex items-center gap-3 border-b border-slate-100 px-5 py-4">
+              <header className="flex items-center gap-2 border-b border-slate-100 px-3 py-3 sm:gap-3 sm:px-5 sm:py-4">
+                <button
+                  type="button"
+                  className="icon-btn sm:hidden"
+                  aria-label="Back to conversations"
+                  onClick={() => selectConversation(null)}
+                >
+                  <ArrowLeft size={19} />
+                </button>
                 <div className="flex-1 min-w-0">
                   <h2 className="font-semibold text-sm truncate">
                     {displayName(selected, user.id)}
@@ -1483,7 +1492,7 @@ export default function ChatPage() {
               </header>
               <div
                 ref={scrollArea}
-                className="flex-1 overflow-y-auto p-5 space-y-5 bg-slate-50/50"
+                className="flex-1 overflow-y-auto p-3 sm:p-5 space-y-5 bg-slate-50/50"
                 onScroll={(event) => {
                   const element = event.currentTarget;
                   const distanceFromBottom = Math.max(
