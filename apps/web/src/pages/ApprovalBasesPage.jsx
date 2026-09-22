@@ -95,8 +95,8 @@ export default function ApprovalBasesPage() {
         }
       />
 
-      <div className="grid min-h-[calc(100vh-150px)] gap-5 xl:grid-cols-[260px_minmax(0,1fr)]">
-        <aside className="self-start rounded-2xl border border-slate-200 bg-white p-3 xl:sticky xl:top-6">
+      <div className="approval-bases-layout grid min-h-[calc(100vh-150px)] gap-5 xl:grid-cols-[260px_minmax(0,1fr)]">
+        <aside className="approval-bases-nav self-start rounded-2xl border border-slate-200 bg-white p-3 xl:sticky xl:top-6">
           <div className="mb-3 px-2 py-1">
             <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
               Request types
@@ -111,7 +111,7 @@ export default function ApprovalBasesPage() {
           ) : bases.error ? (
             <ErrorBox error={bases.error} />
           ) : (bases.data || []).length ? (
-            <div className="max-h-[calc(100vh-230px)] space-y-1 overflow-y-auto pr-1">
+            <div className="approval-bases-nav-list max-h-[calc(100vh-230px)] space-y-1 overflow-y-auto pr-1">
               {(bases.data || []).map((base) => (
                 <button
                   type="button"
@@ -199,14 +199,14 @@ export default function ApprovalBasesPage() {
                     )}
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="approval-bases-filters flex flex-wrap items-center gap-2">
                     <div className="relative">
                       <Search
                         className="absolute left-3 top-3 text-slate-400"
                         size={15}
                       />
                       <input
-                        className="input w-64 pl-9"
+                        className="input w-full sm:w-64 pl-9"
                         aria-label="Search approval base"
                         placeholder="Search title or requester"
                         value={search}
@@ -217,7 +217,7 @@ export default function ApprovalBasesPage() {
                       />
                     </div>
                     <select
-                      className="input w-44"
+                      className="input w-full sm:w-44"
                       aria-label="Approval base status"
                       value={status}
                       onChange={(event) => {
@@ -244,15 +244,15 @@ export default function ApprovalBasesPage() {
                 </div>
               ) : payload?.records?.length ? (
                 <>
-                  <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-                    <div className="overflow-auto">
-                      <table className="min-w-max w-full border-separate border-spacing-0 text-left text-sm">
+                  <section className="approval-base-table-section overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                    <div className="approval-base-table-wrap overflow-auto">
+                      <table className="approval-base-table min-w-max w-full border-separate border-spacing-0 text-left text-sm">
                         <thead className="sticky top-0 z-20 bg-slate-50 text-xs uppercase tracking-wide text-slate-400">
                           <tr>
-                            <th className="sticky left-0 z-30 min-w-[260px] max-w-[260px] border-b border-r border-slate-200 bg-slate-50 px-4 py-3 font-semibold">
+                            <th className="approval-base-request-cell sticky left-0 z-30 min-w-[260px] max-w-[260px] border-b border-r border-slate-200 bg-slate-50 px-4 py-3 font-semibold">
                               Request
                             </th>
-                            <th className="sticky left-[260px] z-30 min-w-[180px] border-b border-r border-slate-200 bg-slate-50 px-4 py-3 font-semibold">
+                            <th className="approval-base-requester-cell sticky left-[260px] z-30 min-w-[180px] border-b border-r border-slate-200 bg-slate-50 px-4 py-3 font-semibold">
                               Requester
                             </th>
                             <th className="min-w-[160px] border-b border-slate-200 px-4 py-3 font-semibold">
@@ -293,7 +293,7 @@ export default function ApprovalBasesPage() {
                               className="group cursor-pointer"
                               onClick={() => setSelectedRequestId(record.id)}
                             >
-                              <td className="sticky left-0 z-10 min-w-[260px] max-w-[260px] border-b border-r border-slate-100 bg-white px-4 py-3 transition group-hover:bg-slate-50">
+                              <td className="approval-base-request-cell sticky left-0 z-10 min-w-[260px] max-w-[260px] border-b border-r border-slate-100 bg-white px-4 py-3 transition group-hover:bg-slate-50">
                                 <p className="truncate font-semibold text-slate-700">
                                   {record.title}
                                 </p>
@@ -301,7 +301,7 @@ export default function ApprovalBasesPage() {
                                   v{record.approvalTypeVersion}
                                 </p>
                               </td>
-                              <td className="sticky left-[260px] z-10 min-w-[180px] border-b border-r border-slate-100 bg-white px-4 py-3 text-slate-600 transition group-hover:bg-slate-50">
+                              <td className="approval-base-requester-cell sticky left-[260px] z-10 min-w-[180px] border-b border-r border-slate-100 bg-white px-4 py-3 text-slate-600 transition group-hover:bg-slate-50">
                                 {record.requester.displayName}
                               </td>
                               <td className="border-b border-slate-100 px-4 py-3 text-slate-500 transition group-hover:bg-slate-50">
