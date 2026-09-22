@@ -652,7 +652,7 @@ export default function DrivePage() {
         }
       />
 
-      <div className="toolbar sticky top-20 z-10 flex flex-wrap items-center gap-4 border-b border-slate-200 bg-white px-4 py-3">
+      <div className="drive-toolbar toolbar sticky top-20 z-10 flex flex-wrap items-center gap-4 border-b border-slate-200 bg-white px-4 py-3">
         <div className="tabs">
           {[
             ["personal", "Personal"],
@@ -688,7 +688,7 @@ export default function DrivePage() {
 
       <div className={section === "shared" ? "grid gap-4 lg:grid-cols-[230px_1fr]" : ""}>
         {section === "shared" && (
-          <aside className="card h-fit p-2">
+          <aside className="drive-space-nav card h-fit p-2">
             <button
               className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm ${selectedSpace?.type === "GLOBAL" ? "bg-slate-100 font-semibold" : ""}`}
               onClick={() => {
@@ -782,12 +782,12 @@ export default function DrivePage() {
             </div>
           )}
 
-          <div className="card max-h-[calc(100vh-14.82rem)] overflow-y-auto">
+          <div className="drive-list-card card max-h-[calc(100vh-14.82rem)] overflow-y-auto">
             <div className="list-row sticky top-0 bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-400 ">
               <span className="flex-1">Name</span>
               <span className="hidden w-28 md:block">Updated</span>
               <span className="hidden w-24 md:block">Size</span>
-              <span className="w-40 text-right">Actions</span>
+              <span className="drive-actions-header w-40 text-right">Actions</span>
             </div>
 
             {query.isLoading || spaces.isLoading ? (
@@ -800,7 +800,7 @@ export default function DrivePage() {
                 const canDelete =
                   item.access === "OWNER" || item.access === "MANAGER";
                 return (
-                  <div className="list-row" key={item.id}>
+                  <div className="drive-item-row list-row" key={item.id}>
                     <div
                       className={`rounded-xl p-2.5 ${item.kind === "FOLDER" ? "bg-amber-50 text-amber-500" : "bg-blue-50 text-blue-500"}`}
                     >
@@ -839,7 +839,7 @@ export default function DrivePage() {
                     <span className="hidden w-24 text-xs text-slate-400 md:block">
                       {item.file ? fileSize(item.file.sizeBytes) : "—"}
                     </span>
-                    <div className="flex w-40 flex-wrap justify-end">
+                    <div className="drive-row-actions flex w-40 flex-wrap justify-end">
                       {section === "trash" ? (
                         <button
                           aria-label={`Restore ${item.name}`}
