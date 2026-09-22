@@ -132,21 +132,23 @@ export default function Layout() {
         </button>
       </div>
       <aside
-        className={`${open ? "flex" : "hidden"} min-[901px]:flex fixed inset-y-0 left-0 z-20 w-[236px] flex-col border-r border-slate-200 bg-white p-5 max-[900px]:top-[69px] max-[900px]:shadow-xl`}
+        className={`${open ? "flex" : "hidden"} h-screen overflow-y-auto min-[901px]:flex fixed inset-y-0 left-0 z-20 w-[236px] flex-col border-r border-slate-200 bg-white px-5 max-[900px]:top-[69px] max-[900px]:shadow-xl`}
       >
-        <div className="mb-9 mt-2 flex items-center gap-3 px-2">
-          <span className="grid h-9 w-9 place-items-center rounded-xl bg-blue-600 font-bold text-white">
-            W
-          </span>
-          <div>
-            <strong className="text-[17px]">Workspace</strong>
-            <p className="text-[11px] text-slate-400">Your team, together</p>
+        <div className="sticky top-0 bg-white">
+          <div className="mb-9 mt-2 flex items-center gap-3 px-2">
+            <span className="grid h-9 w-9 place-items-center rounded-xl bg-blue-600 font-bold text-white">
+              W
+            </span>
+            <div>
+              <strong className="text-[17px]">Workspace</strong>
+              <p className="text-[11px] text-slate-400">Your team, together</p>
+            </div>
           </div>
-        </div>
         <p className="mb-3 px-3 text-[10px] font-bold tracking-[.16em] text-slate-400">
           WORKSPACE
         </p>
-        <nav className="space-y-1">
+        </div>
+        <nav className="space-y-1 ">
           {[
             ...links.filter(
               ([path]) => path !== "/drive" || hasPermission("drive.use"),
@@ -179,7 +181,7 @@ export default function Layout() {
             );
           })}
         </nav>
-        <div className="mt-auto border-t border-slate-100 pt-5">
+        <div className="sticky bottom-0 bg-white mt-auto pb-3 border-t border-slate-100 pt-5">
           <div className="mb-4 flex items-center gap-3">
             <Avatar name={user.displayName} />
             <div className="min-w-0">
@@ -207,7 +209,7 @@ export default function Layout() {
           </button>
         </div>
       </aside>
-      <main className="workspace-main">
+      <main className="workspace-main h-screen! overflow-y-auto!">
         <Outlet />
       </main>
     </div>

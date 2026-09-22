@@ -39,7 +39,7 @@ export default function DirectoryPage() {
         title="Employee directory"
         description="People, departments, positions, and contact information."
       />
-      <div className="card mb-5 p-4">
+      <div className="sticky top-18 card mb-5 p-4">
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <label className="relative">
             <span className="sr-only">Search people</span>

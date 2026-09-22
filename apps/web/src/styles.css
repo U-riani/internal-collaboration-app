@@ -312,7 +312,7 @@ a:focus-visible {
 }
 .workspace-main {
   min-width: 0;
-  padding: 28px 34px;
+  padding: 0px 34px 28px 34px;
   margin-left: 236px;
 }
 @media (max-width: 900px) {

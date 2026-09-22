@@ -190,11 +190,13 @@ function Configure({ existing, onClose }) {
       >
         {existing && (
           <div className="mb-5 rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-500">
-            <strong className="text-slate-700">Version {existing.version}</strong>
+            <strong className="text-slate-700">
+              Version {existing.version}
+            </strong>
             {" · "}
-            {usedCount} request{usedCount === 1 ? "" : "s"} created from this type.
-            Saving configuration changes creates version {existing.version + 1};
-            existing requests keep their saved workflow.
+            {usedCount} request{usedCount === 1 ? "" : "s"} created from this
+            type. Saving configuration changes creates version{" "}
+            {existing.version + 1}; existing requests keep their saved workflow.
           </div>
         )}
         <div className="grid sm:grid-cols-2 gap-4">
@@ -231,10 +233,7 @@ function Configure({ existing, onClose }) {
         <h3 className="text-sm font-bold mt-6 mb-3">Request form</h3>
         <div className="space-y-3">
           {fields.map((f, i) => (
-            <div
-              className="rounded-xl border border-slate-200 p-3"
-              key={f.key}
-            >
+            <div className="rounded-xl border border-slate-200 p-3" key={f.key}>
               <div className="flex flex-wrap gap-2">
                 <input
                   className="input w-32"
@@ -277,7 +276,11 @@ function Configure({ existing, onClose }) {
                               ...x,
                               type: e.target.value,
                               ...(e.target.value === "select"
-                                ? { options: x.options?.length ? x.options : ["Option 1"] }
+                                ? {
+                                    options: x.options?.length
+                                      ? x.options
+                                      : ["Option 1"],
+                                  }
                                 : { options: undefined }),
                             }
                           : x,
@@ -844,8 +847,7 @@ export function RequestDetail({ item, onClose }) {
       }),
     })
       .then(() => {
-        if (active)
-          qc.invalidateQueries({ queryKey: ["notifications"] });
+        if (active) qc.invalidateQueries({ queryKey: ["notifications"] });
       })
       .catch(() => {});
 
@@ -894,7 +896,10 @@ export function RequestDetail({ item, onClose }) {
     <Modal title={item.title} onClose={onClose} wide>
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm text-slate-400">
-          {item.requester.displayName} · {item.workflowSnapshot?.type?.name || item.approvalType.name} · v{item.workflowSnapshot?.type?.version || item.approvalTypeVersion} · {prettyDate(item.createdAt)}
+          {item.requester.displayName} ·{" "}
+          {item.workflowSnapshot?.type?.name || item.approvalType.name} · v
+          {item.workflowSnapshot?.type?.version || item.approvalTypeVersion} ·{" "}
+          {prettyDate(item.createdAt)}
         </p>
         <Badge value={item.status} />
       </div>
@@ -1115,8 +1120,7 @@ export default function ApprovalsPage() {
         }),
       ]);
     },
-    onSuccess: () =>
-      qc.invalidateQueries({ queryKey: ["approval-groups"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["approval-groups"] }),
   });
   const deleteGroup = useMutation({
     mutationFn: (groupId) =>
@@ -1416,444 +1420,458 @@ export default function ApprovalsPage() {
         }
       />
 
-      <div className="toolbar flex-wrap gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="tabs">
-            {[
-              ["all", "All"],
-              ["review", "Needs my review"],
-              ["mine", "My requests"],
-              ["involved", "I'm involved"],
-            ].map(([value, label]) => (
-              <button
-                key={value}
-                className={involvement === value ? "active" : ""}
-                onClick={() => setInvolvement(value)}
-              >
-                {label}
+      <div className="relative">
+        <div className="toolbar flex-wrap gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="tabs">
+              {[
+                ["all", "All"],
+                ["review", "Needs my review"],
+                ["mine", "My requests"],
+                ["involved", "I'm involved"],
+              ].map(([value, label]) => (
+                <button
+                  key={value}
+                  className={involvement === value ? "active" : ""}
+                  onClick={() => setInvolvement(value)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            <details className="relative">
+              <summary className="btn-secondary cursor-pointer list-none">
+                Status
+                {selectedStatuses.length ? ` (${selectedStatuses.length})` : ""}
+              </summary>
+              <div className="absolute left-0 top-11 z-10 w-56 rounded-xl border border-slate-200 bg-white p-3 shadow-xl">
+                <div className="space-y-2">
+                  {approvalStatuses.map((status) => (
+                    <label
+                      key={status}
+                      className="flex items-center gap-2 text-xs text-slate-600"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedStatuses.includes(status)}
+                        onChange={() => toggleStatus(status)}
+                      />
+                      {status.replaceAll("_", " ")}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </details>
+
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => setShowAdvancedFilters((current) => !current)}
+            >
+              <SlidersHorizontal size={15} />
+              {showAdvancedFilters ? "Hide filters" : "Show filters"}
+              {advancedFilterCount ? ` (${advancedFilterCount})` : ""}
+            </button>
+
+            {activeFilterCount > 0 && (
+              <button className="btn-secondary" onClick={resetFilters}>
+                Clear filters
               </button>
-            ))}
+            )}
           </div>
 
-          <details className="relative">
-            <summary className="btn-secondary cursor-pointer list-none">
-              Status
-              {selectedStatuses.length
-                ? ` (${selectedStatuses.length})`
-                : ""}
-            </summary>
-            <div className="absolute left-0 top-11 z-10 w-56 rounded-xl border border-slate-200 bg-white p-3 shadow-xl">
-              <div className="space-y-2">
-                {approvalStatuses.map((status) => (
-                  <label
-                    key={status}
-                    className="flex items-center gap-2 text-xs text-slate-600"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedStatuses.includes(status)}
-                      onChange={() => toggleStatus(status)}
-                    />
-                    {status.replaceAll("_", " ")}
-                  </label>
-                ))}
-              </div>
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            <div className="relative">
+              <Search
+                className="absolute right-3 top-3 text-slate-400"
+                size={15}
+              />
+              <input
+                aria-label="Search approvals"
+                className="input w-56 pl-9 pe-7!"
+                placeholder="Search approvals"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+              />
             </div>
-          </details>
-
-          <button
-            type="button"
-            className="btn-secondary"
-            onClick={() => setShowAdvancedFilters((current) => !current)}
-          >
-            <SlidersHorizontal size={15} />
-            {showAdvancedFilters ? "Hide filters" : "Show filters"}
-            {advancedFilterCount ? ` (${advancedFilterCount})` : ""}
-          </button>
-
-          {activeFilterCount > 0 && (
-            <button className="btn-secondary" onClick={resetFilters}>
-              Clear filters
-            </button>
-          )}
+            <div
+              className="inline-flex rounded-xl border border-slate-200 bg-white p-1"
+              aria-label="Approval view"
+            >
+              <button
+                type="button"
+                className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                  !board
+                    ? "bg-slate-100 text-slate-800"
+                    : "text-slate-500 hover:text-slate-800"
+                }`}
+                onClick={() => setBoard(false)}
+              >
+                <List size={15} />
+                List
+              </button>
+              <button
+                type="button"
+                className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                  board
+                    ? "bg-slate-100 text-slate-800"
+                    : "text-slate-500 hover:text-slate-800"
+                }`}
+                onClick={() => setBoard(true)}
+              >
+                <Columns3 size={15} />
+                Board
+              </button>
+            </div>
+          </div>
         </div>
 
-        <div className="ml-auto flex flex-wrap items-center gap-2">
-          <div className="relative">
-            <Search
-              className="absolute left-3 top-3 text-slate-400"
-              size={15}
-            />
-            <input
-              aria-label="Search approvals"
-              className="input w-56 pl-9"
-              placeholder="Search approvals"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-            />
-          </div>
+        {showAdvancedFilters && (
           <div
-            className="inline-flex rounded-xl border border-slate-200 bg-white p-1"
-            aria-label="Approval view"
+            className="fixed top-1/2 left-1/2 -translate-1/2  z-50 mb-5 flex flex-wrap items-center gap-2
+            bg-slate-200 p-2"
           >
-            <button
-              type="button"
-              className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                !board
-                  ? "bg-slate-100 text-slate-800"
-                  : "text-slate-500 hover:text-slate-800"
-              }`}
-              onClick={() => setBoard(false)}
-            >
-              <List size={15} />
-              List
-            </button>
-            <button
-              type="button"
-              className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                board
-                  ? "bg-slate-100 text-slate-800"
-                  : "text-slate-500 hover:text-slate-800"
-              }`}
-              onClick={() => setBoard(true)}
-            >
-              <Columns3 size={15} />
-              Board
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {showAdvancedFilters && (
-        <div className="mb-5 flex flex-wrap items-center gap-2">
-          <select
-            className="input w-auto min-w-40"
-            aria-label="Filter by request type"
-            value={typeFilter}
-            onChange={(event) => setTypeFilter(event.target.value)}
-          >
-            <option value="all">All request types</option>
-            {typeOptions.map((type) => (
-              <option key={type.id} value={type.id}>
-                {type.name}
-              </option>
-            ))}
-          </select>
-
-          <select
-            className="input w-auto min-w-40"
-            aria-label="Filter by requester"
-            value={requesterFilter}
-            onChange={(event) => setRequesterFilter(event.target.value)}
-          >
-            <option value="all">All requesters</option>
-            {requesterOptions.map((requester) => (
-              <option key={requester.id} value={requester.id}>
-                {requester.displayName}
-              </option>
-            ))}
-          </select>
-
-          <select
-            className="input w-auto min-w-36"
-            aria-label="Filter by group"
-            value={groupFilter}
-            onChange={(event) => setGroupFilter(event.target.value)}
-          >
-            <option value="all">All groups</option>
-            {(groups.data || []).map((group) => (
-              <option key={group.id} value={group.id}>
-                {group.name}
-              </option>
-            ))}
-            <option value={UNGROUPED}>Ungrouped</option>
-          </select>
-
-          <select
-            className="input w-auto min-w-32"
-            aria-label="Filter by date"
-            value={dateFilter}
-            onChange={(event) => setDateFilter(event.target.value)}
-          >
-            <option value="all">Any date</option>
-            <option value="7">Last 7 days</option>
-            <option value="30">Last 30 days</option>
-          </select>
-
-          <span className="ml-auto text-xs text-slate-400">
-            {visibleRequests.length} request
-            {visibleRequests.length === 1 ? "" : "s"}
-          </span>
-        </div>
-      )}
-
-      <ErrorBox
-        error={
-          query.error ||
-          groups.error ||
-          moveLayout.error ||
-          deleteGroup.error ||
-          reorderGroup.error
-        }
-      />
-
-      {query.isLoading || groups.isLoading ? (
-        <Loading />
-      ) : board ? (
-        <div className="flex gap-4 overflow-x-auto pb-4">
-          {groupSections.map((group) => (
-            <section
-              key={group.id}
-              className="w-[300px] min-w-[300px] rounded-xl bg-slate-100 p-3"
-              onDragOver={(event) => {
-                event.preventDefault();
-                event.dataTransfer.dropEffect = "move";
-              }}
-              onDrop={(event) => {
-                event.preventDefault();
-                const sourceGroupId = event.dataTransfer.getData(
-                  "application/x-approval-group",
-                );
-                if (
-                  sourceGroupId &&
-                  group.id !== UNGROUPED &&
-                  sourceGroupId !== group.id
-                ) {
-                  reorderGroup.mutate({
-                    sourceId: sourceGroupId,
-                    targetId: group.id,
-                  });
-                  setDraggingGroupId(null);
-                  return;
-                }
-
-                const requestId =
-                  draggingId || event.dataTransfer.getData("text/plain");
-                if (!requestId) return;
-                moveLayout.mutate({
-                  requestId,
-                  groupId: group.id === UNGROUPED ? null : group.id,
-                });
-                setDraggingId(null);
-              }}
-            >
-              <div className="mb-4 flex items-center gap-2 px-1">
-                {group.canManage && (
-                  <span
-                    draggable
-                    title="Drag to reorder group"
-                    className={`cursor-grab text-slate-400 ${
-                      draggingGroupId === group.id ? "opacity-40" : ""
-                    }`}
-                    onDragStart={(event) => {
-                      event.stopPropagation();
-                      setDraggingGroupId(group.id);
-                      event.dataTransfer.effectAllowed = "move";
-                      event.dataTransfer.setData(
-                        "application/x-approval-group",
-                        group.id,
-                      );
-                    }}
-                    onDragEnd={() => setDraggingGroupId(null)}
-                  >
-                    <GripVertical size={14} />
-                  </span>
-                )}
-                <h3 className="min-w-0 flex-1 truncate text-xs font-bold text-slate-600">
-                  {group.name}
-                </h3>
-                <span className="text-xs text-slate-400">
-                  {group.requests.length}
-                </span>
-                {group.canManage && (
-                  <>
-                    <button
-                      type="button"
-                      className="icon-btn"
-                      aria-label={`Rename ${group.name}`}
-                      onClick={() => setGroupForm(group)}
-                    >
-                      <Pencil size={13} />
-                    </button>
-                    <button
-                      type="button"
-                      className="icon-btn hover:text-red-600"
-                      aria-label={`Delete ${group.name}`}
-                      disabled={deleteGroup.isPending}
-                      onClick={() => {
-                        if (
-                          window.confirm(
-                            `Delete “${group.name}”? Your approvals in this group will move to Ungrouped. Other users are not affected.`,
-                          )
-                        )
-                          deleteGroup.mutate(group.id);
-                      }}
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  </>
-                )}
+            <div className="w-full">
+              <div className="flex justify-between">
+                <div>filter</div>
+                <button
+                  className="btn-secondary btn-sm"
+                  onClick={() => setShowAdvancedFilters((current) => !current)}
+                >
+                  x
+                </button>
               </div>
-              <div className="min-h-24 space-y-3">
-                {group.requests.map(approvalCard)}
-                {!group.requests.length && (
-                  <div className="rounded-xl border border-dashed border-slate-300 px-4 py-8 text-center text-xs text-slate-400">
-                    Drop approvals here
-                  </div>
-                )}
-              </div>
-            </section>
-          ))}
-        </div>
-      ) : (
-        <div className="card overflow-hidden">
-          <div className="overflow-x-auto">
-            <div className="grid min-w-[900px] grid-cols-[minmax(280px,1.8fr)_180px_190px_145px_160px] items-center gap-4 bg-slate-50 px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-slate-400">
-              <span>Request</span>
-              <span>Requester</span>
-              <span>Request type</span>
-              <span>Status</span>
-              <span>Created</span>
             </div>
-            {groupSections.map((group) => {
-              const collapsed = collapsedGroups.has(group.id);
-              return (
-                <section key={group.id}>
-                  <div
-                    className="flex min-w-[900px] items-center gap-2 border-t border-slate-200 bg-slate-50/70 px-4 py-2.5"
-                    onDragOver={(event) => {
-                      event.preventDefault();
-                      event.dataTransfer.dropEffect = "move";
-                    }}
-                    onDrop={(event) => {
-                      event.preventDefault();
-                      const sourceGroupId = event.dataTransfer.getData(
-                        "application/x-approval-group",
-                      );
-                      if (
-                        sourceGroupId &&
-                        group.id !== UNGROUPED &&
-                        sourceGroupId !== group.id
-                      ) {
-                        reorderGroup.mutate({
-                          sourceId: sourceGroupId,
-                          targetId: group.id,
-                        });
-                        setDraggingGroupId(null);
-                      }
-                    }}
-                  >
-                    {group.canManage && (
-                      <span
-                        draggable
-                        title="Drag to reorder group"
-                        className={`cursor-grab text-slate-400 ${
-                          draggingGroupId === group.id ? "opacity-40" : ""
-                        }`}
-                        onDragStart={(event) => {
-                          event.stopPropagation();
-                          setDraggingGroupId(group.id);
-                          event.dataTransfer.effectAllowed = "move";
-                          event.dataTransfer.setData(
-                            "application/x-approval-group",
-                            group.id,
-                          );
-                        }}
-                        onDragEnd={() => setDraggingGroupId(null)}
-                      >
-                        <GripVertical size={14} />
-                      </span>
-                    )}
-                    <button
-                      type="button"
-                      className="grid h-7 w-7 place-items-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-                      onClick={() => toggleGroup(group.id)}
-                      aria-label={
-                        collapsed
-                          ? `Expand ${group.name}`
-                          : `Collapse ${group.name}`
-                      }
-                    >
-                      {collapsed ? (
-                        <ChevronRight size={16} />
-                      ) : (
-                        <ChevronDown size={16} />
-                      )}
-                    </button>
-                    <span className="font-semibold text-sm text-slate-700">
-                      {group.name}
-                    </span>
-                    <span className="text-xs text-slate-400">
-                      {group.requests.length} request
-                      {group.requests.length === 1 ? "" : "s"}
-                    </span>
-                    {group.canManage && (
-                      <div className="ml-auto flex items-center gap-1">
-                        <button
-                          type="button"
-                          className="icon-btn"
-                          aria-label={`Rename ${group.name}`}
-                          onClick={() => setGroupForm(group)}
-                        >
-                          <Pencil size={14} />
-                        </button>
-                        <button
-                          type="button"
-                          className="icon-btn hover:text-red-600"
-                          aria-label={`Delete ${group.name}`}
-                          disabled={deleteGroup.isPending}
-                          onClick={() => {
-                            if (
-                              window.confirm(
-                                `Delete “${group.name}”? Your approvals in this group will move to Ungrouped. Other users are not affected.`,
-                              )
-                            )
-                              deleteGroup.mutate(group.id);
-                          }}
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                  {!collapsed &&
-                    (group.requests.length ? (
-                      group.requests.map(approvalRow)
-                    ) : (
-                      <div className="min-w-[900px] border-t border-slate-100 px-14 py-4 text-sm text-slate-400">
-                        No approvals in this group.
-                      </div>
-                    ))}
-                </section>
-              );
-            })}
-          </div>
-        </div>
-      )}
+            <select
+              className="input w-auto min-w-40"
+              aria-label="Filter by request type"
+              value={typeFilter}
+              onChange={(event) => setTypeFilter(event.target.value)}
+            >
+              <option value="all">All request types</option>
+              {typeOptions.map((type) => (
+                <option key={type.id} value={type.id}>
+                  {type.name}
+                </option>
+              ))}
+            </select>
 
-      {!query.isLoading &&
-        !groups.isLoading &&
-        !visibleRequests.length &&
-        !(groups.data || []).length && (
-          <div className="card mt-4">
-            <Empty
-              title="No approvals to show"
-              text="Create a group, submit a request, or try another filter."
-            />
+            <select
+              className="input w-auto min-w-40"
+              aria-label="Filter by requester"
+              value={requesterFilter}
+              onChange={(event) => setRequesterFilter(event.target.value)}
+            >
+              <option value="all">All requesters</option>
+              {requesterOptions.map((requester) => (
+                <option key={requester.id} value={requester.id}>
+                  {requester.displayName}
+                </option>
+              ))}
+            </select>
+
+            <select
+              className="input w-auto min-w-36"
+              aria-label="Filter by group"
+              value={groupFilter}
+              onChange={(event) => setGroupFilter(event.target.value)}
+            >
+              <option value="all">All groups</option>
+              {(groups.data || []).map((group) => (
+                <option key={group.id} value={group.id}>
+                  {group.name}
+                </option>
+              ))}
+              <option value={UNGROUPED}>Ungrouped</option>
+            </select>
+
+            <select
+              className="input w-auto min-w-32"
+              aria-label="Filter by date"
+              value={dateFilter}
+              onChange={(event) => setDateFilter(event.target.value)}
+            >
+              <option value="all">Any date</option>
+              <option value="7">Last 7 days</option>
+              <option value="30">Last 30 days</option>
+            </select>
+
+            <span className="ml-auto text-xs text-slate-400">
+              {visibleRequests.length} request
+              {visibleRequests.length === 1 ? "" : "s"}
+            </span>
           </div>
         )}
 
-      {modal === "create" && <RequestForm onClose={() => setModal(null)} />}
-      {modal === "configure" && (
-        <RequestTypesManager onClose={() => setModal(null)} />
-      )}
-      {groupForm && (
-        <ApprovalGroupForm
-          existing={groupForm.id ? groupForm : null}
-          onClose={() => setGroupForm(null)}
+        <ErrorBox
+          error={
+            query.error ||
+            groups.error ||
+            moveLayout.error ||
+            deleteGroup.error ||
+            reorderGroup.error
+          }
         />
-      )}
-      {item && <RequestDetail item={item} onClose={closeRequest} />}
+
+        {query.isLoading || groups.isLoading ? (
+          <Loading />
+        ) : board ? (
+          <div className="flex gap-4 overflow-x-auto pb-4">
+            {groupSections.map((group) => (
+              <section
+                key={group.id}
+                className="w-[300px] min-w-[300px] rounded-xl bg-slate-100 p-3"
+                onDragOver={(event) => {
+                  event.preventDefault();
+                  event.dataTransfer.dropEffect = "move";
+                }}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  const sourceGroupId = event.dataTransfer.getData(
+                    "application/x-approval-group",
+                  );
+                  if (
+                    sourceGroupId &&
+                    group.id !== UNGROUPED &&
+                    sourceGroupId !== group.id
+                  ) {
+                    reorderGroup.mutate({
+                      sourceId: sourceGroupId,
+                      targetId: group.id,
+                    });
+                    setDraggingGroupId(null);
+                    return;
+                  }
+
+                  const requestId =
+                    draggingId || event.dataTransfer.getData("text/plain");
+                  if (!requestId) return;
+                  moveLayout.mutate({
+                    requestId,
+                    groupId: group.id === UNGROUPED ? null : group.id,
+                  });
+                  setDraggingId(null);
+                }}
+              >
+                <div className="mb-4 flex items-center gap-2 px-1">
+                  {group.canManage && (
+                    <span
+                      draggable
+                      title="Drag to reorder group"
+                      className={`cursor-grab text-slate-400 ${
+                        draggingGroupId === group.id ? "opacity-40" : ""
+                      }`}
+                      onDragStart={(event) => {
+                        event.stopPropagation();
+                        setDraggingGroupId(group.id);
+                        event.dataTransfer.effectAllowed = "move";
+                        event.dataTransfer.setData(
+                          "application/x-approval-group",
+                          group.id,
+                        );
+                      }}
+                      onDragEnd={() => setDraggingGroupId(null)}
+                    >
+                      <GripVertical size={14} />
+                    </span>
+                  )}
+                  <h3 className="min-w-0 flex-1 truncate text-xs font-bold text-slate-600">
+                    {group.name}
+                  </h3>
+                  <span className="text-xs text-slate-400">
+                    {group.requests.length}
+                  </span>
+                  {group.canManage && (
+                    <>
+                      <button
+                        type="button"
+                        className="icon-btn"
+                        aria-label={`Rename ${group.name}`}
+                        onClick={() => setGroupForm(group)}
+                      >
+                        <Pencil size={13} />
+                      </button>
+                      <button
+                        type="button"
+                        className="icon-btn hover:text-red-600"
+                        aria-label={`Delete ${group.name}`}
+                        disabled={deleteGroup.isPending}
+                        onClick={() => {
+                          if (
+                            window.confirm(
+                              `Delete “${group.name}”? Your approvals in this group will move to Ungrouped. Other users are not affected.`,
+                            )
+                          )
+                            deleteGroup.mutate(group.id);
+                        }}
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </>
+                  )}
+                </div>
+                <div className="min-h-24 space-y-3">
+                  {group.requests.map(approvalCard)}
+                  {!group.requests.length && (
+                    <div className="rounded-xl border border-dashed border-slate-300 px-4 py-8 text-center text-xs text-slate-400">
+                      Drop approvals here
+                    </div>
+                  )}
+                </div>
+              </section>
+            ))}
+          </div>
+        ) : (
+          <div className="card h-[calc(100vh-11.6rem)] overflow-auto ">
+            <div className="">
+              <div className="sticky -top-[0.1px] z-5 grid min-w-[900px] grid-cols-[minmax(280px,1.8fr)_180px_190px_145px_160px] items-center gap-4 bg-slate-50 px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-slate-400">
+                <span>Request</span>
+                <span>Requester</span>
+                <span>Request type</span>
+                <span>Status</span>
+                <span>Created</span>
+              </div>
+              {groupSections.map((group) => {
+                const collapsed = collapsedGroups.has(group.id);
+                return (
+                  <section key={group.id}>
+                    <div
+                      className="sticky top-10 flex min-w-[900px] items-center gap-2 border-t border-slate-200 bg-slate-100 px-4 py-2.5"
+                      onDragOver={(event) => {
+                        event.preventDefault();
+                        event.dataTransfer.dropEffect = "move";
+                      }}
+                      onDrop={(event) => {
+                        event.preventDefault();
+                        const sourceGroupId = event.dataTransfer.getData(
+                          "application/x-approval-group",
+                        );
+                        if (
+                          sourceGroupId &&
+                          group.id !== UNGROUPED &&
+                          sourceGroupId !== group.id
+                        ) {
+                          reorderGroup.mutate({
+                            sourceId: sourceGroupId,
+                            targetId: group.id,
+                          });
+                          setDraggingGroupId(null);
+                        }
+                      }}
+                    >
+                      {group.canManage && (
+                        <span
+                          draggable
+                          title="Drag to reorder group"
+                          className={`cursor-grab text-slate-400 ${
+                            draggingGroupId === group.id ? "opacity-40" : ""
+                          }`}
+                          onDragStart={(event) => {
+                            event.stopPropagation();
+                            setDraggingGroupId(group.id);
+                            event.dataTransfer.effectAllowed = "move";
+                            event.dataTransfer.setData(
+                              "application/x-approval-group",
+                              group.id,
+                            );
+                          }}
+                          onDragEnd={() => setDraggingGroupId(null)}
+                        >
+                          <GripVertical size={14} />
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        className="grid h-7 w-7 place-items-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                        onClick={() => toggleGroup(group.id)}
+                        aria-label={
+                          collapsed
+                            ? `Expand ${group.name}`
+                            : `Collapse ${group.name}`
+                        }
+                      >
+                        {collapsed ? (
+                          <ChevronRight size={16} />
+                        ) : (
+                          <ChevronDown size={16} />
+                        )}
+                      </button>
+                      <span className="font-semibold text-sm text-slate-700">
+                        {group.name}
+                      </span>
+                      <span className="text-xs text-slate-400">
+                        {group.requests.length} request
+                        {group.requests.length === 1 ? "" : "s"}
+                      </span>
+                      {group.canManage && (
+                        <div className="ml-auto flex items-center gap-1">
+                          <button
+                            type="button"
+                            className="icon-btn"
+                            aria-label={`Rename ${group.name}`}
+                            onClick={() => setGroupForm(group)}
+                          >
+                            <Pencil size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            className="icon-btn hover:text-red-600"
+                            aria-label={`Delete ${group.name}`}
+                            disabled={deleteGroup.isPending}
+                            onClick={() => {
+                              if (
+                                window.confirm(
+                                  `Delete “${group.name}”? Your approvals in this group will move to Ungrouped. Other users are not affected.`,
+                                )
+                              )
+                                deleteGroup.mutate(group.id);
+                            }}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    {!collapsed &&
+                      (group.requests.length ? (
+                        group.requests.map(approvalRow)
+                      ) : (
+                        <div className="min-w-[900px] border-t border-slate-100 px-14 py-4 text-sm text-slate-400">
+                          No approvals in this group.
+                        </div>
+                      ))}
+                  </section>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {!query.isLoading &&
+          !groups.isLoading &&
+          !visibleRequests.length &&
+          !(groups.data || []).length && (
+            <div className="card mt-4">
+              <Empty
+                title="No approvals to show"
+                text="Create a group, submit a request, or try another filter."
+              />
+            </div>
+          )}
+
+        {modal === "create" && <RequestForm onClose={() => setModal(null)} />}
+        {modal === "configure" && (
+          <RequestTypesManager onClose={() => setModal(null)} />
+        )}
+        {groupForm && (
+          <ApprovalGroupForm
+            existing={groupForm.id ? groupForm : null}
+            onClose={() => setGroupForm(null)}
+          />
+        )}
+        {item && <RequestDetail item={item} onClose={closeRequest} />}
+      </div>
     </>
   );
 }

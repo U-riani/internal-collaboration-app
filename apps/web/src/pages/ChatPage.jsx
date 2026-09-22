@@ -1,4 +1,11 @@
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   useInfiniteQuery,
   useMutation,
@@ -632,8 +639,8 @@ export default function ChatPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const linkedConversationId = searchParams.get("conversation");
   const linkedMessageId = searchParams.get("message");
-  const [selectedId, setSelectedId] = useState(() =>
-    linkedConversationId || sessionStorage.getItem(lastChatKey),
+  const [selectedId, setSelectedId] = useState(
+    () => linkedConversationId || sessionStorage.getItem(lastChatKey),
   );
   const [focusMessageId, setFocusMessageId] = useState(linkedMessageId);
   const [text, setText] = useState("");
@@ -703,8 +710,7 @@ export default function ChatPage() {
   const pinsQuery = useQuery({
     queryKey: ["message-pins", selectedId],
     enabled: Boolean(selectedId && pinsOpen),
-    queryFn: () =>
-      api(`/conversations/${selectedId}/pins`).then((r) => r.data),
+    queryFn: () => api(`/conversations/${selectedId}/pins`).then((r) => r.data),
   });
   const results = useQuery({
     queryKey: [
@@ -715,8 +721,8 @@ export default function ChatPage() {
     ],
     enabled: Boolean(
       selectedId &&
-        searchOpen &&
-        (searchType !== "messages" || normalizedMessageSearch.length >= 2),
+      searchOpen &&
+      (searchType !== "messages" || normalizedMessageSearch.length >= 2),
     ),
     queryFn: () =>
       api(
@@ -876,11 +882,7 @@ export default function ChatPage() {
   );
 
   useEffect(() => {
-    if (
-      !selectedId ||
-      !selected?.unreadReactionCount ||
-      !hasWindowAttention
-    )
+    if (!selectedId || !selected?.unreadReactionCount || !hasWindowAttention)
       return;
     let cancelled = false;
     api(`/conversations/${selectedId}/reactions/read`, {
@@ -909,12 +911,7 @@ export default function ChatPage() {
     return () => {
       cancelled = true;
     };
-  }, [
-    selectedId,
-    selected?.unreadReactionCount,
-    hasWindowAttention,
-    qc,
-  ]);
+  }, [selectedId, selected?.unreadReactionCount, hasWindowAttention, qc]);
 
   useEffect(() => {
     if (!conversations.data) return;
@@ -1160,7 +1157,7 @@ export default function ChatPage() {
         }
       />
       <ErrorBox error={conversations.error} />
-      <div className="card flex overflow-hidden h-[calc(100dvh-185px)] min-h-[520px]">
+      <div className="card flex overflow-hidden h-[calc(100vh-7.54rem)]">
         <aside className="w-20 sm:w-64 shrink-0 border-r border-slate-200 flex flex-col">
           <div className="p-4 hidden sm:block">
             <input
@@ -1224,7 +1221,7 @@ export default function ChatPage() {
                   <div className="relative">
                     <Search
                       size={16}
-                      className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                      className={`pointer-events-none absolute right-3 ${searchOpen ? "opacity-0" : "opacity-100"}  top-1/2 -translate-y-1/2 text-slate-400`}
                     />
                     <input
                       className="input pl-9 pr-9"
@@ -1306,7 +1303,9 @@ export default function ChatPage() {
                                   </span>
                                   <span>·</span>
                                   <span>
-                                    {new Date(result.createdAt).toLocaleString()}
+                                    {new Date(
+                                      result.createdAt,
+                                    ).toLocaleString()}
                                   </span>
                                   <ArrowRight
                                     size={13}
@@ -1332,7 +1331,9 @@ export default function ChatPage() {
                                   </span>
                                   <span>·</span>
                                   <span>
-                                    {new Date(result.createdAt).toLocaleString()}
+                                    {new Date(
+                                      result.createdAt,
+                                    ).toLocaleString()}
                                   </span>
                                 </div>
                                 <Attachments items={[{ file: result.file }]} />
@@ -1362,7 +1363,9 @@ export default function ChatPage() {
                                   </span>
                                   <span>·</span>
                                   <span>
-                                    {new Date(result.createdAt).toLocaleString()}
+                                    {new Date(
+                                      result.createdAt,
+                                    ).toLocaleString()}
                                   </span>
                                 </div>
                                 <a
@@ -1375,7 +1378,10 @@ export default function ChatPage() {
                                   <span className="min-w-0 flex-1 truncate">
                                     {result.url}
                                   </span>
-                                  <ExternalLink size={13} className="shrink-0" />
+                                  <ExternalLink
+                                    size={13}
+                                    className="shrink-0"
+                                  />
                                 </a>
                                 <p className="mt-1 truncate text-xs text-slate-500">
                                   {result.messagePreview}
@@ -1452,7 +1458,8 @@ export default function ChatPage() {
                                 </div>
                                 <p className="mt-1 line-clamp-2 text-sm text-slate-700">
                                   {item.message.content ||
-                                    item.message.attachments[0]?.file.originalName ||
+                                    item.message.attachments[0]?.file
+                                      .originalName ||
                                     "Attachment"}
                                 </p>
                                 <p className="mt-1 text-[10px] text-slate-400">
@@ -1535,7 +1542,9 @@ export default function ChatPage() {
                             onRead={queueMessageRead}
                             className={`flex gap-2 ${own ? "flex-row-reverse" : ""} ${focusMessageId === m.id ? "rounded-xl ring-2 ring-blue-300 ring-offset-2" : ""}`}
                           >
-                            {!own && <Avatar small name={m.sender.displayName} />}
+                            {!own && (
+                              <Avatar small name={m.sender.displayName} />
+                            )}
                             <div className="max-w-[90%] sm:max-w-[78%] min-w-0">
                               <div
                                 className={`mb-1 text-[10px] text-slate-400 ${own ? "text-right" : ""}`}
@@ -1626,7 +1635,9 @@ export default function ChatPage() {
                                       title="React"
                                       aria-label="React to message"
                                       className="icon-btn p-1"
-                                      onMouseDown={(event) => event.stopPropagation()}
+                                      onMouseDown={(event) =>
+                                        event.stopPropagation()
+                                      }
                                       onClick={() =>
                                         setReactionFor((current) =>
                                           current === m.id ? null : m.id,
@@ -1651,7 +1662,9 @@ export default function ChatPage() {
                                   </div>
                                   <button
                                     type="button"
-                                    title={m.pin ? "Unpin message" : "Pin message"}
+                                    title={
+                                      m.pin ? "Unpin message" : "Pin message"
+                                    }
                                     aria-label={
                                       m.pin ? "Unpin message" : "Pin message"
                                     }
@@ -1726,7 +1739,8 @@ export default function ChatPage() {
                           markConversationRead();
                         }}
                       >
-                        ↓ {chatBadgeLabel(selected.unreadMessageCount)} new messages
+                        ↓ {chatBadgeLabel(selected.unreadMessageCount)} new
+                        messages
                       </button>
                     )}
                   </>

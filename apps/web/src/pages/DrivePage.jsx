@@ -652,7 +652,7 @@ export default function DrivePage() {
         }
       />
 
-      <div className="toolbar">
+      <div className="toolbar sticky top-20 z-10 flex flex-wrap items-center gap-4 border-b border-slate-200 bg-white px-4 py-3">
         <div className="tabs">
           {[
             ["personal", "Personal"],
@@ -673,10 +673,10 @@ export default function DrivePage() {
           <div className="relative ml-auto w-full sm:w-64">
             <Search
               size={16}
-              className="absolute left-3 top-3 text-slate-400"
+              className="absolute right-3 top-3 text-slate-400"
             />
             <input
-              className="input pl-9"
+              className="input pl-9 pe-7!"
               aria-label="Search files"
               placeholder="Search files and folders"
               value={search}
@@ -782,8 +782,8 @@ export default function DrivePage() {
             </div>
           )}
 
-          <div className="card overflow-hidden">
-            <div className="list-row bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+          <div className="card max-h-[calc(100vh-14.82rem)] overflow-y-auto">
+            <div className="list-row sticky top-0 bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-400 ">
               <span className="flex-1">Name</span>
               <span className="hidden w-28 md:block">Updated</span>
               <span className="hidden w-24 md:block">Size</span>
