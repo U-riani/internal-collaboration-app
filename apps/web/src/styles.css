@@ -484,8 +484,8 @@ a:focus-visible {
   }
 
   .task-group-header {
-    position: sticky;
-    top: 0 !important;
+    position: static !important;
+    top: auto !important;
     z-index: 8 !important;
     min-width: 0 !important;
     margin: 0 -1px;
@@ -617,8 +617,8 @@ a:focus-visible {
   }
 
   .approval-group-header {
-    position: sticky;
-    top: 0 !important;
+    position: static !important;
+    top: auto !important;
     z-index: 8;
     min-width: 0 !important;
     border: 1px solid #e2e8f0;
