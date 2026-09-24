@@ -1293,8 +1293,7 @@ export default function ApprovalsPage() {
       return (
         result ||
         compareManualPosition(left, right) ||
-        new Date(right.createdAt).getTime() -
-          new Date(left.createdAt).getTime()
+        new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
       );
     });
 
@@ -1464,8 +1463,11 @@ export default function ApprovalsPage() {
       <PageHeader
         title="Approvals"
         action={
-          <div className="flex flex-wrap items-center gap-2">
-            <button className="btn-secondary" onClick={() => setGroupForm({})}>
+          <div className="flex  md:flex-wrap text-nowrap items-center gap-2 overflow-x-auto scrollbar-none">
+            <button
+              className="btn-secondary"
+              onClick={() => setGroupForm({})}
+            >
               <FolderPlus size={17} />
               New group
             </button>

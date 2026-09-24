@@ -161,7 +161,8 @@ export default function ApprovalBasesPage() {
     const approvers = new Map();
 
     for (const record of allRecords) {
-      if (record.requester?.id) requesters.set(record.requester.id, record.requester);
+      if (record.requester?.id)
+        requesters.set(record.requester.id, record.requester);
       if (record.department?.id)
         departments.set(record.department.id, record.department);
       const approver = record.steps?.[0]?.approver;
@@ -223,7 +224,8 @@ export default function ApprovalBasesPage() {
         (createdAt && createdAt >= new Date(`${filters.createdFrom}T00:00:00`));
       const createdToMatch =
         !filters.createdTo ||
-        (createdAt && createdAt <= new Date(`${filters.createdTo}T23:59:59.999`));
+        (createdAt &&
+          createdAt <= new Date(`${filters.createdTo}T23:59:59.999`));
       const submittedFromMatch =
         !filters.submittedFrom ||
         (submittedAt &&
@@ -367,14 +369,11 @@ export default function ApprovalBasesPage() {
         }
       />
 
-      <div className="h-[calc(100vh-10.2rem)] md:h-[calc(100vh-6.7rem)] approval-bases-layout grid gap-5 xl:grid-cols-[260px_minmax(0,1fr)]">
+      <div className=" md:h-[calc(100vh-6.7rem)] approval-bases-layout grid gap-2 xl:grid-cols-[260px_minmax(0,1fr)]">
         <aside className="overflow-x-auto max-h-screen approval-bases-nav self-start rounded-2xl border border-slate-200 bg-white p-3 xl:sticky xl:top-6">
-          <div className="mb-3 px-2 py-1">
-            <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+          <div className=" px-1 py-1 mb-0">
+            <p className="text-xs mb-0 font-bold uppercase tracking-wide text-slate-400">
               Request types
-            </p>
-            <p className="mt-1 text-xs leading-5 text-slate-500">
-              Each request type has its own organized approval data view.
             </p>
           </div>
 
@@ -383,7 +382,7 @@ export default function ApprovalBasesPage() {
           ) : bases.error ? (
             <ErrorBox error={bases.error} />
           ) : (bases.data || []).length ? (
-            <div className="approval-bases-nav-list max-h-[calc(100vh-12rem)] space-y-1 overflow-y-auto pr-1">
+            <div className="approval-bases-nav-list max-h-[calc(100vh-8.5rem)] space-y-1 overflow-y-auto pr-1">
               {(bases.data || []).map((base) => (
                 <button
                   type="button"
@@ -427,7 +426,7 @@ export default function ApprovalBasesPage() {
           )}
         </aside>
 
-        <main className="min-w-0">
+        <main className="min-w-0 ">
           {!typeId ? (
             <div className="card">
               {bases.isLoading ? (
@@ -441,7 +440,7 @@ export default function ApprovalBasesPage() {
             </div>
           ) : (
             <>
-              <section className="mb-4 rounded-2xl border border-slate-200 bg-white p-5">
+              <section className="flex flex-col md:flex-row md:items-center justify-between mb-4 rounded-2xl border border-slate-200 bg-white p-5">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
@@ -452,14 +451,31 @@ export default function ApprovalBasesPage() {
                       </h2>
                       {(records.data?.type?.status || selectedBase?.status) && (
                         <Badge
-                          value={records.data?.type?.status || selectedBase?.status}
+                          value={
+                            records.data?.type?.status || selectedBase?.status
+                          }
                         />
-                      )}
+                      )}{" "}
+                      <label className="inline-flex md:hidden h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600">
+                        <ArrowUpDown size={15} className="text-slate-400" />
+                        <select
+                          aria-label="Sort approval base"
+                          className="max-w-48 bg-transparent outline-none"
+                          value={sortBy}
+                          onChange={(event) => setSortBy(event.target.value)}
+                        >
+                          {BASE_SORT_OPTIONS.map(([value, label]) => (
+                            <option key={value} value={value}>
+                              {label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
                     </div>
                     <p className="mt-1 text-sm text-slate-400">
                       {records.data?.type?.code || selectedBase?.code}
                       {records.data
-                        ? ` · ${allRecords.length} accessible record${
+                        ? ` · ${allRecords.length} record${
                             allRecords.length === 1 ? "" : "s"
                           }`
                         : ""}
@@ -472,7 +488,7 @@ export default function ApprovalBasesPage() {
                   </div>
                 </div>
 
-                <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-4">
+                <div className="flex flex-wrap items-center gap-2 border-t border-slate-100 ">
                   <div className="relative min-w-[220px] flex-1 sm:max-w-72">
                     <Search
                       className="absolute right-3 top-3 text-slate-400"
@@ -591,7 +607,9 @@ export default function ApprovalBasesPage() {
                                 setFilterValues("departmentIds", event)
                               }
                             >
-                              <option value={NO_DEPARTMENT}>No department</option>
+                              <option value={NO_DEPARTMENT}>
+                                No department
+                              </option>
                               {filterOptions.departments.map((department) => (
                                 <option
                                   key={department.id}
@@ -613,7 +631,9 @@ export default function ApprovalBasesPage() {
                                 setFilterValues("approverIds", event)
                               }
                             >
-                              <option value={NO_APPROVER}>No current approver</option>
+                              <option value={NO_APPROVER}>
+                                No current approver
+                              </option>
                               {filterOptions.approvers.map((approver) => (
                                 <option key={approver.id} value={approver.id}>
                                   {approver.displayName}
@@ -630,7 +650,10 @@ export default function ApprovalBasesPage() {
                                 className="input mt-1.5"
                                 value={filters.createdFrom}
                                 onChange={(event) =>
-                                  setFilterValue("createdFrom", event.target.value)
+                                  setFilterValue(
+                                    "createdFrom",
+                                    event.target.value,
+                                  )
                                 }
                               />
                             </label>
@@ -641,7 +664,10 @@ export default function ApprovalBasesPage() {
                                 className="input mt-1.5"
                                 value={filters.createdTo}
                                 onChange={(event) =>
-                                  setFilterValue("createdTo", event.target.value)
+                                  setFilterValue(
+                                    "createdTo",
+                                    event.target.value,
+                                  )
                                 }
                               />
                             </label>
@@ -692,7 +718,7 @@ export default function ApprovalBasesPage() {
                     )}
                   </div>
 
-                  <label className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600">
+                  <label className="hidden md:inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600">
                     <ArrowUpDown size={15} className="text-slate-400" />
                     <select
                       aria-label="Sort approval base"
@@ -744,7 +770,7 @@ export default function ApprovalBasesPage() {
               ) : payload?.records?.length ? (
                 <>
                   <section className="approval-base-table-section rounded-2xl border border-slate-200 bg-white">
-                    <div className="approval-base-table-wrap max-h-[calc(100vh-35rem)] md:max-h-[calc(100vh-17.1rem)] overflow-auto">
+                    <div className="approval-base-table-wrap max-h-[calc(100vh-31.9rem)] md:max-h-[calc(100vh-14.6rem)] overflow-auto">
                       <table className="approval-base-table min-w-max w-full border-separate border-spacing-0 text-left text-sm">
                         <thead className="sticky top-0 z-20 bg-slate-50 text-xs uppercase tracking-wide text-slate-400">
                           <tr>
@@ -823,7 +849,8 @@ export default function ApprovalBasesPage() {
                                 <Badge value={record.status} />
                               </td>
                               <td className="border-b border-slate-100 px-4 py-3 text-slate-500 transition group-hover:bg-slate-50">
-                                {record.steps?.[0]?.approver?.displayName || "—"}
+                                {record.steps?.[0]?.approver?.displayName ||
+                                  "—"}
                               </td>
                               <td className="border-b border-slate-100 px-4 py-3 text-slate-500 transition group-hover:bg-slate-50">
                                 {record.submittedAt
@@ -842,8 +869,8 @@ export default function ApprovalBasesPage() {
 
                   {(payload.columns || []).some((column) => column.legacy) && (
                     <p className="mt-2 text-[11px] text-slate-400">
-                      * Field comes from an earlier saved version of this request
-                      type.
+                      * Field comes from an earlier saved version of this
+                      request type.
                     </p>
                   )}
 
@@ -868,7 +895,8 @@ export default function ApprovalBasesPage() {
                         type="button"
                         className="btn-secondary"
                         disabled={
-                          payload.pagination.page >= payload.pagination.pageCount
+                          payload.pagination.page >=
+                          payload.pagination.pageCount
                         }
                         onClick={() => setPage((current) => current + 1)}
                       >
