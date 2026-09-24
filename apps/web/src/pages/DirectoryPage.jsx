@@ -37,18 +37,17 @@ export default function DirectoryPage() {
     <>
       <PageHeader
         title="Employee directory"
-        description="People, departments, positions, and contact information."
       />
-      <div className="card mb-5 p-4">
+      <div className="directory-filters sticky top-18 card mb-5 p-4">
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <label className="relative">
             <span className="sr-only">Search people</span>
             <Search
               size={16}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
             />
             <input
-              className="input pl-9"
+              className="input pl-9 pe-8!"
               placeholder="Search people..."
               value={filters.q}
               onChange={(event) => setFilter("q", event.target.value)}

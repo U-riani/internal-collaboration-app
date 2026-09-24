@@ -12,9 +12,10 @@ import {
   FolderPlus,
   GripVertical,
   List,
+  ListFilter,
+  ArrowUpDown,
   Pencil,
   Search,
-  SlidersHorizontal,
   Trash2,
 } from "lucide-react";
 import { api, uploadFile } from "../lib/api.js";
@@ -40,6 +41,28 @@ const approvalStatuses = [
   "CANCELLED",
 ];
 const UNGROUPED = "__ungrouped__";
+
+const DEFAULT_APPROVAL_FILTERS = {
+  statuses: [],
+  typeIds: [],
+  requesterIds: [],
+  groupIds: [],
+  createdFrom: "",
+  createdTo: "",
+};
+
+const APPROVAL_SORT_OPTIONS = [
+  ["manual", "Default / manual"],
+  ["created_desc", "Created · newest"],
+  ["created_asc", "Created · oldest"],
+  ["title_asc", "Title · A to Z"],
+  ["title_desc", "Title · Z to A"],
+  ["requester_asc", "Requester · A to Z"],
+  ["requester_desc", "Requester · Z to A"],
+  ["type_asc", "Request type · A to Z"],
+  ["type_desc", "Request type · Z to A"],
+  ["status", "Status"],
+];
 
 function FormFields({ schema, values, setValues, draft = false }) {
   return (
@@ -190,11 +213,13 @@ function Configure({ existing, onClose }) {
       >
         {existing && (
           <div className="mb-5 rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-500">
-            <strong className="text-slate-700">Version {existing.version}</strong>
+            <strong className="text-slate-700">
+              Version {existing.version}
+            </strong>
             {" · "}
-            {usedCount} request{usedCount === 1 ? "" : "s"} created from this type.
-            Saving configuration changes creates version {existing.version + 1};
-            existing requests keep their saved workflow.
+            {usedCount} request{usedCount === 1 ? "" : "s"} created from this
+            type. Saving configuration changes creates version{" "}
+            {existing.version + 1}; existing requests keep their saved workflow.
           </div>
         )}
         <div className="grid sm:grid-cols-2 gap-4">
@@ -231,10 +256,7 @@ function Configure({ existing, onClose }) {
         <h3 className="text-sm font-bold mt-6 mb-3">Request form</h3>
         <div className="space-y-3">
           {fields.map((f, i) => (
-            <div
-              className="rounded-xl border border-slate-200 p-3"
-              key={f.key}
-            >
+            <div className="rounded-xl border border-slate-200 p-3" key={f.key}>
               <div className="flex flex-wrap gap-2">
                 <input
                   className="input w-32"
@@ -277,7 +299,11 @@ function Configure({ existing, onClose }) {
                               ...x,
                               type: e.target.value,
                               ...(e.target.value === "select"
-                                ? { options: x.options?.length ? x.options : ["Option 1"] }
+                                ? {
+                                    options: x.options?.length
+                                      ? x.options
+                                      : ["Option 1"],
+                                  }
                                 : { options: undefined }),
                             }
                           : x,
@@ -844,8 +870,7 @@ export function RequestDetail({ item, onClose }) {
       }),
     })
       .then(() => {
-        if (active)
-          qc.invalidateQueries({ queryKey: ["notifications"] });
+        if (active) qc.invalidateQueries({ queryKey: ["notifications"] });
       })
       .catch(() => {});
 
@@ -894,7 +919,10 @@ export function RequestDetail({ item, onClose }) {
     <Modal title={item.title} onClose={onClose} wide>
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm text-slate-400">
-          {item.requester.displayName} · {item.workflowSnapshot?.type?.name || item.approvalType.name} · v{item.workflowSnapshot?.type?.version || item.approvalTypeVersion} · {prettyDate(item.createdAt)}
+          {item.requester.displayName} ·{" "}
+          {item.workflowSnapshot?.type?.name || item.approvalType.name} · v
+          {item.workflowSnapshot?.type?.version || item.approvalTypeVersion} ·{" "}
+          {prettyDate(item.createdAt)}
         </p>
         <Badge value={item.status} />
       </div>
@@ -1067,12 +1095,11 @@ export default function ApprovalsPage() {
   const [involvement, setInvolvement] = useState("all");
   const [search, setSearch] = useState("");
   const [board, setBoard] = useState(false);
-  const [selectedStatuses, setSelectedStatuses] = useState([]);
-  const [typeFilter, setTypeFilter] = useState("all");
-  const [requesterFilter, setRequesterFilter] = useState("all");
-  const [groupFilter, setGroupFilter] = useState("all");
-  const [dateFilter, setDateFilter] = useState("all");
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [advancedFilters, setAdvancedFilters] = useState(
+    DEFAULT_APPROVAL_FILTERS,
+  );
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [sortBy, setSortBy] = useState("manual");
   const [modal, setModal] = useState(null);
   const [groupForm, setGroupForm] = useState(null);
   const [selectedId, setSelectedId] = useState(linkedRequestId);
@@ -1115,14 +1142,16 @@ export default function ApprovalsPage() {
         }),
       ]);
     },
-    onSuccess: () =>
-      qc.invalidateQueries({ queryKey: ["approval-groups"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["approval-groups"] }),
   });
   const deleteGroup = useMutation({
     mutationFn: (groupId) =>
       api(`/approval-groups/${groupId}`, { method: "DELETE" }),
     onSuccess: (_data, groupId) => {
-      if (groupFilter === groupId) setGroupFilter("all");
+      setAdvancedFilters((current) => ({
+        ...current,
+        groupIds: current.groupIds.filter((id) => id !== groupId),
+      }));
       qc.invalidateQueries({ queryKey: ["approval-groups"] });
       qc.invalidateQueries({ queryKey: ["approvals"] });
     },
@@ -1164,13 +1193,6 @@ export default function ApprovalsPage() {
 
   const visibleRequests = useMemo(() => {
     const normalized = search.trim().toLowerCase();
-    const now = Date.now();
-    const cutoff =
-      dateFilter === "7"
-        ? now - 7 * 24 * 60 * 60 * 1000
-        : dateFilter === "30"
-          ? now - 30 * 24 * 60 * 60 * 1000
-          : null;
 
     return allRequests.filter((request) => {
       const typeName =
@@ -1192,16 +1214,28 @@ export default function ApprovalsPage() {
           .toLowerCase()
           .includes(normalized);
       const statusMatch =
-        !selectedStatuses.length || selectedStatuses.includes(request.status);
+        !advancedFilters.statuses.length ||
+        advancedFilters.statuses.includes(request.status);
       const typeMatch =
-        typeFilter === "all" || request.approvalTypeId === typeFilter;
+        !advancedFilters.typeIds.length ||
+        advancedFilters.typeIds.includes(request.approvalTypeId);
       const requesterMatch =
-        requesterFilter === "all" || request.requesterId === requesterFilter;
+        !advancedFilters.requesterIds.length ||
+        advancedFilters.requesterIds.includes(request.requesterId);
       const requestGroupId = request.personalLayout?.groupId || UNGROUPED;
       const groupMatch =
-        groupFilter === "all" || requestGroupId === groupFilter;
-      const dateMatch =
-        cutoff === null || new Date(request.createdAt).getTime() >= cutoff;
+        !advancedFilters.groupIds.length ||
+        advancedFilters.groupIds.includes(requestGroupId);
+      const createdAt = request.createdAt ? new Date(request.createdAt) : null;
+      const createdFromMatch =
+        !advancedFilters.createdFrom ||
+        (createdAt &&
+          createdAt >= new Date(`${advancedFilters.createdFrom}T00:00:00`));
+      const createdToMatch =
+        !advancedFilters.createdTo ||
+        (createdAt &&
+          createdAt <= new Date(`${advancedFilters.createdTo}T23:59:59.999`));
+
       return (
         involvementMatch &&
         textMatch &&
@@ -1209,61 +1243,110 @@ export default function ApprovalsPage() {
         typeMatch &&
         requesterMatch &&
         groupMatch &&
-        dateMatch
+        createdFromMatch &&
+        createdToMatch
       );
     });
-  }, [
-    allRequests,
-    search,
-    involvement,
-    selectedStatuses,
-    typeFilter,
-    requesterFilter,
-    groupFilter,
-    dateFilter,
-    user.id,
-  ]);
+  }, [allRequests, search, involvement, advancedFilters, user.id]);
+
+  const compareManualPosition = (left, right) =>
+    (left.personalLayout?.position ?? Number.MAX_SAFE_INTEGER) -
+    (right.personalLayout?.position ?? Number.MAX_SAFE_INTEGER);
+
+  const requestTypeName = (request) =>
+    request.workflowSnapshot?.type?.name || request.approvalType.name;
+
+  const sortRequests = (items) =>
+    items.slice().sort((left, right) => {
+      let result = 0;
+
+      if (sortBy === "created_desc")
+        result =
+          new Date(right.createdAt).getTime() -
+          new Date(left.createdAt).getTime();
+      else if (sortBy === "created_asc")
+        result =
+          new Date(left.createdAt).getTime() -
+          new Date(right.createdAt).getTime();
+      else if (sortBy === "title_asc")
+        result = left.title.localeCompare(right.title);
+      else if (sortBy === "title_desc")
+        result = right.title.localeCompare(left.title);
+      else if (sortBy === "requester_asc")
+        result = left.requester.displayName.localeCompare(
+          right.requester.displayName,
+        );
+      else if (sortBy === "requester_desc")
+        result = right.requester.displayName.localeCompare(
+          left.requester.displayName,
+        );
+      else if (sortBy === "type_asc")
+        result = requestTypeName(left).localeCompare(requestTypeName(right));
+      else if (sortBy === "type_desc")
+        result = requestTypeName(right).localeCompare(requestTypeName(left));
+      else if (sortBy === "status")
+        result =
+          approvalStatuses.indexOf(left.status) -
+          approvalStatuses.indexOf(right.status);
+      else result = compareManualPosition(left, right);
+
+      return (
+        result ||
+        compareManualPosition(left, right) ||
+        new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
+      );
+    });
 
   const groupSections = useMemo(() => {
-    const sortedRequests = (items) =>
-      items.slice().sort((left, right) => {
-        const positionDifference =
-          (left.personalLayout?.position ?? Number.MAX_SAFE_INTEGER) -
-          (right.personalLayout?.position ?? Number.MAX_SAFE_INTEGER);
-        if (positionDifference) return positionDifference;
-        return new Date(right.createdAt) - new Date(left.createdAt);
-      });
-
     const sections = (groups.data || []).map((group) => ({
       ...group,
-      requests: sortedRequests(
+      requests: sortRequests(
         visibleRequests.filter(
           (request) => request.personalLayout?.groupId === group.id,
         ),
       ),
     }));
+
     sections.push({
       id: UNGROUPED,
       name: "Ungrouped",
       canManage: false,
       canUse: true,
-      requests: sortedRequests(
+      requests: sortRequests(
         visibleRequests.filter((request) => !request.personalLayout?.groupId),
       ),
     });
-    return groupFilter === "all"
-      ? sections
-      : sections.filter((group) => group.id === groupFilter);
-  }, [groups.data, visibleRequests, groupFilter]);
+
+    return advancedFilters.groupIds.length
+      ? sections.filter((group) => advancedFilters.groupIds.includes(group.id))
+      : sections;
+    // sortRequests depends on sortBy and the static ordering above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groups.data, visibleRequests, advancedFilters.groupIds, sortBy]);
 
   const item = allRequests.find((request) => request.id === selectedId);
 
-  const toggleStatus = (status) =>
-    setSelectedStatuses((current) =>
-      current.includes(status)
-        ? current.filter((value) => value !== status)
-        : [...current, status],
+  const toggleAdvancedValue = (key, value) => {
+    setAdvancedFilters((current) => ({
+      ...current,
+      [key]: current[key].includes(value)
+        ? current[key].filter((item) => item !== value)
+        : [...current[key], value],
+    }));
+  };
+
+  const setAdvancedValues = (key, event) => {
+    const values = [...event.target.selectedOptions].map(
+      (option) => option.value,
     );
+    setAdvancedFilters((current) => ({ ...current, [key]: values }));
+  };
+
+  const setAdvancedValue = (key, value) =>
+    setAdvancedFilters((current) => ({ ...current, [key]: value }));
+
+  const clearAdvancedFilters = () =>
+    setAdvancedFilters(DEFAULT_APPROVAL_FILTERS);
 
   const toggleGroup = (groupId) =>
     setCollapsedGroups((current) => {
@@ -1276,11 +1359,7 @@ export default function ApprovalsPage() {
   const resetFilters = () => {
     setSearch("");
     setInvolvement("all");
-    setSelectedStatuses([]);
-    setTypeFilter("all");
-    setRequesterFilter("all");
-    setGroupFilter("all");
-    setDateFilter("all");
+    clearAdvancedFilters();
   };
 
   const approvalCard = (request) => {
@@ -1332,7 +1411,7 @@ export default function ApprovalsPage() {
     const current = request.steps.find((step) => step.status === "PENDING");
     return (
       <button
-        className="grid min-w-[900px] w-full grid-cols-[minmax(280px,1.8fr)_180px_190px_145px_160px] items-center gap-4 border-t border-slate-100 px-5 py-3.5 text-left transition hover:bg-slate-50"
+        className="approval-list-row grid min-w-[900px] w-full grid-cols-[minmax(280px,1.8fr)_180px_190px_145px_160px] items-center gap-4 border-t border-slate-100 px-5 py-3.5 text-left transition hover:bg-slate-50"
         key={request.id}
         onClick={() => setSelectedId(request.id)}
       >
@@ -1365,25 +1444,30 @@ export default function ApprovalsPage() {
     );
   };
 
-  const advancedFilterCount =
-    (typeFilter !== "all" ? 1 : 0) +
-    (requesterFilter !== "all" ? 1 : 0) +
-    (groupFilter !== "all" ? 1 : 0) +
-    (dateFilter !== "all" ? 1 : 0);
+  const advancedFilterCount = [
+    advancedFilters.statuses.length,
+    advancedFilters.typeIds.length,
+    advancedFilters.requesterIds.length,
+    advancedFilters.groupIds.length,
+    Boolean(advancedFilters.createdFrom),
+    Boolean(advancedFilters.createdTo),
+  ].filter(Boolean).length;
+
   const activeFilterCount =
     (involvement !== "all" ? 1 : 0) +
-    selectedStatuses.length +
     advancedFilterCount +
-    (search ? 1 : 0);
+    (search.trim() ? 1 : 0);
 
   return (
     <>
       <PageHeader
         title="Approvals"
-        description="Review requests, filter what matters, and organize approvals into your own personal groups."
         action={
-          <div className="flex flex-wrap items-center gap-2">
-            <button className="btn-secondary" onClick={() => setGroupForm({})}>
+          <div className="flex  md:flex-wrap text-nowrap items-center gap-2 overflow-x-auto scrollbar-none">
+            <button
+              className="btn-secondary"
+              onClick={() => setGroupForm({})}
+            >
               <FolderPlus size={17} />
               New group
             </button>
@@ -1416,444 +1500,549 @@ export default function ApprovalsPage() {
         }
       />
 
-      <div className="toolbar flex-wrap gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="tabs">
-            {[
-              ["all", "All"],
-              ["review", "Needs my review"],
-              ["mine", "My requests"],
-              ["involved", "I'm involved"],
-            ].map(([value, label]) => (
-              <button
-                key={value}
-                className={involvement === value ? "active" : ""}
-                onClick={() => setInvolvement(value)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-
-          <details className="relative">
-            <summary className="btn-secondary cursor-pointer list-none">
-              Status
-              {selectedStatuses.length
-                ? ` (${selectedStatuses.length})`
-                : ""}
-            </summary>
-            <div className="absolute left-0 top-11 z-10 w-56 rounded-xl border border-slate-200 bg-white p-3 shadow-xl">
-              <div className="space-y-2">
-                {approvalStatuses.map((status) => (
-                  <label
-                    key={status}
-                    className="flex items-center gap-2 text-xs text-slate-600"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedStatuses.includes(status)}
-                      onChange={() => toggleStatus(status)}
-                    />
-                    {status.replaceAll("_", " ")}
-                  </label>
-                ))}
-              </div>
+      <div className="relative">
+        <div className="approval-toolbar toolbar flex items-center gap-4 rounded-lg border border-slate-200 bg-white shadow-sm">
+          <div className="approval-toolbar-primary min-w-0 flex-1">
+            <div className="tabs" aria-label="Approval quick filters">
+              {[
+                ["all", "All"],
+                ["review", "Needs my review"],
+                ["mine", "My requests"],
+                ["involved", "I'm involved"],
+              ].map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={involvement === value ? "active" : ""}
+                  onClick={() => setInvolvement(value)}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
-          </details>
-
-          <button
-            type="button"
-            className="btn-secondary"
-            onClick={() => setShowAdvancedFilters((current) => !current)}
-          >
-            <SlidersHorizontal size={15} />
-            {showAdvancedFilters ? "Hide filters" : "Show filters"}
-            {advancedFilterCount ? ` (${advancedFilterCount})` : ""}
-          </button>
-
-          {activeFilterCount > 0 && (
-            <button className="btn-secondary" onClick={resetFilters}>
-              Clear filters
-            </button>
-          )}
-        </div>
-
-        <div className="ml-auto flex flex-wrap items-center gap-2">
-          <div className="relative">
-            <Search
-              className="absolute left-3 top-3 text-slate-400"
-              size={15}
-            />
-            <input
-              aria-label="Search approvals"
-              className="input w-56 pl-9"
-              placeholder="Search approvals"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-            />
           </div>
-          <div
-            className="inline-flex rounded-xl border border-slate-200 bg-white p-1"
-            aria-label="Approval view"
-          >
-            <button
-              type="button"
-              className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                !board
-                  ? "bg-slate-100 text-slate-800"
-                  : "text-slate-500 hover:text-slate-800"
-              }`}
-              onClick={() => setBoard(false)}
-            >
-              <List size={15} />
-              List
-            </button>
-            <button
-              type="button"
-              className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                board
-                  ? "bg-slate-100 text-slate-800"
-                  : "text-slate-500 hover:text-slate-800"
-              }`}
-              onClick={() => setBoard(true)}
-            >
-              <Columns3 size={15} />
-              Board
-            </button>
-          </div>
-        </div>
-      </div>
 
-      {showAdvancedFilters && (
-        <div className="mb-5 flex flex-wrap items-center gap-2">
-          <select
-            className="input w-auto min-w-40"
-            aria-label="Filter by request type"
-            value={typeFilter}
-            onChange={(event) => setTypeFilter(event.target.value)}
-          >
-            <option value="all">All request types</option>
-            {typeOptions.map((type) => (
-              <option key={type.id} value={type.id}>
-                {type.name}
-              </option>
-            ))}
-          </select>
+          <div className="approval-toolbar-secondary ml-auto flex items-center gap-2">
+            <div className="approval-search relative min-w-60!">
+              <Search
+                className="absolute right-3 top-3 text-slate-400"
+                size={15}
+              />
+              <input
+                aria-label="Search approvals"
+                className="input w-full  pl-9 pe-8! "
+                placeholder="Search approvals"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+              />
+            </div>
 
-          <select
-            className="input w-auto min-w-40"
-            aria-label="Filter by requester"
-            value={requesterFilter}
-            onChange={(event) => setRequesterFilter(event.target.value)}
-          >
-            <option value="all">All requesters</option>
-            {requesterOptions.map((requester) => (
-              <option key={requester.id} value={requester.id}>
-                {requester.displayName}
-              </option>
-            ))}
-          </select>
-
-          <select
-            className="input w-auto min-w-36"
-            aria-label="Filter by group"
-            value={groupFilter}
-            onChange={(event) => setGroupFilter(event.target.value)}
-          >
-            <option value="all">All groups</option>
-            {(groups.data || []).map((group) => (
-              <option key={group.id} value={group.id}>
-                {group.name}
-              </option>
-            ))}
-            <option value={UNGROUPED}>Ungrouped</option>
-          </select>
-
-          <select
-            className="input w-auto min-w-32"
-            aria-label="Filter by date"
-            value={dateFilter}
-            onChange={(event) => setDateFilter(event.target.value)}
-          >
-            <option value="all">Any date</option>
-            <option value="7">Last 7 days</option>
-            <option value="30">Last 30 days</option>
-          </select>
-
-          <span className="ml-auto text-xs text-slate-400">
-            {visibleRequests.length} request
-            {visibleRequests.length === 1 ? "" : "s"}
-          </span>
-        </div>
-      )}
-
-      <ErrorBox
-        error={
-          query.error ||
-          groups.error ||
-          moveLayout.error ||
-          deleteGroup.error ||
-          reorderGroup.error
-        }
-      />
-
-      {query.isLoading || groups.isLoading ? (
-        <Loading />
-      ) : board ? (
-        <div className="flex gap-4 overflow-x-auto pb-4">
-          {groupSections.map((group) => (
-            <section
-              key={group.id}
-              className="w-[300px] min-w-[300px] rounded-xl bg-slate-100 p-3"
-              onDragOver={(event) => {
-                event.preventDefault();
-                event.dataTransfer.dropEffect = "move";
-              }}
-              onDrop={(event) => {
-                event.preventDefault();
-                const sourceGroupId = event.dataTransfer.getData(
-                  "application/x-approval-group",
-                );
-                if (
-                  sourceGroupId &&
-                  group.id !== UNGROUPED &&
-                  sourceGroupId !== group.id
-                ) {
-                  reorderGroup.mutate({
-                    sourceId: sourceGroupId,
-                    targetId: group.id,
-                  });
-                  setDraggingGroupId(null);
-                  return;
-                }
-
-                const requestId =
-                  draggingId || event.dataTransfer.getData("text/plain");
-                if (!requestId) return;
-                moveLayout.mutate({
-                  requestId,
-                  groupId: group.id === UNGROUPED ? null : group.id,
-                });
-                setDraggingId(null);
-              }}
-            >
-              <div className="mb-4 flex items-center gap-2 px-1">
-                {group.canManage && (
-                  <span
-                    draggable
-                    title="Drag to reorder group"
-                    className={`cursor-grab text-slate-400 ${
-                      draggingGroupId === group.id ? "opacity-40" : ""
-                    }`}
-                    onDragStart={(event) => {
-                      event.stopPropagation();
-                      setDraggingGroupId(group.id);
-                      event.dataTransfer.effectAllowed = "move";
-                      event.dataTransfer.setData(
-                        "application/x-approval-group",
-                        group.id,
-                      );
-                    }}
-                    onDragEnd={() => setDraggingGroupId(null)}
-                  >
-                    <GripVertical size={14} />
+            <div className="relative">
+              <button
+                type="button"
+                className={`btn-secondary relative ${
+                  advancedFilterCount
+                    ? "border-blue-300 bg-blue-50 text-blue-700"
+                    : ""
+                }`}
+                onClick={() => setFiltersOpen((current) => !current)}
+                aria-expanded={filtersOpen}
+              >
+                <ListFilter size={16} />
+                <span className="hidden xl:inline">Filter</span>
+                {advancedFilterCount > 0 && (
+                  <span className="grid h-5 min-w-5 place-items-center rounded-full bg-blue-600 px-1 text-[10px] font-bold text-white">
+                    {advancedFilterCount}
                   </span>
                 )}
-                <h3 className="min-w-0 flex-1 truncate text-xs font-bold text-slate-600">
-                  {group.name}
-                </h3>
-                <span className="text-xs text-slate-400">
-                  {group.requests.length}
-                </span>
-                {group.canManage && (
-                  <>
+              </button>
+
+              {filtersOpen && (
+                <div className="approval-filter-panel fixed left-1/2 top-2 z-50 w-[680px] max-w-[calc(100vw-48px)] -translate-x-1/2 overflow-y-auto rounded-2xl border border-slate-200 bg-white px-5 shadow-xl max-h-[calc(100vh-1rem)]">
+                  <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-slate-200 bg-white pb-3 pt-5">
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-800">
+                        Filter approvals
+                      </h3>
+                      <p className="mt-1 text-xs text-slate-400">
+                        These filters refine the selected quick filter.
+                      </p>
+                    </div>
                     <button
                       type="button"
-                      className="icon-btn"
-                      aria-label={`Rename ${group.name}`}
-                      onClick={() => setGroupForm(group)}
+                      className="btn-secondary btn-sm"
+                      onClick={() => setFiltersOpen(false)}
                     >
-                      <Pencil size={13} />
+                      x
                     </button>
-                    <button
-                      type="button"
-                      className="icon-btn hover:text-red-600"
-                      aria-label={`Delete ${group.name}`}
-                      disabled={deleteGroup.isPending}
-                      onClick={() => {
-                        if (
-                          window.confirm(
-                            `Delete “${group.name}”? Your approvals in this group will move to Ungrouped. Other users are not affected.`,
-                          )
-                        )
-                          deleteGroup.mutate(group.id);
-                      }}
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  </>
-                )}
-              </div>
-              <div className="min-h-24 space-y-3">
-                {group.requests.map(approvalCard)}
-                {!group.requests.length && (
-                  <div className="rounded-xl border border-dashed border-slate-300 px-4 py-8 text-center text-xs text-slate-400">
-                    Drop approvals here
                   </div>
-                )}
-              </div>
-            </section>
-          ))}
-        </div>
-      ) : (
-        <div className="card overflow-hidden">
-          <div className="overflow-x-auto">
-            <div className="grid min-w-[900px] grid-cols-[minmax(280px,1.8fr)_180px_190px_145px_160px] items-center gap-4 bg-slate-50 px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-slate-400">
-              <span>Request</span>
-              <span>Requester</span>
-              <span>Request type</span>
-              <span>Status</span>
-              <span>Created</span>
-            </div>
-            {groupSections.map((group) => {
-              const collapsed = collapsedGroups.has(group.id);
-              return (
-                <section key={group.id}>
-                  <div
-                    className="flex min-w-[900px] items-center gap-2 border-t border-slate-200 bg-slate-50/70 px-4 py-2.5"
-                    onDragOver={(event) => {
-                      event.preventDefault();
-                      event.dataTransfer.dropEffect = "move";
-                    }}
-                    onDrop={(event) => {
-                      event.preventDefault();
-                      const sourceGroupId = event.dataTransfer.getData(
-                        "application/x-approval-group",
-                      );
-                      if (
-                        sourceGroupId &&
-                        group.id !== UNGROUPED &&
-                        sourceGroupId !== group.id
-                      ) {
-                        reorderGroup.mutate({
-                          sourceId: sourceGroupId,
-                          targetId: group.id,
-                        });
-                        setDraggingGroupId(null);
-                      }
-                    }}
-                  >
-                    {group.canManage && (
-                      <span
-                        draggable
-                        title="Drag to reorder group"
-                        className={`cursor-grab text-slate-400 ${
-                          draggingGroupId === group.id ? "opacity-40" : ""
-                        }`}
-                        onDragStart={(event) => {
-                          event.stopPropagation();
-                          setDraggingGroupId(group.id);
-                          event.dataTransfer.effectAllowed = "move";
-                          event.dataTransfer.setData(
-                            "application/x-approval-group",
-                            group.id,
-                          );
-                        }}
-                        onDragEnd={() => setDraggingGroupId(null)}
+
+                  <div className="relative mb-4 flex min-h-8 items-center pt-3">
+                    {advancedFilterCount > 0 && (
+                      <button
+                        type="button"
+                        className="text-xs font-semibold text-blue-600 hover:text-blue-800"
+                        onClick={clearAdvancedFilters}
                       >
-                        <GripVertical size={14} />
-                      </span>
-                    )}
-                    <button
-                      type="button"
-                      className="grid h-7 w-7 place-items-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-                      onClick={() => toggleGroup(group.id)}
-                      aria-label={
-                        collapsed
-                          ? `Expand ${group.name}`
-                          : `Collapse ${group.name}`
-                      }
-                    >
-                      {collapsed ? (
-                        <ChevronRight size={16} />
-                      ) : (
-                        <ChevronDown size={16} />
-                      )}
-                    </button>
-                    <span className="font-semibold text-sm text-slate-700">
-                      {group.name}
-                    </span>
-                    <span className="text-xs text-slate-400">
-                      {group.requests.length} request
-                      {group.requests.length === 1 ? "" : "s"}
-                    </span>
-                    {group.canManage && (
-                      <div className="ml-auto flex items-center gap-1">
-                        <button
-                          type="button"
-                          className="icon-btn"
-                          aria-label={`Rename ${group.name}`}
-                          onClick={() => setGroupForm(group)}
-                        >
-                          <Pencil size={14} />
-                        </button>
-                        <button
-                          type="button"
-                          className="icon-btn hover:text-red-600"
-                          aria-label={`Delete ${group.name}`}
-                          disabled={deleteGroup.isPending}
-                          onClick={() => {
-                            if (
-                              window.confirm(
-                                `Delete “${group.name}”? Your approvals in this group will move to Ungrouped. Other users are not affected.`,
-                              )
-                            )
-                              deleteGroup.mutate(group.id);
-                          }}
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
+                        Clear all
+                      </button>
                     )}
                   </div>
-                  {!collapsed &&
-                    (group.requests.length ? (
-                      group.requests.map(approvalRow)
-                    ) : (
-                      <div className="min-w-[900px] border-t border-slate-100 px-14 py-4 text-sm text-slate-400">
-                        No approvals in this group.
+
+                  <div className="grid gap-5 md:grid-cols-2">
+                    <div className="md:col-span-2">
+                      <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">
+                        Status
+                      </p>
+                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                        {approvalStatuses.map((status) => (
+                          <label
+                            key={status}
+                            className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-100 px-2.5 py-2 text-xs text-slate-600 hover:bg-slate-50"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={advancedFilters.statuses.includes(
+                                status,
+                              )}
+                              onChange={() =>
+                                toggleAdvancedValue("statuses", status)
+                              }
+                            />
+                            <span>{status.replaceAll("_", " ")}</span>
+                          </label>
+                        ))}
                       </div>
-                    ))}
-                </section>
-              );
-            })}
+                    </div>
+
+                    <label className="text-xs font-semibold text-slate-500">
+                      Request type
+                      <select
+                        multiple
+                        className="input mt-1.5 h-28"
+                        value={advancedFilters.typeIds}
+                        onChange={(event) =>
+                          setAdvancedValues("typeIds", event)
+                        }
+                      >
+                        {typeOptions.map((type) => (
+                          <option key={type.id} value={type.id}>
+                            {type.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className="text-xs font-semibold text-slate-500">
+                      Requester
+                      <select
+                        multiple
+                        className="input mt-1.5 h-28"
+                        value={advancedFilters.requesterIds}
+                        onChange={(event) =>
+                          setAdvancedValues("requesterIds", event)
+                        }
+                      >
+                        {requesterOptions.map((requester) => (
+                          <option key={requester.id} value={requester.id}>
+                            {requester.displayName}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className="text-xs font-semibold text-slate-500 md:col-span-2">
+                      Personal group
+                      <select
+                        multiple
+                        className="input mt-1.5 h-28"
+                        value={advancedFilters.groupIds}
+                        onChange={(event) =>
+                          setAdvancedValues("groupIds", event)
+                        }
+                      >
+                        <option value={UNGROUPED}>Ungrouped</option>
+                        {(groups.data || []).map((group) => (
+                          <option key={group.id} value={group.id}>
+                            {group.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:col-span-2">
+                      <label className="text-xs font-semibold text-slate-500">
+                        Created from
+                        <input
+                          type="date"
+                          className="input mt-1.5"
+                          value={advancedFilters.createdFrom}
+                          onChange={(event) =>
+                            setAdvancedValue("createdFrom", event.target.value)
+                          }
+                        />
+                      </label>
+                      <label className="text-xs font-semibold text-slate-500">
+                        Created to
+                        <input
+                          type="date"
+                          className="input mt-1.5"
+                          value={advancedFilters.createdTo}
+                          onChange={(event) =>
+                            setAdvancedValue("createdTo", event.target.value)
+                          }
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="sticky bottom-0 flex items-center justify-between border-t border-slate-100 bg-white py-3 pt-4">
+                    <span className="hidden text-xs text-slate-400 sm:inline">
+                      Hold Ctrl/Cmd to select multiple values.
+                    </span>
+                    <button
+                      type="button"
+                      className="btn-primary"
+                      onClick={() => setFiltersOpen(false)}
+                    >
+                      Done
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <label className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600">
+              <ArrowUpDown size={15} className="text-slate-400" />
+              <select
+                aria-label="Sort approvals"
+                className="max-w-44 bg-transparent outline-none"
+                value={sortBy}
+                onChange={(event) => setSortBy(event.target.value)}
+              >
+                {APPROVAL_SORT_OPTIONS.map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <div
+              className="inline-flex rounded-xl border border-slate-200 bg-white p-1"
+              aria-label="Approval view"
+            >
+              <button
+                type="button"
+                className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                  !board
+                    ? "bg-slate-100 text-slate-800"
+                    : "text-slate-500 hover:text-slate-800"
+                }`}
+                onClick={() => setBoard(false)}
+              >
+                <List size={15} />
+                <span className="hidden xl:inline">List</span>
+              </button>
+              <button
+                type="button"
+                className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                  board
+                    ? "bg-slate-100 text-slate-800"
+                    : "text-slate-500 hover:text-slate-800"
+                }`}
+                onClick={() => setBoard(true)}
+              >
+                <Columns3 size={15} />
+                <span className="hidden xl:inline">Board</span>
+              </button>
+            </div>
           </div>
         </div>
-      )}
 
-      {!query.isLoading &&
-        !groups.isLoading &&
-        !visibleRequests.length &&
-        !(groups.data || []).length && (
-          <div className="card mt-4">
-            <Empty
-              title="No approvals to show"
-              text="Create a group, submit a request, or try another filter."
-            />
+        {/* {activeFilterCount > 0 && (
+          <div className="mb-4 flex flex-wrap items-center gap-2 text-xs">
+            <span className="rounded-full bg-blue-50 px-3 py-1.5 font-semibold text-blue-700">
+              {activeFilterCount} filter{activeFilterCount === 1 ? "" : "s"} active
+            </span>
+            <button
+              type="button"
+              className="font-semibold text-slate-500 hover:text-slate-800"
+              onClick={resetFilters}
+            >
+              Clear
+            </button>
+          </div>
+        )} */}
+
+        <ErrorBox
+          error={
+            query.error ||
+            groups.error ||
+            moveLayout.error ||
+            deleteGroup.error ||
+            reorderGroup.error
+          }
+        />
+
+        {query.isLoading || groups.isLoading ? (
+          <Loading />
+        ) : board ? (
+          <div className="flex gap-4 overflow-x-auto pb-4">
+            {groupSections.map((group) => (
+              <section
+                key={group.id}
+                className="approval-board-column w-[300px] min-w-[300px] rounded-xl bg-slate-100 p-3"
+                onDragOver={(event) => {
+                  event.preventDefault();
+                  event.dataTransfer.dropEffect = "move";
+                }}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  const sourceGroupId = event.dataTransfer.getData(
+                    "application/x-approval-group",
+                  );
+                  if (
+                    sourceGroupId &&
+                    group.id !== UNGROUPED &&
+                    sourceGroupId !== group.id
+                  ) {
+                    reorderGroup.mutate({
+                      sourceId: sourceGroupId,
+                      targetId: group.id,
+                    });
+                    setDraggingGroupId(null);
+                    return;
+                  }
+
+                  const requestId =
+                    draggingId || event.dataTransfer.getData("text/plain");
+                  if (!requestId) return;
+                  moveLayout.mutate({
+                    requestId,
+                    groupId: group.id === UNGROUPED ? null : group.id,
+                  });
+                  setDraggingId(null);
+                }}
+              >
+                <div className="mb-4 flex items-center gap-2 px-1">
+                  {group.canManage && (
+                    <span
+                      draggable
+                      title="Drag to reorder group"
+                      className={`cursor-grab text-slate-400 ${
+                        draggingGroupId === group.id ? "opacity-40" : ""
+                      }`}
+                      onDragStart={(event) => {
+                        event.stopPropagation();
+                        setDraggingGroupId(group.id);
+                        event.dataTransfer.effectAllowed = "move";
+                        event.dataTransfer.setData(
+                          "application/x-approval-group",
+                          group.id,
+                        );
+                      }}
+                      onDragEnd={() => setDraggingGroupId(null)}
+                    >
+                      <GripVertical size={14} />
+                    </span>
+                  )}
+                  <h3 className="min-w-0 flex-1 truncate text-xs font-bold text-slate-600">
+                    {group.name}
+                  </h3>
+                  <span className="text-xs text-slate-400">
+                    {group.requests.length}
+                  </span>
+                  {group.canManage && (
+                    <>
+                      <button
+                        type="button"
+                        className="icon-btn"
+                        aria-label={`Rename ${group.name}`}
+                        onClick={() => setGroupForm(group)}
+                      >
+                        <Pencil size={13} />
+                      </button>
+                      <button
+                        type="button"
+                        className="icon-btn hover:text-red-600"
+                        aria-label={`Delete ${group.name}`}
+                        disabled={deleteGroup.isPending}
+                        onClick={() => {
+                          if (
+                            window.confirm(
+                              `Delete “${group.name}”? Your approvals in this group will move to Ungrouped. Other users are not affected.`,
+                            )
+                          )
+                            deleteGroup.mutate(group.id);
+                        }}
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </>
+                  )}
+                </div>
+                <div className="min-h-24 space-y-3">
+                  {group.requests.map(approvalCard)}
+                  {!group.requests.length && (
+                    <div className="rounded-xl border border-dashed border-slate-300 px-4 py-8 text-center text-xs text-slate-400">
+                      Drop approvals here
+                    </div>
+                  )}
+                </div>
+              </section>
+            ))}
+          </div>
+        ) : (
+          <div className="approval-list-card card h-[calc(100vh-18.6rem)] md:h-[calc(100vh-10.8rem)] overflow-auto">
+            <div className="">
+              <div className="approval-list-header sticky -top-[0.1px] z-5 grid min-w-[900px] grid-cols-[minmax(280px,1.8fr)_180px_190px_145px_160px] items-center gap-4 bg-slate-50 px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-slate-400">
+                <span>Request</span>
+                <span>Requester</span>
+                <span>Request type</span>
+                <span>Status</span>
+                <span>Created</span>
+              </div>
+              {groupSections.map((group) => {
+                const collapsed = collapsedGroups.has(group.id);
+                return (
+                  <section key={group.id}>
+                    <div
+                      className="approval-group-header sticky top-0 md:top-10 flex min-w-[900px] items-center gap-2 border-t border-slate-200 bg-slate-100 px-4 py-2.5"
+                      onDragOver={(event) => {
+                        event.preventDefault();
+                        event.dataTransfer.dropEffect = "move";
+                      }}
+                      onDrop={(event) => {
+                        event.preventDefault();
+                        const sourceGroupId = event.dataTransfer.getData(
+                          "application/x-approval-group",
+                        );
+                        if (
+                          sourceGroupId &&
+                          group.id !== UNGROUPED &&
+                          sourceGroupId !== group.id
+                        ) {
+                          reorderGroup.mutate({
+                            sourceId: sourceGroupId,
+                            targetId: group.id,
+                          });
+                          setDraggingGroupId(null);
+                        }
+                      }}
+                    >
+                      {group.canManage && (
+                        <span
+                          draggable
+                          title="Drag to reorder group"
+                          className={`cursor-grab text-slate-400 ${
+                            draggingGroupId === group.id ? "opacity-40" : ""
+                          }`}
+                          onDragStart={(event) => {
+                            event.stopPropagation();
+                            setDraggingGroupId(group.id);
+                            event.dataTransfer.effectAllowed = "move";
+                            event.dataTransfer.setData(
+                              "application/x-approval-group",
+                              group.id,
+                            );
+                          }}
+                          onDragEnd={() => setDraggingGroupId(null)}
+                        >
+                          <GripVertical size={14} />
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        className="grid h-7 w-7 place-items-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                        onClick={() => toggleGroup(group.id)}
+                        aria-label={
+                          collapsed
+                            ? `Expand ${group.name}`
+                            : `Collapse ${group.name}`
+                        }
+                      >
+                        {collapsed ? (
+                          <ChevronRight size={16} />
+                        ) : (
+                          <ChevronDown size={16} />
+                        )}
+                      </button>
+                      <span className="font-semibold text-sm text-slate-700">
+                        {group.name}
+                      </span>
+                      <span className="text-xs text-slate-400">
+                        {group.requests.length} request
+                        {group.requests.length === 1 ? "" : "s"}
+                      </span>
+                      {group.canManage && (
+                        <div className="ml-auto flex items-center gap-1">
+                          <button
+                            type="button"
+                            className="icon-btn"
+                            aria-label={`Rename ${group.name}`}
+                            onClick={() => setGroupForm(group)}
+                          >
+                            <Pencil size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            className="icon-btn hover:text-red-600"
+                            aria-label={`Delete ${group.name}`}
+                            disabled={deleteGroup.isPending}
+                            onClick={() => {
+                              if (
+                                window.confirm(
+                                  `Delete “${group.name}”? Your approvals in this group will move to Ungrouped. Other users are not affected.`,
+                                )
+                              )
+                                deleteGroup.mutate(group.id);
+                            }}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    {!collapsed &&
+                      (group.requests.length ? (
+                        group.requests.map(approvalRow)
+                      ) : (
+                        <div className="approval-empty-row min-w-[900px] border-t border-slate-100 px-14 py-4 text-sm text-slate-400">
+                          No approvals in this group.
+                        </div>
+                      ))}
+                  </section>
+                );
+              })}
+            </div>
           </div>
         )}
 
-      {modal === "create" && <RequestForm onClose={() => setModal(null)} />}
-      {modal === "configure" && (
-        <RequestTypesManager onClose={() => setModal(null)} />
-      )}
-      {groupForm && (
-        <ApprovalGroupForm
-          existing={groupForm.id ? groupForm : null}
-          onClose={() => setGroupForm(null)}
-        />
-      )}
-      {item && <RequestDetail item={item} onClose={closeRequest} />}
+        {!query.isLoading &&
+          !groups.isLoading &&
+          !visibleRequests.length &&
+          !(groups.data || []).length && (
+            <div className="card mt-4">
+              <Empty
+                title="No approvals to show"
+                text="Create a group, submit a request, or try another filter."
+              />
+            </div>
+          )}
+
+        {modal === "create" && <RequestForm onClose={() => setModal(null)} />}
+        {modal === "configure" && (
+          <RequestTypesManager onClose={() => setModal(null)} />
+        )}
+        {groupForm && (
+          <ApprovalGroupForm
+            existing={groupForm.id ? groupForm : null}
+            onClose={() => setGroupForm(null)}
+          />
+        )}
+        {item && <RequestDetail item={item} onClose={closeRequest} />}
+      </div>
     </>
   );
 }

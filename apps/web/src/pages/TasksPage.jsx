@@ -107,7 +107,10 @@ function GroupForm({ existing, onClose }) {
   });
 
   return (
-    <Modal title={existing ? "Rename group" : "New task group"} onClose={onClose}>
+    <Modal
+      title={existing ? "Rename group" : "New task group"}
+      onClose={onClose}
+    >
       <form
         onSubmit={(event) => {
           event.preventDefault();
@@ -179,17 +182,20 @@ function TaskForm({ existing, parentTask, defaultGroupId = "", onClose }) {
         ...(file ? [(await uploadFile(file)).id] : []),
       ];
       const { groupId, ...sharedForm } = form;
-      const response = await api(existing ? `/tasks/${existing.id}` : "/tasks", {
-        method: existing ? "PATCH" : "POST",
-        body: JSON.stringify({
-          ...sharedForm,
-          ...(existing || isSubtask ? {} : { groupId: groupId || null }),
-          assigneeId: form.assigneeId || null,
-          parentTaskId: existing ? undefined : parentTask?.id || null,
-          dueDate: form.dueDate ? new Date(form.dueDate).toISOString() : null,
-          attachmentIds,
-        }),
-      });
+      const response = await api(
+        existing ? `/tasks/${existing.id}` : "/tasks",
+        {
+          method: existing ? "PATCH" : "POST",
+          body: JSON.stringify({
+            ...sharedForm,
+            ...(existing || isSubtask ? {} : { groupId: groupId || null }),
+            assigneeId: form.assigneeId || null,
+            parentTaskId: existing ? undefined : parentTask?.id || null,
+            dueDate: form.dueDate ? new Date(form.dueDate).toISOString() : null,
+            attachmentIds,
+          }),
+        },
+      );
       if (existing && !isSubtask) {
         await api(`/tasks/${existing.id}/layout`, {
           method: "PUT",
@@ -205,7 +211,8 @@ function TaskForm({ existing, parentTask, defaultGroupId = "", onClose }) {
       onClose();
     },
   });
-  const change = (key, value) => setForm((current) => ({ ...current, [key]: value }));
+  const change = (key, value) =>
+    setForm((current) => ({ ...current, [key]: value }));
 
   return (
     <Modal
@@ -220,7 +227,10 @@ function TaskForm({ existing, parentTask, defaultGroupId = "", onClose }) {
       >
         {(parentTask || existing?.parentTask) && (
           <div className="mb-4 rounded-xl bg-slate-50 px-4 py-3 text-xs text-slate-500">
-            Subtask of <span className="font-semibold text-slate-700">{parentTask?.title || existing.parentTask.title}</span>
+            Subtask of{" "}
+            <span className="font-semibold text-slate-700">
+              {parentTask?.title || existing.parentTask.title}
+            </span>
           </div>
         )}
         <Field
@@ -330,7 +340,11 @@ function TaskForm({ existing, parentTask, defaultGroupId = "", onClose }) {
             Cancel
           </button>
           <button className="btn-primary" disabled={save.isPending}>
-            {save.isPending ? "Saving…" : parentTask ? "Save subtask" : "Save task"}
+            {save.isPending
+              ? "Saving…"
+              : parentTask
+                ? "Save subtask"
+                : "Save task"}
           </button>
         </div>
       </form>
@@ -452,7 +466,9 @@ function TaskDetail({ id, onClose }) {
           </p>
           <div
             className={`grid gap-4 my-6 rounded-xl bg-slate-50 p-4 text-sm ${
-              task.parentTaskId ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-2 lg:grid-cols-5"
+              task.parentTaskId
+                ? "sm:grid-cols-2 lg:grid-cols-4"
+                : "sm:grid-cols-2 lg:grid-cols-5"
             }`}
           >
             <div>
@@ -508,7 +524,8 @@ function TaskDetail({ id, onClose }) {
             <div className="bg-slate-50 px-4 py-3">
               <h3 className="text-sm font-semibold">Participants</h3>
               <p className="mt-0.5 text-xs text-slate-400">
-                People involved in this task. Use Edit task to change participants.
+                People involved in this task. Use Edit task to change
+                participants.
               </p>
             </div>
             {task.participants?.length ? (
@@ -519,7 +536,9 @@ function TaskDetail({ id, onClose }) {
                     className="flex items-center gap-2 rounded-full border border-slate-200 bg-white py-1.5 pl-1.5 pr-3 text-sm text-slate-600"
                   >
                     <Avatar small name={participant.user.displayName} />
-                    <span className="font-medium">{participant.user.displayName}</span>
+                    <span className="font-medium">
+                      {participant.user.displayName}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -536,7 +555,9 @@ function TaskDetail({ id, onClose }) {
                 <div>
                   <h3 className="text-sm font-semibold">Subtasks</h3>
                   <p className="mt-0.5 text-xs text-slate-400">
-                    {subtasks.length ? `${done} / ${subtasks.length} completed` : "Break this task into smaller steps."}
+                    {subtasks.length
+                      ? `${done} / ${subtasks.length} completed`
+                      : "Break this task into smaller steps."}
                   </p>
                 </div>
                 {hasPermission("tasks.create") && (
@@ -565,9 +586,15 @@ function TaskDetail({ id, onClose }) {
                       >
                         <button
                           type="button"
-                          aria-label={completed ? `Reopen ${subtask.title}` : `Complete ${subtask.title}`}
+                          aria-label={
+                            completed
+                              ? `Reopen ${subtask.title}`
+                              : `Complete ${subtask.title}`
+                          }
                           className="grid h-6 w-6 shrink-0 place-items-center rounded-md text-blue-600 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-40"
-                          disabled={updateStatus.isPending || !canChangeSubtaskStatus}
+                          disabled={
+                            updateStatus.isPending || !canChangeSubtaskStatus
+                          }
                           onClick={() =>
                             updateStatus.mutate({
                               taskId: subtask.id,
@@ -589,7 +616,10 @@ function TaskDetail({ id, onClose }) {
                           {subtask.title}
                         </button>
                         <span className="hidden sm:flex items-center gap-2 text-xs text-slate-400">
-                          <Avatar small name={subtask.assignee?.displayName || "?"} />
+                          <Avatar
+                            small
+                            name={subtask.assignee?.displayName || "?"}
+                          />
                           {subtask.assignee?.displayName || "Unassigned"}
                         </span>
                         <Badge value={subtask.status} />
@@ -598,13 +628,17 @@ function TaskDetail({ id, onClose }) {
                   })}
                 </div>
               ) : (
-                <div className="px-4 py-5 text-sm text-slate-400">No subtasks yet.</div>
+                <div className="px-4 py-5 text-sm text-slate-400">
+                  No subtasks yet.
+                </div>
               )}
             </section>
           )}
 
           <Attachments items={task.attachments} />
-          <ErrorBox error={updateStatus.error || updateLayout.error || groups.error} />
+          <ErrorBox
+            error={updateStatus.error || updateLayout.error || groups.error}
+          />
           <h3 className="font-semibold text-sm mt-8 mb-4">
             Discussion · {task.comments.length}
           </h3>
@@ -619,7 +653,9 @@ function TaskDetail({ id, onClose }) {
                       {prettyDate(entry.createdAt)}
                     </span>
                   </div>
-                  <p className="my-2 text-sm whitespace-pre-wrap">{entry.content}</p>
+                  <p className="my-2 text-sm whitespace-pre-wrap">
+                    {entry.content}
+                  </p>
                   <Attachments items={entry.attachments} />
                 </div>
               </div>
@@ -658,21 +694,28 @@ function TaskDetail({ id, onClose }) {
             <ErrorBox error={addComment.error} />
           </form>
           <details className="mt-7 text-xs text-slate-500">
-            <summary className="cursor-pointer font-semibold">Activity history</summary>
+            <summary className="cursor-pointer font-semibold">
+              Activity history
+            </summary>
             <div className="mt-3 space-y-2">
               {task.history.map((history) => (
                 <p key={history.id}>
-                  {prettyDate(history.createdAt)} · {history.actor?.displayName} · {" "}
-                  {history.actionType.replaceAll("_", " ").toLowerCase()}
+                  {prettyDate(history.createdAt)} · {history.actor?.displayName}{" "}
+                  · {history.actionType.replaceAll("_", " ").toLowerCase()}
                 </p>
               ))}
             </div>
           </details>
           {edit && <TaskForm existing={task} onClose={() => setEdit(false)} />}
           {createSubtask && (
-            <TaskForm parentTask={task} onClose={() => setCreateSubtask(false)} />
+            <TaskForm
+              parentTask={task}
+              onClose={() => setCreateSubtask(false)}
+            />
           )}
-          {childId && <TaskDetail id={childId} onClose={() => setChildId(null)} />}
+          {childId && (
+            <TaskDetail id={childId} onClose={() => setChildId(null)} />
+          )}
         </>
       ) : (
         <ErrorBox error={query.error} />
@@ -719,7 +762,8 @@ export default function TasksPage() {
     },
   });
   const deleteGroup = useMutation({
-    mutationFn: (groupId) => api(`/tasks/groups/${groupId}`, { method: "DELETE" }),
+    mutationFn: (groupId) =>
+      api(`/tasks/groups/${groupId}`, { method: "DELETE" }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["task-groups"] });
       qc.invalidateQueries({ queryKey: ["tasks"] });
@@ -753,7 +797,8 @@ export default function TasksPage() {
         if (person?.id) people.set(person.id, person);
       }
       for (const participant of task.participants || []) {
-        if (participant.user?.id) people.set(participant.user.id, participant.user);
+        if (participant.user?.id)
+          people.set(participant.user.id, participant.user);
       }
     }
     return [...people.values()].sort((left, right) =>
@@ -766,7 +811,8 @@ export default function TasksPage() {
   const filterDepartments = useMemo(() => {
     const departments = new Map();
     for (const task of allTasks) {
-      if (task.department?.id) departments.set(task.department.id, task.department);
+      if (task.department?.id)
+        departments.set(task.department.id, task.department);
     }
     return [...departments.values()].sort((left, right) =>
       left.name.localeCompare(right.name),
@@ -783,7 +829,9 @@ export default function TasksPage() {
   };
 
   const setAdvancedValues = (key, event) => {
-    const values = [...event.target.selectedOptions].map((option) => option.value);
+    const values = [...event.target.selectedOptions].map(
+      (option) => option.value,
+    );
     setAdvancedFilters((current) => ({ ...current, [key]: values }));
   };
 
@@ -826,8 +874,11 @@ export default function TasksPage() {
       (filter === "mine" && task.assigneeId === user.id) ||
       (filter === "created" && task.creatorId === user.id) ||
       (filter === "participant" &&
-        task.participants?.some((participant) => participant.userId === user.id)) ||
-      (filter === "active" && !["COMPLETED", "CANCELLED"].includes(task.status)) ||
+        task.participants?.some(
+          (participant) => participant.userId === user.id,
+        )) ||
+      (filter === "active" &&
+        !["COMPLETED", "CANCELLED"].includes(task.status)) ||
       (filter === "completed" && task.status === "COMPLETED");
 
     const layoutOwner = task.parentTaskId && parentTask ? parentTask : task;
@@ -921,7 +972,9 @@ export default function TasksPage() {
       allTasks.filter((task) => {
         if (task.parentTaskId) return false;
         if (matches(task)) return true;
-        return (childrenByParent.get(task.id) || []).some((child) => matches(child, task));
+        return (childrenByParent.get(task.id) || []).some((child) =>
+          matches(child, task),
+        );
       }),
     // matches depends on these scalar states and is intentionally local to the page.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -934,7 +987,9 @@ export default function TasksPage() {
     new Date(task.dueDate).getTime() < Date.now();
 
   const incompleteChildren = (task) =>
-    (childrenByParent.get(task.id) || []).filter((child) => child.status !== "COMPLETED");
+    (childrenByParent.get(task.id) || []).filter(
+      (child) => child.status !== "COMPLETED",
+    );
 
   const toggleCompleted = (event, task) => {
     event.stopPropagation();
@@ -989,13 +1044,21 @@ export default function TasksPage() {
       if (sortBy === "due_asc") result = compareDueDate(left, right, 1);
       else if (sortBy === "due_desc") result = compareDueDate(left, right, -1);
       else if (sortBy === "priority_desc")
-        result = priorities.indexOf(right.priority) - priorities.indexOf(left.priority);
+        result =
+          priorities.indexOf(right.priority) -
+          priorities.indexOf(left.priority);
       else if (sortBy === "priority_asc")
-        result = priorities.indexOf(left.priority) - priorities.indexOf(right.priority);
+        result =
+          priorities.indexOf(left.priority) -
+          priorities.indexOf(right.priority);
       else if (sortBy === "created_desc")
-        result = new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
+        result =
+          new Date(right.createdAt).getTime() -
+          new Date(left.createdAt).getTime();
       else if (sortBy === "created_asc")
-        result = new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime();
+        result =
+          new Date(left.createdAt).getTime() -
+          new Date(right.createdAt).getTime();
       else if (sortBy === "title_asc")
         result = left.title.localeCompare(right.title);
       else if (sortBy === "title_desc")
@@ -1023,7 +1086,9 @@ export default function TasksPage() {
     const sections = data.map((group) => ({
       ...group,
       tasks: sortTasks(
-        visibleParents.filter((task) => task.personalLayout?.groupId === group.id),
+        visibleParents.filter(
+          (task) => task.personalLayout?.groupId === group.id,
+        ),
       ),
     }));
     const ungrouped = sortTasks(
@@ -1097,10 +1162,13 @@ export default function TasksPage() {
     const completed = task.status === "COMPLETED";
     const overdue = isOverdue(task);
     const children = childrenByParent.get(task.id) || [];
-    const shownChildren = children.filter((child) => matches(task) || matches(child, task));
+    const shownChildren = children.filter(
+      (child) => matches(task) || matches(child, task),
+    );
     const done = completedCount(children);
     const expanded = expandedTasks.has(task.id);
-    const updating = quickStatus.isPending && quickStatus.variables?.taskId === task.id;
+    const updating =
+      quickStatus.isPending && quickStatus.variables?.taskId === task.id;
     const canChangeStatus = canUserChangeTaskStatus(task, user, hasPermission);
 
     return (
@@ -1108,7 +1176,7 @@ export default function TasksPage() {
         <div
           role="button"
           tabIndex={0}
-          className={`grid min-w-[940px] grid-cols-[minmax(300px,1.8fr)_180px_165px_110px_145px_70px] items-center gap-4 border-t border-slate-100 px-5 py-3.5 text-left transition hover:bg-slate-50 focus:bg-slate-50 focus:outline-none ${subtask ? "bg-slate-50/40" : ""}`}
+          className={`task-list-row grid min-w-[940px] grid-cols-[minmax(300px,1.8fr)_180px_165px_110px_145px_70px] items-center gap-4 border-t border-slate-100 px-5 py-3.5 text-left transition hover:bg-slate-50 focus:bg-slate-50 focus:outline-none ${subtask ? "bg-slate-50/40" : ""}`}
           onClick={() => setId(task.id)}
           onKeyDown={(event) => {
             if (event.key === "Enter" || event.key === " ") {
@@ -1117,22 +1185,34 @@ export default function TasksPage() {
             }
           }}
         >
-          <div className={`flex min-w-0 items-start gap-2 ${subtask ? "pl-8" : ""}`}>
+          <div
+            className={`flex min-w-0 items-start gap-2 ${subtask ? "pl-8" : ""}`}
+          >
             {!subtask && children.length > 0 ? (
               <button
                 type="button"
-                aria-label={expanded ? `Collapse subtasks for ${task.title}` : `Expand subtasks for ${task.title}`}
+                aria-label={
+                  expanded
+                    ? `Collapse subtasks for ${task.title}`
+                    : `Expand subtasks for ${task.title}`
+                }
                 className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700"
                 onClick={(event) => toggleTaskExpanded(event, task.id)}
               >
-                {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                {expanded ? (
+                  <ChevronDown size={16} />
+                ) : (
+                  <ChevronRight size={16} />
+                )}
               </button>
             ) : (
               <span className="h-6 w-6 shrink-0" />
             )}
             <button
               type="button"
-              aria-label={completed ? `Reopen ${task.title}` : `Complete ${task.title}`}
+              aria-label={
+                completed ? `Reopen ${task.title}` : `Complete ${task.title}`
+              }
               title={completed ? "Mark as open" : "Mark as completed"}
               className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-md text-blue-600 transition hover:bg-blue-50 disabled:opacity-50"
               disabled={updating || !canChangeStatus}
@@ -1152,33 +1232,49 @@ export default function TasksPage() {
               </p>
               <div className="mt-1 flex min-w-0 items-center gap-2 text-xs text-slate-400">
                 {task.description ? (
-                  <span className="max-w-[330px] truncate">{task.description}</span>
+                  <span className="max-w-[330px] truncate">
+                    {task.description}
+                  </span>
                 ) : (
                   <span>{subtask ? "Subtask" : "No description"}</span>
                 )}
                 {!subtask && children.length > 0 && (
-                  <span className="shrink-0">· {done}/{children.length} subtasks</span>
+                  <span className="shrink-0">
+                    · {done}/{children.length} subtasks
+                  </span>
                 )}
               </div>
             </div>
           </div>
           <div className="flex min-w-0 items-center gap-2 text-sm text-slate-600">
             <Avatar small name={task.assignee?.displayName || "?"} />
-            <span className="truncate">{task.assignee?.displayName || "Unassigned"}</span>
+            <span className="truncate">
+              {task.assignee?.displayName || "Unassigned"}
+            </span>
           </div>
-          <div className={`flex items-center gap-2 text-sm ${overdue ? "font-semibold text-red-600" : "text-slate-500"}`}>
+          <div
+            className={`flex items-center gap-2 text-sm ${overdue ? "font-semibold text-red-600" : "text-slate-500"}`}
+          >
             <CalendarDays size={15} />
-            <span className="truncate">{task.dueDate ? prettyDate(task.dueDate) : "No due date"}</span>
+            <span className="truncate">
+              {task.dueDate ? prettyDate(task.dueDate) : "No due date"}
+            </span>
             {overdue && <span className="text-[10px] uppercase">Overdue</span>}
           </div>
-          <div><Badge value={task.priority} /></div>
-          <div><Badge value={task.status} /></div>
+          <div>
+            <Badge value={task.priority} />
+          </div>
+          <div>
+            <Badge value={task.status} />
+          </div>
           <div className="flex items-center justify-end gap-1.5 text-xs text-slate-400">
             <MessageSquare size={14} />
             {task._count.comments}
           </div>
         </div>
-        {!subtask && expanded && shownChildren.map((child) => listRow(child, { subtask: true }))}
+        {!subtask &&
+          expanded &&
+          shownChildren.map((child) => listRow(child, { subtask: true }))}
       </div>
     );
   };
@@ -1187,7 +1283,6 @@ export default function TasksPage() {
     <>
       <PageHeader
         title="Tasks"
-        description="Organize shared work with your own personal groups and focused subtasks."
         action={
           <div className="flex items-center gap-2">
             <button className="btn-secondary" onClick={() => setGroupForm({})}>
@@ -1209,7 +1304,7 @@ export default function TasksPage() {
           </div>
         }
       />
-      <div className="toolbar task-toolbar">
+      <div className="toolbar task-toolbar stickytop-20 z-30 flex items-center gap-4 rounded-lg border border-slate-200 bg-white shadow-sm">
         <div className="tabs task-quick-tabs" aria-label="Task quick filters">
           {[
             ["active", "Active", "Active"],
@@ -1234,10 +1329,13 @@ export default function TasksPage() {
 
         <div className="task-toolbar-actions ml-auto flex items-center gap-2">
           <div className="relative">
-            <Search className="absolute left-3 top-3 text-slate-400" size={15} />
+            <Search
+              className={`absolute right-3  top-3 text-slate-400`}
+              size={15}
+            />
             <input
               aria-label="Search tasks"
-              className="input pl-9 w-44 xl:w-52"
+              className="input pl-9 pe-8! w-44 xl:w-52"
               placeholder="Search tasks"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
@@ -1261,14 +1359,26 @@ export default function TasksPage() {
             </button>
 
             {filtersOpen && (
-              <div className="absolute right-0 top-full z-40 mt-2 w-[680px] max-w-[calc(100vw-48px)] rounded-2xl border border-slate-200 bg-white p-5 shadow-xl">
-                <div className="mb-4 flex items-start justify-between gap-4">
+              <div className="task-filter-panel fixed top-2 left-1/2 -translate-x-1/2 w-[680px] max-w-[calc(100vw-48px)] max-h-[calc(100vh-1rem)] overflow-y-auto rounded-2xl border border-slate-200 bg-white px-5 shadow-xl z-50">
+                <div className="sticky top-0 z-10  bg-white pt-5 pb-3 flex items-center justify-between gap-4 border-b border-slate-200">
                   <div>
-                    <h3 className="text-sm font-bold text-slate-800">Filter tasks</h3>
+                    <h3 className="text-sm font-bold text-slate-800 sticky">
+                      Filter tasks
+                    </h3>
                     <p className="mt-1 text-xs text-slate-400">
                       These filters refine the selected quick filter.
                     </p>
                   </div>
+                  <div>
+                    <button
+                      className="btn-secondary btn-sm"
+                      onClick={() => setFiltersOpen((current) => !current)}
+                    >
+                      x
+                    </button>
+                  </div>
+                </div>
+                <div className="relative h-full mb-4 flex items-start justify-between gap-4">
                   {advancedFilterCount > 0 && (
                     <button
                       type="button"
@@ -1294,7 +1404,9 @@ export default function TasksPage() {
                           <input
                             type="checkbox"
                             checked={advancedFilters.statuses.includes(status)}
-                            onChange={() => toggleAdvancedValue("statuses", status)}
+                            onChange={() =>
+                              toggleAdvancedValue("statuses", status)
+                            }
                           />
                           <span>{status.replaceAll("_", " ")}</span>
                         </label>
@@ -1314,8 +1426,12 @@ export default function TasksPage() {
                         >
                           <input
                             type="checkbox"
-                            checked={advancedFilters.priorities.includes(priority)}
-                            onChange={() => toggleAdvancedValue("priorities", priority)}
+                            checked={advancedFilters.priorities.includes(
+                              priority,
+                            )}
+                            onChange={() =>
+                              toggleAdvancedValue("priorities", priority)
+                            }
                           />
                           <span>{priority}</span>
                         </label>
@@ -1327,7 +1443,9 @@ export default function TasksPage() {
                       <select
                         className="input mt-1.5"
                         value={advancedFilters.due}
-                        onChange={(event) => setAdvancedValue("due", event.target.value)}
+                        onChange={(event) =>
+                          setAdvancedValue("due", event.target.value)
+                        }
                       >
                         <option value="any">Any due date</option>
                         <option value="overdue">Overdue</option>
@@ -1344,7 +1462,9 @@ export default function TasksPage() {
                       multiple
                       className="input mt-1.5 h-28"
                       value={advancedFilters.assigneeIds}
-                      onChange={(event) => setAdvancedValues("assigneeIds", event)}
+                      onChange={(event) =>
+                        setAdvancedValues("assigneeIds", event)
+                      }
                     >
                       <option value={UNASSIGNED}>Unassigned</option>
                       {filterPeople.map((person) => (
@@ -1361,7 +1481,9 @@ export default function TasksPage() {
                       multiple
                       className="input mt-1.5 h-28"
                       value={advancedFilters.creatorIds}
-                      onChange={(event) => setAdvancedValues("creatorIds", event)}
+                      onChange={(event) =>
+                        setAdvancedValues("creatorIds", event)
+                      }
                     >
                       {filterPeople.map((person) => (
                         <option key={person.id} value={person.id}>
@@ -1377,7 +1499,9 @@ export default function TasksPage() {
                       multiple
                       className="input mt-1.5 h-28"
                       value={advancedFilters.participantIds}
-                      onChange={(event) => setAdvancedValues("participantIds", event)}
+                      onChange={(event) =>
+                        setAdvancedValues("participantIds", event)
+                      }
                     >
                       {filterPeople.map((person) => (
                         <option key={person.id} value={person.id}>
@@ -1410,7 +1534,9 @@ export default function TasksPage() {
                       multiple
                       className="input mt-1.5 h-28"
                       value={advancedFilters.departmentIds}
-                      onChange={(event) => setAdvancedValues("departmentIds", event)}
+                      onChange={(event) =>
+                        setAdvancedValues("departmentIds", event)
+                      }
                     >
                       <option value={NO_DEPARTMENT}>No department</option>
                       {filterDepartments.map((department) => (
@@ -1436,7 +1562,7 @@ export default function TasksPage() {
                     </select>
                   </label>
 
-                  <div className="grid grid-cols-2 gap-3 md:col-span-2">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:col-span-2">
                     <label className="text-xs font-semibold text-slate-500">
                       Created from
                       <input
@@ -1462,8 +1588,8 @@ export default function TasksPage() {
                   </div>
                 </div>
 
-                <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4">
-                  <span className="text-xs text-slate-400">
+                <div className="sticky bottom-0 py-3 flex items-center justify-between border-t border-slate-100 bg-white pt-4">
+                  <span className="hidden text-xs text-slate-400 sm:inline">
                     Hold Ctrl/Cmd to select multiple people or groups.
                   </span>
                   <button
@@ -1518,10 +1644,11 @@ export default function TasksPage() {
         </div>
       </div>
 
-      {advancedFilterCount > 0 && (
+      {/* {advancedFilterCount > 0 && (
         <div className="mb-4 flex flex-wrap items-center gap-2 text-xs">
           <span className="rounded-full bg-blue-50 px-3 py-1.5 font-semibold text-blue-700">
-            {advancedFilterCount} advanced filter{advancedFilterCount === 1 ? "" : "s"} active
+            {advancedFilterCount} advanced filter
+            {advancedFilterCount === 1 ? "" : "s"} active
           </span>
           <button
             type="button"
@@ -1531,13 +1658,20 @@ export default function TasksPage() {
             Clear
           </button>
         </div>
-      )}
-      <ErrorBox error={query.error || groups.error || quickStatus.error || deleteGroup.error} />
+      )} */}
+      <ErrorBox
+        error={
+          query.error || groups.error || quickStatus.error || deleteGroup.error
+        }
+      />
       {query.isLoading || groups.isLoading ? (
         <Loading />
       ) : !visibleParents.length && !(groups.data || []).length ? (
         <div className="card">
-          <Empty title="No tasks to show" text="Create a group or task, or try another filter." />
+          <Empty
+            title="No tasks to show"
+            text="Create a group or task, or try another filter."
+          />
         </div>
       ) : board ? (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -1551,19 +1685,25 @@ export default function TasksPage() {
               <h3 className="text-xs font-bold px-1 mb-4 text-slate-500">
                 {label}
                 <span className="float-right">
-                  {boardParents.filter((task) => statusGroup.includes(task.status)).length}
+                  {
+                    boardParents.filter((task) =>
+                      statusGroup.includes(task.status),
+                    ).length
+                  }
                 </span>
               </h3>
               <div className="space-y-3">
-                {boardParents.filter((task) => statusGroup.includes(task.status)).map(card)}
+                {boardParents
+                  .filter((task) => statusGroup.includes(task.status))
+                  .map(card)}
               </div>
             </section>
           ))}
         </div>
       ) : (
-        <div className="card overflow-hidden">
-          <div className="overflow-x-auto">
-            <div className="grid min-w-[940px] grid-cols-[minmax(300px,1.8fr)_180px_165px_110px_145px_70px] items-center gap-4 bg-slate-50 px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-slate-400">
+        <div className="task-list-card card max-h-[calc(100vh-18.6rem)] md:max-h-[calc(100vh-10.74rem)] overflow-auto">
+          <div className=" ">
+            <div className="task-list-header sticky top-0 z-5 grid min-w-[940px] grid-cols-[minmax(300px,1.8fr)_180px_165px_110px_145px_70px] items-center gap-4 bg-slate-50 px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-slate-400">
               <span>Task</span>
               <span>Assignee</span>
               <span>Due date</span>
@@ -1575,28 +1715,44 @@ export default function TasksPage() {
               const collapsed = collapsedGroups.has(group.id);
               return (
                 <section key={group.id}>
-                  <div className="flex min-w-[940px] items-center gap-2 border-t border-slate-200 bg-slate-50/70 px-4 py-2.5">
+                  <div className="task-group-header sticky top-10 z-4 flex min-w-[940px] items-center gap-2 border-t border-slate-200 bg-slate-100 px-4 py-2.5">
                     <button
                       type="button"
                       className="grid h-7 w-7 place-items-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700"
                       onClick={() => toggleGroup(group.id)}
-                      aria-label={collapsed ? `Expand ${group.name}` : `Collapse ${group.name}`}
+                      aria-label={
+                        collapsed
+                          ? `Expand ${group.name}`
+                          : `Collapse ${group.name}`
+                      }
                     >
-                      {collapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
-                    </button>
-                    <span className="font-semibold text-sm text-slate-700">{group.name}</span>
-                    <span className="text-xs text-slate-400">{group.tasks.length} task{group.tasks.length === 1 ? "" : "s"}</span>
-                    <div className="ml-auto flex items-center gap-1">
-                      {hasPermission("tasks.create") && group.canUse !== false && (
-                        <button
-                          type="button"
-                          className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-slate-500 hover:bg-white hover:text-slate-800"
-                          onClick={(event) => openCreateForGroup(event, group.id)}
-                        >
-                          <Plus size={14} />
-                          Add task
-                        </button>
+                      {collapsed ? (
+                        <ChevronRight size={16} />
+                      ) : (
+                        <ChevronDown size={16} />
                       )}
+                    </button>
+                    <span className="font-semibold text-sm text-slate-700">
+                      {group.name}
+                    </span>
+                    <span className="text-xs text-slate-400">
+                      {group.tasks.length} task
+                      {group.tasks.length === 1 ? "" : "s"}
+                    </span>
+                    <div className="ml-auto flex items-center gap-1">
+                      {hasPermission("tasks.create") &&
+                        group.canUse !== false && (
+                          <button
+                            type="button"
+                            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-slate-500 hover:bg-white hover:text-slate-800"
+                            onClick={(event) =>
+                              openCreateForGroup(event, group.id)
+                            }
+                          >
+                            <Plus size={14} />
+                            Add task
+                          </button>
+                        )}
                       {group.canManage && (
                         <>
                           <button
@@ -1627,15 +1783,14 @@ export default function TasksPage() {
                       )}
                     </div>
                   </div>
-                  {!collapsed && (
-                    group.tasks.length ? (
+                  {!collapsed &&
+                    (group.tasks.length ? (
                       group.tasks.map((task) => listRow(task))
                     ) : (
-                      <div className="min-w-[940px] border-t border-slate-100 px-14 py-4 text-sm text-slate-400">
+                      <div className="task-empty-row min-w-[940px] border-t border-slate-100 px-14 py-4 text-sm text-slate-400">
                         No tasks in this group.
                       </div>
-                    )
-                  )}
+                    ))}
                 </section>
               );
             })}

@@ -1,4 +1,11 @@
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   useInfiniteQuery,
   useMutation,
@@ -21,6 +28,7 @@ import {
   Link2,
   ExternalLink,
   ArrowRight,
+  ArrowLeft,
   Smile,
   Pin,
   Rocket,
@@ -232,7 +240,7 @@ function EmojiMenu({
   return (
     <div
       ref={ref}
-      className={`absolute bottom-full z-50 mb-2 w-[326px] overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-xl ${
+      className={`absolute bottom-full z-50 mb-2 w-[326px] max-w-[calc(100vw-24px)] overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-xl ${
         align === "right" ? "right-0" : "left-0"
       }`}
     >
@@ -632,8 +640,8 @@ export default function ChatPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const linkedConversationId = searchParams.get("conversation");
   const linkedMessageId = searchParams.get("message");
-  const [selectedId, setSelectedId] = useState(() =>
-    linkedConversationId || sessionStorage.getItem(lastChatKey),
+  const [selectedId, setSelectedId] = useState(
+    () => linkedConversationId || sessionStorage.getItem(lastChatKey),
   );
   const [focusMessageId, setFocusMessageId] = useState(linkedMessageId);
   const [text, setText] = useState("");
@@ -703,8 +711,7 @@ export default function ChatPage() {
   const pinsQuery = useQuery({
     queryKey: ["message-pins", selectedId],
     enabled: Boolean(selectedId && pinsOpen),
-    queryFn: () =>
-      api(`/conversations/${selectedId}/pins`).then((r) => r.data),
+    queryFn: () => api(`/conversations/${selectedId}/pins`).then((r) => r.data),
   });
   const results = useQuery({
     queryKey: [
@@ -715,8 +722,8 @@ export default function ChatPage() {
     ],
     enabled: Boolean(
       selectedId &&
-        searchOpen &&
-        (searchType !== "messages" || normalizedMessageSearch.length >= 2),
+      searchOpen &&
+      (searchType !== "messages" || normalizedMessageSearch.length >= 2),
     ),
     queryFn: () =>
       api(
@@ -876,11 +883,7 @@ export default function ChatPage() {
   );
 
   useEffect(() => {
-    if (
-      !selectedId ||
-      !selected?.unreadReactionCount ||
-      !hasWindowAttention
-    )
+    if (!selectedId || !selected?.unreadReactionCount || !hasWindowAttention)
       return;
     let cancelled = false;
     api(`/conversations/${selectedId}/reactions/read`, {
@@ -909,12 +912,7 @@ export default function ChatPage() {
     return () => {
       cancelled = true;
     };
-  }, [
-    selectedId,
-    selected?.unreadReactionCount,
-    hasWindowAttention,
-    qc,
-  ]);
+  }, [selectedId, selected?.unreadReactionCount, hasWindowAttention, qc]);
 
   useEffect(() => {
     if (!conversations.data) return;
@@ -1151,7 +1149,7 @@ export default function ChatPage() {
     <>
       <PageHeader
         title="Messages"
-        description="A conversation for every person and every team."
+
         action={
           <button className="btn-primary" onClick={() => setNewChat(true)}>
             <Plus size={17} />
@@ -1160,9 +1158,9 @@ export default function ChatPage() {
         }
       />
       <ErrorBox error={conversations.error} />
-      <div className="card flex overflow-hidden h-[calc(100dvh-185px)] min-h-[520px]">
-        <aside className="w-20 sm:w-64 shrink-0 border-r border-slate-200 flex flex-col">
-          <div className="p-4 hidden sm:block">
+      <div className="chat-shell card flex overflow-hidden h-[calc(100vh-6.6rem)]">
+        <aside className={`chat-sidebar w-full sm:w-64 shrink-0 border-r border-slate-200 flex flex-col ${selectedId ? "chat-sidebar-hidden-mobile" : ""}`}>
+          <div className="p-3 sm:p-4">
             <input
               className="input"
               aria-label="Search conversations"
@@ -1188,7 +1186,7 @@ export default function ChatPage() {
                   className={`flex w-full gap-3 items-center p-4 text-left border-l-2 ${c.id === selectedId ? "border-blue-600 bg-blue-50/70" : "border-transparent hover:bg-slate-50"}`}
                 >
                   <Avatar name={displayName(c, user.id)} />
-                  <div className="hidden sm:block min-w-0 flex-1">
+                  <div className="min-w-0 flex-1">
                     <div className="flex justify-between items-center gap-2">
                       <span className="truncate text-sm font-semibold">
                         {displayName(c, user.id)}
@@ -1208,10 +1206,18 @@ export default function ChatPage() {
               ))}
           </div>
         </aside>
-        <section className="flex flex-1 min-w-0 flex-col">
+        <section className={`chat-conversation flex-1 min-w-0 flex-col ${selectedId ? "flex" : "hidden sm:flex"}`}>
           {selected ? (
             <>
-              <header className="flex items-center gap-3 border-b border-slate-100 px-5 py-4">
+              <header className="flex items-center gap-2 border-b border-slate-100 px-3 py-3 sm:gap-3 sm:px-5 sm:py-4">
+                <button
+                  type="button"
+                  className="icon-btn sm:hidden"
+                  aria-label="Back to conversations"
+                  onClick={() => selectConversation(null)}
+                >
+                  <ArrowLeft size={19} />
+                </button>
                 <div className="flex-1 min-w-0">
                   <h2 className="font-semibold text-sm truncate">
                     {displayName(selected, user.id)}
@@ -1224,7 +1230,7 @@ export default function ChatPage() {
                   <div className="relative">
                     <Search
                       size={16}
-                      className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                      className={`pointer-events-none absolute right-3 ${searchOpen ? "opacity-0" : "opacity-100"}  top-1/2 -translate-y-1/2 text-slate-400`}
                     />
                     <input
                       className="input pl-9 pr-9"
@@ -1306,7 +1312,9 @@ export default function ChatPage() {
                                   </span>
                                   <span>·</span>
                                   <span>
-                                    {new Date(result.createdAt).toLocaleString()}
+                                    {new Date(
+                                      result.createdAt,
+                                    ).toLocaleString()}
                                   </span>
                                   <ArrowRight
                                     size={13}
@@ -1332,7 +1340,9 @@ export default function ChatPage() {
                                   </span>
                                   <span>·</span>
                                   <span>
-                                    {new Date(result.createdAt).toLocaleString()}
+                                    {new Date(
+                                      result.createdAt,
+                                    ).toLocaleString()}
                                   </span>
                                 </div>
                                 <Attachments items={[{ file: result.file }]} />
@@ -1362,7 +1372,9 @@ export default function ChatPage() {
                                   </span>
                                   <span>·</span>
                                   <span>
-                                    {new Date(result.createdAt).toLocaleString()}
+                                    {new Date(
+                                      result.createdAt,
+                                    ).toLocaleString()}
                                   </span>
                                 </div>
                                 <a
@@ -1375,7 +1387,10 @@ export default function ChatPage() {
                                   <span className="min-w-0 flex-1 truncate">
                                     {result.url}
                                   </span>
-                                  <ExternalLink size={13} className="shrink-0" />
+                                  <ExternalLink
+                                    size={13}
+                                    className="shrink-0"
+                                  />
                                 </a>
                                 <p className="mt-1 truncate text-xs text-slate-500">
                                   {result.messagePreview}
@@ -1452,7 +1467,8 @@ export default function ChatPage() {
                                 </div>
                                 <p className="mt-1 line-clamp-2 text-sm text-slate-700">
                                   {item.message.content ||
-                                    item.message.attachments[0]?.file.originalName ||
+                                    item.message.attachments[0]?.file
+                                      .originalName ||
                                     "Attachment"}
                                 </p>
                                 <p className="mt-1 text-[10px] text-slate-400">
@@ -1476,7 +1492,7 @@ export default function ChatPage() {
               </header>
               <div
                 ref={scrollArea}
-                className="flex-1 overflow-y-auto p-5 space-y-5 bg-slate-50/50"
+                className="flex-1 overflow-y-auto p-3 sm:p-5 space-y-5 bg-slate-50/50"
                 onScroll={(event) => {
                   const element = event.currentTarget;
                   const distanceFromBottom = Math.max(
@@ -1535,7 +1551,9 @@ export default function ChatPage() {
                             onRead={queueMessageRead}
                             className={`flex gap-2 ${own ? "flex-row-reverse" : ""} ${focusMessageId === m.id ? "rounded-xl ring-2 ring-blue-300 ring-offset-2" : ""}`}
                           >
-                            {!own && <Avatar small name={m.sender.displayName} />}
+                            {!own && (
+                              <Avatar small name={m.sender.displayName} />
+                            )}
                             <div className="max-w-[90%] sm:max-w-[78%] min-w-0">
                               <div
                                 className={`mb-1 text-[10px] text-slate-400 ${own ? "text-right" : ""}`}
@@ -1626,7 +1644,9 @@ export default function ChatPage() {
                                       title="React"
                                       aria-label="React to message"
                                       className="icon-btn p-1"
-                                      onMouseDown={(event) => event.stopPropagation()}
+                                      onMouseDown={(event) =>
+                                        event.stopPropagation()
+                                      }
                                       onClick={() =>
                                         setReactionFor((current) =>
                                           current === m.id ? null : m.id,
@@ -1651,7 +1671,9 @@ export default function ChatPage() {
                                   </div>
                                   <button
                                     type="button"
-                                    title={m.pin ? "Unpin message" : "Pin message"}
+                                    title={
+                                      m.pin ? "Unpin message" : "Pin message"
+                                    }
                                     aria-label={
                                       m.pin ? "Unpin message" : "Pin message"
                                     }
@@ -1726,7 +1748,8 @@ export default function ChatPage() {
                           markConversationRead();
                         }}
                       >
-                        ↓ {chatBadgeLabel(selected.unreadMessageCount)} new messages
+                        ↓ {chatBadgeLabel(selected.unreadMessageCount)} new
+                        messages
                       </button>
                     )}
                   </>
