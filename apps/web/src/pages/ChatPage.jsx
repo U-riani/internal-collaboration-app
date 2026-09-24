@@ -1158,7 +1158,7 @@ export default function ChatPage() {
         }
       />
       <ErrorBox error={conversations.error} />
-      <div className="chat-shell card flex overflow-hidden h-[calc(100vh-7.54rem)]">
+      <div className="chat-shell card flex overflow-hidden h-[calc(100vh-6.6rem)]">
         <aside className={`chat-sidebar w-full sm:w-64 shrink-0 border-r border-slate-200 flex flex-col ${selectedId ? "chat-sidebar-hidden-mobile" : ""}`}>
           <div className="p-3 sm:p-4">
             <input

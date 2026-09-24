@@ -82,7 +82,6 @@ export default function ApprovalBasesPage() {
     <>
       <PageHeader
         title="Approval Bases"
-        description="Browse approval data by request type in a full-page table workspace."
         action={
           <button
             type="button"
@@ -95,8 +94,8 @@ export default function ApprovalBasesPage() {
         }
       />
 
-      <div className="approval-bases-layout grid min-h-[calc(100vh-150px)] gap-5 xl:grid-cols-[260px_minmax(0,1fr)]">
-        <aside className="approval-bases-nav self-start rounded-2xl border border-slate-200 bg-white p-3 xl:sticky xl:top-6">
+      <div className="h-[calc(100vh-10.2rem)] md:h-[calc(100vh-6.7rem)] approval-bases-layout grid  gap-5 xl:grid-cols-[260px_minmax(0,1fr)]">
+        <aside className="overflow-x-auto max-h-screen approval-bases-nav self-start rounded-2xl border border-slate-200 bg-white p-3 xl:sticky xl:top-6">
           <div className="mb-3 px-2 py-1">
             <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
               Request types
@@ -111,7 +110,7 @@ export default function ApprovalBasesPage() {
           ) : bases.error ? (
             <ErrorBox error={bases.error} />
           ) : (bases.data || []).length ? (
-            <div className="approval-bases-nav-list max-h-[calc(100vh-230px)] space-y-1 overflow-y-auto pr-1">
+            <div className="approval-bases-nav-list max-h-[calc(100vh-12rem)] space-y-1 overflow-y-auto pr-1">
               {(bases.data || []).map((base) => (
                 <button
                   type="button"
@@ -244,9 +243,9 @@ export default function ApprovalBasesPage() {
                 </div>
               ) : payload?.records?.length ? (
                 <>
-                  <section className="approval-base-table-section overflow-hidden rounded-2xl border border-slate-200 bg-white">
-                    <div className="approval-base-table-wrap overflow-auto">
-                      <table className="approval-base-table min-w-max w-full border-separate border-spacing-0 text-left text-sm">
+                  <section className="approval-base-table-section   rounded-2xl border border-slate-200 bg-white">
+                    <div className="approval-base-table-wrap max-h-[calc(100vh-35rem)] md:max-h-[calc(100vh-17.1rem)] overflow-auto">
+                      <table className="approval-base-table   min-w-max w-full border-separate border-spacing-0 text-left text-sm">
                         <thead className="sticky top-0 z-20 bg-slate-50 text-xs uppercase tracking-wide text-slate-400">
                           <tr>
                             <th className="approval-base-request-cell sticky left-0 z-30 min-w-[260px] max-w-[260px] border-b border-r border-slate-200 bg-slate-50 px-4 py-3 font-semibold">
@@ -348,7 +347,7 @@ export default function ApprovalBasesPage() {
                     </p>
                   )}
 
-                  <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                  <div className=" flex flex-wrap items-center justify-between gap-3">
                     <span className="text-xs text-slate-400">
                       Page {payload.pagination.page} of{" "}
                       {payload.pagination.pageCount} ·{" "}
