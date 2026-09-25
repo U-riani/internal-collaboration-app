@@ -160,9 +160,9 @@ export default function Layout() {
               <p className="text-[11px] text-slate-400">Your team, together</p>
             </div>
           </div>
-        <p className="mb-3 px-3 text-[10px] font-bold tracking-[.16em] text-slate-400">
-          WORKSPACE
-        </p>
+          <p className="mb-3 px-3 text-[10px] font-bold tracking-[.16em] text-slate-400">
+            WORKSPACE
+          </p>
         </div>
         <nav className="space-y-1 ">
           {[
@@ -225,7 +225,8 @@ export default function Layout() {
           </button>
         </div>
       </aside>
-      <main className="workspace-main max-[900px]:h-[calc(100dvh-4rem)] max-[900px]:overflow-y-auto min-[901px]:h-screen min-[901px]:overflow-y-auto">
+      {/* <main className="workspace-main max-[900px]:h-[calc(100dvh-4rem)] max-[900px]:overflow-y-auto min-[901px]:h-screen min-[901px]:overflow-y-auto"> */}
+      <main className="workspace-main min-[901px]:h-screen min-[901px]:overflow-y-auto">
         <Outlet />
       </main>
     </div>
