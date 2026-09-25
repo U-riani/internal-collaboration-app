@@ -369,7 +369,7 @@ export default function ApprovalBasesPage() {
         }
       />
 
-      <div className=" md:h-[calc(100vh-6.7rem)] approval-bases-layout grid gap-2 xl:grid-cols-[260px_minmax(0,1fr)]">
+      <div className=" md:max-h-[calc(100vh-6.7rem)] approval-bases-layout grid gap-2 xl:grid-cols-[260px_minmax(0,1fr)]">
         <aside className="overflow-x-auto max-h-screen approval-bases-nav self-start rounded-2xl border border-slate-200 bg-white p-3 xl:sticky xl:top-6">
           <div className=" px-1 py-1 mb-0">
             <p className="text-xs mb-0 font-bold uppercase tracking-wide text-slate-400">
