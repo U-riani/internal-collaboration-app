@@ -802,7 +802,8 @@ export default function DrivePage() {
             </div>
           )}
 
-          <div className="drive-list-card card max-h-[calc(100vh-20.5rem)] md:max-h-[calc(100vh-13.94rem)] overflow-y-auto">
+          {/* <div className="drive-list-card card max-h-[calc(100vh-24.5rem)] md:max-h-[calc(100vh-13.94rem)] overflow-y-auto"> */}
+          <div className="drive-list-card card max-h-[calc(100vh-420px)] md:max-h-[calc(100vh-13.94rem)] overflow-y-auto">
             <div className="list-row sticky top-0 bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-400 ">
               <span className="flex-1">Name</span>
               <span className="hidden w-28 md:block">Updated</span>

@@ -770,7 +770,7 @@ export default function ApprovalBasesPage() {
               ) : payload?.records?.length ? (
                 <>
                   <section className="approval-base-table-section rounded-2xl border border-slate-200 bg-white">
-                    <div className="approval-base-table-wrap max-h-[calc(100vh-31.9rem)] md:max-h-[calc(100vh-14.6rem)] overflow-auto">
+                    <div className="approval-base-table-wrap max-h-[calc(100vh-36.8rem)] md:max-h-[calc(100vh-14.6rem)] overflow-auto">
                       <table className="approval-base-table min-w-max w-full border-separate border-spacing-0 text-left text-sm">
                         <thead className="sticky top-0 z-20 bg-slate-50 text-xs uppercase tracking-wide text-slate-400">
                           <tr>

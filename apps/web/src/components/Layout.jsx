@@ -128,7 +128,7 @@ export default function Layout() {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="max-h-screen ">
       <div className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-slate-200 bg-white px-4 min-[901px]:hidden">
         <strong>Workspace</strong>
         <button
@@ -202,7 +202,7 @@ export default function Layout() {
             <Avatar name={user.displayName} />
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold">
-                {user.displayName}
+                {user.displayName}s
               </p>
               <p className="truncate text-xs text-slate-400">
                 {user.department?.name || "Team member"}
@@ -226,7 +226,7 @@ export default function Layout() {
         </div>
       </aside>
       {/* <main className="workspace-main max-[900px]:h-[calc(100dvh-4rem)] max-[900px]:overflow-y-auto min-[901px]:h-screen min-[901px]:overflow-y-auto"> */}
-      <main className="workspace-main min-[901px]:h-screen min-[901px]:overflow-y-auto">
+      <main className="relative workspace-main sm:h-screen min-[901px]:overflow-y-auto">
         <Outlet />
       </main>
     </div>

@@ -1894,7 +1894,7 @@ export default function ApprovalsPage() {
             ))}
           </div>
         ) : (
-          <div className="approval-list-card card h-[calc(100vh-18.6rem)] md:h-[calc(100vh-10.8rem)] overflow-auto">
+          <div className="approval-list-card card h-[calc(100vh-22.3rem)] md:h-[calc(100vh-10.8rem)] overflow-auto">
             <div className="">
               <div className="approval-list-header sticky -top-[0.1px] z-5 grid min-w-[900px] grid-cols-[minmax(280px,1.8fr)_180px_190px_145px_160px] items-center gap-4 bg-slate-50 px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-slate-400">
                 <span>Request</span>
