@@ -370,6 +370,17 @@ function TaskDetail({ id, onClose }) {
     queryFn: () => api("/tasks/groups").then((response) => response.data),
   });
   const task = query.data;
+
+  useEffect(() => {
+    if (!id) return;
+    api("/notifications/read-related", {
+      method: "POST",
+      body: JSON.stringify({ entityType: "TASK", entityId: id }),
+    })
+      .then(() => qc.invalidateQueries({ queryKey: ["notifications"] }))
+      .catch(() => {});
+  }, [id, qc]);
+
   const addComment = useMutation({
     mutationFn: async () =>
       api(`/tasks/${id}/comments`, {
@@ -751,6 +762,11 @@ export default function TasksPage() {
     queryKey: ["task-groups"],
     queryFn: () => api("/tasks/groups").then((response) => response.data),
   });
+  const notifications = useQuery({
+    queryKey: ["notifications"],
+    queryFn: () => api("/notifications"),
+    refetchInterval: 60000,
+  });
   const quickStatus = useMutation({
     mutationFn: ({ taskId, status }) =>
       api(`/tasks/${taskId}`, {
@@ -785,6 +801,20 @@ export default function TasksPage() {
   };
 
   const allTasks = query.data || [];
+  const unreadTaskIds = useMemo(
+    () =>
+      new Set(
+        (notifications.data?.data || [])
+          .filter(
+            (notification) =>
+              !notification.isRead &&
+              notification.relatedEntityType === "TASK" &&
+              notification.relatedEntityId,
+          )
+          .map((notification) => notification.relatedEntityId),
+      ),
+    [notifications.data],
+  );
   const filterPeople = useMemo(() => {
     const people = new Map();
     if (user?.id) {
@@ -1116,12 +1146,20 @@ export default function TasksPage() {
   const card = (task) => {
     const children = childrenByParent.get(task.id) || [];
     const done = completedCount(children);
+    const hasUnread = unreadTaskIds.has(task.id);
     return (
       <button
         key={task.id}
-        className="card p-4 text-left w-full hover:border-blue-300 transition"
+        className="card relative p-4 text-left w-full hover:border-blue-300 transition"
         onClick={() => setId(task.id)}
       >
+        {hasUnread && (
+          <span
+            aria-label="Unread task notification"
+            title="New notification"
+            className="absolute -left-1 -top-1 h-3 w-3 rounded-full bg-red-500 ring-2 ring-white"
+          />
+        )}
         <div className="flex items-start justify-between gap-3">
           <span className="font-semibold text-sm">{task.title}</span>
           <Badge value={task.priority} />
@@ -1171,13 +1209,14 @@ export default function TasksPage() {
     const updating =
       quickStatus.isPending && quickStatus.variables?.taskId === task.id;
     const canChangeStatus = canUserChangeTaskStatus(task, user, hasPermission);
+    const hasUnread = unreadTaskIds.has(task.id);
 
     return (
       <div key={task.id}>
         <div
           role="button"
           tabIndex={0}
-          className={`task-list-row grid min-w-[940px] grid-cols-[minmax(300px,1.8fr)_180px_165px_110px_145px_70px] items-center gap-4 border-t border-slate-100 px-5 py-3.5 text-left transition hover:bg-slate-50 focus:bg-slate-50 focus:outline-none ${subtask ? "bg-slate-50/40" : ""}`}
+          className={`task-list-row relative grid min-w-[940px] grid-cols-[minmax(300px,1.8fr)_180px_165px_110px_145px_70px] items-center gap-4 border-t border-slate-100 px-5 py-3.5 text-left transition hover:bg-slate-50 focus:bg-slate-50 focus:outline-none ${subtask ? "bg-slate-50/40" : ""}`}
           onClick={() => setId(task.id)}
           onKeyDown={(event) => {
             if (event.key === "Enter" || event.key === " ") {
@@ -1186,6 +1225,13 @@ export default function TasksPage() {
             }
           }}
         >
+          {hasUnread && (
+            <span
+              aria-label="Unread task notification"
+              title="New notification"
+              className="absolute left-1.5 top-1.5 h-2.5 w-2.5 rounded-full bg-red-500"
+            />
+          )}
           <div
             className={`flex min-w-0 items-start gap-2 ${subtask ? "pl-8" : ""}`}
           >
