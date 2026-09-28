@@ -10,6 +10,7 @@ import ChatPage from "./pages/ChatPage.jsx";
 import NotificationsPage from "./pages/NotificationsPage.jsx";
 import DirectoryPage from "./pages/DirectoryPage.jsx";
 import DrivePage from "./pages/DrivePage.jsx";
+import SpreadsheetPage from "./pages/SpreadsheetPage.jsx";
 import AccountPage from "./pages/AccountPage.jsx";
 import AuditPage from "./pages/AuditPage.jsx";
 import AdminPage from "./pages/AdminPage.jsx";
@@ -27,6 +28,7 @@ export default function App() {
       >
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/drive" element={<DrivePage />} />
+        <Route path="/drive/sheets/:id" element={<SpreadsheetPage />} />
         <Route path="/tasks" element={<TasksPage />} />
         <Route path="/approvals" element={<ApprovalsPage />} />
         <Route path="/approvals/bases" element={<ApprovalBasesPage />} />
