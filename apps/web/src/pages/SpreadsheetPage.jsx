@@ -7,16 +7,29 @@ const UNIVER_VERSION = "1.0.2";
 const writeAccess = new Set(["OWNER", "MANAGER", "EDITOR"]);
 let univerLoader;
 
+function ensureStylesheet(id, href) {
+  if (document.getElementById(id)) return;
+  const link = document.createElement("link");
+  link.id = id;
+  link.rel = "stylesheet";
+  link.href = href;
+  document.head.appendChild(link);
+}
+
 function loadUniver() {
   if (!univerLoader) {
-    const cssId = "univer-sheets-core-css";
-    if (!document.getElementById(cssId)) {
-      const link = document.createElement("link");
-      link.id = cssId;
-      link.rel = "stylesheet";
-      link.href = `https://cdn.jsdelivr.net/npm/@univerjs/preset-sheets-core@${UNIVER_VERSION}/lib/index.css`;
-      document.head.appendChild(link);
-    }
+    ensureStylesheet(
+      "univer-sheets-core-css",
+      `https://cdn.jsdelivr.net/npm/@univerjs/preset-sheets-core@${UNIVER_VERSION}/lib/index.css`,
+    );
+    ensureStylesheet(
+      "univer-sheets-filter-css",
+      `https://cdn.jsdelivr.net/npm/@univerjs/preset-sheets-filter@${UNIVER_VERSION}/lib/index.css`,
+    );
+    ensureStylesheet(
+      "univer-sheets-sort-css",
+      `https://cdn.jsdelivr.net/npm/@univerjs/preset-sheets-sort@${UNIVER_VERSION}/lib/index.css`,
+    );
 
     const remoteImport = (url) => import(/* @vite-ignore */ url);
     univerLoader = Promise.all([
@@ -27,11 +40,37 @@ function loadUniver() {
       remoteImport(
         `https://esm.sh/@univerjs/preset-sheets-core@${UNIVER_VERSION}/locales/en-US`,
       ),
-    ]).then(([presets, sheetsCore, locale]) => ({
-      ...presets,
-      ...sheetsCore,
-      sheetsLocale: locale.default || locale,
-    }));
+      remoteImport(
+        `https://esm.sh/@univerjs/preset-sheets-filter@${UNIVER_VERSION}`,
+      ),
+      remoteImport(
+        `https://esm.sh/@univerjs/preset-sheets-filter@${UNIVER_VERSION}/locales/en-US`,
+      ),
+      remoteImport(
+        `https://esm.sh/@univerjs/preset-sheets-sort@${UNIVER_VERSION}`,
+      ),
+      remoteImport(
+        `https://esm.sh/@univerjs/preset-sheets-sort@${UNIVER_VERSION}/locales/en-US`,
+      ),
+    ]).then(
+      ([
+        presets,
+        sheetsCore,
+        coreLocale,
+        sheetsFilter,
+        filterLocale,
+        sheetsSort,
+        sortLocale,
+      ]) => ({
+        ...presets,
+        ...sheetsCore,
+        ...sheetsFilter,
+        ...sheetsSort,
+        coreLocale: coreLocale.default || coreLocale,
+        filterLocale: filterLocale.default || filterLocale,
+        sortLocale: sortLocale.default || sortLocale,
+      }),
+    );
   }
   return univerLoader;
 }
@@ -147,7 +186,11 @@ function SheetCreate() {
             className="btn-primary"
             disabled={saving || loading || !spaceId || !name.trim()}
           >
-            {saving ? <LoaderCircle className="animate-spin" size={17} /> : <Table2 size={17} />}
+            {saving ? (
+              <LoaderCircle className="animate-spin" size={17} />
+            ) : (
+              <Table2 size={17} />
+            )}
             Create spreadsheet
           </button>
         </div>
@@ -253,7 +296,11 @@ function SheetEditor({ id }) {
           LocaleType,
           mergeLocales,
           UniverSheetsCorePreset,
-          sheetsLocale,
+          UniverSheetsFilterPreset,
+          UniverSheetsSortPreset,
+          coreLocale,
+          filterLocale,
+          sortLocale,
         } = await loadUniver();
         if (disposed || !hostRef.current) return;
 
@@ -265,12 +312,18 @@ function SheetEditor({ id }) {
         const runtime = createUniver({
           locale: LocaleType.EN_US,
           locales: {
-            [LocaleType.EN_US]: mergeLocales(sheetsLocale),
+            [LocaleType.EN_US]: mergeLocales(
+              coreLocale,
+              filterLocale,
+              sortLocale,
+            ),
           },
           presets: [
             UniverSheetsCorePreset({
               container,
             }),
+            UniverSheetsFilterPreset(),
+            UniverSheetsSortPreset(),
           ],
         });
         runtimeRef.current = runtime;
