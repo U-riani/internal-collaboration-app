@@ -1115,6 +1115,11 @@ export default function ApprovalsPage() {
     queryKey: ["approval-groups"],
     queryFn: () => api("/approval-groups").then((response) => response.data),
   });
+  const notifications = useQuery({
+    queryKey: ["notifications"],
+    queryFn: () => api("/notifications"),
+    refetchInterval: 60000,
+  });
   const moveLayout = useMutation({
     mutationFn: ({ requestId, groupId }) =>
       api(`/approval-requests/${requestId}/layout`, {
@@ -1171,6 +1176,20 @@ export default function ApprovalsPage() {
   };
 
   const allRequests = query.data || [];
+  const unreadApprovalIds = useMemo(
+    () =>
+      new Set(
+        (notifications.data?.data || [])
+          .filter(
+            (notification) =>
+              !notification.isRead &&
+              notification.relatedEntityType === "APPROVAL_REQUEST" &&
+              notification.relatedEntityId,
+          )
+          .map((notification) => notification.relatedEntityId),
+      ),
+    [notifications.data],
+  );
   const typeOptions = useMemo(() => {
     const byId = new Map();
     for (const request of allRequests) {
@@ -1366,6 +1385,7 @@ export default function ApprovalsPage() {
     const typeName =
       request.workflowSnapshot?.type?.name || request.approvalType.name;
     const current = request.steps.find((step) => step.status === "PENDING");
+    const hasUnread = unreadApprovalIds.has(request.id);
     return (
       <button
         key={request.id}
@@ -1377,10 +1397,17 @@ export default function ApprovalsPage() {
         }}
         onDragEnd={() => setDraggingId(null)}
         onClick={() => setSelectedId(request.id)}
-        className={`card w-full p-4 text-left transition hover:border-blue-300 ${
+        className={`card relative w-full p-4 text-left transition hover:border-blue-300 ${
           draggingId === request.id ? "opacity-50" : ""
         }`}
       >
+        {hasUnread && (
+          <span
+            aria-label="Unread approval notification"
+            title="New notification"
+            className="absolute -left-1 -top-1 h-3 w-3 rounded-full bg-red-500 ring-2 ring-white"
+          />
+        )}
         <div className="flex items-start justify-between gap-3">
           <span className="text-sm font-semibold text-slate-700">
             {request.title}
@@ -1409,12 +1436,20 @@ export default function ApprovalsPage() {
     const typeName =
       request.workflowSnapshot?.type?.name || request.approvalType.name;
     const current = request.steps.find((step) => step.status === "PENDING");
+    const hasUnread = unreadApprovalIds.has(request.id);
     return (
       <button
-        className="approval-list-row grid min-w-[900px] w-full grid-cols-[minmax(280px,1.8fr)_180px_190px_145px_160px] items-center gap-4 border-t border-slate-100 px-5 py-3.5 text-left transition hover:bg-slate-50"
+        className="approval-list-row relative grid min-w-[900px] w-full grid-cols-[minmax(280px,1.8fr)_180px_190px_145px_160px] items-center gap-4 border-t border-slate-100 px-5 py-3.5 text-left transition hover:bg-slate-50"
         key={request.id}
         onClick={() => setSelectedId(request.id)}
       >
+        {hasUnread && (
+          <span
+            aria-label="Unread approval notification"
+            title="New notification"
+            className="absolute left-1.5 top-1.5 h-2.5 w-2.5 rounded-full bg-red-500"
+          />
+        )}
         <div className="flex min-w-0 items-center gap-3">
           <span className="rounded-xl bg-blue-50 p-2 text-blue-500">
             <FileCheck2 size={18} />
