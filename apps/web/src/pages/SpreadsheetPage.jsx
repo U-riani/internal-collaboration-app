@@ -398,7 +398,7 @@ function SheetEditor({ id }) {
   }
 
   return (
-    <div className="flex h-[calc(100vh-6.25rem)] min-h-[580px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+    <div className="flex h-[calc(100vh-9.1rem)] md:h-[calc(100vh-1.8rem)] min-h-[580px]  flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
       <div className="flex min-h-14 items-center gap-3 border-b border-slate-200 px-3 sm:px-4">
         <Link to="/drive" className="icon-btn shrink-0" title="Back to Drive">
           <ArrowLeft size={18} />
