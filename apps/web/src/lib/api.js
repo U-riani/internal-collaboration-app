@@ -1,3 +1,5 @@
+import { exportUniverSnapshotToXlsx } from "./xlsx.js";
+
 let accessToken = null;
 localStorage.removeItem("collab_access_token");
 let refreshPromise = null;
@@ -97,9 +99,13 @@ export async function uploadFile(file) {
 
 export async function downloadFile(id, filename) {
   try {
-    const sheet = await api(`/drive/sheets/by-file/${id}`);
-    if (sheet.data?.driveItemId) {
-      window.location.assign(`/drive/sheets/${sheet.data.driveItemId}`);
+    const sheetLink = await api(`/drive/sheets/by-file/${id}`);
+    if (sheetLink.data?.driveItemId) {
+      const sheet = await api(`/drive/sheets/${sheetLink.data.driveItemId}`);
+      await exportUniverSnapshotToXlsx(
+        sheet.data.snapshot,
+        filename || sheet.data.name || "Spreadsheet",
+      );
       return;
     }
   } catch (error) {
