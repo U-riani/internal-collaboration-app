@@ -96,6 +96,16 @@ export async function uploadFile(file) {
 }
 
 export async function downloadFile(id, filename) {
+  try {
+    const sheet = await api(`/drive/sheets/by-file/${id}`);
+    if (sheet.data?.driveItemId) {
+      window.location.assign(`/drive/sheets/${sheet.data.driveItemId}`);
+      return;
+    }
+  } catch (error) {
+    if (error.code !== "SHEET_NOT_FOUND") throw error;
+  }
+
   async function get() {
     return fetch(`/api/v1/files/${id}/download`, {
       headers: { authorization: `Bearer ${getAccessToken()}` },
