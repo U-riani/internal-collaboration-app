@@ -27,7 +27,7 @@ const schema = z.object({
   MINIO_BUCKET_ATTACHMENTS: z.string().default("attachments"),
   // FileObject.sizeBytes is currently a PostgreSQL/Prisma Int, so keep a
   // single stored file below the signed 32-bit byte limit (~2 GiB).
-  MAX_UPLOAD_SIZE_MB: z.coerce.number().positive().max(2047).default(1024),
+  MAX_UPLOAD_SIZE_MB: z.coerce.number().positive().max(2047).default(2047),
   // Spreadsheet snapshots are JSON and are parsed in memory. Keep this
   // separate from streaming file uploads so large Drive files do not force
   // every JSON endpoint to accept multi-gigabyte request bodies.
