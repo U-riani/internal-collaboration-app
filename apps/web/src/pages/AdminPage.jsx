@@ -42,6 +42,8 @@ export default function AdminPage() {
   });
   const [deptForm, setDeptForm] = useState({ name: "", code: "" });
   const [error, setError] = useState("");
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
   const userQueryString = useMemo(() => {
     const params = new URLSearchParams();
     for (const [key, value] of Object.entries(userFilters)) {
@@ -156,9 +158,32 @@ export default function AdminPage() {
     <>
       <PageHeader
         title="Administration"
-        description="Manage employees, departments, roles, and organization access."
+        action={
+          <div className="flex items-center gap-2">
+            <button
+              className={"btn-secondary md:hidden!"}
+              onClick={() => setShowCreateForm(!showCreateForm)}
+            >
+              {showCreateForm ? "x" : "+"}
+            </button>
+            <button
+              className={tab === "users" ? "btn-primary" : "btn-secondary"}
+              onClick={() => setTab("users")}
+            >
+              Users
+            </button>
+            <button
+              className={
+                tab === "departments" ? "btn-primary" : "btn-secondary"
+              }
+              onClick={() => setTab("departments")}
+            >
+              Departments
+            </button>
+          </div>
+        }
       />
-      <div className="mb-5 flex gap-2">
+      {/* <div className="mb-5 flex gap-2 md:hidden">
         <button
           className={tab === "users" ? "btn-primary" : "btn-secondary"}
           onClick={() => setTab("users")}
@@ -171,24 +196,41 @@ export default function AdminPage() {
         >
           Departments
         </button>
-      </div>
+        <div className="ml-auto text-sm text-slate-500">
+          <button
+            className={"btn-secondary"}
+            onClick={() => setShowCreateForm(!showCreateForm)}
+          >
+            +
+          </button>
+        </div>
+      </div> */}
       {error && (
         <div className="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">
           {error}
         </div>
       )}
       {tab === "users" ? (
-        <div className="grid gap-6 xl:grid-cols-[380px_1fr]">
+        <div className="grid gap-6 xl:grid-cols-[380px_1fr] ">
           <form
             onSubmit={(e) => {
               e.preventDefault();
               createUser.mutate();
             }}
-            className="card h-fit p-6"
+            className={`card h-fit px-5 ${showCreateForm ? "" : "hidden"}  md:block
+            max-h-[calc(100vh-127px)] overflow-y-auto `}
           >
-            <div className="mb-5 flex items-center gap-2">
+            <div className="py-4 flex items-center gap-2 sticky top-0 bg-white pt-5">
               <UserPlus className="text-blue-600" />
               <h2 className="font-bold">Create user</h2>
+              <div className="ml-auto text-sm text-slate-500">
+                <button
+                  className={"btn-secondary md:hidden!"}
+                  onClick={() => setShowCreateForm(!showCreateForm)}
+                >
+                  {showCreateForm ? "x" : "+"}
+                </button>
+              </div>
             </div>
             <div className="space-y-4">
               <input
@@ -273,7 +315,7 @@ export default function AdminPage() {
                 <option value="SYSTEM_ADMIN">System administrator</option>
               </select>
               <button
-                className="btn-primary w-full"
+                className="btn-primary w-full mb-5"
                 disabled={createUser.isPending}
               >
                 <Plus size={16} className="mr-2 inline" />
@@ -281,69 +323,82 @@ export default function AdminPage() {
               </button>
             </div>
           </form>
-          <div className="card overflow-hidden">
-            <div className="border-b border-slate-200 p-5">
-              <div className="font-bold">Organization users</div>
-              <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
-                <label className="relative">
-                  <span className="sr-only">Search users</span>
-                  <Search
-                    size={16}
-                    className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                  />
-                  <input
-                    className="input pl-9"
-                    placeholder="Search users..."
-                    value={userFilters.q}
+          <div className="card overflow-hidden max-h-[calc(100vh-127px)] overflow-y-auto">
+            <div className="border-b border-slate-200 py-2 px-5 sticky top-0 bg-white">
+              {/* <div className="font-bold">Organization users</div> */}
+              <div className=" grid gap-2 md:grid-cols-2 xl:grid-cols-4 ">
+                <div className="flex items-center gap-2">
+                  <label className="relative">
+                    <span className="sr-only">Search users</span>
+                    <Search
+                      size={16}
+                      className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
+                    <input
+                      className="input pl-9"
+                      placeholder="Search users..."
+                      value={userFilters.q}
+                      onChange={(e) =>
+                        setUserFilters({ ...userFilters, q: e.target.value })
+                      }
+                    />
+                  </label>
+                  <div className="mt-1 flex flex-1 items-center justify-end text-xs text-slate-400">
+                    <span>{filteredUsers.data?.length || 0} users</span>
+                    <button
+                      className="btn-secondary"
+                      onClick={() => setShowFilters((prev) => !prev)}
+                    >
+                      fltr
+                    </button>
+                  </div>
+                </div>
+                <div className={`md:row-start-1 md:col-start-2 md:col-end-5 flex  flex-wrap md:flex-nowrap items-center gap-2 ${showFilters ? "" : "hidden md:flex"} `}>
+                  <select
+                    className="input"
+                    aria-label="Filter users by department"
+                    value={userFilters.departmentId}
                     onChange={(e) =>
-                      setUserFilters({ ...userFilters, q: e.target.value })
+                      setUserFilters({
+                        ...userFilters,
+                        departmentId: e.target.value,
+                      })
                     }
-                  />
-                </label>
-                <select
-                  className="input"
-                  aria-label="Filter users by department"
-                  value={userFilters.departmentId}
-                  onChange={(e) =>
-                    setUserFilters({
-                      ...userFilters,
-                      departmentId: e.target.value,
-                    })
-                  }
-                >
-                  <option value="">All departments</option>
-                  {departments.data?.map((department) => (
-                    <option key={department.id} value={department.id}>
-                      {department.name}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  className="input"
-                  aria-label="Filter users by role"
-                  value={userFilters.role}
-                  onChange={(e) =>
-                    setUserFilters({ ...userFilters, role: e.target.value })
-                  }
-                >
-                  <option value="">All roles</option>
-                  <option value="EMPLOYEE">Employee</option>
-                  <option value="MANAGER">Manager</option>
-                  <option value="AUDITOR">Auditor</option>
-                  <option value="SYSTEM_ADMIN">System administrator</option>
-                </select>
-                <select
-                  className="input"
-                  aria-label="Filter users by status"
-                  value={userFilters.status}
-                  onChange={(e) =>
-                    setUserFilters({ ...userFilters, status: e.target.value })
-                  }
-                >
-                  <option value="">All statuses</option>
-                  <option value="ACTIVE">Active</option>
-                  <option value="INACTIVE">Inactive</option>
-                </select>
+                  >
+                    <option value="">All departments</option>
+                    {departments.data?.map((department) => (
+                      <option key={department.id} value={department.id}>
+                        {department.name}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    className="input"
+                    aria-label="Filter users by role"
+                    value={userFilters.role}
+                    onChange={(e) =>
+                      setUserFilters({ ...userFilters, role: e.target.value })
+                    }
+                  >
+                    <option value="">All roles</option>
+                    <option value="EMPLOYEE">Employee</option>
+                    <option value="MANAGER">Manager</option>
+                    <option value="AUDITOR">Auditor</option>
+                    <option value="SYSTEM_ADMIN">System administrator</option>
+                  </select>
+                  <select
+                    className="input"
+                    aria-label="Filter users by status"
+                    value={userFilters.status}
+                    onChange={(e) =>
+                      setUserFilters({ ...userFilters, status: e.target.value })
+                    }
+                  >
+                    <option value="">All statuses</option>
+                    <option value="ACTIVE">Active</option>
+                    <option value="INACTIVE">Inactive</option>
+                  </select>
+                </div>
               </div>
             </div>
             {filteredUsers.isLoading ? (
@@ -354,50 +409,53 @@ export default function AdminPage() {
               </div>
             ) : (
               <div className="divide-y divide-slate-100">
-              {filteredUsers.data?.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex flex-wrap items-center justify-between gap-3 p-5"
-                >
-                  <div>
-                    <div className="font-semibold">{item.displayName}</div>
-                    <div className="text-sm text-slate-500">
-                      {item.email} · {item.phone || "No phone"} ·{" "}
-                      {item.jobTitle || "Employee"}
+                {filteredUsers.data?.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex flex-wrap items-center justify-between gap-3 p-5"
+                  >
+                    <div>
+                      <div className="font-semibold">{item.displayName}</div>
+                      <div className="text-sm text-slate-500">
+                        {item.email} · {item.phone || "No phone"} ·{" "}
+                        {item.jobTitle || "Employee"}
+                      </div>
+                      <div className="mt-1 text-xs text-slate-400">
+                        {item.department?.name || "No department"}
+                      </div>
                     </div>
-                    <div className="mt-1 text-xs text-slate-400">
-                      {item.department?.name || "No department"}
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      className="text-xs text-blue-600"
-                      onClick={() => {
-                        setError("");
-                        setPasswordSuccess("");
-                        setPasswordForm({ password: "", confirmPassword: "" });
-                        setEditing(item);
-                      }}
-                    >
-                      Edit
-                    </button>
-                    {item.roles.map((role) => (
-                      <span
-                        key={role}
-                        className="badge bg-blue-50 text-blue-700"
+                    <div className="flex gap-2">
+                      <button
+                        className="text-xs text-blue-600"
+                        onClick={() => {
+                          setError("");
+                          setPasswordSuccess("");
+                          setPasswordForm({
+                            password: "",
+                            confirmPassword: "",
+                          });
+                          setEditing(item);
+                        }}
                       >
-                        <ShieldCheck size={12} className="mr-1" />
-                        {role}
+                        Edit
+                      </button>
+                      {item.roles.map((role) => (
+                        <span
+                          key={role}
+                          className="badge bg-blue-50 text-blue-700"
+                        >
+                          <ShieldCheck size={12} className="mr-1" />
+                          {role}
+                        </span>
+                      ))}
+                      <span
+                        className={`badge ${item.status === "ACTIVE" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}
+                      >
+                        {item.status}
                       </span>
-                    ))}
-                    <span
-                      className={`badge ${item.status === "ACTIVE" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}
-                    >
-                      {item.status}
-                    </span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
               </div>
             )}
           </div>
@@ -409,11 +467,19 @@ export default function AdminPage() {
               e.preventDefault();
               createDept.mutate();
             }}
-            className="card h-fit p-6"
+            className={`card h-fit p-6 ${showCreateForm ? "" : "hidden"}  md:block`}
           >
             <div className="mb-5 flex items-center gap-2">
               <Building2 className="text-blue-600" />
               <h2 className="font-bold">Create department</h2>
+              <div className="ml-auto text-sm text-slate-500">
+                <button
+                  className={"btn-secondary md:hidden!"}
+                  onClick={() => setShowCreateForm(!showCreateForm)}
+                >
+                  {showCreateForm ? "x" : "+"}
+                </button>
+              </div>
             </div>
             <div className="space-y-4">
               <input
@@ -620,7 +686,9 @@ export default function AdminPage() {
                     onClick={() => {
                       setError("");
                       setPasswordSuccess("");
-                      if (passwordForm.password !== passwordForm.confirmPassword) {
+                      if (
+                        passwordForm.password !== passwordForm.confirmPassword
+                      ) {
                         setError("Passwords do not match");
                         return;
                       }
