@@ -1,10 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, LoaderCircle, Save, Table2 } from "lucide-react";
+import {
+  ArrowLeft,
+  LoaderCircle,
+  Plus,
+  Save,
+  Settings2,
+  Table2,
+  X,
+} from "lucide-react";
 import { api } from "../lib/api.js";
 
 const UNIVER_VERSION = "1.0.2";
 const writeAccess = new Set(["OWNER", "MANAGER", "EDITOR"]);
+const MAX_ROWS = 200000;
+const MAX_COLUMNS = 1000;
 let univerLoader;
 
 function ensureStylesheet(id, href) {
@@ -210,11 +220,97 @@ function SheetEditor({ id }) {
   const [sheet, setSheet] = useState(null);
   const [status, setStatus] = useState("Loading…");
   const [error, setError] = useState("");
+  const [dimensions, setDimensions] = useState({ rows: 1000, columns: 20 });
+  const [resizeOpen, setResizeOpen] = useState(false);
+  const [resizeRows, setResizeRows] = useState("1000");
+  const [resizeColumns, setResizeColumns] = useState("20");
+  const [resizeError, setResizeError] = useState("");
 
   const canEdit = useMemo(
     () => Boolean(sheet && writeAccess.has(sheet.access)),
     [sheet],
   );
+
+  function getActiveWorksheet() {
+    return runtimeRef.current?.univerAPI
+      .getActiveWorkbook()
+      ?.getActiveSheet?.();
+  }
+
+  function refreshDimensions() {
+    const worksheet = getActiveWorksheet();
+    if (!worksheet) return null;
+    const next = {
+      rows: worksheet.getMaxRows(),
+      columns: worksheet.getMaxColumns(),
+    };
+    setDimensions(next);
+    return next;
+  }
+
+  function growRows(amount = 1000) {
+    if (!canEdit) return;
+    const worksheet = getActiveWorksheet();
+    if (!worksheet) return;
+    const current = worksheet.getMaxRows();
+    const next = Math.min(current + amount, MAX_ROWS);
+    if (next === current) return;
+    worksheet.setRowCount(next);
+    refreshDimensions();
+  }
+
+  function growColumns(amount = 10) {
+    if (!canEdit) return;
+    const worksheet = getActiveWorksheet();
+    if (!worksheet) return;
+    const current = worksheet.getMaxColumns();
+    const next = Math.min(current + amount, MAX_COLUMNS);
+    if (next === current) return;
+    worksheet.setColumnCount(next);
+    refreshDimensions();
+  }
+
+  function openResize() {
+    const current = refreshDimensions() || dimensions;
+    setResizeRows(String(current.rows));
+    setResizeColumns(String(current.columns));
+    setResizeError("");
+    setResizeOpen(true);
+  }
+
+  function applyResize(e) {
+    e.preventDefault();
+    if (!canEdit) return;
+    const worksheet = getActiveWorksheet();
+    if (!worksheet) return;
+
+    const rows = Number.parseInt(resizeRows, 10);
+    const columns = Number.parseInt(resizeColumns, 10);
+    const currentRows = worksheet.getMaxRows();
+    const currentColumns = worksheet.getMaxColumns();
+
+    if (!Number.isInteger(rows) || !Number.isInteger(columns)) {
+      setResizeError("Rows and columns must be whole numbers.");
+      return;
+    }
+    if (rows < currentRows || columns < currentColumns) {
+      setResizeError(
+        "Resize can only grow the sheet. This prevents accidental data loss.",
+      );
+      return;
+    }
+    if (rows > MAX_ROWS || columns > MAX_COLUMNS) {
+      setResizeError(
+        `For browser safety, this app currently allows up to ${MAX_ROWS.toLocaleString()} rows and ${MAX_COLUMNS.toLocaleString()} columns.`,
+      );
+      return;
+    }
+
+    if (rows !== currentRows) worksheet.setRowCount(rows);
+    if (columns !== currentColumns) worksheet.setColumnCount(columns);
+    refreshDimensions();
+    setResizeOpen(false);
+  }
 
   useEffect(() => {
     let active = true;
@@ -335,10 +431,21 @@ function SheetEditor({ id }) {
           hasSnapshot ? snapshot : { name: sheet.name },
         );
 
+        const worksheet = workbook.getActiveSheet?.();
+        if (worksheet) {
+          setDimensions({
+            rows: worksheet.getMaxRows(),
+            columns: worksheet.getMaxColumns(),
+          });
+        }
+
         if (!writeAccess.has(sheet.access)) {
           await workbook.getWorkbookPermission().setReadOnly();
         } else {
-          commandListener = workbook.onCommandExecuted(() => scheduleSave());
+          commandListener = workbook.onCommandExecuted(() => {
+            scheduleSave();
+            requestAnimationFrame(refreshDimensions);
+          });
         }
 
         setStatus(writeAccess.has(sheet.access) ? "Saved" : "View only");
@@ -398,63 +505,198 @@ function SheetEditor({ id }) {
   }
 
   return (
-    <div className="flex h-[calc(100vh-9.1rem)] md:h-[calc(100vh-1.8rem)] min-h-[580px]  flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-      <div className="flex min-h-14 items-center gap-3 border-b border-slate-200 px-3 sm:px-4">
-        <Link to="/drive" className="icon-btn shrink-0" title="Back to Drive">
-          <ArrowLeft size={18} />
-        </Link>
-        <Table2 size={20} className="shrink-0 text-emerald-600" />
-        <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-semibold text-slate-900">
-            {sheet?.name || "Spreadsheet"}
+    <>
+      <div className="flex h-[calc(100vh-9.1rem)] min-h-[580px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm md:h-[calc(100vh-1.8rem)]">
+        <div className="flex min-h-14 items-center gap-3 border-b border-slate-200 px-3 sm:px-4">
+          <Link to="/drive" className="icon-btn shrink-0" title="Back to Drive">
+            <ArrowLeft size={18} />
+          </Link>
+          <Table2 size={20} className="shrink-0 text-emerald-600" />
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-sm font-semibold text-slate-900">
+              {sheet?.name || "Spreadsheet"}
+            </div>
+            <div className="flex items-center gap-2 text-[11px] text-slate-400">
+              <span>{sheet?.space?.name || "Drive"}</span>
+              <span>·</span>
+              <span>{status}</span>
+              {sheet?.access && (
+                <>
+                  <span>·</span>
+                  <span>{sheet.access.toLowerCase()}</span>
+                </>
+              )}
+            </div>
           </div>
-          <div className="flex items-center gap-2 text-[11px] text-slate-400">
-            <span>{sheet?.space?.name || "Drive"}</span>
-            <span>·</span>
-            <span>{status}</span>
-            {sheet?.access && (
+          {canEdit && (
+            <div className="flex shrink-0 items-center gap-1.5">
+              <button
+                className="icon-btn hidden sm:inline-flex"
+                title="Resize spreadsheet"
+                aria-label="Resize spreadsheet"
+                onClick={openResize}
+              >
+                <Settings2 size={16} />
+              </button>
+              <button
+                className="btn-secondary shrink-0"
+                onClick={manualSave}
+                disabled={status === "Saving…" || conflictRef.current}
+              >
+                <Save size={16} />
+                <span className="hidden sm:inline">Save</span>
+              </button>
+            </div>
+          )}
+        </div>
+
+        {error && (
+          <div className="border-b border-red-200 bg-red-50 px-4 py-2 text-xs text-red-700">
+            {error}
+            {status === "Conflict" && (
+              <button
+                className="ml-2 font-semibold underline"
+                onClick={() => window.location.reload()}
+              >
+                Reload latest version
+              </button>
+            )}
+          </div>
+        )}
+
+        <div ref={hostRef} className="min-h-0 flex-1 overflow-hidden">
+          {!sheet && !error && (
+            <div className="flex h-full items-center justify-center gap-2 text-sm text-slate-500">
+              <LoaderCircle size={18} className="animate-spin" />
+              Loading spreadsheet…
+            </div>
+          )}
+        </div>
+
+        {sheet && (
+          <div className="flex min-h-11 flex-wrap items-center gap-2 border-t border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
+            <span className="mr-auto whitespace-nowrap">
+              {dimensions.rows.toLocaleString()} rows · {dimensions.columns.toLocaleString()} columns
+            </span>
+            {canEdit && (
               <>
-                <span>·</span>
-                <span>{sheet.access.toLowerCase()}</span>
+                <button
+                  className="btn-secondary !min-h-8 !px-2.5 !py-1 text-xs"
+                  onClick={() => growRows(1000)}
+                  disabled={dimensions.rows >= MAX_ROWS}
+                  title="Add 1,000 rows to the end of the active sheet"
+                >
+                  <Plus size={14} />
+                  1,000 rows
+                </button>
+                <button
+                  className="btn-secondary !min-h-8 !px-2.5 !py-1 text-xs"
+                  onClick={() => growColumns(10)}
+                  disabled={dimensions.columns >= MAX_COLUMNS}
+                  title="Add 10 columns to the end of the active sheet"
+                >
+                  <Plus size={14} />
+                  10 columns
+                </button>
+                <button
+                  className="btn-secondary !min-h-8 !px-2.5 !py-1 text-xs sm:hidden"
+                  onClick={openResize}
+                >
+                  <Settings2 size={14} />
+                  Resize
+                </button>
               </>
             )}
           </div>
-        </div>
-        {canEdit && (
-          <button
-            className="btn-secondary shrink-0"
-            onClick={manualSave}
-            disabled={status === "Saving…" || conflictRef.current}
-          >
-            <Save size={16} />
-            <span className="hidden sm:inline">Save</span>
-          </button>
         )}
       </div>
 
-      {error && (
-        <div className="border-b border-red-200 bg-red-50 px-4 py-2 text-xs text-red-700">
-          {error}
-          {status === "Conflict" && (
-            <button
-              className="ml-2 font-semibold underline"
-              onClick={() => window.location.reload()}
-            >
-              Reload latest version
-            </button>
-          )}
+      {resizeOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/40 p-4"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setResizeOpen(false);
+          }}
+        >
+          <form
+            className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl"
+            onSubmit={applyResize}
+          >
+            <div className="mb-5 flex items-start gap-3">
+              <div className="min-w-0 flex-1">
+                <h2 className="text-lg font-semibold text-slate-900">
+                  Resize spreadsheet
+                </h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Increase the active sheet capacity without changing the default
+                  size of new spreadsheets.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="icon-btn"
+                aria-label="Close resize dialog"
+                onClick={() => setResizeOpen(false)}
+              >
+                <X size={17} />
+              </button>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label>
+                <span className="mb-1.5 block text-sm font-medium text-slate-700">
+                  Total rows
+                </span>
+                <input
+                  className="input"
+                  type="number"
+                  min={dimensions.rows}
+                  max={MAX_ROWS}
+                  step="1"
+                  value={resizeRows}
+                  onChange={(e) => setResizeRows(e.target.value)}
+                />
+              </label>
+              <label>
+                <span className="mb-1.5 block text-sm font-medium text-slate-700">
+                  Total columns
+                </span>
+                <input
+                  className="input"
+                  type="number"
+                  min={dimensions.columns}
+                  max={MAX_COLUMNS}
+                  step="1"
+                  value={resizeColumns}
+                  onChange={(e) => setResizeColumns(e.target.value)}
+                />
+              </label>
+            </div>
+
+            <div className="mt-3 text-xs text-slate-400">
+              Current: {dimensions.rows.toLocaleString()} rows × {dimensions.columns.toLocaleString()} columns. Shrinking is disabled to prevent accidental data loss.
+            </div>
+
+            {resizeError && (
+              <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {resizeError}
+              </div>
+            )}
+
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => setResizeOpen(false)}
+              >
+                Cancel
+              </button>
+              <button className="btn-primary">Apply</button>
+            </div>
+          </form>
         </div>
       )}
-
-      <div ref={hostRef} className="min-h-0 flex-1 overflow-hidden">
-        {!sheet && !error && (
-          <div className="flex h-full items-center justify-center gap-2 text-sm text-slate-500">
-            <LoaderCircle size={18} className="animate-spin" />
-            Loading spreadsheet…
-          </div>
-        )}
-      </div>
-    </div>
+    </>
   );
 }
 
