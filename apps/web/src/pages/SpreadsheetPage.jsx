@@ -13,8 +13,8 @@ import { api } from "../lib/api.js";
 
 const UNIVER_VERSION = "1.0.2";
 const writeAccess = new Set(["OWNER", "MANAGER", "EDITOR"]);
-const MAX_ROWS = 200000;
-const MAX_COLUMNS = 1000;
+const MAX_ROWS = 1048576;
+const MAX_COLUMNS = 16384;
 let univerLoader;
 
 function ensureStylesheet(id, href) {
@@ -301,7 +301,7 @@ function SheetEditor({ id }) {
     }
     if (rows > MAX_ROWS || columns > MAX_COLUMNS) {
       setResizeError(
-        `For browser safety, this app currently allows up to ${MAX_ROWS.toLocaleString()} rows and ${MAX_COLUMNS.toLocaleString()} columns.`,
+        `This spreadsheet currently allows up to ${MAX_ROWS.toLocaleString()} rows and ${MAX_COLUMNS.toLocaleString()} columns.`,
       );
       return;
     }
