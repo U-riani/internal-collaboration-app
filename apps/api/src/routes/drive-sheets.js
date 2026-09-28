@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { z } from "zod";
+import { env } from "../config/env.js";
 import { parse } from "../lib/validation.js";
 import { requirePermission } from "../lib/authz.js";
 import { HttpError } from "../lib/http-error.js";
@@ -218,7 +219,7 @@ export default async function driveSheetRoutes(app) {
 
   app.put(
     "/:id",
-    { bodyLimit: 10 * 1024 * 1024 },
+    { bodyLimit: env.MAX_SHEET_SNAPSHOT_MB * 1024 * 1024 },
     async (request) => {
       const params = parse(z.object({ id: z.uuid() }), request.params);
       const input = parse(saveSchema, request.body);
