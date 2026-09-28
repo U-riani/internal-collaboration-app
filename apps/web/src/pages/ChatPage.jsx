@@ -1567,7 +1567,7 @@ export default function ChatPage() {
                                 {m.pin ? " · 📌 Pinned" : ""}
                               </div>
                               <div
-                                className={`p-3.5 rounded-2xl ${own ? "bg-blue-600 text-white rounded-tr-md" : "bg-white border border-slate-200 rounded-tl-md"}`}
+                                className={`px-2.5 py-2 rounded-2xl ${own ? "bg-blue-600 text-white rounded-tr-md" : "bg-white border border-slate-200 rounded-tl-md"}`}
                               >
                                 {m.replyToMessage && (
                                   <div className="border-l-2 pl-2 mb-3 opacity-60 text-xs truncate">

@@ -610,6 +610,7 @@ export default function DrivePage() {
   const canManageSpace =
     section === "shared" && selectedSpace?.access === "MANAGER";
 
+    console.log(query.data?.meta.breadcrumbs?.length);
   return (
     <>
       <PageHeader
@@ -803,7 +804,7 @@ export default function DrivePage() {
           )}
 
           {/* <div className="drive-list-card card max-h-[calc(100vh-24.5rem)] md:max-h-[calc(100vh-13.94rem)] overflow-y-auto"> */}
-          <div className="drive-list-card card max-h-[calc(100vh-420px)] md:max-h-[calc(100vh-13.94rem)] overflow-y-auto">
+          <div className={`drive-list-card card ${query.data?.meta.breadcrumbs?.length ? "max-h-[calc(100vh-407px)]" : "max-h-[calc(100vh-370px)]"} md:max-h-[calc(100vh-14rem)] overflow-y-auto`}>
             <div className="list-row sticky top-0 bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-400 ">
               <span className="flex-1">Name</span>
               <span className="hidden w-28 md:block">Updated</span>
@@ -980,7 +981,7 @@ export default function DrivePage() {
             )}
           </div>
 
-          <p className="mt-4 text-xs text-slate-400">
+          <p className="mt-0 text-xs text-slate-400">
             {query.data?.data.length || 0} items
             {section === "personal" &&
               ` · ${fileSize(query.data?.meta.usedBytes || 0)} in Personal`}

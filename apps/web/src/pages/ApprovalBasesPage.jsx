@@ -370,7 +370,7 @@ export default function ApprovalBasesPage() {
       />
 
       <div className=" md:max-h-[calc(100vh-6.7rem)] approval-bases-layout grid gap-2 xl:grid-cols-[260px_minmax(0,1fr)]">
-        <aside className="overflow-x-auto max-h-screen approval-bases-nav self-start rounded-2xl border border-slate-200 bg-white p-3 xl:sticky xl:top-6">
+        <aside className="overflow-x-auto max-h-screen approval-bases-nav self-start rounded-2xl border border-slate-200 bg-white px-2! py-1! xl:sticky xl:top-6">
           <div className=" px-1 py-1 mb-0">
             <p className="text-xs mb-0 font-bold uppercase tracking-wide text-slate-400">
               Request types
@@ -440,7 +440,7 @@ export default function ApprovalBasesPage() {
             </div>
           ) : (
             <>
-              <section className="flex flex-col md:flex-row md:items-center justify-between mb-4 rounded-2xl border border-slate-200 bg-white p-5">
+              <section className="flex flex-col md:flex-row md:items-center justify-between mb-4 rounded-2xl border border-slate-200 bg-white px-2 py-1">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
@@ -770,11 +770,11 @@ export default function ApprovalBasesPage() {
               ) : payload?.records?.length ? (
                 <>
                   <section className="approval-base-table-section rounded-2xl border border-slate-200 bg-white">
-                    <div className="approval-base-table-wrap max-h-[calc(100vh-36.8rem)] md:max-h-[calc(100vh-14.6rem)] overflow-auto">
+                    <div className="approval-base-table-wrap max-h-[calc(100vh-32.8rem)] md:max-h-[calc(100vh-14.6rem)] overflow-auto">
                       <table className="approval-base-table min-w-max w-full border-separate border-spacing-0 text-left text-sm">
                         <thead className="sticky top-0 z-20 bg-slate-50 text-xs uppercase tracking-wide text-slate-400">
                           <tr>
-                            <th className="approval-base-request-cell sticky left-0 z-30 min-w-[260px] max-w-[260px] border-b border-r border-slate-200 bg-slate-50 px-4 py-3 font-semibold">
+                            <th className="approval-base-request-cell md:sticky left-0 z-30 min-w-[260px] max-w-[260px] border-b border-r border-slate-200 bg-slate-50 px-4 py-3 font-semibold">
                               Request
                             </th>
                             <th className="approval-base-requester-cell sticky left-[260px] z-30 min-w-[180px] border-b border-r border-slate-200 bg-slate-50 px-4 py-3 font-semibold">
@@ -818,7 +818,7 @@ export default function ApprovalBasesPage() {
                               className="group cursor-pointer"
                               onClick={() => setSelectedRequestId(record.id)}
                             >
-                              <td className="approval-base-request-cell sticky left-0 z-10 min-w-[260px] max-w-[260px] border-b border-r border-slate-100 bg-white px-4 py-3 transition group-hover:bg-slate-50">
+                              <td className="approval-base-request-cell md:sticky left-0 z-10 min-w-[260px] max-w-[260px] border-b border-r border-slate-100 bg-white px-4 py-3 transition group-hover:bg-slate-50">
                                 <p className="truncate font-semibold text-slate-700">
                                   {record.title}
                                 </p>
@@ -883,7 +883,7 @@ export default function ApprovalBasesPage() {
                     <div className="flex gap-2">
                       <button
                         type="button"
-                        className="btn-secondary"
+                        className="btn-secondary py-1!"
                         disabled={payload.pagination.page <= 1}
                         onClick={() =>
                           setPage((current) => Math.max(1, current - 1))
@@ -893,7 +893,7 @@ export default function ApprovalBasesPage() {
                       </button>
                       <button
                         type="button"
-                        className="btn-secondary"
+                        className="btn-secondary py-1!"
                         disabled={
                           payload.pagination.page >=
                           payload.pagination.pageCount

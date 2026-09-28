@@ -323,7 +323,7 @@ a:focus-visible {
 @media (max-width: 900px) {
   .workspace-main {
     margin-left: 0;
-    padding: 0 14px 20px;
+    padding: 0 14px 0px;
   }
 
   .page-header {
