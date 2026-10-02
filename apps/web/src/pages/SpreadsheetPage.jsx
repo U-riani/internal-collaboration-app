@@ -219,6 +219,8 @@ function SheetEditor({ id }) {
   const runtimeRef = useRef(null);
   const versionRef = useRef(1);
   const baseSnapshotRef = useRef(null);
+  const editGenerationRef = useRef(0);
+  const remountPendingSaveRef = useRef(false);
   const timerRef = useRef(null);
   const savingRef = useRef(false);
   const pendingRef = useRef(false);
@@ -352,25 +354,13 @@ function SheetEditor({ id }) {
         versionRef.current = result.data.version;
         baseSnapshotRef.current = cloneSpreadsheetSnapshot(candidate);
         clearConflict();
-        pendingRef.current = false;
-
-        if (mergedRemoteChanges) {
-          setSheet((current) =>
-            current
-              ? {
-                  ...current,
-                  snapshot: cloneSpreadsheetSnapshot(candidate),
-                  version: result.data.version,
-                  updatedAt: result.data.updatedAt,
-                }
-              : current,
-          );
-        }
 
         return {
           saved: true,
           merged: mergedRemoteChanges,
+          snapshot: cloneSpreadsheetSnapshot(candidate),
           version: result.data.version,
+          updatedAt: result.data.updatedAt,
         };
       } catch (saveError) {
         if (saveError.code !== "SHEET_VERSION_CONFLICT") throw saveError;
@@ -417,20 +407,78 @@ function SheetEditor({ id }) {
     const workbook = runtime.univerAPI.getActiveWorkbook();
     if (!workbook) return;
 
+    const generationAtStart = editGenerationRef.current;
+    const localSnapshot = workbook.save();
     savingRef.current = true;
     setStatus("Saving…");
     try {
-      const result = await persistSnapshot(workbook.save(), { forceConflicts });
+      const result = await persistSnapshot(localSnapshot, { forceConflicts });
       if (result?.saved) {
-        setStatus(result.merged ? "Merged & saved" : "Saved");
         setError("");
+
+        if (!result.merged) {
+          setStatus("Saved");
+        } else {
+          const changedDuringSave = editGenerationRef.current !== generationAtStart;
+          const currentWorkbook = runtimeRef.current?.univerAPI.getActiveWorkbook();
+          let snapshotToShow = result.snapshot;
+          let rebaseConflicts = [];
+
+          if (changedDuringSave && currentWorkbook) {
+            const rebase = mergeSpreadsheetSnapshots(
+              localSnapshot,
+              result.snapshot,
+              currentWorkbook.save(),
+            );
+            snapshotToShow = rebase.snapshot;
+            rebaseConflicts = rebase.conflicts;
+          }
+
+          pendingRef.current = false;
+          if (rebaseConflicts.length) {
+            const pendingConflict = {
+              latest: {
+                ...(sheet || {}),
+                snapshot: cloneSpreadsheetSnapshot(result.snapshot),
+                version: result.version,
+                updatedAt: result.updatedAt,
+              },
+              snapshot: cloneSpreadsheetSnapshot(snapshotToShow),
+              conflicts: rebaseConflicts,
+            };
+            conflictRef.current = pendingConflict;
+            setConflictInfo(pendingConflict);
+            setStatus("Conflict");
+            setError(conflictMessage(rebaseConflicts));
+          } else if (changedDuringSave) {
+            remountPendingSaveRef.current = true;
+            setStatus("Unsaved changes");
+          } else {
+            setStatus("Merged & saved");
+          }
+
+          setSheet((current) =>
+            current
+              ? {
+                  ...current,
+                  snapshot: cloneSpreadsheetSnapshot(snapshotToShow),
+                  version: result.version,
+                  updatedAt: result.updatedAt,
+                }
+              : current,
+          );
+        }
       }
     } catch (saveError) {
       setStatus("Save failed");
       setError(saveError.message);
     } finally {
       savingRef.current = false;
-      if (pendingRef.current && !conflictRef.current) {
+      if (
+        pendingRef.current &&
+        !conflictRef.current &&
+        !remountPendingSaveRef.current
+      ) {
         pendingRef.current = false;
         queueMicrotask(() => saveCurrentWorkbook());
       }
@@ -451,6 +499,8 @@ function SheetEditor({ id }) {
       const result = await api(`/drive/sheets/${id}`);
       versionRef.current = result.data.version;
       baseSnapshotRef.current = cloneSpreadsheetSnapshot(result.data.snapshot);
+      editGenerationRef.current = 0;
+      remountPendingSaveRef.current = false;
       pendingRef.current = false;
       clearConflict();
       setError("");
@@ -471,6 +521,8 @@ function SheetEditor({ id }) {
         if (!active) return;
         versionRef.current = result.data.version;
         baseSnapshotRef.current = cloneSpreadsheetSnapshot(result.data.snapshot);
+        editGenerationRef.current = 0;
+        remountPendingSaveRef.current = false;
         conflictRef.current = null;
         setConflictInfo(null);
         setSheet(result.data);
@@ -557,12 +609,21 @@ function SheetEditor({ id }) {
           await workbook.getWorkbookPermission().setReadOnly();
         } else {
           commandListener = workbook.onCommandExecuted(() => {
+            editGenerationRef.current += 1;
             scheduleSave();
             requestAnimationFrame(refreshDimensions);
           });
         }
 
-        setStatus(writeAccess.has(sheet.access) ? "Saved" : "View only");
+        if (conflictRef.current) {
+          setStatus("Conflict");
+        } else if (remountPendingSaveRef.current && writeAccess.has(sheet.access)) {
+          remountPendingSaveRef.current = false;
+          setStatus("Unsaved changes");
+          timerRef.current = setTimeout(() => saveCurrentWorkbook(), 50);
+        } else {
+          setStatus(writeAccess.has(sheet.access) ? "Saved" : "View only");
+        }
       } catch (e) {
         if (!disposed) {
           setError(e.message || "Could not load the spreadsheet editor");
