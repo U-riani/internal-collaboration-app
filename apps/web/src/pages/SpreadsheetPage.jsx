@@ -10,11 +10,16 @@ import {
   X,
 } from "lucide-react";
 import { api } from "../lib/api.js";
+import {
+  cloneSpreadsheetSnapshot,
+  mergeSpreadsheetSnapshots,
+} from "../lib/spreadsheet-collaboration.js";
 
 const UNIVER_VERSION = "1.0.2";
 const writeAccess = new Set(["OWNER", "MANAGER", "EDITOR"]);
 const MAX_ROWS = 1048576;
 const MAX_COLUMNS = 16384;
+const MAX_MERGE_RETRIES = 4;
 let univerLoader;
 
 function ensureStylesheet(id, href) {
@@ -213,13 +218,15 @@ function SheetEditor({ id }) {
   const hostRef = useRef(null);
   const runtimeRef = useRef(null);
   const versionRef = useRef(1);
+  const baseSnapshotRef = useRef(null);
   const timerRef = useRef(null);
   const savingRef = useRef(false);
   const pendingRef = useRef(false);
-  const conflictRef = useRef(false);
+  const conflictRef = useRef(null);
   const [sheet, setSheet] = useState(null);
   const [status, setStatus] = useState("Loading…");
   const [error, setError] = useState("");
+  const [conflictInfo, setConflictInfo] = useState(null);
   const [dimensions, setDimensions] = useState({ rows: 1000, columns: 20 });
   const [resizeOpen, setResizeOpen] = useState(false);
   const [resizeRows, setResizeRows] = useState("1000");
@@ -312,13 +319,161 @@ function SheetEditor({ id }) {
     setResizeOpen(false);
   }
 
+  function clearConflict() {
+    conflictRef.current = null;
+    setConflictInfo(null);
+  }
+
+  function conflictMessage(conflicts) {
+    const labels = [...new Set(conflicts.map((item) => item.label))];
+    const visible = labels.slice(0, 4).join(", ");
+    const more = labels.length > 4 ? ` and ${labels.length - 4} more` : "";
+    return `Someone else changed the same ${labels.length === 1 ? "item" : "items"}${visible ? ` (${visible}${more})` : ""}. Your changes are still open. Choose which version to keep.`;
+  }
+
+  async function persistSnapshot(localSnapshot, { forceConflicts = false } = {}) {
+    let candidate = cloneSpreadsheetSnapshot(localSnapshot);
+    let base = cloneSpreadsheetSnapshot(
+      baseSnapshotRef.current || sheet?.snapshot || {},
+    );
+    let version = versionRef.current;
+    let mergedRemoteChanges = false;
+
+    for (let attempt = 0; attempt < MAX_MERGE_RETRIES; attempt += 1) {
+      try {
+        const result = await api(`/drive/sheets/${id}`, {
+          method: "PUT",
+          body: JSON.stringify({
+            snapshot: candidate,
+            version,
+          }),
+        });
+
+        versionRef.current = result.data.version;
+        baseSnapshotRef.current = cloneSpreadsheetSnapshot(candidate);
+        clearConflict();
+        pendingRef.current = false;
+
+        if (mergedRemoteChanges) {
+          setSheet((current) =>
+            current
+              ? {
+                  ...current,
+                  snapshot: cloneSpreadsheetSnapshot(candidate),
+                  version: result.data.version,
+                  updatedAt: result.data.updatedAt,
+                }
+              : current,
+          );
+        }
+
+        return {
+          saved: true,
+          merged: mergedRemoteChanges,
+          version: result.data.version,
+        };
+      } catch (saveError) {
+        if (saveError.code !== "SHEET_VERSION_CONFLICT") throw saveError;
+
+        const latestResult = await api(`/drive/sheets/${id}`);
+        const latest = latestResult.data;
+        const merge = mergeSpreadsheetSnapshots(base, latest.snapshot, candidate);
+
+        if (merge.conflicts.length && !forceConflicts) {
+          const pendingConflict = {
+            latest,
+            snapshot: merge.snapshot,
+            conflicts: merge.conflicts,
+          };
+          conflictRef.current = pendingConflict;
+          setConflictInfo(pendingConflict);
+          setStatus("Conflict");
+          setError(conflictMessage(merge.conflicts));
+          return { saved: false, conflict: true };
+        }
+
+        candidate = merge.snapshot;
+        base = cloneSpreadsheetSnapshot(latest.snapshot);
+        version = latest.version;
+        mergedRemoteChanges = true;
+      }
+    }
+
+    const retryError = new Error(
+      "This spreadsheet is changing very quickly. Please press Save again.",
+    );
+    retryError.code = "SHEET_MERGE_RETRY_LIMIT";
+    throw retryError;
+  }
+
+  async function saveCurrentWorkbook({ forceConflicts = false } = {}) {
+    const runtime = runtimeRef.current;
+    if (!runtime || !canEdit || (conflictRef.current && !forceConflicts)) return;
+    if (savingRef.current) {
+      pendingRef.current = true;
+      return;
+    }
+
+    const workbook = runtime.univerAPI.getActiveWorkbook();
+    if (!workbook) return;
+
+    savingRef.current = true;
+    setStatus("Saving…");
+    try {
+      const result = await persistSnapshot(workbook.save(), { forceConflicts });
+      if (result?.saved) {
+        setStatus(result.merged ? "Merged & saved" : "Saved");
+        setError("");
+      }
+    } catch (saveError) {
+      setStatus("Save failed");
+      setError(saveError.message);
+    } finally {
+      savingRef.current = false;
+      if (pendingRef.current && !conflictRef.current) {
+        pendingRef.current = false;
+        queueMicrotask(() => saveCurrentWorkbook());
+      }
+    }
+  }
+
+  async function keepMyChanges() {
+    if (!conflictRef.current || savingRef.current) return;
+    await saveCurrentWorkbook({ forceConflicts: true });
+  }
+
+  async function loadLatestVersion() {
+    if (savingRef.current) return;
+    clearTimeout(timerRef.current);
+    savingRef.current = true;
+    setStatus("Loading latest…");
+    try {
+      const result = await api(`/drive/sheets/${id}`);
+      versionRef.current = result.data.version;
+      baseSnapshotRef.current = cloneSpreadsheetSnapshot(result.data.snapshot);
+      pendingRef.current = false;
+      clearConflict();
+      setError("");
+      setSheet(result.data);
+      setStatus("Saved");
+    } catch (loadError) {
+      setStatus("Load failed");
+      setError(loadError.message);
+    } finally {
+      savingRef.current = false;
+    }
+  }
+
   useEffect(() => {
     let active = true;
     api(`/drive/sheets/${id}`)
       .then((result) => {
         if (!active) return;
-        setSheet(result.data);
         versionRef.current = result.data.version;
+        baseSnapshotRef.current = cloneSpreadsheetSnapshot(result.data.snapshot);
+        conflictRef.current = null;
+        setConflictInfo(null);
+        setSheet(result.data);
       })
       .catch((e) => {
         if (!active) return;
@@ -336,52 +491,11 @@ function SheetEditor({ id }) {
     let commandListener;
     let container;
 
-    async function saveSnapshot() {
-      const runtime = runtimeRef.current;
-      if (!runtime || !writeAccess.has(sheet.access) || conflictRef.current) return;
-      if (savingRef.current) {
-        pendingRef.current = true;
-        return;
-      }
-
-      const workbook = runtime.univerAPI.getActiveWorkbook();
-      if (!workbook) return;
-
-      savingRef.current = true;
-      setStatus("Saving…");
-      try {
-        const result = await api(`/drive/sheets/${id}`, {
-          method: "PUT",
-          body: JSON.stringify({
-            snapshot: workbook.save(),
-            version: versionRef.current,
-          }),
-        });
-        versionRef.current = result.data.version;
-        setStatus("Saved");
-        setError("");
-      } catch (e) {
-        if (e.code === "SHEET_VERSION_CONFLICT") {
-          conflictRef.current = true;
-          setStatus("Conflict");
-        } else {
-          setStatus("Save failed");
-        }
-        setError(e.message);
-      } finally {
-        savingRef.current = false;
-        if (pendingRef.current && !conflictRef.current) {
-          pendingRef.current = false;
-          saveSnapshot();
-        }
-      }
-    }
-
     function scheduleSave() {
       if (!writeAccess.has(sheet.access) || conflictRef.current) return;
       setStatus("Unsaved changes");
       clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(saveSnapshot, 900);
+      timerRef.current = setTimeout(() => saveCurrentWorkbook(), 900);
     }
 
     async function mount() {
@@ -472,36 +586,9 @@ function SheetEditor({ id }) {
     };
   }, [id, sheet]);
 
-  async function manualSave() {
-    const runtime = runtimeRef.current;
-    if (!runtime || !canEdit || conflictRef.current || savingRef.current) return;
+  function manualSave() {
     clearTimeout(timerRef.current);
-    const workbook = runtime.univerAPI.getActiveWorkbook();
-    if (!workbook) return;
-    savingRef.current = true;
-    setStatus("Saving…");
-    try {
-      const result = await api(`/drive/sheets/${id}`, {
-        method: "PUT",
-        body: JSON.stringify({
-          snapshot: workbook.save(),
-          version: versionRef.current,
-        }),
-      });
-      versionRef.current = result.data.version;
-      setStatus("Saved");
-      setError("");
-    } catch (e) {
-      if (e.code === "SHEET_VERSION_CONFLICT") {
-        conflictRef.current = true;
-        setStatus("Conflict");
-      } else {
-        setStatus("Save failed");
-      }
-      setError(e.message);
-    } finally {
-      savingRef.current = false;
-    }
+    saveCurrentWorkbook();
   }
 
   return (
@@ -541,7 +628,7 @@ function SheetEditor({ id }) {
               <button
                 className="btn-secondary shrink-0"
                 onClick={manualSave}
-                disabled={status === "Saving…" || conflictRef.current}
+                disabled={status === "Saving…" || Boolean(conflictInfo)}
               >
                 <Save size={16} />
                 <span className="hidden sm:inline">Save</span>
@@ -552,14 +639,24 @@ function SheetEditor({ id }) {
 
         {error && (
           <div className="border-b border-red-200 bg-red-50 px-4 py-2 text-xs text-red-700">
-            {error}
-            {status === "Conflict" && (
-              <button
-                className="ml-2 font-semibold underline"
-                onClick={() => window.location.reload()}
-              >
-                Reload latest version
-              </button>
+            <div>{error}</div>
+            {conflictInfo && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button
+                  className="rounded-md border border-red-300 bg-white px-2.5 py-1 font-semibold text-red-700 hover:bg-red-100"
+                  onClick={keepMyChanges}
+                  disabled={savingRef.current}
+                >
+                  Keep my changes
+                </button>
+                <button
+                  className="rounded-md border border-red-300 bg-white px-2.5 py-1 font-semibold text-red-700 hover:bg-red-100"
+                  onClick={loadLatestVersion}
+                  disabled={savingRef.current}
+                >
+                  Use latest version
+                </button>
+              </div>
             )}
           </div>
         )}
