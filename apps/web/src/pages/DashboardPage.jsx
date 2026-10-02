@@ -80,7 +80,7 @@ export default function DashboardPage() {
           </span>
         }
       />
-      <div className="max-h-[calc(100vh-17rem)] md:max-h-[calc(100vh-7.8rem)] overflow-y-auto px-4 ">
+      <div className="max-h-[calc(100vh-17rem)] md:max-h-[calc(100vh-7.8rem)] overflow-y-auto  ">
         <ErrorBox
           error={tasks.error || approvals.error || notifications.error}
         />

@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Folder,
   FileText,
+  FileSpreadsheet,
   Upload,
   FolderPlus,
   Search,
@@ -21,6 +22,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { api, uploadFile, downloadFile } from "../lib/api.js";
+import { importExcelToUniverSnapshot } from "../lib/xlsx.js";
 import PageHeader from "../components/PageHeader.jsx";
 import {
   Modal,
@@ -34,6 +36,15 @@ import {
 } from "../components/UI.jsx";
 
 const writeAccess = new Set(["OWNER", "MANAGER", "EDITOR"]);
+const SHEET_MIME = "application/vnd.gtex.univer-sheet+json";
+
+function isSpreadsheet(item) {
+  return item?.file?.mimeType === SHEET_MIME;
+}
+
+function spreadsheetName(filename = "Imported spreadsheet") {
+  return filename.replace(/\.(xlsx|xlsm|xls)$/i, "") || "Imported spreadsheet";
+}
 
 function Permissions({ item, onClose, reload }) {
   const [filter, setFilter] = useState("");
@@ -610,14 +621,54 @@ export default function DrivePage() {
   const canManageSpace =
     section === "shared" && selectedSpace?.access === "MANAGER";
 
-    console.log(query.data?.meta.breadcrumbs?.length);
+  console.log(query.data?.meta.breadcrumbs?.length);
   return (
     <>
       <PageHeader
         title="Drive"
         action={
           canAdd && (
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
+              <label
+                className={`btn-secondary ${busy ? "pointer-events-none opacity-50" : ""}`}
+              >
+                <FileSpreadsheet size={17} />
+                {busy ? "Working…" : "Import Excel"}
+                <input
+                  type="file"
+                  accept=".xlsx,.xlsm,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+                  className="sr-only"
+                  aria-label="Import Excel spreadsheet"
+                  disabled={busy}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = "";
+                    if (!file) return;
+                    act(async () => {
+                      const importedName = spreadsheetName(file.name);
+                      const snapshot = await importExcelToUniverSnapshot(file, {
+                        name: importedName,
+                      });
+                      const created = await api("/drive/sheets", {
+                        method: "POST",
+                        body: JSON.stringify({
+                          name: importedName,
+                          parentId: parent,
+                          spaceId,
+                        }),
+                      });
+                      await api(`/drive/sheets/${created.data.id}`, {
+                        method: "PUT",
+                        body: JSON.stringify({
+                          snapshot,
+                          version: 1,
+                        }),
+                      });
+                      window.location.assign(`/drive/sheets/${created.data.id}`);
+                    });
+                  }}
+                />
+              </label>
               <button
                 className="btn-secondary"
                 onClick={() => {
@@ -823,13 +874,22 @@ export default function DrivePage() {
                   item.access === "OWNER" || item.access === "MANAGER";
                 const canDelete =
                   item.access === "OWNER" || item.access === "MANAGER";
+                const spreadsheet = isSpreadsheet(item);
                 return (
                   <div className="drive-item-row list-row" key={item.id}>
                     <div
-                      className={`rounded-xl p-2.5 ${item.kind === "FOLDER" ? "bg-amber-50 text-amber-500" : "bg-blue-50 text-blue-500"}`}
+                      className={`rounded-xl p-2.5 ${
+                        item.kind === "FOLDER"
+                          ? "bg-amber-50 text-amber-500"
+                          : spreadsheet
+                            ? "bg-emerald-50 text-emerald-600"
+                            : "bg-blue-50 text-blue-500"
+                      }`}
                     >
                       {item.kind === "FOLDER" ? (
                         <Folder size={21} />
+                      ) : spreadsheet ? (
+                        <FileSpreadsheet size={21} />
                       ) : (
                         <FileText size={21} />
                       )}
@@ -837,11 +897,15 @@ export default function DrivePage() {
                     <button
                       className="min-w-0 flex-1 text-left"
                       disabled={section === "trash"}
-                      onClick={() =>
-                        item.kind === "FOLDER"
-                          ? setParent(item.id)
-                          : act(() => downloadFile(item.file.id, item.name))
-                      }
+                      onClick={() => {
+                        if (item.kind === "FOLDER") {
+                          setParent(item.id);
+                        } else if (spreadsheet) {
+                          window.location.assign(`/drive/sheets/${item.id}`);
+                        } else {
+                          act(() => downloadFile(item.file.id, item.name));
+                        }
+                      }}
                     >
                       <p className="truncate text-sm font-medium">
                         {item.name}
@@ -863,7 +927,7 @@ export default function DrivePage() {
                       {prettyDate(item.updatedAt)}
                     </span>
                     <span className="hidden w-24 text-xs text-slate-400 md:block">
-                      {item.file ? fileSize(item.file.sizeBytes) : "—"}
+                      {spreadsheet ? "XLSX" : item.file ? fileSize(item.file.sizeBytes) : "—"}
                     </span>
                     <div className="drive-row-actions flex w-40 flex-wrap justify-end">
                       {section === "trash" ? (
@@ -889,14 +953,14 @@ export default function DrivePage() {
                               {prettyDate(item.updatedAt)}
                             </span>
                             <span className="w-24 text-xs text-slate-400 ">
-                              {item.file ? fileSize(item.file.sizeBytes) : "—"}
+                              {spreadsheet ? "XLSX" : item.file ? fileSize(item.file.sizeBytes) : "—"}
                             </span>
                           </div>
                           <div>
                             {item.kind === "FILE" && (
                               <button
                                 aria-label={`Download ${item.name}`}
-                                title="Download"
+                                title={spreadsheet ? "Download as Excel (.xlsx)" : "Download"}
                                 className="icon-btn"
                                 onClick={() =>
                                   act(() =>
@@ -973,8 +1037,8 @@ export default function DrivePage() {
                     section === "shared-with-me"
                       ? "Personal items shared directly with you will appear here."
                       : section === "shared"
-                        ? "Create a folder or upload a file to this shared space."
-                        : "Create a folder or upload a file to get started."
+                        ? "Create a folder, import Excel, or upload a file to this shared space."
+                        : "Create a folder, import Excel, or upload a file to get started."
                   }
                 />
               )

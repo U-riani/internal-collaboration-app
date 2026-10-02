@@ -25,8 +25,14 @@ const schema = z.object({
   MINIO_ROOT_USER: z.string().min(1),
   MINIO_ROOT_PASSWORD: z.string().min(8),
   MINIO_BUCKET_ATTACHMENTS: z.string().default("attachments"),
-  MAX_UPLOAD_SIZE_MB: z.coerce.number().positive().max(1024).default(100),
-  STORAGE_QUOTA_MB: z.coerce.number().positive().default(2048),
+  // FileObject.sizeBytes is currently a PostgreSQL/Prisma Int, so keep a
+  // single stored file below the signed 32-bit byte limit (~2 GiB).
+  MAX_UPLOAD_SIZE_MB: z.coerce.number().positive().max(2047).default(2047),
+  // Spreadsheet snapshots are JSON and are parsed in memory. Keep this
+  // separate from streaming file uploads so large Drive files do not force
+  // every JSON endpoint to accept multi-gigabyte request bodies.
+  MAX_SHEET_SNAPSHOT_MB: z.coerce.number().positive().max(512).default(256),
+  STORAGE_QUOTA_MB: z.coerce.number().positive().default(10240),
   LOG_LEVEL: z.string().default("info"),
 });
 

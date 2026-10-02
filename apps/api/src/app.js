@@ -17,6 +17,7 @@ import { userWithAccess } from "./lib/authz.js";
 import { localStorage } from "./lib/local-storage.js";
 import { markRelatedNotificationsRead } from "./lib/notification-read.js";
 import driveRoutes from "./routes/drive.js";
+import driveSheetRoutes from "./routes/drive-sheets.js";
 import roleRoutes from "./routes/roles.js";
 import healthRoutes from "./routes/health.js";
 import authRoutes from "./routes/auth.js";
@@ -182,6 +183,7 @@ export async function buildApp(dependencies = {}) {
   await app.register(approvalRoutes, { prefix: "/api/v1" });
   await app.register(conversationRoutes, { prefix: "/api/v1" });
   await app.register(driveRoutes, { prefix: "/api/v1/drive" });
+  await app.register(driveSheetRoutes, { prefix: "/api/v1/drive/sheets" });
   await app.register(roleRoutes, { prefix: "/api/v1" });
   await app.register(fileRoutes, { prefix: "/api/v1/files" });
   await app.register(notificationRoutes, { prefix: "/api/v1/notifications" });
