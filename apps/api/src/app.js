@@ -14,6 +14,7 @@ import { redis } from "./lib/redis.js";
 import { createS3Storage } from "./lib/minio.js";
 import { HttpError } from "./lib/http-error.js";
 import { userWithAccess } from "./lib/authz.js";
+import { driveTree, requireDrive } from "./lib/drive-access.js";
 import { localStorage } from "./lib/local-storage.js";
 import { markRelatedNotificationsRead } from "./lib/notification-read.js";
 import driveRoutes from "./routes/drive.js";
@@ -201,7 +202,7 @@ export async function buildApp(dependencies = {}) {
     if (!payload.sid) throw new Error("Session required");
     const session = await app.prisma.session.findUnique({
       where: { id: payload.sid },
-      include: { user: true },
+      include: { user: { include: userWithAccess } },
     });
     if (
       !session ||
@@ -214,6 +215,27 @@ export async function buildApp(dependencies = {}) {
       throw new Error("Session expired");
     return session.user;
   }
+
+  async function emitSheetPresence(sheetId) {
+    const room = `sheet:${sheetId}`;
+    const sockets = await io.in(room).fetchSockets();
+    const users = new Map();
+    for (const memberSocket of sockets) {
+      const member = memberSocket.data.user;
+      if (!member?.id || users.has(member.id)) continue;
+      users.set(member.id, {
+        id: member.id,
+        displayName: member.displayName || "User",
+      });
+    }
+    io.to(room).emit("sheet:presence", {
+      sheetId,
+      users: [...users.values()].sort((left, right) =>
+        left.displayName.localeCompare(right.displayName),
+      ),
+    });
+  }
+
   io.use(async (socket, next) => {
     try {
       const payload = app.jwt.verify(socket.handshake.auth?.token);
@@ -230,6 +252,7 @@ export async function buildApp(dependencies = {}) {
       () => socket.disconnect(true),
       Math.max(1, socket.data.payload.exp * 1000 - Date.now()),
     );
+    const joinedSheets = new Set();
     socket.join(`user:${user.id}`);
     socket.join(`session:${socket.data.payload.sid}`);
     socket.use(async (_event, next) => {
@@ -249,6 +272,23 @@ export async function buildApp(dependencies = {}) {
         },
       });
       return member && !member.leftAt;
+    };
+    const sheetMembership = async (id) => {
+      if (typeof id !== "string" || !/^[0-9a-f-]{36}$/i.test(id)) return false;
+      const rows = await app.prisma.$queryRaw`
+        SELECT "driveItemId"
+        FROM "DriveSheet"
+        WHERE "driveItemId" = ${id}::uuid
+        LIMIT 1
+      `;
+      if (!rows.length) return false;
+      const tree = await driveTree(app.prisma);
+      try {
+        requireDrive(user, tree.get(id), tree);
+        return true;
+      } catch {
+        return false;
+      }
     };
     try {
       const memberships = await app.prisma.conversationMember.findMany({
@@ -277,6 +317,32 @@ export async function buildApp(dependencies = {}) {
         app.log.warn(error);
       }
     });
+    socket.on("sheet:join", async (id) => {
+      try {
+        if (!(await sheetMembership(id))) return;
+        for (const currentId of [...joinedSheets]) {
+          if (currentId === id) continue;
+          joinedSheets.delete(currentId);
+          socket.leave(`sheet:${currentId}`);
+          await emitSheetPresence(currentId);
+        }
+        joinedSheets.add(id);
+        socket.join(`sheet:${id}`);
+        await emitSheetPresence(id);
+      } catch (error) {
+        app.log.warn(error);
+      }
+    });
+    socket.on("sheet:leave", async (id) => {
+      try {
+        if (!joinedSheets.has(id)) return;
+        joinedSheets.delete(id);
+        socket.leave(`sheet:${id}`);
+        await emitSheetPresence(id);
+      } catch (error) {
+        app.log.warn(error);
+      }
+    });
     let lastTyping = 0;
     for (const event of ["message:typing:start", "message:typing:stop"])
       socket.on(event, async (payload) => {
@@ -296,6 +362,7 @@ export async function buildApp(dependencies = {}) {
     socket.on("disconnect", async () => {
       clearTimeout(expire);
       try {
+        for (const sheetId of joinedSheets) await emitSheetPresence(sheetId);
         if (!io.sockets.adapter.rooms.get(`user:${user.id}`)?.size) {
           await app.redis.del(`presence:${user.id}`);
           await app.prisma.user.update({
