@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import { Table2 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Folder,
@@ -537,6 +539,13 @@ export default function DrivePage() {
   const groups =
     spaces.data?.data.filter((space) => space.type === "GROUP") || [];
 
+  // const driveSpreadsheetAction = (
+  //   <Link to="/drive/sheets/new" className="btn-secondary">
+  //     <Table2 size={17} />
+  //     New spreadsheet
+  //   </Link>
+  // );
+
   useEffect(() => {
     if (section === "personal" && personal && spaceId !== personal.id)
       setSpaceId(personal.id);
@@ -628,9 +637,13 @@ export default function DrivePage() {
         title="Drive"
         action={
           canAdd && (
-            <div className="flex flex-wrap gap-2">
+            <div className="overflow-x-auto  flex md:flex-wrap gap-2">
+              <Link to="/drive/sheets/new" className="btn-secondary text-nowrap">
+                <Table2 size={17} />
+                New spreadsheet
+              </Link>
               <label
-                className={`btn-secondary ${busy ? "pointer-events-none opacity-50" : ""}`}
+                className={`btn-secondary text-nowrap ${busy ? "pointer-events-none opacity-50" : ""}`}
               >
                 <FileSpreadsheet size={17} />
                 {busy ? "Working…" : "Import Excel"}
@@ -664,13 +677,15 @@ export default function DrivePage() {
                           version: 1,
                         }),
                       });
-                      window.location.assign(`/drive/sheets/${created.data.id}`);
+                      window.location.assign(
+                        `/drive/sheets/${created.data.id}`,
+                      );
                     });
                   }}
                 />
               </label>
               <button
-                className="btn-secondary"
+                className="btn-secondary text-nowrap"
                 onClick={() => {
                   setName("");
                   setError("");
@@ -681,7 +696,7 @@ export default function DrivePage() {
                 New folder
               </button>
               <label
-                className={`btn-primary ${busy ? "pointer-events-none opacity-50" : ""}`}
+                className={`btn-primary text-nowrap ${busy ? "pointer-events-none opacity-50" : ""}`}
               >
                 <Upload size={17} />
                 {busy ? "Working…" : "Upload files"}
@@ -855,7 +870,9 @@ export default function DrivePage() {
           )}
 
           {/* <div className="drive-list-card card max-h-[calc(100vh-24.5rem)] md:max-h-[calc(100vh-13.94rem)] overflow-y-auto"> */}
-          <div className={`drive-list-card card ${query.data?.meta.breadcrumbs?.length ? "max-h-[calc(100vh-407px)]" : "max-h-[calc(100vh-370px)]"} md:max-h-[calc(100vh-14rem)] overflow-y-auto`}>
+          <div
+            className={`drive-list-card card ${query.data?.meta.breadcrumbs?.length ? "max-h-[calc(100vh-407px)]" : "max-h-[calc(100vh-370px)]"} md:max-h-[calc(100vh-14rem)] overflow-y-auto`}
+          >
             <div className="list-row sticky top-0 bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-400 ">
               <span className="flex-1">Name</span>
               <span className="hidden w-28 md:block">Updated</span>
@@ -927,7 +944,11 @@ export default function DrivePage() {
                       {prettyDate(item.updatedAt)}
                     </span>
                     <span className="hidden w-24 text-xs text-slate-400 md:block">
-                      {spreadsheet ? "XLSX" : item.file ? fileSize(item.file.sizeBytes) : "—"}
+                      {spreadsheet
+                        ? "XLSX"
+                        : item.file
+                          ? fileSize(item.file.sizeBytes)
+                          : "—"}
                     </span>
                     <div className="drive-row-actions flex w-40 flex-wrap justify-end">
                       {section === "trash" ? (
@@ -953,14 +974,22 @@ export default function DrivePage() {
                               {prettyDate(item.updatedAt)}
                             </span>
                             <span className="w-24 text-xs text-slate-400 ">
-                              {spreadsheet ? "XLSX" : item.file ? fileSize(item.file.sizeBytes) : "—"}
+                              {spreadsheet
+                                ? "XLSX"
+                                : item.file
+                                  ? fileSize(item.file.sizeBytes)
+                                  : "—"}
                             </span>
                           </div>
                           <div>
                             {item.kind === "FILE" && (
                               <button
                                 aria-label={`Download ${item.name}`}
-                                title={spreadsheet ? "Download as Excel (.xlsx)" : "Download"}
+                                title={
+                                  spreadsheet
+                                    ? "Download as Excel (.xlsx)"
+                                    : "Download"
+                                }
                                 className="icon-btn"
                                 onClick={() =>
                                   act(() =>
