@@ -60,4 +60,26 @@ describe("mergeSpreadsheetSnapshots", () => {
     expect(result.snapshot.sheets.sheet1.cellData[2][0].v).toBe("A");
     expect(result.snapshot.sheets.sheet1.cellData[2][1].v).toBe("B");
   });
+
+  it("rebases edits made while a merged save is still in flight", () => {
+    const saveStarted = workbook();
+    saveStarted.sheets.sheet1.cellData[0][1].v = 200;
+
+    const savedWithRemoteChanges = structuredClone(saveStarted);
+    savedWithRemoteChanges.sheets.sheet1.cellData[0][0].v = 100;
+
+    const currentEditor = structuredClone(saveStarted);
+    currentEditor.sheets.sheet1.cellData[1] = { 0: { v: 300 } };
+
+    const result = mergeSpreadsheetSnapshots(
+      saveStarted,
+      savedWithRemoteChanges,
+      currentEditor,
+    );
+
+    expect(result.conflicts).toHaveLength(0);
+    expect(result.snapshot.sheets.sheet1.cellData[0][0].v).toBe(100);
+    expect(result.snapshot.sheets.sheet1.cellData[0][1].v).toBe(200);
+    expect(result.snapshot.sheets.sheet1.cellData[1][0].v).toBe(300);
+  });
 });
