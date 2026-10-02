@@ -10,6 +10,7 @@ import {
   X,
 } from "lucide-react";
 import { api } from "../lib/api.js";
+import { useSocket } from "../hooks/useSocket.js";
 import {
   cloneSpreadsheetSnapshot,
   mergeSpreadsheetSnapshots,
@@ -88,6 +89,15 @@ function loadUniver() {
     );
   }
   return univerLoader;
+}
+
+function userInitials(displayName) {
+  const parts = String(displayName || "User")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2);
+  return (parts.map((part) => part[0]).join("") || "U").toUpperCase();
 }
 
 function SheetCreate() {
@@ -229,11 +239,34 @@ function SheetEditor({ id }) {
   const [status, setStatus] = useState("Loading…");
   const [error, setError] = useState("");
   const [conflictInfo, setConflictInfo] = useState(null);
+  const [activeUsers, setActiveUsers] = useState([]);
   const [dimensions, setDimensions] = useState({ rows: 1000, columns: 20 });
   const [resizeOpen, setResizeOpen] = useState(false);
   const [resizeRows, setResizeRows] = useState("1000");
   const [resizeColumns, setResizeColumns] = useState("20");
   const [resizeError, setResizeError] = useState("");
+
+  const socketRef = useSocket({
+    "sheet:presence": (payload) => {
+      if (payload?.sheetId !== id) return;
+      setActiveUsers(Array.isArray(payload.users) ? payload.users : []);
+    },
+  });
+
+  useEffect(() => {
+    const socket = socketRef.current;
+    if (!socket) return undefined;
+
+    const join = () => socket.emit("sheet:join", id);
+    socket.on("connect", join);
+    join();
+
+    return () => {
+      socket.off("connect", join);
+      socket.emit("sheet:leave", id);
+      setActiveUsers([]);
+    };
+  }, [id, socketRef]);
 
   const canEdit = useMemo(
     () => Boolean(sheet && writeAccess.has(sheet.access)),
@@ -326,11 +359,12 @@ function SheetEditor({ id }) {
     setConflictInfo(null);
   }
 
-  function conflictMessage(conflicts) {
+  function conflictMessage(conflicts, editor) {
     const labels = [...new Set(conflicts.map((item) => item.label))];
     const visible = labels.slice(0, 4).join(", ");
     const more = labels.length > 4 ? ` and ${labels.length - 4} more` : "";
-    return `Someone else changed the same ${labels.length === 1 ? "item" : "items"}${visible ? ` (${visible}${more})` : ""}. Your changes are still open. Choose which version to keep.`;
+    const actor = editor?.displayName?.trim() || "Someone else";
+    return `${actor} changed the same ${labels.length === 1 ? "item" : "items"}${visible ? ` (${visible}${more})` : ""}. Your changes are still open. Choose which version to keep.`;
   }
 
   async function persistSnapshot(localSnapshot, { forceConflicts = false } = {}) {
@@ -340,6 +374,7 @@ function SheetEditor({ id }) {
     );
     let version = versionRef.current;
     let mergedRemoteChanges = false;
+    let mergedEditor = null;
 
     for (let attempt = 0; attempt < MAX_MERGE_RETRIES; attempt += 1) {
       try {
@@ -358,6 +393,7 @@ function SheetEditor({ id }) {
         return {
           saved: true,
           merged: mergedRemoteChanges,
+          mergedEditor,
           snapshot: cloneSpreadsheetSnapshot(candidate),
           version: result.data.version,
           updatedAt: result.data.updatedAt,
@@ -367,18 +403,20 @@ function SheetEditor({ id }) {
 
         const latestResult = await api(`/drive/sheets/${id}`);
         const latest = latestResult.data;
+        const conflictEditor = latest.lastEditor || saveError.details?.editor || null;
         const merge = mergeSpreadsheetSnapshots(base, latest.snapshot, candidate);
 
         if (merge.conflicts.length && !forceConflicts) {
           const pendingConflict = {
             latest,
+            editor: conflictEditor,
             snapshot: merge.snapshot,
             conflicts: merge.conflicts,
           };
           conflictRef.current = pendingConflict;
           setConflictInfo(pendingConflict);
           setStatus("Conflict");
-          setError(conflictMessage(merge.conflicts));
+          setError(conflictMessage(merge.conflicts, conflictEditor));
           return { saved: false, conflict: true };
         }
 
@@ -386,6 +424,7 @@ function SheetEditor({ id }) {
         base = cloneSpreadsheetSnapshot(latest.snapshot);
         version = latest.version;
         mergedRemoteChanges = true;
+        mergedEditor = conflictEditor || mergedEditor;
       }
     }
 
@@ -442,14 +481,16 @@ function SheetEditor({ id }) {
                 snapshot: cloneSpreadsheetSnapshot(result.snapshot),
                 version: result.version,
                 updatedAt: result.updatedAt,
+                lastEditor: result.mergedEditor,
               },
+              editor: result.mergedEditor,
               snapshot: cloneSpreadsheetSnapshot(snapshotToShow),
               conflicts: rebaseConflicts,
             };
             conflictRef.current = pendingConflict;
             setConflictInfo(pendingConflict);
             setStatus("Conflict");
-            setError(conflictMessage(rebaseConflicts));
+            setError(conflictMessage(rebaseConflicts, result.mergedEditor));
           } else if (changedDuringSave) {
             remountPendingSaveRef.current = true;
             setStatus("Unsaved changes");
@@ -676,6 +717,64 @@ function SheetEditor({ id }) {
               )}
             </div>
           </div>
+
+          {activeUsers.length > 0 && (
+            <>
+              <div
+                className="hidden shrink-0 items-center gap-1.5 lg:flex"
+                aria-label="People currently in this spreadsheet"
+              >
+                <span className="text-[11px] text-slate-400">Here now</span>
+                {activeUsers.slice(0, 3).map((user) => (
+                  <div
+                    key={user.id}
+                    className="flex max-w-[150px] items-center gap-1 rounded-full border border-slate-200 bg-slate-50 py-0.5 pl-0.5 pr-2"
+                    title={`${user.displayName} is in this spreadsheet`}
+                  >
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-[10px] font-bold text-emerald-700">
+                      {userInitials(user.displayName)}
+                    </span>
+                    <span className="max-w-24 truncate text-[11px] font-medium text-slate-600">
+                      {user.displayName}
+                    </span>
+                  </div>
+                ))}
+                {activeUsers.length > 3 && (
+                  <span
+                    className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-semibold text-slate-500"
+                    title={activeUsers
+                      .slice(3)
+                      .map((user) => user.displayName)
+                      .join(", ")}
+                  >
+                    +{activeUsers.length - 3}
+                  </span>
+                )}
+              </div>
+              <div
+                className="flex shrink-0 -space-x-1 lg:hidden"
+                title={`Here now: ${activeUsers
+                  .map((user) => user.displayName)
+                  .join(", ")}`}
+                aria-label={`${activeUsers.length} people currently in this spreadsheet`}
+              >
+                {activeUsers.slice(0, 3).map((user) => (
+                  <span
+                    key={user.id}
+                    className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-emerald-100 text-[10px] font-bold text-emerald-700"
+                  >
+                    {userInitials(user.displayName)}
+                  </span>
+                ))}
+                {activeUsers.length > 3 && (
+                  <span className="flex h-7 min-w-7 items-center justify-center rounded-full border-2 border-white bg-slate-100 px-1 text-[9px] font-bold text-slate-600">
+                    +{activeUsers.length - 3}
+                  </span>
+                )}
+              </div>
+            </>
+          )}
+
           {canEdit && (
             <div className="flex shrink-0 items-center gap-1.5">
               <button
