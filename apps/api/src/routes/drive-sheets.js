@@ -48,11 +48,27 @@ function assertSnapshot(snapshot) {
   }
 }
 
+function lastEditor(sheet) {
+  if (!sheet?.updatedById) return null;
+  return {
+    id: sheet.updatedById,
+    displayName: sheet.updatedByName || "Unknown user",
+  };
+}
+
 async function loadSheetRow(db, driveItemId) {
   const rows = await db.$queryRaw`
-    SELECT "driveItemId", "snapshot", "version", "createdAt", "updatedAt"
-    FROM "DriveSheet"
-    WHERE "driveItemId" = ${driveItemId}::uuid
+    SELECT
+      ds."driveItemId",
+      ds."snapshot",
+      ds."version",
+      ds."updatedById",
+      editor."displayName" AS "updatedByName",
+      ds."createdAt",
+      ds."updatedAt"
+    FROM "DriveSheet" ds
+    LEFT JOIN "User" editor ON editor."id" = ds."updatedById"
+    WHERE ds."driveItemId" = ${driveItemId}::uuid
     LIMIT 1
   `;
   return rows[0] || null;
@@ -163,8 +179,22 @@ export default async function driveSheetRoutes(app) {
       });
 
       await tx.$executeRaw`
-        INSERT INTO "DriveSheet" ("driveItemId", "snapshot", "version", "createdAt", "updatedAt")
-        VALUES (${created.id}::uuid, '{}'::jsonb, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        INSERT INTO "DriveSheet" (
+          "driveItemId",
+          "snapshot",
+          "version",
+          "updatedById",
+          "createdAt",
+          "updatedAt"
+        )
+        VALUES (
+          ${created.id}::uuid,
+          '{}'::jsonb,
+          1,
+          ${request.authUser.id}::uuid,
+          CURRENT_TIMESTAMP,
+          CURRENT_TIMESTAMP
+        )
       `;
 
       return created;
@@ -207,6 +237,7 @@ export default async function driveSheetRoutes(app) {
         snapshot: sheet.snapshot,
         version: sheet.version,
         updatedAt: sheet.updatedAt,
+        lastEditor: lastEditor(sheet),
         owner: item.owner,
         space: {
           id: item.space.id,
@@ -239,6 +270,7 @@ export default async function driveSheetRoutes(app) {
         SET
           "snapshot" = ${snapshotJson}::jsonb,
           "version" = "version" + 1,
+          "updatedById" = ${request.authUser.id}::uuid,
           "updatedAt" = CURRENT_TIMESTAMP
         WHERE "driveItemId" = ${params.id}::uuid
           AND "version" = ${input.version}
@@ -246,10 +278,18 @@ export default async function driveSheetRoutes(app) {
       `;
 
       if (!rows.length) {
+        const latest = await loadSheetRow(app.prisma, params.id);
+        const editor = lastEditor(latest);
+        const actor = editor?.displayName || "Someone else";
         throw new HttpError(
           409,
           "SHEET_VERSION_CONFLICT",
-          "This spreadsheet was changed by someone else. Reload it before continuing",
+          `${actor} changed this spreadsheet. Reload it before continuing`,
+          {
+            editor,
+            version: latest?.version,
+            updatedAt: latest?.updatedAt,
+          },
         );
       }
 
@@ -265,6 +305,10 @@ export default async function driveSheetRoutes(app) {
         data: {
           version: rows[0].version,
           updatedAt: rows[0].updatedAt,
+          lastEditor: {
+            id: request.authUser.id,
+            displayName: request.authUser.displayName,
+          },
         },
       };
     },
