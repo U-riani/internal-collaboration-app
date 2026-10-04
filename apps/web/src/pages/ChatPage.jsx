@@ -1191,11 +1191,24 @@ export default function ChatPage() {
                       <span className="truncate text-sm font-semibold">
                         {displayName(c, user.id)}
                       </span>
-                      {c.unreadCount > 0 && (
-                        <span className="rounded-full px-1.5 py-0.5 bg-blue-600 text-white text-[10px]">
-                          {chatBadgeLabel(c.unreadCount)}
-                        </span>
-                      )}
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        {c.unreadReactionCount > 0 && (
+                          <span
+                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-500"
+                            title={`${c.unreadReactionCount} unread ${c.unreadReactionCount === 1 ? "reaction" : "reactions"}`}
+                          >
+                            <span className="text-sm leading-none" aria-hidden="true">
+                              ♡
+                            </span>
+                            <span>{chatBadgeLabel(c.unreadReactionCount)}</span>
+                          </span>
+                        )}
+                        {c.unreadMessageCount > 0 && (
+                          <span className="rounded-full px-1.5 py-0.5 bg-blue-600 text-white text-[10px]">
+                            {chatBadgeLabel(c.unreadMessageCount)}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <p className="truncate text-xs mt-1 text-slate-400">
                       {c.messages[0]?.content ||
