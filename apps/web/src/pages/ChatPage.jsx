@@ -189,6 +189,96 @@ function groupedReactions(reactions = [], userId) {
   return [...groups.values()];
 }
 
+function ReactionDetailsMenu({ groups, align = "left" }) {
+  const ref = useRef(null);
+  const [open, setOpen] = useState(false);
+  const [selectedEmoji, setSelectedEmoji] = useState(groups[0]?.emoji || null);
+  const selectedGroup =
+    groups.find((group) => group.emoji === selectedEmoji) || groups[0];
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (event) => {
+      if (ref.current && !ref.current.contains(event.target)) setOpen(false);
+    };
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
+  if (!groups.length) return null;
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-xs font-bold leading-none text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+        title="View reactions"
+        aria-label="View who reacted"
+        aria-expanded={open}
+        onClick={() => {
+          if (!groups.some((group) => group.emoji === selectedEmoji))
+            setSelectedEmoji(groups[0].emoji);
+          setOpen((current) => !current);
+        }}
+      >
+        ...
+      </button>
+      {open && selectedGroup && (
+        <div
+          className={`absolute bottom-full z-50 mb-2 w-64 max-w-[calc(100vw-24px)] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl ${
+            align === "right" ? "right-0" : "left-0"
+          }`}
+        >
+          <div className="flex gap-1 overflow-x-auto border-b border-slate-100 p-2">
+            {groups.map((group) => (
+              <button
+                key={group.emoji}
+                type="button"
+                className={`flex h-8 shrink-0 items-center gap-1 rounded-lg border px-2 text-xs transition ${
+                  selectedGroup.emoji === group.emoji
+                    ? "border-blue-200 bg-blue-50 text-blue-700"
+                    : "border-transparent text-slate-600 hover:bg-slate-50"
+                }`}
+                title={reactionLabel(group.emoji)}
+                aria-label={`Show users who reacted ${reactionLabel(group.emoji)}`}
+                onClick={() => setSelectedEmoji(group.emoji)}
+              >
+                <ReactionGlyph value={group.emoji} size={13} />
+                <span>{group.users.length}</span>
+              </button>
+            ))}
+          </div>
+          <div className="max-h-48 overflow-y-auto p-2">
+            <div className="mb-1 px-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+              {reactionLabel(selectedGroup.emoji)} · {selectedGroup.users.length}
+            </div>
+            <div className="space-y-1">
+              {selectedGroup.users.map((reactedUser, index) => (
+                <div
+                  key={reactedUser.id || `${selectedGroup.emoji}-${index}`}
+                  className="flex items-center gap-2 rounded-lg px-2 py-2"
+                >
+                  <Avatar small name={reactedUser.displayName} />
+                  <span className="min-w-0 flex-1 truncate text-sm font-medium text-slate-700">
+                    {reactedUser.displayName}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function EmojiMenu({
   onSelect,
   onClose,
@@ -1535,6 +1625,10 @@ export default function ChatPage() {
                     )}
                     {allMessages.map((m) => {
                       const own = m.senderId === user.id;
+                      const reactionGroups = groupedReactions(
+                        m.reactions,
+                        user.id,
+                      );
                       const unread =
                         !own &&
                         m.receipts?.some(
@@ -1603,40 +1697,42 @@ export default function ChatPage() {
                                   </div>
                                 )}
                               </div>
-                              {!m.deletedAt && m.reactions?.length > 0 && (
+                              {!m.deletedAt && reactionGroups.length > 0 && (
                                 <div
                                   className={`mt-1 flex flex-wrap gap-1 ${own ? "justify-end" : ""}`}
                                 >
-                                  {groupedReactions(m.reactions, user.id).map(
-                                    (group) => (
-                                      <button
-                                        key={group.emoji}
-                                        type="button"
-                                        className={`rounded-full border px-2 py-0.5 text-xs ${
-                                          group.reactedByMe
-                                            ? "border-blue-300 bg-blue-50 text-blue-700"
-                                            : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                                        }`}
-                                        title={`${reactionLabel(group.emoji)} · ${group.users
-                                          .map((item) => item.displayName)
-                                          .join(", ")}`}
-                                        onClick={() =>
-                                          react.mutate({
-                                            messageId: m.id,
-                                            emoji: group.emoji,
-                                          })
-                                        }
-                                      >
-                                        <span className="flex items-center gap-1">
-                                          <ReactionGlyph
-                                            value={group.emoji}
-                                            size={12}
-                                          />
-                                          <span>{group.users.length}</span>
-                                        </span>
-                                      </button>
-                                    ),
-                                  )}
+                                  {reactionGroups.map((group) => (
+                                    <button
+                                      key={group.emoji}
+                                      type="button"
+                                      className={`rounded-full border px-2 py-0.5 text-xs ${
+                                        group.reactedByMe
+                                          ? "border-blue-300 bg-blue-50 text-blue-700"
+                                          : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                                      }`}
+                                      title={`${reactionLabel(group.emoji)} · ${group.users
+                                        .map((item) => item.displayName)
+                                        .join(", ")}`}
+                                      onClick={() =>
+                                        react.mutate({
+                                          messageId: m.id,
+                                          emoji: group.emoji,
+                                        })
+                                      }
+                                    >
+                                      <span className="flex items-center gap-1">
+                                        <ReactionGlyph
+                                          value={group.emoji}
+                                          size={12}
+                                        />
+                                        <span>{group.users.length}</span>
+                                      </span>
+                                    </button>
+                                  ))}
+                                  <ReactionDetailsMenu
+                                    groups={reactionGroups}
+                                    align={own ? "right" : "left"}
+                                  />
                                 </div>
                               )}
                               {!m.deletedAt && (
@@ -1821,7 +1917,8 @@ export default function ChatPage() {
                       className="icon-btn"
                       title="Add emoji"
                       aria-label="Add emoji"
-                      onMouseDown={(event) => event.stopPropagation()}
+                      onMouseDown={(event) => event.stopPropagation()
+                      }
                       onClick={() => setComposerEmojiOpen((open) => !open)}
                     >
                       <Smile size={20} />
