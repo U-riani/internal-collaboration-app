@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import { z } from "zod";
 import { env } from "../config/env.js";
 import { parse } from "../lib/validation.js";
-import { requirePermission } from "../lib/authz.js";
+import { requirePermission, userWithAccess } from "../lib/authz.js";
 import { HttpError } from "../lib/http-error.js";
 import {
   driveAccess,
@@ -216,6 +216,35 @@ export default async function driveSheetRoutes(app) {
         created,
         driveAccess(request.authUser, created, tree),
       ),
+    };
+  });
+
+  app.get("/:id/collaborators", async (request) => {
+    const params = parse(z.object({ id: z.uuid() }), request.params);
+    const tree = await driveTree(app.prisma);
+    const item = tree.get(params.id);
+    requireDrive(request.authUser, item, tree);
+
+    const sheet = await loadSheetRow(app.prisma, params.id);
+    if (!sheet)
+      throw new HttpError(404, "SHEET_NOT_FOUND", "Spreadsheet was not found");
+
+    const users = await app.prisma.user.findMany({
+      where: { status: "ACTIVE" },
+      include: userWithAccess,
+      orderBy: { displayName: "asc" },
+    });
+
+    return {
+      success: true,
+      data: users
+        .map((user) => ({
+          id: user.id,
+          displayName: user.displayName,
+          email: user.email,
+          access: driveAccess(user, item, tree),
+        }))
+        .filter((user) => user.access),
     };
   });
 
