@@ -37,12 +37,6 @@ const VIEW_ACTIONS = new Set([
   UNIT_ACTION.SELECT_UNPROTECTED_CELLS,
 ]);
 
-const CREATOR_MARKER = "#gtex-protection-creator=";
-const GTEX_CREATOR_RECORD_PREFIX = "__gtex_creator__:";
-const GTEX_CREATOR_USER_ID = "__gtexCreatorUserId";
-const GTEX_CREATOR_NAME = "__gtexCreatorName";
-let protectionCreatorObserver;
-
 function driveRole(access) {
   if (access === "OWNER") return UNIT_ROLE.OWNER;
   if (access === "MANAGER" || access === "EDITOR") return UNIT_ROLE.EDITOR;
@@ -76,55 +70,8 @@ function collaboratorUserId(collaborator) {
   return collaborator?.subject?.userID || collaborator?.id || null;
 }
 
-function encodeCreatorRecord(creator) {
-  if (!creator?.userID) return "";
-  return `${GTEX_CREATOR_RECORD_PREFIX}${encodeURIComponent(creator.userID)}:${encodeURIComponent(creator.name || "")}`;
-}
-
-function decodeCreatorRecord(value) {
-  const text = String(value || "");
-  if (!text.startsWith(GTEX_CREATOR_RECORD_PREFIX)) return null;
-
-  const record = text.slice(GTEX_CREATOR_RECORD_PREFIX.length);
-  const separator = record.indexOf(":");
-  const encodedUserId = separator >= 0 ? record.slice(0, separator) : record;
-  const encodedName = separator >= 0 ? record.slice(separator + 1) : "";
-
-  try {
-    return {
-      userID: decodeURIComponent(encodedUserId),
-      name: decodeURIComponent(encodedName),
-    };
-  } catch {
-    return null;
-  }
-}
-
-function persistedCreatorUserId(entry) {
-  const nativeRecord = decodeCreatorRecord(entry?.name);
-  const payload = payloadFor(entry);
-  return (
-    nativeRecord?.userID ||
-    payload?.[GTEX_CREATOR_USER_ID] ||
-    entry?.creatorUserId ||
-    entry?.creator?.userID ||
-    null
-  );
-}
-
 function creatorUserIdFor(entry, fallbackOwnerId) {
-  return persistedCreatorUserId(entry) || fallbackOwnerId || null;
-}
-
-function persistedCreatorName(entry) {
-  const nativeRecord = decodeCreatorRecord(entry?.name);
-  const payload = payloadFor(entry);
-  return (
-    nativeRecord?.name ||
-    payload?.[GTEX_CREATOR_NAME] ||
-    entry?.creator?.name ||
-    ""
-  );
+  return entry?.creatorUserId || entry?.creator?.userID || fallbackOwnerId || null;
 }
 
 function subjectForUser(directory, userId) {
@@ -132,106 +79,8 @@ function subjectForUser(directory, userId) {
   const collaborator = directory.find(
     (item) => collaboratorUserId(item) === userId,
   );
-  return collaborator?.subject ? { ...collaborator.subject } : undefined;
-}
-
-function rememberCreatorMetadata(entry, creator) {
-  if (!entry || !creator?.userID) return;
-  const payload = payloadFor(entry);
-  entry.creatorUserId = creator.userID;
-  entry.creator = { ...creator };
-  entry.name = encodeCreatorRecord(creator);
-  if (payload) {
-    payload[GTEX_CREATOR_USER_ID] = creator.userID;
-    payload[GTEX_CREATOR_NAME] = creator.name || "";
-  }
-}
-
-function creatorAvatarWithMarker(creator) {
-  if (!creator) return creator;
-  const name = String(creator.name || "").trim();
-  if (!name) return { ...creator };
-
-  const fallbackAvatar =
-    "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='12' fill='%23cbd5e1'/%3E%3Ccircle cx='12' cy='9' r='4' fill='%2364758b'/%3E%3Cpath d='M5 22c.8-5 3.1-7 7-7s6.2 2 7 7' fill='%2364758b'/%3E%3C/svg%3E";
-  const baseAvatar = String(creator.avatar || fallbackAvatar).split("#")[0];
-
-  return {
-    ...creator,
-    avatar: `${baseAvatar}${CREATOR_MARKER}${encodeURIComponent(name)}`,
-  };
-}
-
-function decodeCreatorName(src) {
-  const markerIndex = String(src || "").indexOf(CREATOR_MARKER);
-  if (markerIndex < 0) return "";
-  const encoded = String(src).slice(markerIndex + CREATOR_MARKER.length);
-  try {
-    return decodeURIComponent(encoded);
-  } catch {
-    return encoded;
-  }
-}
-
-function applyProtectionCreatorLabels(root = document) {
-  if (typeof document === "undefined") return;
-  const images = root.querySelectorAll?.(`img[src*="${CREATOR_MARKER}"]`);
-  if (!images) return;
-
-  for (const image of images) {
-    const creatorName = decodeCreatorName(image.getAttribute("src"));
-    if (!creatorName) continue;
-
-    const row = image.closest(".univer-flex.univer-items-center");
-    if (!row) continue;
-
-    const directSpans = [...row.children].filter(
-      (child) => child.tagName === "SPAN",
-    );
-    const createdLabel = directSpans[1];
-    if (!createdLabel) continue;
-
-    let nameLabel = createdLabel.querySelector(
-      "[data-gtex-protection-creator-name]",
-    );
-    if (!nameLabel) {
-      nameLabel = document.createElement("span");
-      nameLabel.setAttribute("data-gtex-protection-creator-name", "true");
-      nameLabel.style.marginLeft = "4px";
-      nameLabel.style.fontWeight = "600";
-      nameLabel.style.color = "inherit";
-      nameLabel.style.whiteSpace = "nowrap";
-      nameLabel.style.overflow = "hidden";
-      nameLabel.style.textOverflow = "ellipsis";
-      createdLabel.appendChild(nameLabel);
-    }
-    nameLabel.textContent = `· ${creatorName}`;
-    nameLabel.title = creatorName;
-  }
-}
-
-function installProtectionCreatorLabels() {
-  if (typeof document === "undefined" || typeof MutationObserver === "undefined") {
-    return;
-  }
-
-  protectionCreatorObserver?.disconnect();
-  let scheduled = false;
-  const refresh = () => {
-    if (scheduled) return;
-    scheduled = true;
-    requestAnimationFrame(() => {
-      scheduled = false;
-      applyProtectionCreatorLabels(document);
-    });
-  };
-
-  protectionCreatorObserver = new MutationObserver(refresh);
-  protectionCreatorObserver.observe(document.body, {
-    childList: true,
-    subtree: true,
-  });
-  refresh();
+  if (collaborator?.subject) return { ...collaborator.subject };
+  return { userID: userId, name: "", avatar: "" };
 }
 
 function clonePermissionEntry(entry) {
@@ -346,20 +195,12 @@ function configureAuthzService(authz, directory, options) {
 
   function normalizeCreator(entry) {
     if (!entry) return entry;
-
-    const persistedUserId = persistedCreatorUserId(entry);
-    if (persistedUserId) {
-      const directorySubject = subjectForUser(directory, persistedUserId);
-      const storedName = persistedCreatorName(entry);
-      const creator = {
-        ...(entry.creator || {}),
-        ...(directorySubject || {}),
-        userID: persistedUserId,
-      };
-      if (!creator.name && storedName) creator.name = storedName;
-      rememberCreatorMetadata(entry, creator);
+    const creatorUserId = creatorUserIdFor(entry, fallbackOwnerId);
+    if (creatorUserId) {
+      entry.creatorUserId = creatorUserId;
+      entry.creator =
+        subjectForUser(directory, creatorUserId) || entry.creator || undefined;
     }
-
     return entry;
   }
 
@@ -409,18 +250,12 @@ function configureAuthzService(authz, directory, options) {
       strategies: [],
     };
 
-    const creator =
-      subjectForUser(directory, authz.__gtexCurrentUserId) || {
-        userID: authz.__gtexCurrentUserId,
-        name: "",
-        avatar: "",
-      };
+    entry.creatorUserId = authz.__gtexCurrentUserId;
+    entry.creator = subjectForUser(directory, authz.__gtexCurrentUserId);
 
     if (config.selectRangeObject) {
       entry.selectRangeObject = {
         ...config.selectRangeObject,
-        [GTEX_CREATOR_USER_ID]: creator.userID,
-        [GTEX_CREATOR_NAME]: creator.name || "",
         collaborators: (config.selectRangeObject.collaborators || []).map(
           cloneCollaborator,
         ),
@@ -433,8 +268,6 @@ function configureAuthzService(authz, directory, options) {
     if (config.worksheetObject) {
       entry.worksheetObject = {
         ...config.worksheetObject,
-        [GTEX_CREATOR_USER_ID]: creator.userID,
-        [GTEX_CREATOR_NAME]: creator.name || "",
         collaborators: (config.worksheetObject.collaborators || []).map(
           cloneCollaborator,
         ),
@@ -452,7 +285,6 @@ function configureAuthzService(authz, directory, options) {
       }
     }
 
-    rememberCreatorMetadata(entry, creator);
     permissionMap.set(objectID, entry);
     rememberEntry(objectID, entry);
     return objectID;
@@ -464,25 +296,14 @@ function configureAuthzService(authz, directory, options) {
     if (!entry) return;
 
     const payload = payloadFor(entry);
-    if (config.name !== undefined && payload) {
-      payload.name = config.name;
+    if (config.name !== undefined) {
+      entry.name = config.name;
+      if (payload) payload.name = config.name;
     }
     if (config.scope && payload) payload.scope = { ...config.scope };
     if (config.collaborators?.collaborators) {
       replaceCollaborators(entry, config.collaborators.collaborators);
     }
-
-    const persistedUserId = persistedCreatorUserId(entry);
-    if (persistedUserId) {
-      const creator =
-        subjectForUser(directory, persistedUserId) || entry.creator || {
-          userID: persistedUserId,
-          name: persistedCreatorName(entry),
-          avatar: "",
-        };
-      rememberCreatorMetadata(entry, creator);
-    }
-
     permissionMap.set(config.objectID, entry);
     rememberEntry(config.objectID, entry);
   };
@@ -619,19 +440,12 @@ function configureAuthzService(authz, directory, options) {
           entry,
           authz.__gtexFallbackOwnerId,
         );
-        const creator =
-          subjectForUser(authz.__gtexDirectory, creatorUserId) ||
-          entry?.creator || {
-            userID: creatorUserId || "",
-            name: persistedCreatorName(entry),
-            avatar: "",
-          };
 
         return {
           objectID,
           unitID,
           objectType: entry?.objectType || 3,
-          name: payloadFor(entry)?.name || "",
+          name: entry?.name || "",
           shareOn: false,
           shareRole: UNIT_ROLE.OWNER,
           shareScope: -1,
@@ -639,7 +453,9 @@ function configureAuthzService(authz, directory, options) {
             read: OBJECT_SCOPE.ALL_COLLABORATOR,
             edit: OBJECT_SCOPE.ALL_COLLABORATOR,
           },
-          creator: creatorAvatarWithMarker(creator),
+          creator:
+            entry?.creator ||
+            subjectForUser(authz.__gtexDirectory, creatorUserId),
           strategies,
           actions: await authz.allowed({ objectID, unitID, actions }),
         };
@@ -697,6 +513,5 @@ export function connectUniverPermissions({
     currentAccess,
     fallbackOwnerId: ownerUserId || null,
   });
-  installProtectionCreatorLabels();
   userManager.setCurrentUser(currentSubject);
 }
