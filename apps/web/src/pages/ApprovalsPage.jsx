@@ -64,6 +64,38 @@ const APPROVAL_SORT_OPTIONS = [
   ["status", "Status"],
 ];
 
+function ApprovalStepProgress({ steps }) {
+  if (!steps?.length) return null;
+
+  const orderedSteps = [...steps].sort(
+    (left, right) => (left.stepNumber || 0) - (right.stepNumber || 0),
+  );
+  const approvedCount = orderedSteps.filter(
+    (step) => step.status === "APPROVED",
+  ).length;
+  const progressLabel = `${approvedCount}/${orderedSteps.length} approval steps completed`;
+
+  return (
+    <div
+      className="mt-2 flex flex-wrap items-center gap-1"
+      aria-label={progressLabel}
+      title={progressLabel}
+    >
+      {orderedSteps.map((step) => (
+        <span
+          key={step.id || step.stepNumber}
+          className={`h-2.5 w-2.5 rounded-full ${
+            step.status === "APPROVED" ? "bg-emerald-500" : "bg-slate-200"
+          }`}
+        />
+      ))}
+      <span className="ml-1 text-[10px] font-medium text-slate-400">
+        {approvedCount}/{orderedSteps.length}
+      </span>
+    </div>
+  );
+}
+
 function FormFields({ schema, values, setValues, draft = false }) {
   return (
     <>
@@ -1463,6 +1495,7 @@ export default function ApprovalsPage() {
                 ? `Current review · ${current.approver.displayName}`
                 : "No active reviewer"}
             </p>
+            <ApprovalStepProgress steps={request.steps} />
           </div>
         </div>
         <span className="truncate text-sm text-slate-600">
