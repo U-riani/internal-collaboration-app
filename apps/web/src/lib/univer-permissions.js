@@ -189,6 +189,11 @@ function configureAuthzService(authz, directory, options) {
           ? { ...config.worksheetObject.scope }
           : undefined,
       };
+      if (config.worksheetObject.strategies?.length) {
+        entry.strategies = config.worksheetObject.strategies.map((strategy) => ({
+          ...strategy,
+        }));
+      }
     }
 
     permissionMap.set(objectID, entry);
@@ -274,6 +279,10 @@ function configureAuthzService(authz, directory, options) {
     const role = effectiveRole(args);
     const editable = canEdit(args);
     const viewable = canView(args);
+    const payload = payloadFor(entry);
+    const scopedEdit =
+      payload?.scope?.edit !== undefined &&
+      payload.scope.edit !== OBJECT_SCOPE.ALL_COLLABORATOR;
     const canManage =
       userId === (entry?.creatorUserId || authz.__gtexFallbackOwnerId) ||
       authz.__gtexCurrentAccess === "OWNER" ||
@@ -285,6 +294,11 @@ function configureAuthzService(authz, directory, options) {
       if (action === UNIT_ACTION.MANAGE_COLLABORATOR || action === UNIT_ACTION.SHARE) {
         allowed = canManage;
       } else if (action === UNIT_ACTION.CREATE_PERMISSION_OBJECT) {
+        allowed = editable;
+      } else if (scopedEdit && !VIEW_ACTIONS.has(action)) {
+        // Univer's local mock seeds owner-only edit strategies. For a protected
+        // range/sheet with explicit collaborators, collaborator membership is
+        // the authority for edit actions instead of those mock defaults.
         allowed = editable;
       } else if (strategy) {
         allowed = role >= strategy.role;
