@@ -117,7 +117,8 @@ export default function Layout() {
 
   const unreadMessageCount =
     conversationsQuery.data?.reduce(
-      (total, conversation) => total + (conversation.unreadCount || 0),
+      (total, conversation) =>
+        total + (conversation.unreadMessageCount || 0),
       0,
     ) || 0;
   const badgeByPath = {
