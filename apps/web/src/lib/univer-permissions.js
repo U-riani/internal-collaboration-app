@@ -69,6 +69,43 @@ function collaboratorUserId(collaborator) {
   return collaborator?.subject?.userID || collaborator?.id || null;
 }
 
+function clonePermissionEntry(entry) {
+  if (!entry) return null;
+  const copy = {
+    ...entry,
+    strategies: (entry.strategies || []).map((strategy) => ({ ...strategy })),
+  };
+
+  if (entry.selectRangeObject) {
+    copy.selectRangeObject = {
+      ...entry.selectRangeObject,
+      collaborators: (entry.selectRangeObject.collaborators || []).map(
+        cloneCollaborator,
+      ),
+      scope: entry.selectRangeObject.scope
+        ? { ...entry.selectRangeObject.scope }
+        : undefined,
+    };
+  }
+
+  if (entry.worksheetObject) {
+    copy.worksheetObject = {
+      ...entry.worksheetObject,
+      collaborators: (entry.worksheetObject.collaborators || []).map(
+        cloneCollaborator,
+      ),
+      strategies: (entry.worksheetObject.strategies || []).map((strategy) => ({
+        ...strategy,
+      })),
+      scope: entry.worksheetObject.scope
+        ? { ...entry.worksheetObject.scope }
+        : undefined,
+    };
+  }
+
+  return copy;
+}
+
 function replaceCollaborators(entry, collaborators) {
   const payload = payloadFor(entry);
   if (!payload) return;
@@ -139,17 +176,44 @@ function configureAuthzService(authz, directory, options) {
 
   const originalCreate = authz.create.bind(authz);
   const originalUpdate = authz.update.bind(authz);
+  const protectionState = new Map();
+
+  function rememberEntry(objectID, entry) {
+    if (!objectID || !entry) return;
+    protectionState.set(objectID, clonePermissionEntry(entry));
+  }
+
+  function resolveEntry(objectID) {
+    if (!objectID) return null;
+    const liveEntry = permissionMap.get(objectID);
+    if (liveEntry) {
+      rememberEntry(objectID, liveEntry);
+      return liveEntry;
+    }
+    return protectionState.get(objectID) || null;
+  }
+
+  for (const [objectID, entry] of permissionMap.entries()) {
+    rememberEntry(objectID, entry);
+  }
 
   authz.__gtexDirectory = directory.map(cloneCollaborator);
   authz.__gtexCurrentUserId = currentUserId;
   authz.__gtexCurrentAccess = currentAccess;
   authz.__gtexFallbackOwnerId = fallbackOwnerId;
+  authz.__gtexProtectionState = protectionState;
 
   authz.listCollaborators = async ({ objectID, unitID } = {}) => {
-    const entry = objectID ? permissionMap.get(objectID) : null;
-    if (!entry || !objectID || objectID === unitID) {
+    // Univer calls with the workbook ID when opening "Add person". Only that
+    // workbook-level request is allowed to see the full application directory.
+    if (!objectID || objectID === unitID) {
       return authz.__gtexDirectory.map(cloneCollaborator);
     }
+
+    // A permission object must only return collaborators assigned to that
+    // specific protected range/sheet. Never fall back to the full directory,
+    // because Univer interprets the returned users as selected editors.
+    const entry = resolveEntry(objectID);
     return (payloadFor(entry)?.collaborators || []).map(cloneCollaborator);
   };
 
@@ -197,12 +261,13 @@ function configureAuthzService(authz, directory, options) {
     }
 
     permissionMap.set(objectID, entry);
+    rememberEntry(objectID, entry);
     return objectID;
   };
 
   authz.update = async (config) => {
     await originalUpdate(config);
-    const entry = permissionMap.get(config.objectID);
+    const entry = resolveEntry(config.objectID);
     if (!entry) return;
 
     const payload = payloadFor(entry);
@@ -215,17 +280,19 @@ function configureAuthzService(authz, directory, options) {
       replaceCollaborators(entry, config.collaborators.collaborators);
     }
     permissionMap.set(config.objectID, entry);
+    rememberEntry(config.objectID, entry);
   };
 
   authz.putCollaborators = async ({ objectID, collaborators }) => {
-    const entry = permissionMap.get(objectID);
+    const entry = resolveEntry(objectID);
     if (!entry) return;
     replaceCollaborators(entry, collaborators);
     permissionMap.set(objectID, entry);
+    rememberEntry(objectID, entry);
   };
 
   authz.createCollaborator = async ({ objectID, collaborators }) => {
-    const entry = permissionMap.get(objectID);
+    const entry = resolveEntry(objectID);
     if (!entry) return;
     const current = payloadFor(entry)?.collaborators || [];
     const byUser = new Map(
@@ -236,10 +303,11 @@ function configureAuthzService(authz, directory, options) {
     }
     replaceCollaborators(entry, [...byUser.values()]);
     permissionMap.set(objectID, entry);
+    rememberEntry(objectID, entry);
   };
 
   authz.updateCollaborator = async ({ objectID, collaborator }) => {
-    const entry = permissionMap.get(objectID);
+    const entry = resolveEntry(objectID);
     if (!entry || !collaborator) return;
     const userId = collaboratorUserId(collaborator);
     const current = payloadFor(entry)?.collaborators || [];
@@ -250,10 +318,11 @@ function configureAuthzService(authz, directory, options) {
       ),
     );
     permissionMap.set(objectID, entry);
+    rememberEntry(objectID, entry);
   };
 
   authz.deleteCollaborator = async ({ objectID, collaboratorID }) => {
-    const entry = permissionMap.get(objectID);
+    const entry = resolveEntry(objectID);
     if (!entry) return;
     replaceCollaborators(
       entry,
@@ -264,12 +333,25 @@ function configureAuthzService(authz, directory, options) {
       ),
     );
     permissionMap.set(objectID, entry);
+    rememberEntry(objectID, entry);
   };
 
-  authz.allowed = async ({ objectID, actions }) => {
-    const entry = permissionMap.get(objectID);
+  authz.allowed = async ({ objectID, unitID, actions }) => {
+    const entry = resolveEntry(objectID);
     const userId = authz.__gtexCurrentUserId;
     const directoryRole = driveRole(authz.__gtexCurrentAccess);
+    const isWorkbookRequest = !objectID || objectID === unitID;
+
+    // If a protection rule exists in Univer but its authorization payload is
+    // temporarily unavailable, fail closed for edits instead of silently
+    // granting every Drive editor access to the protected cells.
+    if (!entry && !isWorkbookRequest) {
+      return (actions || []).map((action) => ({
+        action,
+        allowed: VIEW_ACTIONS.has(action) && directoryRole >= UNIT_ROLE.READER,
+      }));
+    }
+
     const args = {
       entry,
       userId,
@@ -296,9 +378,8 @@ function configureAuthzService(authz, directory, options) {
       } else if (action === UNIT_ACTION.CREATE_PERMISSION_OBJECT) {
         allowed = editable;
       } else if (scopedEdit && !VIEW_ACTIONS.has(action)) {
-        // Univer's local mock seeds owner-only edit strategies. For a protected
-        // range/sheet with explicit collaborators, collaborator membership is
-        // the authority for edit actions instead of those mock defaults.
+        // For explicit protected-range collaborators, membership in the rule is
+        // the edit authority. The workbook's general EDITOR role is not enough.
         allowed = editable;
       } else if (strategy) {
         allowed = role >= strategy.role;
@@ -325,7 +406,7 @@ function configureAuthzService(authz, directory, options) {
   authz.list = async ({ unitID, objectIDs, actions }) =>
     Promise.all(
       objectIDs.map(async (objectID) => {
-        const entry = permissionMap.get(objectID);
+        const entry = resolveEntry(objectID);
         const strategies = (entry?.strategies || []).map((strategy) => ({
           ...strategy,
         }));
