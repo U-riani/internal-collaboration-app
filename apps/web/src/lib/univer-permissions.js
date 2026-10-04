@@ -38,6 +38,7 @@ const VIEW_ACTIONS = new Set([
 ]);
 
 const CREATOR_MARKER = "#gtex-protection-creator=";
+const GTEX_CREATOR_RECORD_PREFIX = "__gtex_creator__:";
 const GTEX_CREATOR_USER_ID = "__gtexCreatorUserId";
 const GTEX_CREATOR_NAME = "__gtexCreatorName";
 let protectionCreatorObserver;
@@ -75,9 +76,35 @@ function collaboratorUserId(collaborator) {
   return collaborator?.subject?.userID || collaborator?.id || null;
 }
 
+function encodeCreatorRecord(creator) {
+  if (!creator?.userID) return "";
+  return `${GTEX_CREATOR_RECORD_PREFIX}${encodeURIComponent(creator.userID)}:${encodeURIComponent(creator.name || "")}`;
+}
+
+function decodeCreatorRecord(value) {
+  const text = String(value || "");
+  if (!text.startsWith(GTEX_CREATOR_RECORD_PREFIX)) return null;
+
+  const record = text.slice(GTEX_CREATOR_RECORD_PREFIX.length);
+  const separator = record.indexOf(":");
+  const encodedUserId = separator >= 0 ? record.slice(0, separator) : record;
+  const encodedName = separator >= 0 ? record.slice(separator + 1) : "";
+
+  try {
+    return {
+      userID: decodeURIComponent(encodedUserId),
+      name: decodeURIComponent(encodedName),
+    };
+  } catch {
+    return null;
+  }
+}
+
 function persistedCreatorUserId(entry) {
+  const nativeRecord = decodeCreatorRecord(entry?.name);
   const payload = payloadFor(entry);
   return (
+    nativeRecord?.userID ||
     payload?.[GTEX_CREATOR_USER_ID] ||
     entry?.creatorUserId ||
     entry?.creator?.userID ||
@@ -90,8 +117,14 @@ function creatorUserIdFor(entry, fallbackOwnerId) {
 }
 
 function persistedCreatorName(entry) {
+  const nativeRecord = decodeCreatorRecord(entry?.name);
   const payload = payloadFor(entry);
-  return payload?.[GTEX_CREATOR_NAME] || entry?.creator?.name || "";
+  return (
+    nativeRecord?.name ||
+    payload?.[GTEX_CREATOR_NAME] ||
+    entry?.creator?.name ||
+    ""
+  );
 }
 
 function subjectForUser(directory, userId) {
@@ -107,6 +140,7 @@ function rememberCreatorMetadata(entry, creator) {
   const payload = payloadFor(entry);
   entry.creatorUserId = creator.userID;
   entry.creator = { ...creator };
+  entry.name = encodeCreatorRecord(creator);
   if (payload) {
     payload[GTEX_CREATOR_USER_ID] = creator.userID;
     payload[GTEX_CREATOR_NAME] = creator.name || "";
@@ -430,9 +464,8 @@ function configureAuthzService(authz, directory, options) {
     if (!entry) return;
 
     const payload = payloadFor(entry);
-    if (config.name !== undefined) {
-      entry.name = config.name;
-      if (payload) payload.name = config.name;
+    if (config.name !== undefined && payload) {
+      payload.name = config.name;
     }
     if (config.scope && payload) payload.scope = { ...config.scope };
     if (config.collaborators?.collaborators) {
@@ -598,7 +631,7 @@ function configureAuthzService(authz, directory, options) {
           objectID,
           unitID,
           objectType: entry?.objectType || 3,
-          name: entry?.name || "",
+          name: payloadFor(entry)?.name || "",
           shareOn: false,
           shareRole: UNIT_ROLE.OWNER,
           shareScope: -1,
