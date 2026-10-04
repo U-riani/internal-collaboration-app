@@ -473,12 +473,15 @@ export function connectUniverPermissions({
   for (const collaborator of directory) {
     if (collaborator.subject) userManager.addUser(collaborator.subject);
   }
-  userManager.setCurrentUser(currentSubject);
 
+  // Install the app-aware authorization behavior before switching users. Univer
+  // refreshes all sheet/range permission points when currentUser changes, so
+  // that refresh must already be using the GTEX permission adapter.
   const authz = injector.get(modules.IAuthzIoService);
   configureAuthzService(authz, directory, {
     currentUserId: currentUser.id,
     currentAccess,
     fallbackOwnerId: ownerUserId || null,
   });
+  userManager.setCurrentUser(currentSubject);
 }
