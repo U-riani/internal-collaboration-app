@@ -99,8 +99,7 @@ function subjectForUser(directory, userId) {
   const collaborator = directory.find(
     (item) => collaboratorUserId(item) === userId,
   );
-  if (collaborator?.subject) return { ...collaborator.subject };
-  return { userID: userId, name: "", avatar: "" };
+  return collaborator?.subject ? { ...collaborator.subject } : undefined;
 }
 
 function rememberCreatorMetadata(entry, creator) {
@@ -319,8 +318,8 @@ function configureAuthzService(authz, directory, options) {
       const directorySubject = subjectForUser(directory, persistedUserId);
       const storedName = persistedCreatorName(entry);
       const creator = {
-        ...(directorySubject || {}),
         ...(entry.creator || {}),
+        ...(directorySubject || {}),
         userID: persistedUserId,
       };
       if (!creator.name && storedName) creator.name = storedName;
