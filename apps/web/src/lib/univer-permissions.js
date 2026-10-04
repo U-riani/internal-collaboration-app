@@ -42,13 +42,6 @@ function driveRole(access) {
   return UNIT_ROLE.READER;
 }
 
-function randomPermissionId() {
-  if (globalThis.crypto?.randomUUID) {
-    return `permission_${globalThis.crypto.randomUUID()}`;
-  }
-  return `permission_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-}
-
 function cloneCollaborator(collaborator) {
   return {
     ...collaborator,
@@ -144,29 +137,33 @@ function configureAuthzService(authz, directory, options) {
     throw new Error("Univer authorization storage is unavailable");
   }
 
+  const originalCreate = authz.create.bind(authz);
+  const originalUpdate = authz.update.bind(authz);
+
   authz.__gtexDirectory = directory.map(cloneCollaborator);
   authz.__gtexCurrentUserId = currentUserId;
   authz.__gtexCurrentAccess = currentAccess;
   authz.__gtexFallbackOwnerId = fallbackOwnerId;
 
-  authz.listCollaborators = async ({ objectID, unitID }) => {
-    const entry = permissionMap.get(objectID);
-    if (!entry || objectID === unitID) {
+  authz.listCollaborators = async ({ objectID, unitID } = {}) => {
+    const entry = objectID ? permissionMap.get(objectID) : null;
+    if (!entry || !objectID || objectID === unitID) {
       return authz.__gtexDirectory.map(cloneCollaborator);
     }
     return (payloadFor(entry)?.collaborators || []).map(cloneCollaborator);
   };
 
   authz.create = async (config) => {
-    const objectID = randomPermissionId();
+    const objectID = await originalCreate(config);
     const source = config.selectRangeObject || config.worksheetObject || {};
-    const entry = {
+    const entry = permissionMap.get(objectID) || {
       objectType: config.objectType,
       unitID: source.unitID || "",
       name: source.name || "",
-      strategies: (source.strategies || []).map((strategy) => ({ ...strategy })),
-      creatorUserId: authz.__gtexCurrentUserId,
+      strategies: [],
     };
+
+    entry.creatorUserId = authz.__gtexCurrentUserId;
 
     if (config.selectRangeObject) {
       entry.selectRangeObject = {
@@ -199,6 +196,7 @@ function configureAuthzService(authz, directory, options) {
   };
 
   authz.update = async (config) => {
+    await originalUpdate(config);
     const entry = permissionMap.get(config.objectID);
     if (!entry) return;
 
@@ -208,14 +206,6 @@ function configureAuthzService(authz, directory, options) {
       if (payload) payload.name = config.name;
     }
     if (config.scope && payload) payload.scope = { ...config.scope };
-    if (config.strategies?.length) {
-      entry.strategies = config.strategies.map((strategy) => ({ ...strategy }));
-      if (entry.worksheetObject) {
-        entry.worksheetObject.strategies = config.strategies.map((strategy) => ({
-          ...strategy,
-        }));
-      }
-    }
     if (config.collaborators?.collaborators) {
       replaceCollaborators(entry, config.collaborators.collaborators);
     }
