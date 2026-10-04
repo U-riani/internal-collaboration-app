@@ -9,12 +9,14 @@ import {
   Table2,
   X,
 } from "lucide-react";
+import { useAuth } from "../context/AuthContext.jsx";
 import { api } from "../lib/api.js";
 import { useSocket } from "../hooks/useSocket.js";
 import {
   cloneSpreadsheetSnapshot,
   mergeSpreadsheetSnapshots,
 } from "../lib/spreadsheet-collaboration.js";
+import { connectUniverPermissions } from "../lib/univer-permissions.js";
 
 const UNIVER_VERSION = "1.0.2";
 const writeAccess = new Set(["OWNER", "MANAGER", "EDITOR"]);
@@ -49,6 +51,7 @@ function loadUniver() {
 
     const remoteImport = (url) => import(/* @vite-ignore */ url);
     univerLoader = Promise.all([
+      remoteImport(`https://esm.sh/@univerjs/core@${UNIVER_VERSION}`),
       remoteImport(`https://esm.sh/@univerjs/presets@${UNIVER_VERSION}`),
       remoteImport(
         `https://esm.sh/@univerjs/preset-sheets-core@${UNIVER_VERSION}`,
@@ -70,6 +73,7 @@ function loadUniver() {
       ),
     ]).then(
       ([
+        core,
         presets,
         sheetsCore,
         coreLocale,
@@ -78,6 +82,7 @@ function loadUniver() {
         sheetsSort,
         sortLocale,
       ]) => ({
+        ...core,
         ...presets,
         ...sheetsCore,
         ...sheetsFilter,
@@ -225,6 +230,7 @@ function SheetCreate() {
 }
 
 function SheetEditor({ id }) {
+  const { user } = useAuth();
   const hostRef = useRef(null);
   const runtimeRef = useRef(null);
   const versionRef = useRef(1);
@@ -236,6 +242,7 @@ function SheetEditor({ id }) {
   const pendingRef = useRef(false);
   const conflictRef = useRef(null);
   const [sheet, setSheet] = useState(null);
+  const [permissionUsers, setPermissionUsers] = useState(null);
   const [status, setStatus] = useState("Loading…");
   const [error, setError] = useState("");
   const [conflictInfo, setConflictInfo] = useState(null);
@@ -557,8 +564,12 @@ function SheetEditor({ id }) {
 
   useEffect(() => {
     let active = true;
-    api(`/drive/sheets/${id}`)
-      .then((result) => {
+    setPermissionUsers(null);
+    Promise.all([
+      api(`/drive/sheets/${id}`),
+      api(`/drive/sheets/${id}/collaborators`),
+    ])
+      .then(([result, collaboratorResult]) => {
         if (!active) return;
         versionRef.current = result.data.version;
         baseSnapshotRef.current = cloneSpreadsheetSnapshot(result.data.snapshot);
@@ -566,6 +577,7 @@ function SheetEditor({ id }) {
         remountPendingSaveRef.current = false;
         conflictRef.current = null;
         setConflictInfo(null);
+        setPermissionUsers(collaboratorResult.data);
         setSheet(result.data);
       })
       .catch((e) => {
@@ -579,7 +591,7 @@ function SheetEditor({ id }) {
   }, [id]);
 
   useEffect(() => {
-    if (!sheet || !hostRef.current) return undefined;
+    if (!sheet || !permissionUsers || !user || !hostRef.current) return undefined;
     let disposed = false;
     let commandListener;
     let container;
@@ -594,6 +606,7 @@ function SheetEditor({ id }) {
     async function mount() {
       try {
         setStatus("Loading editor…");
+        const univerModules = await loadUniver();
         const {
           createUniver,
           LocaleType,
@@ -604,7 +617,7 @@ function SheetEditor({ id }) {
           coreLocale,
           filterLocale,
           sortLocale,
-        } = await loadUniver();
+        } = univerModules;
         if (disposed || !hostRef.current) return;
 
         container = document.createElement("div");
@@ -630,6 +643,14 @@ function SheetEditor({ id }) {
           ],
         });
         runtimeRef.current = runtime;
+
+        connectUniverPermissions({
+          runtime,
+          modules: univerModules,
+          currentUser: user,
+          users: permissionUsers,
+          ownerUserId: sheet.owner?.id,
+        });
 
         const snapshot = sheet.snapshot;
         const hasSnapshot =
@@ -686,7 +707,7 @@ function SheetEditor({ id }) {
       }
       container?.remove();
     };
-  }, [id, sheet]);
+  }, [id, permissionUsers, sheet, user]);
 
   function manualSave() {
     clearTimeout(timerRef.current);
@@ -822,7 +843,7 @@ function SheetEditor({ id }) {
         )}
 
         <div ref={hostRef} className="min-h-0 flex-1 overflow-hidden">
-          {!sheet && !error && (
+          {(!sheet || !permissionUsers) && !error && (
             <div className="flex h-full items-center justify-center gap-2 text-sm text-slate-500">
               <LoaderCircle size={18} className="animate-spin" />
               Loading spreadsheet…
