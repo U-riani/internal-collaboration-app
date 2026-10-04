@@ -1054,6 +1054,27 @@ export default async function approvalRoutes(app) {
         content,
       },
     });
+
+    const recipientIds = [
+      ...new Set(
+        [item.requesterId, ...item.steps.map((step) => step.approverId)].filter(
+          (userId) => userId && userId !== request.authUser.id,
+        ),
+      ),
+    ];
+    const authorName = request.authUser.displayName || "Someone";
+    for (const userId of recipientIds) {
+      await createNotification(app, {
+        userId,
+        type: "APPROVAL_UPDATED",
+        title: "New comment on approval",
+        body: `${authorName} commented on: ${item.title}`,
+        relatedEntityType: "APPROVAL_REQUEST",
+        relatedEntityId: item.id,
+      });
+      app.io?.to(`user:${userId}`).emit("approval:updated", { id: item.id });
+    }
+
     reply.code(201);
     return { success: true, data };
   });
