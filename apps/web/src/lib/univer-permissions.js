@@ -37,6 +37,9 @@ const VIEW_ACTIONS = new Set([
   UNIT_ACTION.SELECT_UNPROTECTED_CELLS,
 ]);
 
+const CREATOR_MARKER = "#gtex-protection-creator=";
+let protectionCreatorObserver;
+
 function driveRole(access) {
   if (access === "OWNER") return UNIT_ROLE.OWNER;
   if (access === "MANAGER" || access === "EDITOR") return UNIT_ROLE.EDITOR;
@@ -81,6 +84,95 @@ function subjectForUser(directory, userId) {
   );
   if (collaborator?.subject) return { ...collaborator.subject };
   return { userID: userId, name: "", avatar: "" };
+}
+
+function creatorAvatarWithMarker(creator) {
+  if (!creator) return creator;
+  const name = String(creator.name || "").trim();
+  if (!name) return { ...creator };
+
+  const fallbackAvatar =
+    "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='12' fill='%23cbd5e1'/%3E%3Ccircle cx='12' cy='9' r='4' fill='%2364758b'/%3E%3Cpath d='M5 22c.8-5 3.1-7 7-7s6.2 2 7 7' fill='%2364758b'/%3E%3C/svg%3E";
+  const baseAvatar = String(creator.avatar || fallbackAvatar).split("#")[0];
+
+  return {
+    ...creator,
+    avatar: `${baseAvatar}${CREATOR_MARKER}${encodeURIComponent(name)}`,
+  };
+}
+
+function decodeCreatorName(src) {
+  const markerIndex = String(src || "").indexOf(CREATOR_MARKER);
+  if (markerIndex < 0) return "";
+  const encoded = String(src).slice(markerIndex + CREATOR_MARKER.length);
+  try {
+    return decodeURIComponent(encoded);
+  } catch {
+    return encoded;
+  }
+}
+
+function applyProtectionCreatorLabels(root = document) {
+  if (typeof document === "undefined") return;
+  const images = root.querySelectorAll?.(
+    `img[src*="${CREATOR_MARKER}"]`,
+  );
+  if (!images) return;
+
+  for (const image of images) {
+    const creatorName = decodeCreatorName(image.getAttribute("src"));
+    if (!creatorName) continue;
+
+    const row = image.closest(".univer-flex.univer-items-center");
+    if (!row) continue;
+
+    const directSpans = [...row.children].filter(
+      (child) => child.tagName === "SPAN",
+    );
+    const createdLabel = directSpans[1];
+    if (!createdLabel) continue;
+
+    let nameLabel = createdLabel.querySelector(
+      "[data-gtex-protection-creator-name]",
+    );
+    if (!nameLabel) {
+      nameLabel = document.createElement("span");
+      nameLabel.setAttribute("data-gtex-protection-creator-name", "true");
+      nameLabel.style.marginLeft = "4px";
+      nameLabel.style.fontWeight = "600";
+      nameLabel.style.color = "inherit";
+      nameLabel.style.whiteSpace = "nowrap";
+      nameLabel.style.overflow = "hidden";
+      nameLabel.style.textOverflow = "ellipsis";
+      createdLabel.appendChild(nameLabel);
+    }
+    nameLabel.textContent = `· ${creatorName}`;
+    nameLabel.title = creatorName;
+  }
+}
+
+function installProtectionCreatorLabels() {
+  if (typeof document === "undefined" || typeof MutationObserver === "undefined") {
+    return;
+  }
+
+  protectionCreatorObserver?.disconnect();
+  let scheduled = false;
+  const refresh = () => {
+    if (scheduled) return;
+    scheduled = true;
+    requestAnimationFrame(() => {
+      scheduled = false;
+      applyProtectionCreatorLabels(document);
+    });
+  };
+
+  protectionCreatorObserver = new MutationObserver(refresh);
+  protectionCreatorObserver.observe(document.body, {
+    childList: true,
+    subtree: true,
+  });
+  refresh();
 }
 
 function clonePermissionEntry(entry) {
@@ -440,6 +532,9 @@ function configureAuthzService(authz, directory, options) {
           entry,
           authz.__gtexFallbackOwnerId,
         );
+        const creator =
+          entry?.creator ||
+          subjectForUser(authz.__gtexDirectory, creatorUserId);
 
         return {
           objectID,
@@ -453,9 +548,7 @@ function configureAuthzService(authz, directory, options) {
             read: OBJECT_SCOPE.ALL_COLLABORATOR,
             edit: OBJECT_SCOPE.ALL_COLLABORATOR,
           },
-          creator:
-            entry?.creator ||
-            subjectForUser(authz.__gtexDirectory, creatorUserId),
+          creator: creatorAvatarWithMarker(creator),
           strategies,
           actions: await authz.allowed({ objectID, unitID, actions }),
         };
@@ -513,5 +606,6 @@ export function connectUniverPermissions({
     currentAccess,
     fallbackOwnerId: ownerUserId || null,
   });
+  installProtectionCreatorLabels();
   userManager.setCurrentUser(currentSubject);
 }
