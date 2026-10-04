@@ -22,6 +22,7 @@ const UNIT_ACTION = {
   EXPORT: 8,
   SELECT_PROTECTED_CELLS: 31,
   SELECT_UNPROTECTED_CELLS: 32,
+  DELETE: 42,
   CREATE_PERMISSION_OBJECT: 45,
 };
 
@@ -69,10 +70,24 @@ function collaboratorUserId(collaborator) {
   return collaborator?.subject?.userID || collaborator?.id || null;
 }
 
+function creatorUserIdFor(entry, fallbackOwnerId) {
+  return entry?.creatorUserId || entry?.creator?.userID || fallbackOwnerId || null;
+}
+
+function subjectForUser(directory, userId) {
+  if (!userId) return undefined;
+  const collaborator = directory.find(
+    (item) => collaboratorUserId(item) === userId,
+  );
+  if (collaborator?.subject) return { ...collaborator.subject };
+  return { userID: userId, name: "", avatar: "" };
+}
+
 function clonePermissionEntry(entry) {
   if (!entry) return null;
   const copy = {
     ...entry,
+    creator: entry.creator ? { ...entry.creator } : undefined,
     strategies: (entry.strategies || []).map((strategy) => ({ ...strategy })),
   };
 
@@ -114,7 +129,7 @@ function replaceCollaborators(entry, collaborators) {
 
 function effectiveRole({ entry, userId, directoryRole, fallbackOwnerId }) {
   const payload = payloadFor(entry);
-  const creatorUserId = entry?.creatorUserId || fallbackOwnerId || null;
+  const creatorUserId = creatorUserIdFor(entry, fallbackOwnerId);
   if (creatorUserId && userId === creatorUserId) return UNIT_ROLE.OWNER;
 
   const scope = payload?.scope;
@@ -129,7 +144,7 @@ function effectiveRole({ entry, userId, directoryRole, fallbackOwnerId }) {
 function canView({ entry, userId, directoryRole, fallbackOwnerId }) {
   if (!entry) return directoryRole >= UNIT_ROLE.READER;
   const payload = payloadFor(entry);
-  const creatorUserId = entry.creatorUserId || fallbackOwnerId || null;
+  const creatorUserId = creatorUserIdFor(entry, fallbackOwnerId);
   if (creatorUserId && creatorUserId === userId) return true;
 
   const readScope = payload?.scope?.read;
@@ -150,7 +165,7 @@ function canEdit({ entry, userId, directoryRole, fallbackOwnerId }) {
   if (!entry) return true;
 
   const payload = payloadFor(entry);
-  const creatorUserId = entry.creatorUserId || fallbackOwnerId || null;
+  const creatorUserId = creatorUserIdFor(entry, fallbackOwnerId);
   if (creatorUserId && creatorUserId === userId) return true;
 
   const editScope = payload?.scope?.edit;
@@ -178,8 +193,20 @@ function configureAuthzService(authz, directory, options) {
   const originalUpdate = authz.update.bind(authz);
   const protectionState = new Map();
 
+  function normalizeCreator(entry) {
+    if (!entry) return entry;
+    const creatorUserId = creatorUserIdFor(entry, fallbackOwnerId);
+    if (creatorUserId) {
+      entry.creatorUserId = creatorUserId;
+      entry.creator =
+        subjectForUser(directory, creatorUserId) || entry.creator || undefined;
+    }
+    return entry;
+  }
+
   function rememberEntry(objectID, entry) {
     if (!objectID || !entry) return;
+    normalizeCreator(entry);
     protectionState.set(objectID, clonePermissionEntry(entry));
   }
 
@@ -187,6 +214,7 @@ function configureAuthzService(authz, directory, options) {
     if (!objectID) return null;
     const liveEntry = permissionMap.get(objectID);
     if (liveEntry) {
+      normalizeCreator(liveEntry);
       rememberEntry(objectID, liveEntry);
       return liveEntry;
     }
@@ -204,15 +232,10 @@ function configureAuthzService(authz, directory, options) {
   authz.__gtexProtectionState = protectionState;
 
   authz.listCollaborators = async ({ objectID, unitID } = {}) => {
-    // Univer calls with the workbook ID when opening "Add person". Only that
-    // workbook-level request is allowed to see the full application directory.
     if (!objectID || objectID === unitID) {
       return authz.__gtexDirectory.map(cloneCollaborator);
     }
 
-    // A permission object must only return collaborators assigned to that
-    // specific protected range/sheet. Never fall back to the full directory,
-    // because Univer interprets the returned users as selected editors.
     const entry = resolveEntry(objectID);
     return (payloadFor(entry)?.collaborators || []).map(cloneCollaborator);
   };
@@ -228,6 +251,7 @@ function configureAuthzService(authz, directory, options) {
     };
 
     entry.creatorUserId = authz.__gtexCurrentUserId;
+    entry.creator = subjectForUser(directory, authz.__gtexCurrentUserId);
 
     if (config.selectRangeObject) {
       entry.selectRangeObject = {
@@ -240,6 +264,7 @@ function configureAuthzService(authz, directory, options) {
           : undefined,
       };
     }
+
     if (config.worksheetObject) {
       entry.worksheetObject = {
         ...config.worksheetObject,
@@ -342,9 +367,6 @@ function configureAuthzService(authz, directory, options) {
     const directoryRole = driveRole(authz.__gtexCurrentAccess);
     const isWorkbookRequest = !objectID || objectID === unitID;
 
-    // If a protection rule exists in Univer but its authorization payload is
-    // temporarily unavailable, fail closed for edits instead of silently
-    // granting every Drive editor access to the protected cells.
     if (!entry && !isWorkbookRequest) {
       return (actions || []).map((action) => ({
         action,
@@ -366,20 +388,23 @@ function configureAuthzService(authz, directory, options) {
       payload?.scope?.edit !== undefined &&
       payload.scope.edit !== OBJECT_SCOPE.ALL_COLLABORATOR;
     const canManage =
-      userId === (entry?.creatorUserId || authz.__gtexFallbackOwnerId) ||
+      userId === creatorUserIdFor(entry, authz.__gtexFallbackOwnerId) ||
       authz.__gtexCurrentAccess === "OWNER" ||
       authz.__gtexCurrentAccess === "MANAGER";
 
     return (actions || []).map((action) => {
       const strategy = entry?.strategies?.find((item) => item.action === action);
       let allowed;
-      if (action === UNIT_ACTION.MANAGE_COLLABORATOR || action === UNIT_ACTION.SHARE) {
+
+      if (
+        action === UNIT_ACTION.MANAGE_COLLABORATOR ||
+        action === UNIT_ACTION.SHARE ||
+        action === UNIT_ACTION.DELETE
+      ) {
         allowed = canManage;
       } else if (action === UNIT_ACTION.CREATE_PERMISSION_OBJECT) {
         allowed = editable;
       } else if (scopedEdit && !VIEW_ACTIONS.has(action)) {
-        // For explicit protected-range collaborators, membership in the rule is
-        // the edit authority. The workbook's general EDITOR role is not enough.
         allowed = editable;
       } else if (strategy) {
         allowed = role >= strategy.role;
@@ -388,6 +413,7 @@ function configureAuthzService(authz, directory, options) {
       } else {
         allowed = editable;
       }
+
       return { action, allowed };
     });
   };
@@ -410,6 +436,11 @@ function configureAuthzService(authz, directory, options) {
         const strategies = (entry?.strategies || []).map((strategy) => ({
           ...strategy,
         }));
+        const creatorUserId = creatorUserIdFor(
+          entry,
+          authz.__gtexFallbackOwnerId,
+        );
+
         return {
           objectID,
           unitID,
@@ -422,7 +453,9 @@ function configureAuthzService(authz, directory, options) {
             read: OBJECT_SCOPE.ALL_COLLABORATOR,
             edit: OBJECT_SCOPE.ALL_COLLABORATOR,
           },
-          creator: undefined,
+          creator:
+            entry?.creator ||
+            subjectForUser(authz.__gtexDirectory, creatorUserId),
           strategies,
           actions: await authz.allowed({ objectID, unitID, actions }),
         };
@@ -474,9 +507,6 @@ export function connectUniverPermissions({
     if (collaborator.subject) userManager.addUser(collaborator.subject);
   }
 
-  // Install the app-aware authorization behavior before switching users. Univer
-  // refreshes all sheet/range permission points when currentUser changes, so
-  // that refresh must already be using the GTEX permission adapter.
   const authz = injector.get(modules.IAuthzIoService);
   configureAuthzService(authz, directory, {
     currentUserId: currentUser.id,
