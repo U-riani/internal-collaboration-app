@@ -115,14 +115,16 @@ export default function Layout() {
     },
   });
 
-  const unreadMessageCount =
+  const unreadMessageActivityCount =
     conversationsQuery.data?.reduce(
       (total, conversation) =>
-        total + (conversation.unreadMessageCount || 0),
+        total +
+        (conversation.unreadMessageCount || 0) +
+        (conversation.unreadReactionCount || 0),
       0,
     ) || 0;
   const badgeByPath = {
-    "/chat": unreadMessageCount,
+    "/chat": unreadMessageActivityCount,
     "/tasks": notificationsQuery.data?.meta?.unreadTaskCount || 0,
     "/approvals": notificationsQuery.data?.meta?.unreadApprovalCount || 0,
     "/notifications": notificationsQuery.data?.meta?.unreadCount || 0,
