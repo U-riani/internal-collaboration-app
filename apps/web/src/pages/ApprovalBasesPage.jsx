@@ -75,6 +75,48 @@ function searchableBaseValue(value) {
   return String(value);
 }
 
+function ApprovalStepProgress({ record }) {
+  const definitions = Array.isArray(record.workflowSnapshot?.definitions)
+    ? [...record.workflowSnapshot.definitions].sort(
+        (left, right) => (left.stepNumber || 0) - (right.stepNumber || 0),
+      )
+    : [];
+
+  if (!definitions.length) return null;
+
+  const totalSteps = definitions.length;
+  const approvedCount =
+    record.status === "APPROVED"
+      ? totalSteps
+      : record.status === "PENDING" && record.currentStepNumber
+        ? Math.max(
+            0,
+            Math.min(totalSteps, Number(record.currentStepNumber) - 1),
+          )
+        : 0;
+  const progressLabel = `${approvedCount}/${totalSteps} approval steps completed`;
+
+  return (
+    <div
+      className="mt-2 flex flex-wrap items-center gap-1"
+      aria-label={progressLabel}
+      title={progressLabel}
+    >
+      {definitions.map((step, index) => (
+        <span
+          key={step.stepNumber || index}
+          className={`h-2.5 w-2.5 rounded-full ${
+            index < approvedCount ? "bg-emerald-500" : "bg-slate-200"
+          }`}
+        />
+      ))}
+      <span className="ml-1 text-[10px] font-medium text-slate-400">
+        {approvedCount}/{totalSteps}
+      </span>
+    </div>
+  );
+}
+
 export default function ApprovalBasesPage() {
   const navigate = useNavigate();
   const { typeId } = useParams();
@@ -847,6 +889,7 @@ export default function ApprovalBasesPage() {
                               ))}
                               <td className="border-b border-slate-100 px-4 py-3 transition group-hover:bg-slate-50">
                                 <Badge value={record.status} />
+                                <ApprovalStepProgress record={record} />
                               </td>
                               <td className="border-b border-slate-100 px-4 py-3 text-slate-500 transition group-hover:bg-slate-50">
                                 {record.steps?.[0]?.approver?.displayName ||
