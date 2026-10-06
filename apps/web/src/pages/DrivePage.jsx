@@ -37,7 +37,8 @@ import {
   prettyDate,
 } from "../components/UI.jsx";
 
-const writeAccess = new Set(["OWNER", "MANAGER", "EDITOR", "EDITOR_DELETE"]);\nconst deleteAccess = new Set(["OWNER", "MANAGER", "EDITOR_DELETE"]);
+const writeAccess = new Set(["OWNER", "MANAGER", "EDITOR", "EDITOR_DELETE"]);
+const deleteAccess = new Set(["OWNER", "MANAGER", "EDITOR_DELETE"]);
 const SHEET_MIME = "application/vnd.gtex.univer-sheet+json";
 
 function isSpreadsheet(item) {
