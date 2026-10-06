@@ -6,15 +6,18 @@ JOIN "Permission" AS permission_row ON permission_row."code" = 'tasks.assign'
 WHERE role_row."code" = 'EMPLOYEE'
 ON CONFLICT ("roleId", "permissionId") DO NOTHING;
 
--- Add the STORE preset role for existing installations.
+-- Add the STORE preset role only on installations that already have seeded roles.
+-- On a fresh database the seed script will create STORE after the permission catalog exists.
 INSERT INTO "Role" ("id", "code", "name", "description", "isSystem", "createdAt")
-VALUES (
+SELECT
   (md5('internal-collaboration-app:role:STORE'))::uuid,
   'STORE',
   'Store',
   'Store team member',
   true,
   CURRENT_TIMESTAMP
+WHERE EXISTS (
+  SELECT 1 FROM "Role" WHERE "code" = 'EMPLOYEE'
 )
 ON CONFLICT ("code") DO UPDATE
 SET "isSystem" = true;
