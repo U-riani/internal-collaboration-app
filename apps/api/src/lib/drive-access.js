@@ -1,5 +1,5 @@
 import { HttpError } from "./http-error.js";
-import { hasPermission } from "./authz.js";
+import { hasPermission, hasRole } from "./authz.js";
 
 const ACCESS_RANK = { VIEWER: 1, EDITOR: 2, EDITOR_DELETE: 3, MANAGER: 4, OWNER: 5 };
 
@@ -71,6 +71,10 @@ export function driveSpaceAccess(user, space) {
   if (!space) return null;
   if (space.type === "PERSONAL")
     return space.ownerUserId === user.id ? "OWNER" : null;
+
+  // System administrators have platform-level manager access to every
+  // non-personal Drive space. Group membership cannot reduce this access.
+  if (hasRole(user, "SYSTEM_ADMIN")) return "MANAGER";
 
   const membership = space.members?.find((member) => member.userId === user.id);
   if (space.type === "GLOBAL") {
