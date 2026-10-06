@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { driveAccess, requireDrive } from "../src/lib/drive-access.js";
+import { driveAccess, driveSpaceAccess, requireDrive } from "../src/lib/drive-access.js";
 
 function item({ id, parentId = null, permissionMode = "INHERIT", grants = [], space }) {
   return {
@@ -20,7 +20,6 @@ test("custom group folders isolate members and pass access to descendants", () =
     type: "GROUP",
     ownerUserId: null,
     members: [
-      { userId: "admin", role: "MANAGER" },
       { userId: "user-a", role: "VIEWER" },
       { userId: "user-b", role: "VIEWER" },
     ],
@@ -75,7 +74,11 @@ test("custom group folders isolate members and pass access to descendants", () =
 
   const userA = { id: "user-a", departmentId: null };
   const userB = { id: "user-b", departmentId: null };
-  const admin = { id: "admin", departmentId: null };
+  const admin = {
+    id: "admin",
+    departmentId: null,
+    roles: [{ role: { code: "SYSTEM_ADMIN", permissions: [] } }],
+  };
 
   assert.equal(driveAccess(userA, documents, tree), "VIEWER");
   assert.equal(driveAccess(userA, cityMall, tree), "EDITOR_DELETE");
@@ -89,8 +92,17 @@ test("custom group folders isolate members and pass access to descendants", () =
   assert.equal(driveAccess(userB, cityMall, tree), null);
   assert.equal(driveAccess(userB, cityMallFile, tree), null);
 
+  assert.equal(driveSpaceAccess(admin, space), "MANAGER");
   assert.equal(driveAccess(admin, cityMall, tree), "MANAGER");
   assert.equal(driveAccess(admin, pekini, tree), "MANAGER");
+
+  const personalSpace = {
+    id: "personal-user-a",
+    type: "PERSONAL",
+    ownerUserId: "user-a",
+    members: [],
+  };
+  assert.equal(driveSpaceAccess(admin, personalSpace), null);
 
   assert.equal(
     requireDrive(userA, cityMallFile, tree, "EDITOR_DELETE"),
