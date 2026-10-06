@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import { z } from "zod";
 import { parse } from "../lib/validation.js";
-import { hasPermission, requirePermission } from "../lib/authz.js";
+import { hasPermission, hasRole, requirePermission } from "../lib/authz.js";
 import { HttpError } from "../lib/http-error.js";
 import {
   driveTree,
@@ -97,7 +97,9 @@ export default async function driveRoutes(app) {
         OR: [
           { type: "GLOBAL" },
           { ownerUserId: user.id },
-          { type: "GROUP", members: { some: { userId: user.id } } },
+          ...(hasRole(user, "SYSTEM_ADMIN")
+            ? [{ type: "GROUP" }]
+            : [{ type: "GROUP", members: { some: { userId: user.id } } }]),
         ],
       },
       include: spaceInclude,
