@@ -34,7 +34,8 @@ const permissions = [
 const roleDefinitions = {
   SYSTEM_ADMIN: permissions.map(([code]) => code),
   MANAGER: ['drive.use', 'drive.groups.create', 'users.read', 'conversations.create', 'messages.send', 'tasks.create', 'tasks.assign', 'tasks.manage_department', 'approvals.submit'],
-  EMPLOYEE: ['drive.use', 'users.read', 'conversations.create', 'messages.send', 'tasks.create', 'approvals.submit'],
+  EMPLOYEE: ['drive.use', 'users.read', 'conversations.create', 'messages.send', 'tasks.create', 'tasks.assign', 'approvals.submit'],
+  STORE: ['drive.use', 'users.read', 'conversations.create', 'messages.send', 'tasks.create', 'tasks.assign', 'approvals.submit'],
   AUDITOR: ['users.read', 'approvals.audit', 'system.audit.read'],
 };
 
@@ -62,14 +63,23 @@ async function main() {
   }
 
   for (const [code, permissionCodes] of Object.entries(roleDefinitions)) {
-    const role = await prisma.role.upsert({
-      where: { code },
-      update: { name: code.replaceAll('_', ' '), isSystem: true },
-      create: { code, name: code.replaceAll('_', ' '), isSystem: true },
-    });
-    const found = await prisma.permission.findMany({ where: { code: { in: permissionCodes } } });
-    await prisma.rolePermission.deleteMany({ where: { roleId: role.id } });
-    await prisma.rolePermission.createMany({ data: found.map((permission) => ({ roleId: role.id, permissionId: permission.id })) });
+    const existingRole = await prisma.role.findUnique({ where: { code } });
+    const role = existingRole
+      ? await prisma.role.update({
+          where: { code },
+          data: { isSystem: true },
+        })
+      : await prisma.role.create({
+          data: { code, name: code.replaceAll('_', ' '), isSystem: true },
+        });
+
+    // Preserve administrator-customized permissions for existing roles.
+    // SYSTEM_ADMIN is the one immutable super-role and is always synchronized.
+    if (!existingRole || code === 'SYSTEM_ADMIN') {
+      const found = await prisma.permission.findMany({ where: { code: { in: permissionCodes } } });
+      await prisma.rolePermission.deleteMany({ where: { roleId: role.id } });
+      await prisma.rolePermission.createMany({ data: found.map((permission) => ({ roleId: role.id, permissionId: permission.id })) });
+    }
   }
 
   if (await prisma.user.count()) { console.log('Permissions synchronized; existing users and content preserved.'); return; }
