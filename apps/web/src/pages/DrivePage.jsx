@@ -37,7 +37,7 @@ import {
   prettyDate,
 } from "../components/UI.jsx";
 
-const writeAccess = new Set(["OWNER", "MANAGER", "EDITOR"]);
+const writeAccess = new Set(["OWNER", "MANAGER", "EDITOR", "EDITOR_DELETE"]);\nconst deleteAccess = new Set(["OWNER", "MANAGER", "EDITOR_DELETE"]);
 const SHEET_MIME = "application/vnd.gtex.univer-sheet+json";
 
 function isSpreadsheet(item) {
@@ -245,6 +245,12 @@ function Permissions({ item, onClose, reload }) {
           >
             All Editor
           </button>
+          <button
+            className="btn-secondary"
+            onClick={() => setVisible("EDITOR_DELETE")}
+          >
+            All Edit/Delete
+          </button>
           <button className="btn-secondary" onClick={() => setVisible(null)}>
             Deselect all
           </button>
@@ -280,6 +286,7 @@ function Permissions({ item, onClose, reload }) {
                 <option value="NONE">No access</option>
                 <option value="VIEWER">Viewer</option>
                 <option value="EDITOR">Editor</option>
+                <option value="EDITOR_DELETE">Edit / Delete</option>
               </select>
             </div>
           ))}
@@ -906,8 +913,7 @@ export default function DrivePage() {
                 const canEdit = writeAccess.has(item.access);
                 const canManage =
                   item.access === "OWNER" || item.access === "MANAGER";
-                const canDelete =
-                  item.access === "OWNER" || item.access === "MANAGER";
+                const canDelete = deleteAccess.has(item.access);
                 const spreadsheet = isSpreadsheet(item);
                 return (
                   <div className="drive-item-row list-row" key={item.id}>
@@ -947,7 +953,11 @@ export default function DrivePage() {
                       <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-400">
                         <span>{item.owner.displayName}</span>
                         {item.shared && <Share2 size={11} />}
-                        <span>{item.access.toLowerCase()}</span>
+                        <span>
+                          {item.access === "EDITOR_DELETE"
+                            ? "edit / delete"
+                            : item.access.toLowerCase()}
+                        </span>
                         {item.permissionMode === "CUSTOM" &&
                           item.space.type !== "PERSONAL" && (
                             <span className="flex items-center gap-1">
