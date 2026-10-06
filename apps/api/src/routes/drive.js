@@ -40,7 +40,7 @@ const grantSchema = z
   .object({
     userId: z.uuid().optional(),
     departmentId: z.uuid().optional(),
-    access: z.enum(["VIEWER", "EDITOR"]),
+    access: z.enum(["VIEWER", "EDITOR", "EDITOR_DELETE"]),
     scope: z.enum(["ITEM_ONLY", "DESCENDANTS"]).default("ITEM_ONLY"),
   })
   .refine(
@@ -454,7 +454,7 @@ export default async function driveRoutes(app) {
         request.authUser,
         item,
         tree,
-        item.space.type === "PERSONAL" ? "OWNER" : "MANAGER",
+        item.space.type === "PERSONAL" ? "OWNER" : "EDITOR_DELETE",
       );
       await tx.driveItem.update({
         where: { id: item.id },
