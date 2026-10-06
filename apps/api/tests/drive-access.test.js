@@ -93,6 +93,13 @@ test("custom group folders isolate members and pass access to descendants", () =
   assert.equal(driveAccess(userB, cityMallFile, tree), null);
 
   assert.equal(driveSpaceAccess(admin, space), "MANAGER");
+
+  const downgradedMembershipSpace = {
+    ...space,
+    members: [...space.members, { userId: "admin", role: "VIEWER" }],
+  };
+  assert.equal(driveSpaceAccess(admin, downgradedMembershipSpace), "MANAGER");
+
   assert.equal(driveAccess(admin, cityMall, tree), "MANAGER");
   assert.equal(driveAccess(admin, pekini, tree), "MANAGER");
 
