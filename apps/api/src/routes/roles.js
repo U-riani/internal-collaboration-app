@@ -179,7 +179,10 @@ export default async function roleRoutes(app) {
       include: roleInclude,
     });
 
-    const affectedUsers = await revokeRoleSessions(app, role.id);
+    const affectedUsers =
+      input.permissionCodes !== undefined
+        ? await revokeRoleSessions(app, role.id)
+        : 0;
     await audit(app, request, {
       actionType: "ROLE_UPDATED",
       entityType: "ROLE",
