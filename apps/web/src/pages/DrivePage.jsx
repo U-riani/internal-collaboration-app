@@ -130,6 +130,7 @@ function Permissions({ item, onClose, reload }) {
   ]);
 
   function setVisible(access) {
+    if (item.space.type !== "PERSONAL") setPermissionMode("CUSTOM");
     setAssignments((current) => {
       const next = { ...current };
       for (const row of recipients) {
@@ -184,6 +185,20 @@ function Permissions({ item, onClose, reload }) {
             <option value="CUSTOM">Selected recipients only</option>
           </select>
         </Field>
+      )}
+
+      {item.space.type !== "PERSONAL" && permissionMode === "CUSTOM" && (
+        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+          <strong>Restricted access.</strong> Only the selected recipients can
+          see this {item.kind === "FOLDER" ? "folder" : "file"}. Unselected
+          group members have no access.
+          {item.kind === "FOLDER" && (
+            <span className="mt-1 block text-xs text-amber-700">
+              Folder permissions also apply to current and future files and
+              nested folders unless a child item defines its own custom access.
+            </span>
+          )}
+        </div>
       )}
 
       {item.kind === "FOLDER" && item.space.type === "PERSONAL" && (
@@ -251,14 +266,16 @@ function Permissions({ item, onClose, reload }) {
                 className="input !w-32"
                 aria-label={`Permission for ${recipient.label}`}
                 value={assignments[recipient.key] || "NONE"}
-                onChange={(e) =>
+                onChange={(e) => {
+                  if (item.space.type !== "PERSONAL")
+                    setPermissionMode("CUSTOM");
                   setAssignments((current) => {
                     const next = { ...current };
                     if (e.target.value === "NONE") delete next[recipient.key];
                     else next[recipient.key] = e.target.value;
                     return next;
-                  })
-                }
+                  });
+                }}
               >
                 <option value="NONE">No access</option>
                 <option value="VIEWER">Viewer</option>
