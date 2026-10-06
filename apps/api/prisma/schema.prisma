@@ -644,6 +644,7 @@ enum DriveKind {
 enum DriveAccess {
   VIEWER
   EDITOR
+  EDITOR_DELETE
 }
 
 enum DriveSpaceType {
