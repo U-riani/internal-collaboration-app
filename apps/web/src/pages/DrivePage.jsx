@@ -334,12 +334,20 @@ function SpaceMembers({ space, onClose, reload }) {
 
   useEffect(() => {
     if (!members.data) return;
+    const systemAdminIds = new Set(
+      (people.data || [])
+        .filter((person) => person.roles?.includes("SYSTEM_ADMIN"))
+        .map((person) => person.id),
+    );
     setRoles(
       Object.fromEntries(
-        members.data.data.map((member) => [member.userId, member.role]),
+        members.data.data.map((member) => [
+          member.userId,
+          systemAdminIds.has(member.userId) ? "MANAGER" : member.role,
+        ]),
       ),
     );
-  }, [members.data]);
+  }, [members.data, people.data]);
 
   const visible = (people.data || []).filter(
     (person) =>
@@ -371,7 +379,7 @@ function SpaceMembers({ space, onClose, reload }) {
       <p className="mb-4 text-sm text-slate-500">
         {space.type === "GLOBAL"
           ? "Everyone can view Global. Add Editor or Manager roles for people who should maintain it."
-          : "Group members receive the workspace role shown here. Item-level custom visibility can narrow access further."}
+          : "Group members receive the workspace role shown here. System administrators always have Manager access and cannot be downgraded."}
       </p>
       <div className="relative mb-3">
         <Search size={15} className="absolute left-3 top-3 text-slate-400" />
@@ -383,33 +391,44 @@ function SpaceMembers({ space, onClose, reload }) {
         />
       </div>
       <div className="max-h-80 overflow-y-auto rounded-xl border border-slate-200">
-        {visible.map((person) => (
-          <div
-            key={person.id}
-            className="flex items-center gap-3 border-b border-slate-100 px-3 py-2 last:border-0"
-          >
-            <span className="min-w-0 flex-1 truncate text-sm font-medium">
-              {person.displayName}
-            </span>
-            <select
-              className="input !w-36"
-              value={roles[person.id] || "NONE"}
-              onChange={(e) =>
-                setRoles((current) => ({
-                  ...current,
-                  [person.id]: e.target.value,
-                }))
-              }
+        {visible.map((person) => {
+          const systemAdmin = person.roles?.includes("SYSTEM_ADMIN");
+          return (
+            <div
+              key={person.id}
+              className="flex items-center gap-3 border-b border-slate-100 px-3 py-2 last:border-0"
             >
-              <option value="NONE">
-                {space.type === "GLOBAL" ? "Default viewer" : "Not a member"}
-              </option>
-              <option value="VIEWER">Viewer</option>
-              <option value="EDITOR">Editor</option>
-              <option value="MANAGER">Manager</option>
-            </select>
-          </div>
-        ))}
+              <div className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-medium">
+                  {person.displayName}
+                </span>
+                {systemAdmin && (
+                  <span className="text-[11px] text-slate-400">
+                    System administrator · Always manager
+                  </span>
+                )}
+              </div>
+              <select
+                className="input !w-36"
+                value={systemAdmin ? "MANAGER" : roles[person.id] || "NONE"}
+                disabled={systemAdmin}
+                onChange={(e) =>
+                  setRoles((current) => ({
+                    ...current,
+                    [person.id]: e.target.value,
+                  }))
+                }
+              >
+                <option value="NONE">
+                  {space.type === "GLOBAL" ? "Default viewer" : "Not a member"}
+                </option>
+                <option value="VIEWER">Viewer</option>
+                <option value="EDITOR">Editor</option>
+                <option value="MANAGER">Manager</option>
+              </select>
+            </div>
+          );
+        })}
       </div>
       <ErrorBox error={error || people.error || members.error} />
       <div className="form-actions">
