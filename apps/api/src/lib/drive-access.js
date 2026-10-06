@@ -1,7 +1,7 @@
 import { HttpError } from "./http-error.js";
 import { hasPermission } from "./authz.js";
 
-const ACCESS_RANK = { VIEWER: 1, EDITOR: 2, MANAGER: 3, OWNER: 4 };
+const ACCESS_RANK = { VIEWER: 1, EDITOR: 2, EDITOR_DELETE: 3, MANAGER: 4, OWNER: 5 };
 
 function stronger(left, right) {
   if (!left) return right || null;
