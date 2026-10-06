@@ -31,6 +31,14 @@ const permissions = [
   ['system.audit.read', 'Read system audit logs'],
 ];
 
+const roleNames = {
+  SYSTEM_ADMIN: 'System administrator',
+  MANAGER: 'Manager',
+  EMPLOYEE: 'Employee',
+  STORE: 'Store',
+  AUDITOR: 'Auditor',
+};
+
 const roleDefinitions = {
   SYSTEM_ADMIN: permissions.map(([code]) => code),
   MANAGER: ['drive.use', 'drive.groups.create', 'users.read', 'conversations.create', 'messages.send', 'tasks.create', 'tasks.assign', 'tasks.manage_department', 'approvals.submit'],
@@ -70,7 +78,7 @@ async function main() {
           data: { isSystem: true },
         })
       : await prisma.role.create({
-          data: { code, name: code.replaceAll('_', ' '), isSystem: true },
+          data: { code, name: roleNames[code] ?? code.replaceAll('_', ' '), isSystem: true },
         });
 
     // Preserve administrator-customized permissions for existing roles.
@@ -82,7 +90,7 @@ async function main() {
     }
   }
 
-  if (await prisma.user.count()) { console.log('Permissions synchronized; existing users and content preserved.'); return; }
+  if (await prisma.user.count()) { console.log('Permission catalog and preset roles checked; existing users and role customizations preserved.'); return; }
 
   const department = await prisma.department.upsert({
     where: { code: 'IT' },
