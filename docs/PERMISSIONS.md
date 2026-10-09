@@ -4,21 +4,22 @@ Permissions are enforced on the server. Hiding a button is only a convenience. T
 
 ## Preset roles
 
-| Capability | Employee | Manager | System administrator | Auditor |
-| --- | --- | --- | --- | --- |
-| Read people/departments | Yes | Yes | Yes | Yes |
-| Drive and ordinary messaging | Yes | Yes | Yes | Only if also given another role |
-| Create own tasks | Yes | Yes | Yes | No |
-| Assign tasks to another person | No | Yes | Yes | No |
-| Read/manage department tasks | No | Own department | All tasks | No |
-| Submit approval requests | Yes | Yes | Yes | No |
-| Configure approval types | No | No | Yes | No |
-| Read all approvals, including attachments | No | No | Yes | Yes |
-| Decide an approval | Only when assigned to the current step | Same | Same | Same |
-| Manage users/departments/role assignments | No | No | Yes | No |
-| View the system audit log | No | No | Yes | Yes |
+| Capability | Employee | Store | Manager | System administrator | Auditor |
+| --- | --- | --- | --- | --- | --- |
+| Read people/departments | Yes | Yes | Yes | Yes | Yes |
+| Drive and ordinary messaging | Yes | Yes | Yes | Yes | Only if also given another role |
+| Create own tasks | Yes | Yes | Yes | Yes | No |
+| Assign tasks to another person | Yes | Yes | Yes | Yes | No |
+| Read/manage department tasks | No | No | Own department | All tasks | No |
+| Submit approval requests | Yes | Yes | Yes | Yes | No |
+| Configure approval types | No | No | No | Yes | No |
+| Read all approvals, including attachments | No | No | No | Yes | Yes |
+| Decide an approval | Only when assigned to the current step | Same | Same | Same | Same |
+| Manage users/departments/role assignments | No | No | No | Yes | No |
+| Create/edit roles and role permissions | No | No | No | Yes | No |
+| View the system audit log | No | No | No | Yes | Yes |
 
-The API supports multiple role codes; the administration form assigns one preset role. Preset permission definitions live in `apps/api/prisma/seed.js` and are synchronized on startup. Custom role creation/editing is not exposed. To change a preset deliberately, edit the seed definition, review the resource rules, and rerun the tests.
+The API supports multiple role codes; the administration form assigns one role to a user at a time. System administrators can create custom roles and edit role permissions from Administration → Roles. The preset roles are `EMPLOYEE`, `STORE`, `MANAGER`, `AUDITOR`, and `SYSTEM_ADMIN`. `STORE` starts with the same permissions as `EMPLOYEE`. `SYSTEM_ADMIN` is protected and immutable: server-side authorization always treats it as having every permission. Existing preset-role permission changes are preserved when the seed script is rerun; only `SYSTEM_ADMIN` is resynchronized to the complete permission set.
 
 ## Resource rules
 
@@ -30,7 +31,7 @@ Shared-space items inherit workspace access by default. A Manager can switch an 
 
 Trashing a folder hides every descendant. Personal Trash is available to the personal-space owner; shared-space deletion/restore is a Manager operation. No automatic purge, ownership transfer, public links, or file versioning is implemented.
 
-**Tasks:** creator, assignee, participants, the task department's manager role, and administrators can read. Those readers may comment and change status. Only creator, department manager, or administrator may change task details/participants; assigning another person additionally requires `tasks.assign`. Managers can assign any active organization colleague, not just their department. Participants are an explicit way to share a task across departments. The current version does not implement a separate private-task flag: a task in a department is visible to that department's manager role. Real-time task events go only to authorized user rooms and contain IDs, not task contents.
+**Tasks:** creator, assignee, participants, the task department's manager role, and administrators can read. Those readers may comment and change status. Only creator, department manager, or administrator may change task details/participants; assigning another person additionally requires `tasks.assign`. Users with `tasks.assign` can assign any active organization colleague, not just their department. The default Employee, Store, Manager, and System Administrator roles have this permission. Participants are an explicit way to share a task across departments. The current version does not implement a separate private-task flag: a task in a department is visible to that department's manager role. Real-time task events go only to authorized user rooms and contain IDs, not task contents.
 
 **Messages:** only active conversation members can read, search, download attachments, or receive message events. Administrators cannot read a private conversation merely because of their role. Group owners manage membership; ordinary members can leave. Removing a member removes their live room access. Own message editing has a 15-minute window. Message deletion is a soft deletion. Department and announcement creation are available through the API to the relevant managers/admins; the standard creation form offers direct messages and groups.
 

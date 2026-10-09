@@ -13,6 +13,15 @@ import { api } from "../lib/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { Modal, Field, ErrorBox } from "../components/UI.jsx";
 import PageHeader from "../components/PageHeader.jsx";
+import RoleManagement from "../components/RoleManagement.jsx";
+
+const fallbackRoles = [
+  { code: "EMPLOYEE", name: "Employee" },
+  { code: "MANAGER", name: "Manager" },
+  { code: "STORE", name: "Store" },
+  { code: "AUDITOR", name: "Auditor" },
+  { code: "SYSTEM_ADMIN", name: "System administrator" },
+];
 
 export default function AdminPage() {
   const { hasPermission } = useAuth();
@@ -66,6 +75,12 @@ export default function AdminPage() {
     queryKey: ["departments"],
     queryFn: () => api("/departments").then((r) => r.data),
   });
+  const roles = useQuery({
+    queryKey: ["roles"],
+    queryFn: () => api("/roles").then((r) => r.data),
+    enabled: hasPermission("roles.manage"),
+  });
+  const roleOptions = roles.data?.length ? roles.data : fallbackRoles;
   const createUser = useMutation({
     mutationFn: () =>
       api("/users", {
@@ -180,6 +195,14 @@ export default function AdminPage() {
             >
               Departments
             </button>
+            {hasPermission("roles.manage") && (
+              <button
+                className={tab === "roles" ? "btn-primary" : "btn-secondary"}
+                onClick={() => setTab("roles")}
+              >
+                Roles
+              </button>
+            )}
           </div>
         }
       />
@@ -309,10 +332,11 @@ export default function AdminPage() {
                   setUserForm({ ...userForm, roleCodes: [e.target.value] })
                 }
               >
-                <option value="EMPLOYEE">Employee</option>
-                <option value="MANAGER">Manager</option>
-                <option value="AUDITOR">Auditor</option>
-                <option value="SYSTEM_ADMIN">System administrator</option>
+                {roleOptions.map((role) => (
+                  <option key={role.code} value={role.code}>
+                    {role.name}
+                  </option>
+                ))}
               </select>
               <button
                 className="btn-primary w-full mb-5"
@@ -381,10 +405,11 @@ export default function AdminPage() {
                     }
                   >
                     <option value="">All roles</option>
-                    <option value="EMPLOYEE">Employee</option>
-                    <option value="MANAGER">Manager</option>
-                    <option value="AUDITOR">Auditor</option>
-                    <option value="SYSTEM_ADMIN">System administrator</option>
+                    {roleOptions.map((role) => (
+                  <option key={role.code} value={role.code}>
+                    {role.name}
+                  </option>
+                ))}
                   </select>
                   <select
                     className="input"
@@ -460,7 +485,7 @@ export default function AdminPage() {
             )}
           </div>
         </div>
-      ) : (
+      ) : tab === "departments" ? (
         <div className="grid gap-6 xl:grid-cols-[380px_1fr]">
           <form
             onSubmit={(e) => {
@@ -545,6 +570,8 @@ export default function AdminPage() {
             ))}
           </div>
         </div>
+      ) : (
+        <RoleManagement />
       )}
       {editing && (
         <Modal
@@ -587,8 +614,10 @@ export default function AdminPage() {
                   setEditing({ ...editing, roles: [e.target.value] })
                 }
               >
-                {["EMPLOYEE", "MANAGER", "SYSTEM_ADMIN", "AUDITOR"].map((r) => (
-                  <option key={r}>{r}</option>
+                {roleOptions.map((role) => (
+                  <option key={role.code} value={role.code}>
+                    {role.name}
+                  </option>
                 ))}
               </select>
             </Field>
