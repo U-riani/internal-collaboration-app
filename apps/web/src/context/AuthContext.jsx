@@ -21,8 +21,13 @@ export function AuthProvider({ children }) {
         }
         setAccessToken(token);
         try {
-          const result = await api("/auth/me", {}, false);
-          if (active) setUser(result.data);
+          // Establish a dedicated WebView refresh cookie so editing stays
+          // authenticated even after the native access token expires.
+          const result = await api("/auth/mobile-webview-session", {
+            method: "POST",
+          }, false);
+          setAccessToken(result.data.accessToken);
+          if (active) setUser(result.data.user);
         } catch {
           setAccessToken(null);
           if (active) setUser(null);
