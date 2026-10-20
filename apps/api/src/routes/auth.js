@@ -145,6 +145,47 @@ export default async function authRoutes(app) {
     },
   );
 
+  // Exchange an already-authenticated Flutter access token for an
+  // isolated browser session inside the trusted first-party WebView.
+  // The resulting HttpOnly refresh cookie allows long editing sessions;
+  // passwords and refresh tokens never cross the JS bridge.
+  app.post(
+    "/mobile-webview-session",
+    {
+      preHandler: app.authenticate,
+      config: { rateLimit: { max: 10, timeWindow: "1 minute" } },
+    },
+    async (request, reply) => {
+      const user = request.authUser;
+      const token = createRefreshToken();
+      const session = await app.prisma.session.create({
+        data: {
+          userId: user.id,
+          refreshTokenHash: hashToken(token),
+          deviceName: "Flutter Spreadsheet WebView",
+          ipAddress: request.ip,
+          userAgent: request.headers["user-agent"],
+          expiresAt: new Date(
+            Date.now() + env.REFRESH_TOKEN_TTL_DAYS * 86400000,
+          ),
+        },
+      });
+      reply.setCookie(refreshCookie, token, cookieOptions());
+      await audit(app, request, {
+        actionType: "AUTH_MOBILE_WEBVIEW_SESSION",
+        entityType: "USER",
+        entityId: user.id,
+      });
+      return {
+        success: true,
+        data: {
+          accessToken: accessToken(app, user, session.id),
+          user: publicUser(user),
+        },
+      };
+    },
+  );
+
   app.post(
     "/refresh",
     { config: { rateLimit: { max: 60, timeWindow: "1 minute" } } },
