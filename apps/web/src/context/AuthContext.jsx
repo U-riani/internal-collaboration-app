@@ -8,6 +8,36 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     let active = true;
+
+    // The Flutter WebView is authenticated by its native secure-storage session,
+    // not by the browser refresh cookie. The token is transferred only through
+    // the in-memory JS bridge on our own HTTPS origin (never via a URL).
+    if (window.location.pathname.startsWith("/mobile/sheets/")) {
+      const handleMobileSession = async (event) => {
+        const token = event.detail?.token;
+        if (!token || !active) {
+          if (active) setLoading(false);
+          return;
+        }
+        setAccessToken(token);
+        try {
+          const result = await api("/auth/me", {}, false);
+          if (active) setUser(result.data);
+        } catch {
+          setAccessToken(null);
+          if (active) setUser(null);
+        } finally {
+          if (active) setLoading(false);
+        }
+      };
+      window.addEventListener("collab-mobile-session", handleMobileSession);
+      window.CollaborationFlutter?.postMessage(JSON.stringify({ type: "ready" }));
+      return () => {
+        active = false;
+        window.removeEventListener("collab-mobile-session", handleMobileSession);
+      };
+    }
+
     refreshSession()
       .then((data) => {
         if (active) setUser(data.user);
