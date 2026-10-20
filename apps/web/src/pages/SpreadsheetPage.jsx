@@ -19,7 +19,7 @@ import {
 import { connectUniverPermissions } from "../lib/univer-permissions.js";
 
 const UNIVER_VERSION = "1.0.2";
-const writeAccess = new Set(["OWNER", "MANAGER", "EDITOR"]);
+const writeAccess = new Set(["OWNER", "MANAGER", "EDITOR", "EDITOR_DELETE"]);
 const MAX_ROWS = 1048576;
 const MAX_COLUMNS = 16384;
 const MAX_MERGE_RETRIES = 4;
@@ -229,7 +229,7 @@ function SheetCreate() {
   );
 }
 
-function SheetEditor({ id }) {
+function SheetEditor({ id, mobile = false }) {
   const { user } = useAuth();
   const hostRef = useRef(null);
   const runtimeRef = useRef(null);
@@ -716,11 +716,26 @@ function SheetEditor({ id }) {
 
   return (
     <>
-      <div className="flex h-[calc(100vh-9.1rem)] min-h-[580px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm md:h-[calc(100vh-1.8rem)]">
+      <div className={mobile
+          ? "flex h-[100dvh] min-h-0 w-full flex-col overflow-hidden bg-white"
+          : "flex h-[calc(100vh-9.1rem)] min-h-[580px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm md:h-[calc(100vh-1.8rem)]"}>
         <div className="flex min-h-14 items-center gap-3 border-b border-slate-200 px-3 sm:px-4">
-          <Link to="/drive" className="icon-btn shrink-0" title="Back to Drive">
-            <ArrowLeft size={18} />
-          </Link>
+          {mobile ? (
+            <button
+              type="button"
+              className="icon-btn shrink-0"
+              title="Back to Flutter Drive"
+              onClick={() => window.CollaborationFlutter?.postMessage(
+                JSON.stringify({ type: "close" })
+              )}
+            >
+              <ArrowLeft size={18} />
+            </button>
+          ) : (
+            <Link to="/drive" className="icon-btn shrink-0" title="Back to Drive">
+              <ArrowLeft size={18} />
+            </Link>
+          )}
           <Table2 size={20} className="shrink-0 text-emerald-600" />
           <div className="min-w-0 flex-1">
             <div className="truncate text-sm font-semibold text-slate-900">
@@ -978,7 +993,9 @@ function SheetEditor({ id }) {
   );
 }
 
-export default function SpreadsheetPage() {
+export default function SpreadsheetPage({ mobile = false }) {
   const { id } = useParams();
-  return id === "new" ? <SheetCreate /> : <SheetEditor id={id} />;
+  return id === "new" && !mobile
+    ? <SheetCreate />
+    : <SheetEditor id={id} mobile={mobile} />;
 }
