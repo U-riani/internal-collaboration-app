@@ -714,6 +714,35 @@ function SheetEditor({ id, mobile = false }) {
     saveCurrentWorkbook();
   }
 
+  async function closeMobileEditor() {
+    clearTimeout(timerRef.current);
+    if (savingRef.current || conflictRef.current) {
+      setError("Save or resolve the spreadsheet conflict before closing.");
+      return;
+    }
+    if (canEdit) {
+      const previousVersion = versionRef.current;
+      await saveCurrentWorkbook();
+      if (
+        versionRef.current === previousVersion ||
+        conflictRef.current ||
+        remountPendingSaveRef.current ||
+        pendingRef.current
+      ) {
+        setError("Spreadsheet changes could not be saved. Try Save again before leaving.");
+        return;
+      }
+    }
+    // End the separate refresh-cookie session used by this WebView.
+    try {
+      await api("/auth/logout", { method: "POST" });
+    } catch {
+      // On a temporary connectivity loss the native session is still
+      // managed separately; do not trap a user who finished saving.
+    }
+    window.CollaborationFlutter?.postMessage(JSON.stringify({ type: "close" }));
+  }
+
   return (
     <>
       <div className={mobile
@@ -725,9 +754,7 @@ function SheetEditor({ id, mobile = false }) {
               type="button"
               className="icon-btn shrink-0"
               title="Back to Flutter Drive"
-              onClick={() => window.CollaborationFlutter?.postMessage(
-                JSON.stringify({ type: "close" })
-              )}
+              onClick={closeMobileEditor}
             >
               <ArrowLeft size={18} />
             </button>
