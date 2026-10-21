@@ -145,6 +145,126 @@ export default async function authRoutes(app) {
     },
   );
 
+  // Native clients cannot rely on the browser's HttpOnly refresh cookie.
+  // Keep the web cookie flow intact; native refresh credentials are returned
+  // only from this dedicated endpoint and must be stored in secure storage.
+  app.post(
+    "/mobile/login",
+    { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } },
+    async (request, reply) => {
+      const input = parse(loginSchema, request.body);
+      const user = await app.prisma.user.findUnique({
+        where: { email: input.email },
+        include: userWithAccess,
+      });
+      if (
+        !user ||
+        user.status !== "ACTIVE" ||
+        !(await verifyPassword(user.passwordHash, input.password))
+      )
+        throw new HttpError(401, "AUTH_INVALID_CREDENTIALS", "Email or password is incorrect");
+
+      const refreshToken = createRefreshToken();
+      const session = await app.prisma.session.create({
+        data: {
+          userId: user.id,
+          refreshTokenHash: hashToken(refreshToken),
+          deviceName: "Flutter mobile",
+          ipAddress: request.ip,
+          userAgent: request.headers["user-agent"],
+          expiresAt: new Date(Date.now() + env.REFRESH_TOKEN_TTL_DAYS * 86400000),
+        },
+      });
+      request.authUser = user;
+      reply.header("Cache-Control", "no-store");
+      await audit(app, request, {
+        actionType: "AUTH_LOGIN",
+        entityType: "USER",
+        entityId: user.id,
+      });
+      return {
+        success: true,
+        data: {
+          accessToken: accessToken(app, user, session.id),
+          refreshToken,
+          user: publicUser(user),
+        },
+      };
+    },
+  );
+
+  const mobileRefreshSchema = z.object({
+    refreshToken: z.string().min(1).max(500),
+  });
+
+  app.post(
+    "/mobile/refresh",
+    { config: { rateLimit: { max: 60, timeWindow: "1 minute" } } },
+    async (request, reply) => {
+      const { refreshToken } = parse(mobileRefreshSchema, request.body);
+      const session = await app.prisma.session.findUnique({
+        where: { refreshTokenHash: hashToken(refreshToken) },
+        include: { user: { include: userWithAccess } },
+      });
+      if (
+        !session ||
+        session.revokedAt ||
+        session.expiresAt <= new Date() ||
+        session.user.status !== "ACTIVE"
+      )
+        throw new HttpError(401, "AUTH_REFRESH_INVALID", "Refresh session is invalid or expired");
+
+      const nextRefreshToken = createRefreshToken();
+      // Atomic rotation: the same credential cannot be successfully consumed twice.
+      const consumed = await app.prisma.session.updateMany({
+        where: {
+          id: session.id,
+          refreshTokenHash: hashToken(refreshToken),
+          revokedAt: null,
+        },
+        data: {
+          refreshTokenHash: hashToken(nextRefreshToken),
+          expiresAt: new Date(Date.now() + env.REFRESH_TOKEN_TTL_DAYS * 86400000),
+        },
+      });
+      if (consumed.count !== 1)
+        throw new HttpError(401, "AUTH_REFRESH_USED", "Refresh token has already been used");
+
+      reply.header("Cache-Control", "no-store");
+      return {
+        success: true,
+        data: {
+          accessToken: accessToken(app, session.user, session.id),
+          refreshToken: nextRefreshToken,
+          user: publicUser(session.user),
+        },
+      };
+    },
+  );
+
+  app.post(
+    "/mobile/logout",
+    { config: { rateLimit: { max: 30, timeWindow: "1 minute" } } },
+    async (request, reply) => {
+      const { refreshToken } = parse(mobileRefreshSchema, request.body);
+      const hash = hashToken(refreshToken);
+      const session = await app.prisma.session.findUnique({
+        where: { refreshTokenHash: hash },
+        select: { id: true },
+      });
+      if (session) {
+        await app.prisma.session.updateMany({
+          where: { id: session.id, refreshTokenHash: hash, revokedAt: null },
+          data: { revokedAt: new Date() },
+        });
+        app.io?.in(`session:${session.id}`).disconnectSockets(true);
+      }
+      reply.header("Cache-Control", "no-store");
+      // Idempotent, do not disclose whether a refresh credential existed.
+      return { success: true, data: null };
+    },
+  );
+
   // Exchange an already-authenticated Flutter access token for an
   // isolated browser session inside the trusted first-party WebView.
   // The resulting HttpOnly refresh cookie allows long editing sessions;
