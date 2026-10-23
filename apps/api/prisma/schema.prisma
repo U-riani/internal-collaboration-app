@@ -613,9 +613,29 @@ model PushSubscription {
   updatedAt DateTime @updatedAt
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  deliveries PushDelivery[]
 
   @@index([userId])
   @@index([sessionId])
+}
+
+model PushDelivery {
+  id             String           @id @default(uuid()) @db.Uuid
+  subscriptionId String           @db.Uuid
+  notificationId String           @db.Uuid
+  eventKey       String           @db.VarChar(128)
+  attempts       Int              @default(0)
+  nextAttemptAt  DateTime         @default(now())
+  leaseUntil     DateTime?
+  deliveredAt    DateTime?
+  failedAt       DateTime?
+  lastError      String?          @db.VarChar(512)
+  createdAt      DateTime         @default(now())
+  subscription   PushSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  notification   Notification     @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+
+  @@unique([subscriptionId, eventKey])
+  @@index([nextAttemptAt, leaseUntil])
 }
 
 model Notification {
@@ -631,6 +651,7 @@ model Notification {
   readAt            DateTime?
   deduplicationKey  String?          @unique
   createdAt         DateTime         @default(now())
+  pushDeliveries    PushDelivery[]
 
   @@index([userId, isRead, createdAt(sort: Desc)])
 }

@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { api, setAccessToken, refreshSession } from "../lib/api.js";
-import { disableBrowserPush } from "../lib/pushNotifications.js";
+import { disableBrowserPush, clearForeignBrowserSubscription } from "../lib/pushNotifications.js";
 const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const queryClient = useQueryClient();
@@ -44,6 +44,9 @@ export function AuthProvider({ children }) {
         );
         queryClient.clear();
         setAccessToken(result.data.accessToken);
+        // A browser origin has one push subscription; a shared computer must
+        // never continue receiving another account\u0027s private notifications.
+        await clearForeignBrowserSubscription(result.data.user.id).catch(() => {});
         setUser(result.data.user);
       },
       async logout() {

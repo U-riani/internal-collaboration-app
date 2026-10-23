@@ -45,6 +45,14 @@ export default function Layout() {
 
   useEffect(() => {
     void syncExistingBrowserPush(user.id);
+
+    if (!("serviceWorker" in navigator)) return;
+    const onChange = (event) => {
+      if (event.data?.type === "collab:push-subscription-changed")
+        void syncExistingBrowserPush(user.id);
+    };
+    navigator.serviceWorker.addEventListener("message", onChange);
+    return () => navigator.serviceWorker.removeEventListener("message", onChange);
   }, [user.id]);
 
   useEffect(() => {

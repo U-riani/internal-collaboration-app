@@ -8,12 +8,12 @@ async function createNotification(prisma, data, onCreated) {
       const notification = await prisma.notification.findUnique({
         where: { deduplicationKey: data.deduplicationKey },
       });
-      if (notification) onCreated(notification);
+      if (notification) await onCreated(notification);
     }
     return;
   }
   const notification = await prisma.notification.create({ data });
-  onCreated?.(notification);
+  await onCreated?.(notification);
 }
 
 export async function scanTaskDeadlines(prisma, onCreated) {

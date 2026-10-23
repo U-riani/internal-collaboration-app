@@ -4,6 +4,7 @@ import { parse } from "../lib/validation.js";
 import { hasPermission, hasRole } from "../lib/authz.js";
 import { HttpError } from "../lib/http-error.js";
 import { createNotification } from "../lib/notifications.js";
+import { queuePushNotification } from "../lib/push-notifications.js";
 
 const createSchema = z.object({
   type: z.enum(["DIRECT", "GROUP", "DEPARTMENT", "PROJECT", "ANNOUNCEMENT"]),
@@ -63,6 +64,7 @@ async function createOrReactivateReactionNotification(app, input) {
   app.io
     ?.to(`user:${input.userId}`)
     .emit("notification:created", notification);
+  await queuePushNotification(app, notification);
   return notification;
 }
 

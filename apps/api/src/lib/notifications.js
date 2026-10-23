@@ -31,13 +31,13 @@ export async function createNotification(app, input) {
     });
     if (inserted.count && notification) {
       app.io?.to(`user:${input.userId}`).emit("notification:created", notification);
-      queuePushNotification(app, notification);
+      await queuePushNotification(app, notification);
     }
     return notification;
   }
 
   const notification = await app.prisma.notification.create({ data });
   app.io?.to(`user:${input.userId}`).emit("notification:created", notification);
-  queuePushNotification(app, notification);
+  await queuePushNotification(app, notification);
   return notification;
 }

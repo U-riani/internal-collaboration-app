@@ -1,16 +1,21 @@
 import { useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { MessageSquareText } from "lucide-react";
 import { useAuth } from "../context/AuthContext.jsx";
 
 export default function LoginPage() {
   const { user, login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = location.state?.from;
+  const destination = typeof from === "string" &&
+    from.startsWith("/") && !from.startsWith("//") &&
+    !from.startsWith("/login") ? from : "/dashboard";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  if (user) return <Navigate to="/dashboard" replace />;
+  if (user) return <Navigate to={destination} replace />;
 
   async function submit(event) {
     event.preventDefault();
@@ -18,7 +23,7 @@ export default function LoginPage() {
     setSubmitting(true);
     try {
       await login(email, password);
-      navigate("/dashboard");
+      navigate(destination, { replace: true });
     } catch (err) {
       setError(err.message);
     } finally {

@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { BellRing, Play, Volume2 } from "lucide-react";
 import {
   pushSupported, isIosHomeScreenRequired, pushPreferenceEnabled,
-  getWebPushConfiguration, browserHasPushSubscription,
+  getWebPushConfiguration, browserPushStatus, sendTestPush,
   enableBrowserPush, disableBrowserPush,
 } from "../lib/pushNotifications.js";
 import {
@@ -29,56 +29,95 @@ export default function AccountPage() {
     configured: false,
     publicKey: null,
     subscribed: false,
+    registered: false,
+    linked: false,
     busy: false,
     error: "",
+    result: "",
   });
-  const iphoneNeedsInstall = push.supported && isIosHomeScreenRequired();
+  const iphoneNeedsInstall = isIosHomeScreenRequired();
 
   useEffect(() => {
     let active = true;
-    if (!pushSupported()) {
-      setPush((old) => ({ ...old, loading: false }));
-      return;
+    async function load() {
+      if (!pushSupported()) {
+        if (active) setPush((old) => ({ ...old, loading: false }));
+        return;
+      }
+      try {
+        const config = await getWebPushConfiguration();
+        let status = { browserSubscribed: false, linked: false };
+        try {
+          status = await browserPushStatus(user.id);
+        } catch {
+          // The status endpoint might be temporarily unavailable.
+        }
+        if (active) setPush((old) => ({
+          ...old,
+          configured: config.enabled,
+          publicKey: config.publicKey,
+          registered: status.browserSubscribed,
+          linked: status.linked,
+          subscribed: status.browserSubscribed && pushPreferenceEnabled(user.id),
+          loading: false,
+        }));
+      } catch (error) {
+        if (active) setPush((old) => ({
+          ...old, loading: false, error: error.message,
+        }));
+      }
     }
-    Promise.all([
-      getWebPushConfiguration(),
-      browserHasPushSubscription(),
-    ]).then(([config, subscribed]) => {
-      if (active) setPush((old) => ({
-        ...old,
-        configured: config.enabled,
-        publicKey: config.publicKey,
-        subscribed: subscribed && pushPreferenceEnabled(user.id),
-        loading: false,
-      }));
-    }).catch((error) => {
-      if (active) setPush((old) => ({
-        ...old, loading: false, error: error.message,
-      }));
-    });
+    void load();
     return () => { active = false; };
   }, [user.id]);
 
   async function enablePush() {
-    setPush((old) => ({ ...old, busy: true, error: "" }));
+    setPush((old) => ({ ...old, busy: true, error: "", result: "" }));
     try {
-      // Keep the native permission prompt inside the user's click gesture.
+      // The browser permission prompt occurs directly inside this click event.
       await enableBrowserPush(user.id, push.publicKey);
-      setPush((old) => ({ ...old, subscribed: true, busy: false }));
+      const status = await browserPushStatus(user.id);
+      setPush((old) => ({
+        ...old,
+        subscribed: true,
+        registered: true,
+        linked: status.linked,
+        busy: false,
+        result: status.linked
+          ? "Push enabled and saved on the server. Use Send test notification."
+          : "Browser subscribed, but server registration could not be verified.",
+      }));
     } catch (error) {
       setPush((old) => ({ ...old, busy: false, error: error.message }));
     }
   }
 
   async function disablePush() {
-    setPush((old) => ({ ...old, busy: true, error: "" }));
+    setPush((old) => ({ ...old, busy: true, error: "", result: "" }));
     try {
       await disableBrowserPush(user.id);
-      setPush((old) => ({ ...old, subscribed: false, busy: false }));
+      setPush((old) => ({
+        ...old, subscribed: false, registered: false, linked: false,
+        busy: false, result: "Push disabled on this browser.",
+      }));
     } catch (error) {
       setPush((old) => ({
-        ...old, subscribed: false, busy: false, error: error.message,
+        ...old, subscribed: false, registered: false, linked: false,
+        busy: false, error: error.message,
       }));
+    }
+  }
+
+  async function testPush() {
+    setPush((old) => ({ ...old, busy: true, error: "", result: "" }));
+    try {
+      const result = await sendTestPush(user.id);
+      setPush((old) => ({
+        ...old, busy: false,
+        result: `Gateway accepted push (HTTP ${result.status}). Check your Windows / Android / iPhone notifications. Delivery to the screen is not guaranteed by the gateway.`,
+      }));
+    } catch (error) {
+      setPush((old) => ({ ...old, busy: false, error: error.message }));
     }
   }
 
@@ -145,57 +184,88 @@ export default function AccountPage() {
           <BellRing size={18} /> Web push notifications
         </h2>
         <p className="mt-2 text-sm text-slate-500">
-          Receive message, task, approval and system alerts on this device,
-          even after closing the website. Browser permission is required.
-          Each browser must be enabled separately.
+          Receive desktop and mobile system notifications when the website
+          is in the background or closed. Each browser must be enabled separately.
         </p>
+
         {iphoneNeedsInstall && (
           <p className="mt-3 text-sm text-amber-700">
-            On iPhone, open this website in Safari, choose Share → Add to Home
-            Screen, then launch GTEX Collaboration from the Home Screen to
-            enable notifications.
+            iPhone: Open this website in Safari, select Share → Add to Home Screen,
+            then open GTEX Collaboration from its Home Screen icon. Enable push
+            inside the installed web app, not an ordinary browser tab.
           </p>
         )}
-        {!push.supported && (
+        {!push.supported && !iphoneNeedsInstall && (
           <p className="mt-3 text-sm text-amber-700">
-            This browser does not support Web Push here. Use a compatible browser
-            over HTTPS, or localhost for desktop development.
+            Web Push is unavailable. Use a compatible browser over HTTPS,
+            or localhost for desktop development.
           </p>
         )}
         {push.supported && !push.loading && !push.configured && (
           <p className="mt-3 text-sm text-amber-700">
-            Web Push is not configured on this server. An administrator must
-            configure the VAPID keys first.
+            The API is missing valid matching VAPID keys. Configure
+            PUSH_VAPID_PUBLIC_KEY, PUSH_VAPID_PRIVATE_KEY, and
+            PUSH_VAPID_SUBJECT in the backend environment, then restart it.
           </p>
         )}
         {push.supported && Notification.permission === "denied" && (
           <p className="mt-3 text-sm text-amber-700">
-            Browser notifications are blocked. Allow them in this site's
-            browser permissions before enabling push.
+            Notifications are blocked. Allow them in this site's browser
+            permissions and in your device's notification settings.
           </p>
         )}
+
+        <div className="mt-4 space-y-1 text-xs text-slate-600" role="status">
+          <div>Browser support: {push.supported ? "Supported" : "Unavailable"}</div>
+          {push.supported && (
+            <>
+              <div>Permission: {Notification.permission}</div>
+              <div>Backend VAPID: {push.configured ? "Valid" : "Not configured"}</div>
+              <div>Browser subscription: {push.registered ? "Present" : "Not registered"}</div>
+              <div>Current account/session: {push.linked ? "Linked" : "Not linked"}</div>
+            </>
+          )}
+        </div>
+
         {push.error && (
           <p role="alert" className="mt-3 text-sm text-red-600">{push.error}</p>
         )}
-        {push.subscribed && (
-          <p className="mt-3 text-sm text-green-700">
-            Web Push is enabled on this browser.
+        {push.result && (
+          <p role="status" className="mt-3 text-sm text-blue-700">{push.result}</p>
+        )}
+        {push.subscribed && !push.linked && (
+          <p className="mt-3 text-sm text-amber-700">
+            A browser subscription exists but is not linked to your current
+            session. Disable and re-enable push, then send a test notification.
           </p>
         )}
-        <button
-          type="button"
-          className="btn-secondary mt-4"
-          disabled={push.loading || push.busy || !push.supported ||
-            (!push.subscribed && (!push.configured || iphoneNeedsInstall ||
-              Notification.permission === "denied"))}
-          onClick={push.subscribed ? disablePush : enablePush}
-        >
-          {push.busy ? "Updating…" : push.subscribed
-            ? "Disable push notifications" : "Enable push notifications"}
-        </button>
-        <p className="mt-2 text-xs text-slate-500">
-          While this tab is active, existing real-time notifications and custom
-          sounds remain in use. Background sounds depend on device settings.
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            type="button"
+            className="btn-secondary"
+            disabled={push.loading || push.busy || !push.supported ||
+              (!push.subscribed && (!push.configured || iphoneNeedsInstall ||
+                Notification.permission === "denied"))}
+            onClick={push.subscribed ? disablePush : enablePush}
+          >
+            {push.busy ? "Working…" : push.subscribed
+              ? "Disable push notifications" : "Enable push notifications"}
+          </button>
+          {push.subscribed && (
+            <button
+              type="button"
+              className="btn-secondary"
+              disabled={push.busy || !push.linked}
+              onClick={testPush}
+            >
+              Send test notification
+            </button>
+          )}
+        </div>
+        <p className="mt-3 text-xs text-slate-500">
+          The test sends a real push through the browser gateway. System
+          notification sounds depend on your device settings; custom in-app
+          sounds remain active for Socket.IO events.
         </p>
       </section>
       <form

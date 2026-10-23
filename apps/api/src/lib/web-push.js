@@ -8,12 +8,38 @@ import {
 } from "node:crypto";
 import { env } from "../config/env.js";
 
+let configurationCache;
+
 export function webPushConfigured() {
-  return Boolean(
-    env.PUSH_VAPID_PUBLIC_KEY &&
-      env.PUSH_VAPID_PRIVATE_KEY &&
-      env.PUSH_VAPID_SUBJECT,
-  );
+  if (configurationCache !== undefined) return configurationCache;
+  try {
+    const { PUSH_VAPID_PUBLIC_KEY: publicValue,
+      PUSH_VAPID_PRIVATE_KEY: privateValue, PUSH_VAPID_SUBJECT: subject } = env;
+    const hasValidSubject = (
+      (subject.startsWith("mailto:") && subject.slice(7).includes("@")) ||
+      subject.startsWith("https://")
+    ) && !subject.split("").some((character) => character.charCodeAt(0) <= 32);
+    if (!publicValue || !privateValue || !hasValidSubject ||
+      !/^[A-Za-z0-9_-]+$/.test(publicValue) ||
+      !/^[A-Za-z0-9_-]+$/.test(privateValue)) {
+      configurationCache = false;
+      return false;
+    }
+    const publicKey = decode(publicValue);
+    const privateKey = decode(privateValue);
+    if (publicKey.length !== 65 || publicKey[0] !== 4 ||
+      privateKey.length !== 32) {
+      configurationCache = false;
+      return false;
+    }
+    const derived = createECDH("prime256v1");
+    derived.setPrivateKey(privateKey);
+    configurationCache = derived.getPublicKey().equals(publicKey);
+    return configurationCache;
+  } catch {
+    configurationCache = false;
+    return false;
+  }
 }
 
 function decode(value) {
