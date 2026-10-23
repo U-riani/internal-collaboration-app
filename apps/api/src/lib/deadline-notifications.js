@@ -1,15 +1,22 @@
-async function createNotification(prisma, data) {
+async function createNotification(prisma, data, onCreated) {
   if (data.deduplicationKey) {
-    await prisma.notification.createMany({
+    const result = await prisma.notification.createMany({
       data: [data],
       skipDuplicates: true,
     });
+    if (result.count && onCreated) {
+      const notification = await prisma.notification.findUnique({
+        where: { deduplicationKey: data.deduplicationKey },
+      });
+      if (notification) await onCreated(notification);
+    }
     return;
   }
-  await prisma.notification.create({ data });
+  const notification = await prisma.notification.create({ data });
+  await onCreated?.(notification);
 }
 
-export async function scanTaskDeadlines(prisma) {
+export async function scanTaskDeadlines(prisma, onCreated) {
   const now = new Date();
   const upcomingLimit = new Date(now.getTime() + 24 * 60 * 60 * 1000);
   const dateKey = now.toISOString().slice(0, 10);
@@ -34,7 +41,7 @@ export async function scanTaskDeadlines(prisma) {
         relatedEntityType: "TASK",
         relatedEntityId: task.id,
         deduplicationKey: `task-overdue:${task.id}:${dateKey}`,
-      });
+      }, onCreated);
     } else if (task.dueDate <= upcomingLimit) {
       await createNotification(prisma, {
         userId: task.assigneeId,
@@ -44,7 +51,7 @@ export async function scanTaskDeadlines(prisma) {
         relatedEntityType: "TASK",
         relatedEntityId: task.id,
         deduplicationKey: `task-due:${task.id}:${dateKey}`,
-      });
+      }, onCreated);
     }
   }
 
@@ -55,6 +62,7 @@ export function startDeadlineNotificationScheduler(
   prisma,
   log,
   intervalMs = 60_000,
+  onCreated,
 ) {
   let stopped = false;
   let running = false;
@@ -63,7 +71,7 @@ export function startDeadlineNotificationScheduler(
     if (stopped || running) return;
     running = true;
     try {
-      const scanned = await scanTaskDeadlines(prisma);
+      const scanned = await scanTaskDeadlines(prisma, onCreated);
       log?.debug?.({ scanned }, "Task deadline scan completed");
     } catch (error) {
       log?.error?.({ err: error }, "Task deadline scan failed");

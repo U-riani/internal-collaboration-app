@@ -114,12 +114,20 @@ try {
     "../src/lib/deadline-notifications.js"
   );
 
+  const { queuePushNotification, startPushDeliveryWorker } = await import("../src/lib/push-notifications.js");
+
   const app = await buildApp();
   const stopDeadlineScheduler = startDeadlineNotificationScheduler(
     app.prisma,
     app.log,
+    60_000,
+    (notification) => queuePushNotification(app, notification),
   );
-  app.addHook("onClose", async () => stopDeadlineScheduler());
+  const stopPushWorker = startPushDeliveryWorker(app);
+  app.addHook("onClose", async () => {
+    stopDeadlineScheduler();
+    stopPushWorker();
+  });
 
   await app.listen({ host: "127.0.0.1", port: env.API_PORT });
   console.log(`Backend:  http://localhost:${env.API_PORT}`);

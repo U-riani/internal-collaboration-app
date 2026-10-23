@@ -17,6 +17,8 @@ import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useSocket } from "../hooks/useSocket.js";
+import { handleNotificationCreated, installNotificationAudioUnlock } from "../lib/notificationSounds.js";
+import { syncExistingBrowserPush } from "../lib/pushNotifications.js";
 import { api } from "../lib/api.js";
 import { Avatar } from "./UI.jsx";
 const links = [
@@ -38,6 +40,20 @@ export default function Layout() {
   const { user, logout, hasPermission } = useAuth();
   const [open, setOpen] = useState(false);
   const qc = useQueryClient();
+
+  useEffect(() => installNotificationAudioUnlock(), []);
+
+  useEffect(() => {
+    void syncExistingBrowserPush(user.id);
+
+    if (!("serviceWorker" in navigator)) return;
+    const onChange = (event) => {
+      if (event.data?.type === "collab:push-subscription-changed")
+        void syncExistingBrowserPush(user.id);
+    };
+    navigator.serviceWorker.addEventListener("message", onChange);
+    return () => navigator.serviceWorker.removeEventListener("message", onChange);
+  }, [user.id]);
 
   useEffect(() => {
     const onKeyDown = (event) => {
@@ -73,6 +89,7 @@ export default function Layout() {
       acknowledgeDelivery({ allPending: true });
     },
     "notification:created": (notification) => {
+      handleNotificationCreated(notification, user.id);
       invalidate("notifications");
       if (notification?.type === "MESSAGE_REACTION")
         invalidate("conversations");

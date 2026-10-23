@@ -102,7 +102,7 @@ async function resolveMessageTarget(app, notification, userId) {
   });
 }
 
-async function targetUrl(app, notification, userId) {
+export async function targetUrl(app, notification, userId) {
   const id = notification.relatedEntityId;
   if (!id) return null;
   if (notification.relatedEntityType === "TASK")
