@@ -25,6 +25,7 @@ const patterns = {
 };
 
 let context = null;
+const memoryPreferences = new Map();
 const seenNotifications = new Set();
 const MAX_SEEN_NOTIFICATIONS = 400;
 
@@ -42,12 +43,13 @@ export function getNotificationSoundsEnabled(userId) {
   try {
     return window.localStorage.getItem(preferenceKey(userId)) !== "off";
   } catch {
-    return true;
+    return memoryPreferences.get(userId) ?? true;
   }
 }
 
 export function setNotificationSoundsEnabled(userId, enabled) {
   if (!userId) return;
+  memoryPreferences.set(userId, enabled);
   try {
     window.localStorage.setItem(preferenceKey(userId), enabled ? "on" : "off");
   } catch {
