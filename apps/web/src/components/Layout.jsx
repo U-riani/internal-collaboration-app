@@ -18,6 +18,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useSocket } from "../hooks/useSocket.js";
 import { handleNotificationCreated, installNotificationAudioUnlock } from "../lib/notificationSounds.js";
+import { syncExistingBrowserPush } from "../lib/pushNotifications.js";
 import { api } from "../lib/api.js";
 import { Avatar } from "./UI.jsx";
 const links = [
@@ -41,6 +42,10 @@ export default function Layout() {
   const qc = useQueryClient();
 
   useEffect(() => installNotificationAudioUnlock(), []);
+
+  useEffect(() => {
+    void syncExistingBrowserPush(user.id);
+  }, [user.id]);
 
   useEffect(() => {
     const onKeyDown = (event) => {

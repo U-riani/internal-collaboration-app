@@ -29,6 +29,7 @@ import approvalRoutes from "./routes/approvals.js";
 import conversationRoutes from "./routes/conversations.js";
 import fileRoutes from "./routes/files.js";
 import notificationRoutes from "./routes/notifications.js";
+import pushRoutes from "./routes/push.js";
 
 export async function buildApp(dependencies = {}) {
   const app = Fastify({
@@ -188,6 +189,7 @@ export async function buildApp(dependencies = {}) {
   await app.register(roleRoutes, { prefix: "/api/v1" });
   await app.register(fileRoutes, { prefix: "/api/v1/files" });
   await app.register(notificationRoutes, { prefix: "/api/v1/notifications" });
+  await app.register(pushRoutes, { prefix: "/api/v1/push" });
 
   const io = new SocketServer(app.server, {
     path: "/socket.io",

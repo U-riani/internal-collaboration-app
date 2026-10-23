@@ -1,8 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { api } from "../lib/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
-import { Play, Volume2 } from "lucide-react";
+import { BellRing, Play, Volume2 } from "lucide-react";
+import {
+  pushSupported, isIosHomeScreenRequired, pushPreferenceEnabled,
+  getWebPushConfiguration, browserHasPushSubscription,
+  enableBrowserPush, disableBrowserPush,
+} from "../lib/pushNotifications.js";
 import {
   getNotificationSoundsEnabled,
   setNotificationSoundsEnabled,
@@ -18,6 +23,65 @@ export default function AccountPage() {
   const [soundsEnabled, setSoundsEnabled] = useState(() =>
     getNotificationSoundsEnabled(user.id),
   );
+  const [push, setPush] = useState({
+    supported: pushSupported(),
+    loading: true,
+    configured: false,
+    publicKey: null,
+    subscribed: false,
+    busy: false,
+    error: "",
+  });
+  const iphoneNeedsInstall = push.supported && isIosHomeScreenRequired();
+
+  useEffect(() => {
+    let active = true;
+    if (!pushSupported()) {
+      setPush((old) => ({ ...old, loading: false }));
+      return;
+    }
+    Promise.all([
+      getWebPushConfiguration(),
+      browserHasPushSubscription(),
+    ]).then(([config, subscribed]) => {
+      if (active) setPush((old) => ({
+        ...old,
+        configured: config.enabled,
+        publicKey: config.publicKey,
+        subscribed: subscribed && pushPreferenceEnabled(user.id),
+        loading: false,
+      }));
+    }).catch((error) => {
+      if (active) setPush((old) => ({
+        ...old, loading: false, error: error.message,
+      }));
+    });
+    return () => { active = false; };
+  }, [user.id]);
+
+  async function enablePush() {
+    setPush((old) => ({ ...old, busy: true, error: "" }));
+    try {
+      // Keep the native permission prompt inside the user's click gesture.
+      await enableBrowserPush(user.id, push.publicKey);
+      setPush((old) => ({ ...old, subscribed: true, busy: false }));
+    } catch (error) {
+      setPush((old) => ({ ...old, busy: false, error: error.message }));
+    }
+  }
+
+  async function disablePush() {
+    setPush((old) => ({ ...old, busy: true, error: "" }));
+    try {
+      await disableBrowserPush(user.id);
+      setPush((old) => ({ ...old, subscribed: false, busy: false }));
+    } catch (error) {
+      setPush((old) => ({
+        ...old, subscribed: false, busy: false, error: error.message,
+      }));
+    }
+  }
+
   const soundOptions = [
     { category: "messages", label: "Messages" },
     { category: "tasks", label: "Tasks" },
@@ -75,6 +139,64 @@ export default function AccountPage() {
             </button>
           ))}
         </div>
+      </section>
+      <section className="card mb-5 max-w-lg p-6" aria-labelledby="web-push-heading">
+        <h2 id="web-push-heading" className="flex items-center gap-2 font-semibold">
+          <BellRing size={18} /> Web push notifications
+        </h2>
+        <p className="mt-2 text-sm text-slate-500">
+          Receive message, task, approval and system alerts on this device,
+          even after closing the website. Browser permission is required.
+          Each browser must be enabled separately.
+        </p>
+        {iphoneNeedsInstall && (
+          <p className="mt-3 text-sm text-amber-700">
+            On iPhone, open this website in Safari, choose Share → Add to Home
+            Screen, then launch GTEX Collaboration from the Home Screen to
+            enable notifications.
+          </p>
+        )}
+        {!push.supported && (
+          <p className="mt-3 text-sm text-amber-700">
+            This browser does not support Web Push here. Use a compatible browser
+            over HTTPS, or localhost for desktop development.
+          </p>
+        )}
+        {push.supported && !push.loading && !push.configured && (
+          <p className="mt-3 text-sm text-amber-700">
+            Web Push is not configured on this server. An administrator must
+            configure the VAPID keys first.
+          </p>
+        )}
+        {push.supported && Notification.permission === "denied" && (
+          <p className="mt-3 text-sm text-amber-700">
+            Browser notifications are blocked. Allow them in this site's
+            browser permissions before enabling push.
+          </p>
+        )}
+        {push.error && (
+          <p role="alert" className="mt-3 text-sm text-red-600">{push.error}</p>
+        )}
+        {push.subscribed && (
+          <p className="mt-3 text-sm text-green-700">
+            Web Push is enabled on this browser.
+          </p>
+        )}
+        <button
+          type="button"
+          className="btn-secondary mt-4"
+          disabled={push.loading || push.busy || !push.supported ||
+            (!push.subscribed && (!push.configured || iphoneNeedsInstall ||
+              Notification.permission === "denied"))}
+          onClick={push.subscribed ? disablePush : enablePush}
+        >
+          {push.busy ? "Updating…" : push.subscribed
+            ? "Disable push notifications" : "Enable push notifications"}
+        </button>
+        <p className="mt-2 text-xs text-slate-500">
+          While this tab is active, existing real-time notifications and custom
+          sounds remain in use. Background sounds depend on device settings.
+        </p>
       </section>
       <form
         className="card p-6 max-w-lg"

@@ -1,3 +1,5 @@
+import { queuePushNotification } from "./push-notifications.js";
+
 export async function createNotification(app, input) {
   let data = input;
   if (
@@ -27,14 +29,15 @@ export async function createNotification(app, input) {
     const notification = await app.prisma.notification.findUnique({
       where: { deduplicationKey: data.deduplicationKey },
     });
-    if (inserted.count && notification)
-      app.io
-        ?.to(`user:${input.userId}`)
-        .emit("notification:created", notification);
+    if (inserted.count && notification) {
+      app.io?.to(`user:${input.userId}`).emit("notification:created", notification);
+      queuePushNotification(app, notification);
+    }
     return notification;
   }
 
   const notification = await app.prisma.notification.create({ data });
   app.io?.to(`user:${input.userId}`).emit("notification:created", notification);
+  queuePushNotification(app, notification);
   return notification;
 }

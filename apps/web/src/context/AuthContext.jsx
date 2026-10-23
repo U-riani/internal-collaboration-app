@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { api, setAccessToken, refreshSession } from "../lib/api.js";
+import { disableBrowserPush } from "../lib/pushNotifications.js";
 const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const queryClient = useQueryClient();
@@ -47,6 +48,8 @@ export function AuthProvider({ children }) {
       },
       async logout() {
         try {
+          // Revoke this browser subscription before ending the session.
+          await disableBrowserPush(user?.id).catch(() => {});
           await api("/auth/logout", { method: "POST" });
         } finally {
           setAccessToken(null);
