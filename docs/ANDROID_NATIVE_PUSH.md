@@ -18,11 +18,11 @@ This is **separate from** the working browser Web Push/VAPID pipeline. Existing 
    FCM_SERVICE_ACCOUNT_HOST_PATH=/home/user/apps/internal-collaboration-app/.secrets/fcm-service-account.json
    ```
    Use the actual **absolute WSL host path**. Do not put the key contents in the env file.
-4. Back up the database, then deploy the updated prod branch using the existing Compose procedure, e.g.
+4. Back up the database, then deploy the updated prod branch with the **opt-in** FCM Compose overlay:
    ```sh
-   docker compose --env-file .env.production -f compose.production.yml --profile tunnel up -d --build
+   docker compose --env-file .env.production -f compose.production.yml -f compose.fcm.yml --profile tunnel up -d --build
    ```
-5. The container's `FCM_SERVICE_ACCOUNT_FILE` is fixed to `/run/secrets/fcm-service-account.json` and the mount is read-only. If no host key path is supplied, the mount source defaults to `/dev/null` and the FCM worker stays disabled, preserving previous behavior.
+5. The `compose.fcm.yml` overlay adds the read-only credentials mount. Do not use this overlay until the key exists. The ordinary Compose file remains unchanged and safe without FCM. The API Dockerfile runs as `node` (UID 1000), so ensure it can read the JSON, for example chown the host key to UID 1000 and chmod 600.
 6. Authenticate and GET `/api/v1/mobile-push/config`; verify `data.enabled: true`. Inspect API logs for FCM failures. The API performs schema migrations at startup as in the existing deployment flow.
 
 ## API (JWT required)

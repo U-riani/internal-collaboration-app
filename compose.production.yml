@@ -31,11 +31,8 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
       STORAGE_DRIVER: local
       STORAGE_LOCAL_PATH: /app/data/files
-      FCM_SERVICE_ACCOUNT_FILE: /run/secrets/fcm-service-account.json
     volumes:
       - files_data:/app/data/files
-      # Default /dev/null keeps the old deployment working until credentials are provisioned.
-      - ${FCM_SERVICE_ACCOUNT_HOST_PATH:-/dev/null}:/run/secrets/fcm-service-account.json:ro
     depends_on:
       postgres:
         condition: service_healthy

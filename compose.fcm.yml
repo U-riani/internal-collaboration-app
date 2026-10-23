@@ -1,0 +1,7 @@
+# Optional Android FCM credentials overlay. Use only after provisioning the key.
+services:
+  api:
+    environment:
+      FCM_SERVICE_ACCOUNT_FILE: /run/secrets/fcm-service-account.json
+    volumes:
+      - ${FCM_SERVICE_ACCOUNT_HOST_PATH:?set_absolute_WSL_path_to_FCM_key}:/run/secrets/fcm-service-account.json:ro
