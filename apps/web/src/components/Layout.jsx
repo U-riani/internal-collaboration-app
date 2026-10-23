@@ -17,6 +17,7 @@ import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useSocket } from "../hooks/useSocket.js";
+import { handleNotificationCreated, installNotificationAudioUnlock } from "../lib/notificationSounds.js";
 import { api } from "../lib/api.js";
 import { Avatar } from "./UI.jsx";
 const links = [
@@ -38,6 +39,8 @@ export default function Layout() {
   const { user, logout, hasPermission } = useAuth();
   const [open, setOpen] = useState(false);
   const qc = useQueryClient();
+
+  useEffect(() => installNotificationAudioUnlock(), []);
 
   useEffect(() => {
     const onKeyDown = (event) => {
@@ -73,6 +76,7 @@ export default function Layout() {
       acknowledgeDelivery({ allPending: true });
     },
     "notification:created": (notification) => {
+      handleNotificationCreated(notification, user.id);
       invalidate("notifications");
       if (notification?.type === "MESSAGE_REACTION")
         invalidate("conversations");
