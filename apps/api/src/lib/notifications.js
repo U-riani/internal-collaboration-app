@@ -1,4 +1,5 @@
 import { queuePushNotification } from "./push-notifications.js";
+import { queueNativePushNotification } from "./native-push.js";
 
 export async function createNotification(app, input) {
   let data = input;
@@ -32,6 +33,8 @@ export async function createNotification(app, input) {
     if (inserted.count && notification) {
       app.io?.to(`user:${input.userId}`).emit("notification:created", notification);
       await queuePushNotification(app, notification);
+  await queueNativePushNotification(app, notification);
+      await queueNativePushNotification(app, notification);
     }
     return notification;
   }

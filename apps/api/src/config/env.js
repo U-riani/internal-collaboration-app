@@ -33,6 +33,8 @@ const schema = z.object({
   // every JSON endpoint to accept multi-gigabyte request bodies.
   MAX_SHEET_SNAPSHOT_MB: z.coerce.number().positive().max(512).default(256),
   STORAGE_QUOTA_MB: z.coerce.number().positive().default(10240),
+  FCM_PROJECT_ID: z.string().optional().default(""),
+  FCM_SERVICE_ACCOUNT_FILE: z.string().optional().default(""),
   PUSH_VAPID_PUBLIC_KEY: z.string().optional().default(""),
   PUSH_VAPID_PRIVATE_KEY: z.string().optional().default(""),
   PUSH_VAPID_SUBJECT: z.string().optional().default(""),

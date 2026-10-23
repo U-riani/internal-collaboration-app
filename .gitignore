@@ -20,3 +20,6 @@ coverage/
 
 # Local no-Docker development data
 apps/api/.local/
+.secrets/
+**/fcm-service-account*.json
+**/service-account-key*.json

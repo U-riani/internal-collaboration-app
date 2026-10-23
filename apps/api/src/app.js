@@ -30,6 +30,7 @@ import conversationRoutes from "./routes/conversations.js";
 import fileRoutes from "./routes/files.js";
 import notificationRoutes from "./routes/notifications.js";
 import pushRoutes from "./routes/push.js";
+import nativePushRoutes from "./routes/native-push.js";
 
 export async function buildApp(dependencies = {}) {
   const app = Fastify({
@@ -190,6 +191,7 @@ export async function buildApp(dependencies = {}) {
   await app.register(fileRoutes, { prefix: "/api/v1/files" });
   await app.register(notificationRoutes, { prefix: "/api/v1/notifications" });
   await app.register(pushRoutes, { prefix: "/api/v1/push" });
+  await app.register(nativePushRoutes, { prefix: "/api/v1/mobile-push" });
 
   const io = new SocketServer(app.server, {
     path: "/socket.io",
