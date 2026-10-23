@@ -33,7 +33,6 @@ export async function createNotification(app, input) {
     if (inserted.count && notification) {
       app.io?.to(`user:${input.userId}`).emit("notification:created", notification);
       await queuePushNotification(app, notification);
-  await queueNativePushNotification(app, notification);
       await queueNativePushNotification(app, notification);
     }
     return notification;
@@ -42,5 +41,6 @@ export async function createNotification(app, input) {
   const notification = await app.prisma.notification.create({ data });
   app.io?.to(`user:${input.userId}`).emit("notification:created", notification);
   await queuePushNotification(app, notification);
+  await queueNativePushNotification(app, notification);
   return notification;
 }
