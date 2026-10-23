@@ -299,6 +299,14 @@ export async function buildApp(dependencies = {}) {
         socket.join(`conversation:${conversationId}`),
       );
       await app.redis.set(`presence:${user.id}`, "online", "EX", 90);
+      // Presence is scoped to rooms the user is actually a member of;
+      // other accounts never receive a global user-status broadcast.
+      for (const { conversationId } of memberships) {
+        io.to(`conversation:${conversationId}`).emit("presence:updated", {
+          userId: user.id,
+          isOnline: true,
+        });
+      }
     } catch (error) {
       app.log.error(error);
       socket.disconnect(true);
@@ -369,6 +377,16 @@ export async function buildApp(dependencies = {}) {
             where: { id: user.id },
             data: { lastSeenAt: new Date() },
           });
+          const memberships = await app.prisma.conversationMember.findMany({
+            where: { userId: user.id, leftAt: null },
+            select: { conversationId: true },
+          });
+          for (const { conversationId } of memberships) {
+            io.to(`conversation:${conversationId}`).emit("presence:updated", {
+              userId: user.id,
+              isOnline: false,
+            });
+          }
         }
       } catch (error) {
         app.log.warn(error);
