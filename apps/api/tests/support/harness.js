@@ -92,6 +92,9 @@ export async function harness() {
     async del(key) {
       cache.delete(key);
     },
+    async get(key) {
+      return cache.get(key) ?? null;
+    },
     async ping() {
       return "PONG";
     },
