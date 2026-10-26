@@ -794,10 +794,29 @@ function Members({ conversation, onClose }) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [id, setId] = useState("");
+  const [memberSearch, setMemberSearch] = useState("");
   const users = useQuery({
     queryKey: ["users"],
     queryFn: () => api("/users").then((r) => r.data),
   });
+  const availableColleagues = useMemo(
+    () =>
+      (users.data || []).filter(
+        (colleague) =>
+          colleague.status === "ACTIVE" &&
+          !conversation.members.some((member) => member.userId === colleague.id),
+      ),
+    [users.data, conversation.members],
+  );
+  const filteredColleagues = useMemo(() => {
+    const query = memberSearch.trim().toLocaleLowerCase();
+    if (!query) return availableColleagues;
+    return availableColleagues.filter((colleague) =>
+      [colleague.displayName, colleague.jobTitle, colleague.department?.name, colleague.email]
+        .some((value) => value?.toLocaleLowerCase().includes(query)),
+    );
+  }, [availableColleagues, memberSearch]);
+
   const save = useMutation({
     mutationFn: (remove) =>
       remove
@@ -814,75 +833,140 @@ function Members({ conversation, onClose }) {
     },
   });
   const owner = conversation.ownerId === user.id;
+
   return (
-    <Modal title="Conversation members" onClose={onClose}>
-      <div className="space-y-4">
-        {conversation.members.map((m) => (
-          <div key={m.userId} className="flex items-center gap-3 text-sm">
-            <Avatar small name={m.user.displayName} />
-            <span className="flex-1">{m.user.displayName}</span>
-            <span className="text-xs text-slate-400">
-              {m.role.toLowerCase()}
-            </span>
-            {owner &&
-              m.userId !== user.id &&
-              conversation.type !== "DIRECT" && (
+    <Modal title="Conversation Members" onClose={onClose}>
+      <div className="conversation-members-modal">
+        <div className="conversation-members-current-heading">
+          <span>Current members</span>
+          <span className="conversation-members-count">{conversation.members.length}</span>
+        </div>
+        <div className="conversation-members-current-list">
+          {conversation.members.map((member) => (
+            <div key={member.userId} className="conversation-members-current-row">
+              <Avatar small name={member.user.displayName} />
+              <span className="conversation-members-current-name">{member.user.displayName}</span>
+              <span className="conversation-members-current-role">{member.role.toLowerCase()}</span>
+              {owner && member.userId !== user.id && conversation.type !== "DIRECT" && (
                 <button
-                  className="icon-btn"
-                  aria-label={`Remove ${m.user.displayName}`}
-                  onClick={() => save.mutate(m.userId)}
+                  type="button"
+                  className="conversation-members-remove icon-btn"
+                  aria-label={`Remove ${member.user.displayName}`}
+                  title={`Remove ${member.user.displayName}`}
+                  disabled={save.isPending}
+                  onClick={() => save.mutate(member.userId)}
                 >
                   <X size={16} />
                 </button>
               )}
-          </div>
-        ))}
-      </div>
-      {owner && conversation.type !== "DIRECT" && (
-        <form
-          className="mt-6 flex gap-3"
-          onSubmit={(e) => {
-            e.preventDefault();
-            save.mutate(null);
-          }}
-        >
-          <select
-            aria-label="Add member"
-            className="input"
-            required
-            value={id}
-            onChange={(e) => setId(e.target.value)}
+            </div>
+          ))}
+        </div>
+
+        {owner && conversation.type !== "DIRECT" && (
+          <form
+            className="conversation-members-add-form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (id && !save.isPending) save.mutate(null);
+            }}
           >
-            <option value="">Add a colleague…</option>
-            {users.data
-              ?.filter(
-                (u) =>
-                  u.status === "ACTIVE" &&
-                  !conversation.members.some((m) => m.userId === u.id),
-              )
-              .map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.displayName}
-                </option>
-              ))}
-          </select>
-          <button className="btn-primary" disabled={save.isPending}>
-            Add
+            <div className="conversation-members-select-heading">
+              <span>Select a colleague</span>
+            </div>
+            <div className="new-conversation-people-panel">
+              <label className="new-conversation-search">
+                <Search size={19} aria-hidden="true" />
+                <input
+                  type="search"
+                  aria-label="Search colleagues to add"
+                  placeholder="Type name or branch to filter..."
+                  value={memberSearch}
+                  onChange={(event) => setMemberSearch(event.target.value)}
+                  autoComplete="off"
+                />
+              </label>
+              <div className="new-conversation-people-list" role="radiogroup" aria-label="Select a colleague">
+                {users.isLoading ? (
+                  <p className="new-conversation-list-state">Loading colleagues…</p>
+                ) : users.error ? (
+                  <ErrorBox error={users.error} />
+                ) : !filteredColleagues.length ? (
+                  <p className="new-conversation-list-state">
+                    {memberSearch.trim() ? "No matching colleagues found." : "No colleagues available."}
+                  </p>
+                ) : (
+                  filteredColleagues.map((colleague, index) => {
+                    const selected = id === colleague.id;
+                    const initials = (colleague.displayName || "Colleague")
+                      .trim()
+                      .split(/\\s+/)
+                      .slice(0, 2)
+                      .map((part) => part[0] || "")
+                      .join("")
+                      .toUpperCase();
+                    return (
+                      <button
+                        key={colleague.id}
+                        type="button"
+                        role="radio"
+                        aria-checked={selected}
+                        className={"new-conversation-person" + (selected ? " is-selected" : "")}
+                        onClick={() => setId(colleague.id)}
+                      >
+                        <span
+                          className={"new-conversation-person-avatar avatar-tone-" + (index % 4)}
+                          aria-hidden="true"
+                        >
+                          {initials}
+                        </span>
+                        <span className="new-conversation-person-details">
+                          <span className="new-conversation-person-name">{colleague.displayName}</span>
+                          <span className="new-conversation-person-subtitle">
+                            {[colleague.jobTitle, colleague.department?.name].filter(Boolean).join(" · ") || "Colleague"}
+                          </span>
+                        </span>
+                        <span
+                          className={"new-conversation-check" + (selected ? " is-selected" : "")}
+                          aria-hidden="true"
+                        >
+                          {selected && <Check size={13} strokeWidth={3} />}
+                        </span>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+            <div className="conversation-members-add-footer">
+              <span className="new-conversation-available">
+                {availableColleagues.length} colleagues available
+              </span>
+              <button
+                type="submit"
+                className="new-conversation-submit"
+                disabled={!id || save.isPending}
+              >
+                Add <Plus size={16} />
+              </button>
+            </div>
+          </form>
+        )}
+
+        {!owner && conversation.type !== "DIRECT" && (
+          <button
+            className="btn-danger conversation-members-leave"
+            disabled={save.isPending}
+            onClick={async () => {
+              await save.mutateAsync(user.id);
+              onClose();
+            }}
+          >
+            Leave group
           </button>
-        </form>
-      )}
-      {!owner && conversation.type !== "DIRECT" && (
-        <button
-          className="btn-danger mt-6"
-          onClick={async () => {
-            await save.mutateAsync(user.id);
-            onClose();
-          }}
-        >
-          Leave group
-        </button>
-      )}
-      <ErrorBox error={save.error} />
+        )}
+        <ErrorBox error={save.error} />
+      </div>
     </Modal>
   );
 }
