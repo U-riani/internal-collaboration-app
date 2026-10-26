@@ -401,32 +401,42 @@ function SpaceMembers({ space, onClose, reload }) {
 
   return (
     <Modal title={`Members · ${space.name}`} onClose={onClose}>
+      <div className="drive-space-members-modal">
       <p className="mb-4 text-sm text-slate-500">
         {space.type === "GLOBAL"
           ? "Everyone can view Global. Add Editor or Manager roles for people who should maintain it."
           : "Group members receive the workspace role shown here. System administrators always have Manager access and cannot be downgraded."}
       </p>
-      <div className="relative mb-3">
-        <Search size={15} className="absolute left-3 top-3 text-slate-400" />
+      <label className="drive-member-search">
+        <Search size={16} aria-hidden="true" />
         <input
-          className="input pl-9"
-          placeholder="Search people"
+          type="search"
+          aria-label="Search people or branches"
+          placeholder="Search people or branches..."
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
         />
-      </div>
-      <div className="max-h-80 overflow-y-auto rounded-xl border border-slate-200">
+      </label>
+      <div className="drive-member-list max-h-80 overflow-y-auto rounded-xl border border-slate-200">
         {visible.map((person) => {
           const systemAdmin = person.roles?.includes("SYSTEM_ADMIN");
           return (
             <div
               key={person.id}
-              className="flex items-center gap-3 border-b border-slate-100 px-3 py-2 last:border-0"
+              className="drive-member-person flex items-center gap-3 border-b border-slate-100 px-3 py-2 last:border-0"
             >
+              <div className="drive-member-avatar" aria-hidden="true">
+                {(person.displayName || "?").trim().slice(0, 2).toUpperCase()}
+              </div>
               <div className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-medium">
                   {person.displayName}
                 </span>
+                {!systemAdmin && (
+                  <span className="drive-member-subtitle">
+                    {[person.jobTitle, person.department?.name].filter(Boolean).join(" · ") || "Colleague"}
+                  </span>
+                )}
                 {systemAdmin && (
                   <span className="text-[11px] text-slate-400">
                     System administrator · Always manager
@@ -434,7 +444,8 @@ function SpaceMembers({ space, onClose, reload }) {
                 )}
               </div>
               <select
-                className="input !w-36"
+                className="drive-member-role-select input !w-36"
+                aria-label={`Role for ${person.displayName}`}
                 value={systemAdmin ? "MANAGER" : roles[person.id] || "NONE"}
                 disabled={systemAdmin}
                 onChange={(e) =>
@@ -456,7 +467,7 @@ function SpaceMembers({ space, onClose, reload }) {
         })}
       </div>
       <ErrorBox error={error || people.error || members.error} />
-      <div className="form-actions">
+      <div className="drive-member-form-actions form-actions">
         <button className="btn-secondary" onClick={onClose}>
           Cancel
         </button>
@@ -467,6 +478,7 @@ function SpaceMembers({ space, onClose, reload }) {
         >
           Save members
         </button>
+      </div>
       </div>
     </Modal>
   );
@@ -833,13 +845,13 @@ export default function DrivePage() {
 
       <div
         className={
-          section === "shared" ? "grid gap-4 lg:grid-cols-[230px_1fr]" : ""
+          section === "shared" ? "drive-shared-view grid gap-4 lg:grid-cols-[230px_1fr]" : ""
         }
       >
         {section === "shared" && (
           <aside className="drive-space-nav card h-fit p-2">
             <button
-              className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm ${selectedSpace?.type === "GLOBAL" ? "bg-slate-100 font-semibold" : ""}`}
+              className={`drive-space-global flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm ${selectedSpace?.type === "GLOBAL" ? "is-selected bg-slate-100 font-semibold" : ""}`}
               onClick={() => {
                 setSpaceId(global?.id || null);
                 setParent(null);
@@ -848,7 +860,7 @@ export default function DrivePage() {
               <Globe2 size={17} />
               Global
             </button>
-            <div className="mt-3 flex items-center justify-between px-3">
+            <div className="drive-group-heading mt-3 flex items-center justify-between px-3">
               <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                 Groups
               </span>
@@ -862,11 +874,11 @@ export default function DrivePage() {
                 </button>
               )}
             </div>
-            <div className="mt-1 space-y-1">
+            <div className="drive-groups-list mt-1 space-y-1">
               {groups.map((group) => (
                 <button
                   key={group.id}
-                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm ${spaceId === group.id ? "bg-slate-100 font-semibold" : ""}`}
+                  className={`drive-group-link flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm ${spaceId === group.id ? "is-selected bg-slate-100 font-semibold" : ""}`}
                   onClick={() => {
                     setSpaceId(group.id);
                     setParent(null);
@@ -874,12 +886,13 @@ export default function DrivePage() {
                 >
                   <Users size={16} />
                   <span className="truncate">{group.name}</span>
+                  {Number.isFinite(group.memberCount) && <span className="drive-group-member-count">{group.memberCount}</span>}
                 </button>
               ))}
             </div>
             {canManageSpace && (
               <button
-                className="btn-secondary mt-4 w-full"
+                className="drive-shared-members-button btn-secondary mt-4 w-full"
                 onClick={() =>
                   setModal({ kind: "members", space: selectedSpace })
                 }
@@ -893,7 +906,7 @@ export default function DrivePage() {
 
         <main className="min-w-0">
           {section === "shared" && selectedSpace && (
-            <div className="mb-4 flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
+            <div className="drive-shared-space-heading mb-4 flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
               {selectedSpace.type === "GLOBAL" ? (
                 <Globe2 size={19} className="text-blue-500" />
               ) : (
@@ -937,12 +950,12 @@ export default function DrivePage() {
 
           {/* <div className="drive-list-card card max-h-[calc(100vh-24.5rem)] md:max-h-[calc(100vh-13.94rem)] overflow-y-auto"> */}
           <div
-            className={`drive-list-card card ${section === "personal" ? "drive-personal-list" : ""} ${query.data?.meta.breadcrumbs?.length ? "max-h-[calc(100vh-407px)]" : "max-h-[calc(100vh-370px)]"} md:max-h-[calc(100vh-14rem)] overflow-y-auto`}
+            className={`drive-list-card card ${section === "personal" ? "drive-personal-list" : section === "shared" ? "drive-shared-list" : ""} ${query.data?.meta.breadcrumbs?.length ? "max-h-[calc(100vh-407px)]" : "max-h-[calc(100vh-370px)]"} md:max-h-[calc(100vh-14rem)] overflow-y-auto`}
           >
-            <div className={section === "personal" ? "drive-personal-table" : undefined}>
+            <div className={section === "personal" || section === "shared" ? "drive-personal-table" : undefined}>
             <div className="drive-table-head list-row sticky top-0 bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-400 ">
               <span className="flex-1">Name</span>
-              {section === "personal" && <span className="drive-owner-heading">Owner</span>}
+              {(section === "personal" || section === "shared") && <span className="drive-owner-heading">Owner</span>}
               <span className="hidden w-28 md:block">Updated</span>
               <span className="hidden w-24 md:block">Size</span>
               <span className="drive-actions-header w-40 text-right">
@@ -961,7 +974,7 @@ export default function DrivePage() {
                 const spreadsheet = isSpreadsheet(item);
                 const fileType = driveFileExtension(item, spreadsheet);
                 return (
-                  <div className={`drive-item-row list-row ${section === "personal" ? "drive-personal-row" : ""}`} key={item.id}>
+                  <div className={`drive-item-row list-row ${section === "personal" ? "drive-personal-row" : section === "shared" ? "drive-shared-row" : ""}`} key={item.id}>
                     <div
                       className={`drive-item-icon drive-item-icon--${driveFileTone(item, spreadsheet)} rounded-xl p-2.5 ${
                         item.kind === "FOLDER"
@@ -994,7 +1007,7 @@ export default function DrivePage() {
                     >
                       <p className="drive-item-name truncate text-sm font-medium">
                         <span className="drive-item-label">{item.name}</span>
-                        {section === "personal" && fileType && (
+                        {(section === "personal" || section === "shared") && fileType && (
                           <span className="drive-file-type">{fileType}</span>
                         )}
                       </p>
@@ -1015,7 +1028,7 @@ export default function DrivePage() {
                           )}
                       </div>
                     </button>
-                    {section === "personal" && (
+                    {(section === "personal" || section === "shared") && (
                       <span className="drive-owner-cell">
                         <Avatar small name={item.owner?.displayName || "User"} />
                         <span className="drive-owner-name" title={item.owner?.displayName || ""}>
@@ -1150,7 +1163,7 @@ export default function DrivePage() {
             </div>
           </div>
 
-          <p className={`mt-0 text-xs text-slate-400 ${section === "personal" ? "drive-personal-summary" : ""}`}>
+          <p className={`mt-0 text-xs text-slate-400 ${section === "personal" ? "drive-personal-summary" : section === "shared" ? "drive-shared-summary" : ""}`}>
             {query.data?.data.length || 0} items
             {section === "personal" &&
               ` · ${fileSize(query.data?.meta.usedBytes || 0)} in Personal`}
