@@ -722,21 +722,25 @@ export default function DrivePage() {
   const canManageSpace =
     section === "shared" && selectedSpace?.access === "MANAGER";
 
-  // This listing contains only the visible folder/search results. The API's
-  // meta.usedBytes is for Personal storage and must not label Shared usage.
-  const visibleSharedFiles = query.data?.data || [];
-  const sharedBytesKnown = visibleSharedFiles.every(
-    (item) => item.kind !== "FILE" ||
+  // Each non-Personal footer reports only the file sizes available in its
+  // current listing; Personal still uses the API's full storage usage metric.
+  const listedItems = query.data?.data || [];
+  const listedBytesKnown = listedItems.every(
+    (item) =>
+      item.kind !== "FILE" ||
       (typeof item.file?.sizeBytes === "number" &&
         Number.isFinite(item.file.sizeBytes) && item.file.sizeBytes >= 0),
   );
-  const sharedVisibleSize = sharedBytesKnown
-    ? fileSize(visibleSharedFiles.reduce(
-        (sum, item) => sum +
-          (item.kind === "FILE" ? item.file.sizeBytes : 0),
-        0,
-      ))
+  const listedFilesSize = listedBytesKnown
+    ? fileSize(
+        listedItems.reduce(
+          (total, item) => total + (item.kind === "FILE" ? item.file.sizeBytes : 0),
+          0,
+        ),
+      )
     : "—";
+
+  const unifiedDirectoryView = ["personal", "shared", "shared-with-me", "trash"].includes(section);
 
   return (
     <>
@@ -977,12 +981,12 @@ export default function DrivePage() {
 
           {/* <div className="drive-list-card card max-h-[calc(100vh-24.5rem)] md:max-h-[calc(100vh-13.94rem)] overflow-y-auto"> */}
           <div
-            className={`drive-list-card card ${section === "personal" ? "drive-personal-list" : section === "shared" ? "drive-shared-list" : ""} ${query.data?.meta.breadcrumbs?.length ? "max-h-[calc(100vh-407px)]" : "max-h-[calc(100vh-370px)]"} md:max-h-[calc(100vh-14rem)] overflow-y-auto`}
+            className={`drive-list-card card ${unifiedDirectoryView ? "drive-directory-list" : ""} ${section === "personal" ? "drive-personal-list" : section === "shared" ? "drive-shared-list" : section === "shared-with-me" ? "drive-shared-with-me-list" : section === "trash" ? "drive-trash-list" : ""} ${query.data?.meta.breadcrumbs?.length ? "max-h-[calc(100vh-407px)]" : "max-h-[calc(100vh-370px)]"} md:max-h-[calc(100vh-14rem)] overflow-y-auto`}
           >
-            <div className={section === "personal" || section === "shared" ? "drive-personal-table" : undefined}>
+            <div className={unifiedDirectoryView ? "drive-personal-table" : undefined}>
             <div className="drive-table-head list-row sticky top-0 bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-400 ">
               <span className="flex-1">Name</span>
-              {(section === "personal" || section === "shared") && <span className="drive-owner-heading">Owner</span>}
+              {unifiedDirectoryView && <span className="drive-owner-heading">Owner</span>}
               <span className="hidden w-28 md:block">Updated</span>
               <span className="hidden w-24 md:block">Size</span>
               <span className="drive-actions-header w-40 text-right">
@@ -1001,7 +1005,7 @@ export default function DrivePage() {
                 const spreadsheet = isSpreadsheet(item);
                 const fileType = driveFileExtension(item, spreadsheet);
                 return (
-                  <div className={`drive-item-row list-row ${section === "personal" ? "drive-personal-row" : section === "shared" ? "drive-shared-row" : ""}`} key={item.id}>
+                  <div className={`drive-item-row list-row ${unifiedDirectoryView ? "drive-directory-row" : ""} ${section === "personal" ? "drive-personal-row" : section === "shared" ? "drive-shared-row" : section === "shared-with-me" ? "drive-shared-with-me-row" : section === "trash" ? "drive-trash-row" : ""}`} key={item.id}>
                     <div
                       className={`drive-item-icon drive-item-icon--${driveFileTone(item, spreadsheet)} rounded-xl p-2.5 ${
                         item.kind === "FOLDER"
@@ -1034,7 +1038,7 @@ export default function DrivePage() {
                     >
                       <p className="drive-item-name truncate text-sm font-medium">
                         <span className="drive-item-label">{item.name}</span>
-                        {(section === "personal" || section === "shared") && fileType && (
+                        {unifiedDirectoryView && fileType && (
                           <span className="drive-file-type">{fileType}</span>
                         )}
                       </p>
@@ -1055,7 +1059,7 @@ export default function DrivePage() {
                           )}
                       </div>
                     </button>
-                    {(section === "personal" || section === "shared") && (
+                    {unifiedDirectoryView && (
                       <span className="drive-owner-cell">
                         <Avatar small name={item.owner?.displayName || "User"} />
                         <span className="drive-owner-name" title={item.owner?.displayName || ""}>
@@ -1190,12 +1194,13 @@ export default function DrivePage() {
             </div>
           </div>
 
-          <p className={`mt-0 text-xs text-slate-400 ${section === "personal" ? "drive-personal-summary" : section === "shared" ? "drive-shared-summary" : ""}`}>
+          <p className={`mt-0 text-xs text-slate-400 ${unifiedDirectoryView ? "drive-directory-summary" : ""} ${section === "personal" ? "drive-personal-summary" : section === "shared" ? "drive-shared-summary" : section === "shared-with-me" ? "drive-shared-with-me-summary" : section === "trash" ? "drive-trash-summary" : ""}`}>
             {query.data?.data.length || 0} items
             {section === "personal" &&
               ` · ${fileSize(query.data?.meta.usedBytes || 0)} in Personal`}
-            {section === "shared" &&
-              ` · ${sharedVisibleSize} in Shared`}
+            {section === "shared" && ` · ${listedFilesSize} in Shared`}
+            {section === "shared-with-me" && ` · ${listedFilesSize} in Shared with me`}
+            {section === "trash" && ` · ${listedFilesSize} in Trash`}
           </p>
         </main>
       </div>
