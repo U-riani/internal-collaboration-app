@@ -1,0 +1,331 @@
+/*
+ * Central application dark theme.
+ * A single token palette is shared by Overview, Messages and legacy modules.
+ * Scoped to the authenticated Layout so the standalone login/mobile sheet
+ * routes do not inherit desktop workspace styling.
+ *
+ * Components should use var(--app-*) rather than hardcoded colors.
+ */
+.app-theme-dark {
+  color-scheme: dark;
+  --app-bg: #0a0f1d;
+  --app-sidebar: #101625;
+  --app-surface: #151b2c;
+  --app-surface-raised: #1b2234;
+  --app-surface-hover: #242b40;
+  --app-surface-input: #242a3b;
+  --app-border: rgba(195, 204, 246, .10);
+  --app-border-strong: #363e56;
+  --app-text: #e6e7f8;
+  --app-text-strong: #f4f2ff;
+  --app-muted: #969cb5;
+  --app-subtle: #77839e;
+  --app-primary: #6366f1;
+  --app-primary-hover: #7772f7;
+  --app-primary-soft: #272a50;
+  --app-secondary: #06b6d4;
+  --app-tertiary: #a855f7;
+  --app-success: #53d7b5;
+  --app-danger: #ff94a5;
+  min-height: 100dvh;
+  color: var(--app-text);
+  background: var(--app-bg);
+}
+.app-theme-dark > .workspace-main {
+  min-width: 0;
+  color: var(--app-text);
+  background: radial-gradient(ellipse at 78% 35%, #111e32 0%, var(--app-bg) 58%);
+}
+.app-theme-dark > .workspace-mobile-header,
+.app-theme-dark > .workspace-sidebar {
+  color: var(--app-text);
+  background: var(--app-sidebar);
+  border-color: var(--app-border);
+}
+.app-theme-dark > .workspace-sidebar > .workspace-sidebar-top {
+  background: var(--app-sidebar);
+}
+.app-theme-dark .workspace-logo {
+  color: #fff;
+  background: linear-gradient(140deg, #5663f7, #6a9cfe);
+  box-shadow: 0 4px 16px rgba(99,102,241,.25);
+}
+.app-theme-dark .workspace-brand-name { color: var(--app-text-strong); }
+.app-theme-dark .workspace-brand-caption,
+.app-theme-dark .workspace-section-label { color: var(--app-muted); }
+.app-theme-dark .workspace-nav-link {
+  color: #b7bdd4;
+  transition: background-color .15s ease, color .15s ease;
+}
+.app-theme-dark .workspace-nav-link:hover {
+  color: #fff;
+  background: var(--app-surface-hover);
+}
+.app-theme-dark .workspace-nav-link[aria-current="page"] {
+  color: #fff;
+  background: linear-gradient(112deg, var(--app-primary), var(--app-primary-hover));
+  box-shadow: 0 4px 16px rgba(99,102,241,.21);
+}
+.app-theme-dark .workspace-nav-link[aria-current="page"] svg { color: #fff; }
+.app-theme-dark > .workspace-mobile-header .icon-btn { color: var(--app-text); }
+.app-theme-dark > .workspace-mobile-header .icon-btn:hover { background: #262f46; }
+
+/* Profile markup is reused on every route, not only the Overview route. */
+.sidebar-profile {
+  z-index: 10;
+  border-top: 1px solid var(--app-border, #e2e8f0);
+  background: var(--app-sidebar, #fff);
+}
+.sidebar-profile-card {
+  width: 100%;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--app-border, #e2e8f0);
+  border-radius: 16px;
+  background: var(--app-surface-raised, #f8fafc);
+}
+.sidebar-profile-identity {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 10px;
+  padding: 5px 4px;
+  border-radius: 10px;
+  transition: background-color .15s ease;
+}
+.sidebar-profile-identity:hover { background: rgba(126,129,244,.12); }
+.sidebar-profile-identity:focus-visible,
+.sidebar-profile-logout:focus-visible {
+  outline: 2px solid #818cf8;
+  outline-offset: 2px;
+}
+.sidebar-profile-identity .avatar {
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 12px;
+}
+.sidebar-profile-details {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.sidebar-profile-name, .sidebar-profile-department {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  line-height: 1.35;
+}
+.sidebar-profile-name { color: var(--app-text-strong, #233047); font-size: 12px; font-weight: 750; }
+.sidebar-profile-department { color: var(--app-muted, #64748b); font-size: 10px; }
+.sidebar-profile-footer { display: flex; justify-content: flex-start; padding: 7px 3px 0; }
+.sidebar-profile-logout {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 6px 9px;
+  border-radius: 8px;
+  color: var(--app-text, #475569);
+  font-size: 11px;
+  font-weight: 650;
+  transition: color .15s ease, background-color .15s ease;
+}
+.sidebar-profile-logout:hover { background: var(--app-surface-hover, #e7eaf2); color: #fff; }
+.app-theme-dark .sidebar-profile-card {
+  border-color: rgba(184,191,240,.06);
+  background: linear-gradient(145deg, #1b2233, #161c2b);
+  box-shadow: 0 9px 22px #00000018;
+}
+.app-theme-dark .sidebar-profile-identity .avatar {
+  color: #f1f1ff;
+  background: linear-gradient(135deg, #343a6b, #535baa);
+}
+
+/* Shared building blocks (used by all feature modules). */
+.app-theme-dark .page-header {
+  border-color: var(--app-border);
+  background: var(--app-sidebar);
+}
+.app-theme-dark .page-header h1 { color: var(--app-text-strong); }
+.app-theme-dark .page-header p { color: var(--app-muted); }
+.app-theme-dark .card {
+  color: var(--app-text);
+  border-color: var(--app-border);
+  background: var(--app-surface);
+}
+.app-theme-dark .input,
+.app-theme-dark select,
+.app-theme-dark textarea:not(.chat-compose-textarea) {
+  color: var(--app-text);
+  border-color: var(--app-border-strong);
+  background: var(--app-surface-input);
+}
+.app-theme-dark .input::placeholder,
+.app-theme-dark textarea::placeholder { color: var(--app-subtle); }
+.app-theme-dark .input:focus,
+.app-theme-dark select:focus,
+.app-theme-dark textarea:focus {
+  border-color: var(--app-primary);
+  outline-color: var(--app-primary);
+}
+.app-theme-dark select option {
+  background: var(--app-surface);
+  color: var(--app-text);
+}
+.app-theme-dark .btn-primary {
+  color: #fff;
+  background: var(--app-primary);
+}
+.app-theme-dark .btn-primary:hover { background: var(--app-primary-hover); }
+.app-theme-dark .btn-secondary {
+  border-color: var(--app-border-strong);
+  background: var(--app-surface-raised);
+  color: var(--app-text);
+}
+.app-theme-dark .btn-secondary:hover { background: var(--app-surface-hover); }
+.app-theme-dark .btn-danger {
+  color: var(--app-danger);
+  border-color: #713747;
+  background: #392231;
+}
+.app-theme-dark .btn-danger:hover { background: #512d3e; }
+.app-theme-dark .icon-btn { color: var(--app-muted); }
+.app-theme-dark .icon-btn:hover {
+  color: var(--app-text-strong);
+  background: var(--app-surface-hover);
+}
+.app-theme-dark .modal {
+  color: var(--app-text);
+  border: 1px solid var(--app-border-strong);
+  background: var(--app-surface);
+}
+.app-theme-dark .modal::backdrop { background: rgba(3,7,20,.78); }
+.app-theme-dark .modal-head,
+.app-theme-dark .form-actions {
+  border-color: var(--app-border);
+  background: var(--app-surface);
+}
+.app-theme-dark .error-box {
+  color: #ffc0c7;
+  border-color: #793c4a;
+  background: #38212e;
+}
+.app-theme-dark .empty { color: var(--app-muted); }
+.app-theme-dark .empty h3 { color: var(--app-text); }
+.app-theme-dark .empty-symbol { color: #9292ff; }
+.app-theme-dark .avatar { color: #dfdeff; background: #343a5a; }
+.app-theme-dark .attachment {
+  color: var(--app-text);
+  border-color: var(--app-border-strong);
+  background: var(--app-surface-raised);
+}
+.app-theme-dark .attachment small { color: var(--app-muted); }
+.app-theme-dark .tabs { background: var(--app-surface-raised); }
+.app-theme-dark .tabs button { color: var(--app-muted); }
+.app-theme-dark .tabs button.active {
+  color: #f1f1ff;
+  background: var(--app-primary-soft);
+}
+.app-theme-dark .status { color: #c7ccdf; background: #2a3147; }
+.app-theme-dark .status-completed,
+.app-theme-dark .status-approved,
+.app-theme-dark .status-active { color: #7ce0c1; background: #163c36; }
+.app-theme-dark .status-in_progress,
+.app-theme-dark .status-pending,
+.app-theme-dark .status-editor { color: #a8b4ff; background: #292d59; }
+.app-theme-dark .status-waiting_review,
+.app-theme-dark .status-changes_requested,
+.app-theme-dark .status-high { color: #ffcf88; background: #473827; }
+.app-theme-dark .status-rejected,
+.app-theme-dark .status-blocked,
+.app-theme-dark .status-urgent { color: #ffb0bb; background: #4b2936; }
+
+/*
+ * Legacy Tailwind utilities: normalize light-only page markup from existing
+ * modules until each is migrated to semantic tokens. These overrides are
+ * intentionally scoped to the authenticated workspace.
+ */
+.app-theme-dark .bg-white:not(.chat-message-bubble) { background-color: var(--app-surface); }
+.app-theme-dark .bg-slate-50,
+.app-theme-dark .bg-gray-50 { background-color: #1b2234; }
+.app-theme-dark .bg-slate-100,
+.app-theme-dark .bg-gray-100 { background-color: #252d41; }
+.app-theme-dark .bg-slate-200 { background-color: #303950; }
+.app-theme-dark .bg-blue-50 { background-color: #262c50; }
+.app-theme-dark .bg-blue-100 { background-color: #303766; }
+.app-theme-dark .bg-red-50 { background-color: #422733; }
+.app-theme-dark .bg-red-100 { background-color: #54323e; }
+.app-theme-dark .bg-green-50 { background-color: #183d35; }
+.app-theme-dark .bg-amber-50,
+.app-theme-dark .bg-yellow-50 { background-color: #443622; }
+.app-theme-dark .text-black,
+.app-theme-dark .text-slate-900,
+.app-theme-dark .text-gray-900 { color: var(--app-text-strong); }
+.app-theme-dark .text-slate-800,
+.app-theme-dark .text-slate-700,
+.app-theme-dark .text-gray-700 { color: #dce0f1; }
+.app-theme-dark .text-slate-600,
+.app-theme-dark .text-gray-600 { color: #b9c1d9; }
+.app-theme-dark .text-slate-500,
+.app-theme-dark .text-gray-500 { color: #9da9c4; }
+.app-theme-dark .text-slate-400,
+.app-theme-dark .text-gray-400 { color: #8f9bb7; }
+.app-theme-dark .text-blue-700,
+.app-theme-dark .text-blue-600,
+.app-theme-dark .text-blue-500 { color: #a5acff; }
+.app-theme-dark .text-amber-800,
+.app-theme-dark .text-amber-700 { color: #f9c77c; }
+.app-theme-dark .text-red-700,
+.app-theme-dark .text-red-600 { color: var(--app-danger); }
+.app-theme-dark .border-slate-100,
+.app-theme-dark .border-slate-200,
+.app-theme-dark .border-slate-300,
+.app-theme-dark .border-gray-200 { border-color: var(--app-border-strong); }
+.app-theme-dark .border-blue-100,
+.app-theme-dark .border-blue-200 { border-color: #474981; }
+.app-theme-dark .divide-slate-100 > :not(:last-child),
+.app-theme-dark .divide-slate-200 > :not(:last-child) {
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark .hover\:bg-slate-50:hover,
+.app-theme-dark .hover\:bg-slate-100:hover,
+.app-theme-dark .hover\:bg-white:hover { background-color: var(--app-surface-hover); }
+.app-theme-dark .hover\:bg-blue-50:hover { background-color: #343768; }
+.app-theme-dark .hover\:bg-red-100:hover { background-color: #633a49; }
+.app-theme-dark .hover\:text-slate-700:hover,
+.app-theme-dark .hover\:text-slate-900:hover { color: var(--app-text-strong); }
+.app-theme-dark .task-group-header,
+.app-theme-dark .approval-group-header,
+.app-theme-dark .approval-list-header,
+.app-theme-dark .task-list-header {
+  color: var(--app-text);
+  border-color: var(--app-border);
+  background: var(--app-surface-raised);
+}
+.app-theme-dark .task-list-card,
+.app-theme-dark .approval-list-card,
+.app-theme-dark .approval-base-table-wrap,
+.app-theme-dark .drive-list-card {
+  border-color: var(--app-border);
+  background: var(--app-surface);
+}
+.app-theme-dark table { color: var(--app-text); }
+.app-theme-dark table th {
+  color: #b9c1dc;
+  border-color: var(--app-border);
+}
+.app-theme-dark table td { border-color: var(--app-border); }
+.app-theme-dark table tbody tr:hover { background-color: #242b4055; }
+.app-theme-dark :is(.modal, .card, .workspace-main) {
+  scrollbar-color: #414963 transparent;
+}
+@media (max-width: 900px) {
+  .app-theme-dark > .workspace-sidebar { box-shadow: 16px 0 45px #0005; }
+}
