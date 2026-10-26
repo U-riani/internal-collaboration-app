@@ -862,8 +862,11 @@
   /* Override the global transition-all; keep gradient unchanged on hover. */
   transition: filter .16s ease, box-shadow .16s ease;
 }
-.app-theme-dark :is(.drive-new-group-actions, .drive-new-folder-actions) .btn-primary:hover:not(:disabled) {
+.app-theme-dark :is(.drive-new-group-actions, .drive-new-folder-actions) .btn-primary:hover {
+  /* Keep the gradient even when the button becomes disabled while hovered. */
   background: linear-gradient(120deg, #756ef9, #5854e9);
+}
+.app-theme-dark :is(.drive-new-group-actions, .drive-new-folder-actions) .btn-primary:hover:not(:disabled) {
   filter: brightness(1.08);
   box-shadow: 0 7px 21px rgba(99, 102, 241, .33);
 }
