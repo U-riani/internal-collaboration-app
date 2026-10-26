@@ -84,7 +84,7 @@ describe("main workspace flows", () => {
       };
     });
     const user = mount(DrivePage);
-    await user.click(screen.getByRole("button", { name: "New folder" }));
+    await user.click(await screen.findByRole("button", { name: "New folder" }));
     await user.type(screen.getByLabelText("Name"), "Team handbook");
     await user.click(screen.getByRole("button", { name: "Save", exact: true }));
     await screen.findByRole("button", { name: /^Team handbook/ });
