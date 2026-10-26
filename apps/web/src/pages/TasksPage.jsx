@@ -18,9 +18,10 @@ import {
   Search,
   Trash2,
 } from "lucide-react";
-import { api, uploadFile } from "../lib/api.js";
+import { api, uploadFiles } from "../lib/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import PageHeader from "../components/PageHeader.jsx";
+import FileDropzone from "../components/FileDropzone.jsx";
 import {
   Attachments,
   Avatar,
@@ -166,7 +167,7 @@ function TaskForm({ existing, parentTask, defaultGroupId = "", onClose }) {
     participantIds:
       existing?.participants.map((participant) => participant.userId) || [],
   });
-  const [file, setFile] = useState(null);
+  const [files, setFiles] = useState([]);
   const users = useQuery({
     queryKey: ["users"],
     queryFn: () => api("/users").then((response) => response.data),
@@ -179,7 +180,7 @@ function TaskForm({ existing, parentTask, defaultGroupId = "", onClose }) {
     mutationFn: async () => {
       const attachmentIds = [
         ...(existing?.attachments.map((attachment) => attachment.fileId) || []),
-        ...(file ? [(await uploadFile(file)).id] : []),
+        ...(await uploadFiles(files)),
       ];
       const { groupId, ...sharedForm } = form;
       const response = await api(
@@ -330,10 +331,11 @@ function TaskForm({ existing, parentTask, defaultGroupId = "", onClose }) {
         <p className="text-xs text-slate-400 mt-1">
           Hold Ctrl / Cmd to select multiple people.
         </p>
-        <Field
-          label="Attachment"
-          type="file"
-          onChange={(event) => setFile(event.target.files[0])}
+        <FileDropzone
+          label="Task attachments"
+          files={files}
+          onChange={setFiles}
+          disabled={save.isPending}
         />
         <ErrorBox error={save.error || groups.error} />
         <div className="form-actions">
@@ -357,7 +359,7 @@ function TaskDetail({ id, onClose }) {
   const qc = useQueryClient();
   const { user, hasPermission } = useAuth();
   const [comment, setComment] = useState("");
-  const [file, setFile] = useState(null);
+  const [files, setFiles] = useState([]);
   const [edit, setEdit] = useState(false);
   const [createSubtask, setCreateSubtask] = useState(false);
   const [childId, setChildId] = useState(null);
@@ -387,12 +389,12 @@ function TaskDetail({ id, onClose }) {
         method: "POST",
         body: JSON.stringify({
           content: comment,
-          attachmentIds: file ? [(await uploadFile(file)).id] : [],
+          attachmentIds: await uploadFiles(files),
         }),
       }),
     onSuccess: () => {
       setComment("");
-      setFile(null);
+      setFiles([]);
       qc.invalidateQueries({ queryKey: ["task", id] });
       qc.invalidateQueries({ queryKey: ["tasks"] });
     },
@@ -689,16 +691,15 @@ function TaskDetail({ id, onClose }) {
               onChange={(event) => setComment(event.target.value)}
             />
             <div className="flex justify-between items-center mt-3">
-              <label className="text-xs text-slate-500 flex items-center gap-2 cursor-pointer">
-                <Paperclip size={16} />
-                {file?.name || "Attach a file"}
-                <input
-                  type="file"
-                  className="sr-only"
-                  aria-label="Comment attachment"
-                  onChange={(event) => setFile(event.target.files[0])}
+              <div className="min-w-0 flex-1 mr-3">
+                <FileDropzone
+                  label="Comment attachments"
+                  files={files}
+                  onChange={setFiles}
+                  disabled={addComment.isPending}
+                  compact
                 />
-              </label>
+              </div>
               <button className="btn-primary" disabled={addComment.isPending}>
                 Comment
               </button>
