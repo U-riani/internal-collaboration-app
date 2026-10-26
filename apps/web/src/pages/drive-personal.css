@@ -771,3 +771,110 @@
     max-height: none !important;
   }
 }
+
+
+/* New shared group modal — same search-field treatment as Drive/Messages, minus icon. */
+.app-theme-dark .modal:has(.drive-new-group-form) {
+  width: min(530px, calc(100vw - 28px));
+  border: 1px solid rgba(185, 195, 240, .12);
+  border-radius: 19px;
+  color: var(--app-text, #e6e7f8);
+  background: #111626;
+  box-shadow: 0 26px 85px rgba(1, 4, 16, .6);
+}
+.app-theme-dark .modal:has(.drive-new-group-form) .modal-head {
+  padding: 19px 22px;
+  border-bottom: 1px solid rgba(185, 195, 240, .09);
+  background: linear-gradient(120deg, #1b2135, #141a2b);
+}
+.app-theme-dark .modal:has(.drive-new-group-form) .modal-head h2 {
+  color: #f2f0ff;
+  font-size: 17px;
+  font-weight: 740;
+  letter-spacing: -.025em;
+}
+.app-theme-dark .modal:has(.drive-new-group-form) .modal-body {
+  padding: 22px 22px 18px;
+}
+.drive-new-group-form .field {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  color: #c9cfe3;
+  font-size: 12px;
+  font-weight: 700;
+}
+.app-theme-dark .drive-new-group-form .drive-new-group-input {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 43px;
+  padding: 10px 13px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  outline: none;
+  box-shadow: none;
+  background: #252a3b;
+  color: #f0f2ff;
+  font-size: 12px;
+  font-weight: 500;
+  transition: border-color .16s ease, box-shadow .16s ease;
+}
+.app-theme-dark .drive-new-group-form .drive-new-group-input::placeholder {
+  color: #919bb4;
+  opacity: 1;
+}
+.app-theme-dark .drive-new-group-form .drive-new-group-input:focus {
+  border-color: #7670dd;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(118, 112, 221, .14);
+}
+.app-theme-dark .drive-new-group-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 18px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(185, 195, 240, .09);
+  background: transparent;
+}
+.app-theme-dark .drive-new-group-actions .btn-secondary {
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: #b7bfd7;
+  background: transparent;
+  font-size: 12px;
+}
+.app-theme-dark .drive-new-group-actions .btn-secondary:hover {
+  color: #f1f1ff;
+  background: #252d42;
+}
+.app-theme-dark .drive-new-group-actions .btn-primary {
+  min-height: 38px;
+  padding: 9px 16px;
+  border-radius: 10px;
+  color: #fff;
+  background: linear-gradient(120deg, #756ef9, #5854e9);
+  box-shadow: 0 5px 17px rgba(99, 102, 241, .23);
+  font-size: 12px;
+}
+.app-theme-dark .drive-new-group-actions .btn-primary:hover:not(:disabled) {
+  background: #7772f7;
+}
+@media (max-width: 560px) {
+  .app-theme-dark .modal:has(.drive-new-group-form) {
+    width: min(100vw, 530px);
+    border-radius: 18px 18px 0 0;
+  }
+  .app-theme-dark .modal:has(.drive-new-group-form) .modal-head {
+    padding: 16px 18px;
+  }
+  .app-theme-dark .modal:has(.drive-new-group-form) .modal-body {
+    padding: 18px 16px;
+  }
+  .app-theme-dark .drive-new-group-actions {
+    margin-top: 16px;
+    padding: 13px 0 0;
+  }
+}
