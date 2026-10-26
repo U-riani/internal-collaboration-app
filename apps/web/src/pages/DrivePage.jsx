@@ -602,9 +602,6 @@ function CreateGroup({ onClose, onCreated }) {
         />
         <ErrorBox error={error} />
         <div className="drive-new-group-actions form-actions">
-          <button type="button" className="btn-secondary" onClick={onClose}>
-            Cancel
-          </button>
           <button className="btn-primary" disabled={save.isPending}>
             Create group
           </button>
@@ -1234,13 +1231,15 @@ export default function DrivePage() {
             />
             <ErrorBox error={error} />
             <div className={modal.kind === "create" ? "drive-new-folder-actions form-actions" : "form-actions"}>
-              <button
-                type="button"
-                className="btn-secondary"
-                onClick={() => setModal(null)}
-              >
-                Cancel
-              </button>
+              {modal.kind === "rename" && (
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => setModal(null)}
+                >
+                  Cancel
+                </button>
+              )}
               <button className="btn-primary" disabled={save.isPending}>
                 Save
               </button>
