@@ -6,6 +6,9 @@
  *
  * Components should use var(--app-*) rather than hardcoded colors.
  */
+/* Prevent the original light document background from showing under short pages. */
+body:has(.app-theme-dark) { background: #0a0f1d; }
+
 .app-theme-dark {
   color-scheme: dark;
   --app-bg: #0a0f1d;
