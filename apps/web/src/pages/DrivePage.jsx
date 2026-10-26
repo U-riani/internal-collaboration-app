@@ -377,9 +377,8 @@ function SpaceMembers({ space, onClose, reload }) {
   const visible = (people.data || []).filter(
     (person) =>
       person.status === "ACTIVE" &&
-      person.displayName
-        .toLocaleLowerCase()
-        .includes(filter.toLocaleLowerCase()),
+      [person.displayName, person.jobTitle, person.department?.name, person.email]
+        .some((text) => text?.toLocaleLowerCase().includes(filter.toLocaleLowerCase())),
   );
 
   const save = useMutation({
@@ -426,7 +425,7 @@ function SpaceMembers({ space, onClose, reload }) {
               className="drive-member-person flex items-center gap-3 border-b border-slate-100 px-3 py-2 last:border-0"
             >
               <div className="drive-member-avatar" aria-hidden="true">
-                {(person.displayName || "?").trim().slice(0, 2).toUpperCase()}
+                {(person.displayName || "?").trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase()}
               </div>
               <div className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-medium">
@@ -1012,7 +1011,7 @@ export default function DrivePage() {
                         )}
                       </p>
                       <div className={`mt-1 flex items-center gap-2 text-[11px] text-slate-400 ${section === "personal" ? "drive-name-meta-personal" : ""}`}>
-                        <span>{item.owner.displayName}</span>
+                        {section !== "shared" && <span>{item.owner.displayName}</span>}
                         {item.shared && <Share2 size={11} />}
                         <span>
                           {item.access === "EDITOR_DELETE"
