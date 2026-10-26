@@ -36,11 +36,13 @@ import {
   Lightbulb,
   Sparkles,
   Trophy,
+  ListFilter,
 } from "lucide-react";
 import { api, uploadFile } from "../lib/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useSocket } from "../hooks/useSocket.js";
 import PageHeader from "../components/PageHeader.jsx";
+import "./messages-theme.css";
 import {
   Modal,
   Field,
@@ -57,6 +59,32 @@ const displayName = (c, me) =>
     : c?.name;
 
 const LAST_CHAT_KEY = "collab:last-selected-chat";
+const CONVERSATION_FILTERS = [
+  { id: "all", label: "All" },
+  { id: "direct", label: "Direct" },
+  { id: "unread", label: "Unread" },
+  { id: "channels", label: "Channels" },
+];
+function chatDateKey(value) { return new Date(value).toDateString(); }
+function chatDayLabel(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const now = new Date();
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  if (chatDateKey(date) === chatDateKey(now)) return "Today";
+  if (chatDateKey(date) === chatDateKey(yesterday)) return "Yesterday";
+  return date.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
+}
+function chatListTime(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const day = chatDayLabel(date);
+  if (day === "Today") return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  if (day === "Yesterday") return day;
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
 
 const CHAT_SEARCH_TABS = [
   { id: "messages", label: "Messages", icon: MessageSquare },
@@ -740,6 +768,8 @@ export default function ChatPage() {
   const [newChat, setNewChat] = useState(false);
   const [members, setMembers] = useState(false);
   const [search, setSearch] = useState("");
+  const [conversationFilter, setConversationFilter] = useState("all");
+  const [filterOpen, setFilterOpen] = useState(false);
   const [messageSearch, setMessageSearch] = useState("");
   const [searchType, setSearchType] = useState("messages");
   const [searchOpen, setSearchOpen] = useState(false);
@@ -787,6 +817,16 @@ export default function ChatPage() {
     queryFn: () => api("/conversations").then((r) => r.data),
   });
   const selected = conversations.data?.find((c) => c.id === selectedId);
+  const visibleConversations = useMemo(() =>
+    (conversations.data || []).filter((c) => {
+      const textMatches = displayName(c, user.id)?.toLowerCase().includes(search.toLowerCase());
+      if (!textMatches) return false;
+      if (conversationFilter === "direct") return c.type === "DIRECT";
+      if (conversationFilter === "channels") return c.type !== "DIRECT";
+      if (conversationFilter === "unread")
+        return (c.unreadMessageCount || 0) + (c.unreadReactionCount || 0) > 0;
+      return true;
+    }), [conversations.data, conversationFilter, search, user.id]);
   const normalizedMessageSearch = messageSearch.trim();
   const messages = useInfiniteQuery({
     queryKey: ["messages", selectedId],
@@ -1237,48 +1277,93 @@ export default function ChatPage() {
   };
   return (
     <>
+      <div className="messages-page">
       <PageHeader
         title="Messages"
-
+        description="Real-time team collaboration and system channels"
         action={
-          <button className="btn-primary" onClick={() => setNewChat(true)}>
-            <Plus size={17} />
-            New conversation
-          </button>
+          <>
+            <div className="chat-header-filter">
+              <button
+                type="button"
+                className="chat-filter-trigger"
+                aria-label="Filter conversations"
+                aria-expanded={filterOpen}
+                onClick={() => setFilterOpen((open) => !open)}
+              >
+                <ListFilter size={15} />
+                Filter
+              </button>
+              {filterOpen && (
+                <div className="chat-filter-popover" role="group" aria-label="Conversation filters">
+                  {CONVERSATION_FILTERS.map((option) => (
+                    <button
+                      key={option.id}
+                      type="button"
+                      aria-pressed={conversationFilter === option.id}
+                      onClick={() => {
+                        setConversationFilter(option.id);
+                        setFilterOpen(false);
+                      }}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <button className="btn-primary" onClick={() => setNewChat(true)}>
+              <Plus size={17} />
+              New conversation
+            </button>
+          </>
         }
       />
       <ErrorBox error={conversations.error} />
       <div className="chat-shell card flex overflow-hidden h-[calc(100vh-15.2rem)] md:h-[calc(100vh-6.6rem)]">
         <aside className={`chat-sidebar w-full sm:w-64 shrink-0 border-r border-slate-200 flex flex-col ${selectedId ? "chat-sidebar-hidden-mobile" : ""}`}>
-          <div className="p-3 sm:p-4">
-            <input
-              className="input"
-              aria-label="Search conversations"
-              placeholder="Find a conversation"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+          <div className="chat-sidebar-top">
+            <div className="chat-sidebar-search">
+              <Search size={15} aria-hidden="true" />
+              <input
+                className="input"
+                aria-label="Search conversations"
+                placeholder="Find a conversation"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <div className="chat-sidebar-tabs" role="group" aria-label="Conversation types">
+              {CONVERSATION_FILTERS.map((option) => (
+                <button
+                  type="button"
+                  key={option.id}
+                  className="chat-sidebar-tab"
+                  aria-pressed={conversationFilter === option.id}
+                  onClick={() => setConversationFilter(option.id)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="flex-1 overflow-y-auto">
-            {conversations.data
-              ?.filter((c) =>
-                displayName(c, user.id)
-                  ?.toLowerCase()
-                  .includes(search.toLowerCase()),
-              )
-              .map((c) => (
+          <div className="chat-sidebar-list flex-1 overflow-y-auto">
+            {visibleConversations.map((c) => (
                 <button
                   key={c.id}
                   title={displayName(c, user.id)}
                   onClick={() =>
                     selectConversation(c.id, c.unreadReactionMessageId)
                   }
-                  className={`flex w-full gap-3 items-center p-4 text-left border-l-2 ${c.id === selectedId ? "border-blue-600 bg-blue-50/70" : "border-transparent hover:bg-slate-50"}`}
+                  className={`chat-conversation-item ${c.id === selectedId ? "is-selected" : ""}`}
                 >
-                  <Avatar name={displayName(c, user.id)} />
+                  <div className="chat-conversation-avatar">
+                    <Avatar name={displayName(c, user.id)} />
+                    {(c.unreadMessageCount || 0) > 0 && <span className="chat-unread-indicator" aria-hidden="true" />}
+                  </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex justify-between items-center gap-2">
-                      <span className="truncate text-sm font-semibold">
+                      <span className="chat-conversation-title truncate">
                         {displayName(c, user.id)}
                       </span>
                       <div className="flex shrink-0 items-center gap-1.5">
@@ -1294,19 +1379,22 @@ export default function ChatPage() {
                           </span>
                         )}
                         {c.unreadMessageCount > 0 && (
-                          <span className="rounded-full px-1.5 py-0.5 bg-blue-600 text-white text-[10px]">
+                          <span className="chat-unread-count">
                             {chatBadgeLabel(c.unreadMessageCount)}
                           </span>
                         )}
                       </div>
                     </div>
-                    <p className="truncate text-xs mt-1 text-slate-400">
+                    <p className="chat-conversation-preview truncate">
                       {c.messages[0]?.content ||
                         (c.messages[0] ? "Attachment" : "Start a conversation")}
                     </p>
                   </div>
                 </button>
               ))}
+            {!visibleConversations.length && !conversations.isLoading && (
+              <p className="chat-sidebar-empty">No conversations found.</p>
+            )}
           </div>
         </aside>
         <section className={`chat-conversation flex-1 min-w-0 flex-col ${selectedId ? "flex" : "hidden sm:flex"}`}>
@@ -1321,7 +1409,10 @@ export default function ChatPage() {
                 >
                   <ArrowLeft size={19} />
                 </button>
-                <div className="flex-1 min-w-0">
+                <div className="chat-conversation-header-avatar">
+                  <Avatar name={displayName(selected, user.id)} />
+                </div>
+                <div className="chat-conversation-header-identity flex-1 min-w-0">
                   <h2 className="font-semibold text-sm truncate">
                     {displayName(selected, user.id)}
                   </h2>
@@ -1329,12 +1420,9 @@ export default function ChatPage() {
                     {selected.members.length} members
                   </p>
                 </div>
-                <div className="relative hidden w-64 sm:block lg:w-80">
+                <div className="chat-message-search relative">
                   <div className="relative">
-                    <Search
-                      size={16}
-                      className={`pointer-events-none absolute right-3 ${searchOpen ? "opacity-0" : "opacity-100"}  top-1/2 -translate-y-1/2 text-slate-400`}
-                    />
+                    <Search size={16} className="chat-search-icon" />
                     <input
                       className="input pl-9 pr-9"
                       placeholder={
@@ -1595,7 +1683,7 @@ export default function ChatPage() {
               </header>
               <div
                 ref={scrollArea}
-                className="flex-1 overflow-y-auto p-3 sm:p-5 space-y-5 bg-slate-50/50"
+                className="chat-messages-scroll flex-1 overflow-y-auto p-3 sm:p-5 space-y-5 bg-slate-50/50"
                 onScroll={(event) => {
                   const element = event.currentTarget;
                   const distanceFromBottom = Math.max(
@@ -1623,8 +1711,10 @@ export default function ChatPage() {
                         Load earlier messages
                       </button>
                     )}
-                    {allMessages.map((m) => {
+                    {allMessages.map((m, index) => {
                       const own = m.senderId === user.id;
+                      const showDateDivider = index === 0 ||
+                        chatDateKey(allMessages[index - 1].createdAt) !== chatDateKey(m.createdAt);
                       const reactionGroups = groupedReactions(
                         m.reactions,
                         user.id,
@@ -1641,6 +1731,9 @@ export default function ChatPage() {
 
                       return (
                         <Fragment key={m.id}>
+                          {showDateDivider && (
+                            <div className="chat-date-divider"><span>{chatDayLabel(m.createdAt)}</span></div>
+                          )}
                           {showUnreadDivider && (
                             <div className="flex items-center gap-3 py-1 text-[11px] font-semibold text-blue-600">
                               <span className="h-px flex-1 bg-blue-200" />
@@ -1656,14 +1749,14 @@ export default function ChatPage() {
                             enabled={Boolean(unread)}
                             messageId={m.id}
                             onRead={queueMessageRead}
-                            className={`flex gap-2 ${own ? "flex-row-reverse" : ""} ${focusMessageId === m.id ? "rounded-xl ring-2 ring-blue-300 ring-offset-2" : ""}`}
+                            className={`chat-message-row flex gap-2 ${own ? "chat-message-own flex-row-reverse" : "chat-message-incoming"} ${focusMessageId === m.id ? "rounded-xl ring-2 ring-blue-300 ring-offset-2" : ""}`}
                           >
                             {!own && (
                               <Avatar small name={m.sender.displayName} />
                             )}
                             <div className="max-w-[90%] sm:max-w-[78%] min-w-0">
                               <div
-                                className={`mb-1 text-[10px] text-slate-400 ${own ? "text-right" : ""}`}
+                                className={`chat-message-meta mb-1 text-[10px] text-slate-400 ${own ? "text-right" : ""}`}
                               >
                                 {own ? "You" : m.sender.displayName} ·{" "}
                                 {new Date(m.createdAt).toLocaleTimeString([], {
@@ -1674,7 +1767,7 @@ export default function ChatPage() {
                                 {m.pin ? " · 📌 Pinned" : ""}
                               </div>
                               <div
-                                className={`px-2.5 py-2 rounded-2xl ${own ? "bg-blue-600 text-white rounded-tr-md" : "bg-white border border-slate-200 rounded-tl-md"}`}
+                                className={`chat-message-bubble px-2.5 py-2 rounded-2xl ${own ? "bg-blue-600 text-white rounded-tr-md" : "bg-white border border-slate-200 rounded-tl-md"}`}
                               >
                                 {m.replyToMessage && (
                                   <div className="border-l-2 pl-2 mb-3 opacity-60 text-xs truncate">
@@ -1737,7 +1830,7 @@ export default function ChatPage() {
                               )}
                               {!m.deletedAt && (
                                 <div
-                                  className={`flex gap-1 mt-1 ${own ? "justify-end" : ""}`}
+                                  className={`chat-message-actions flex gap-1 mt-1 ${own ? "justify-end" : ""}`}
                                 >
                                   <button
                                     title="Reply"
@@ -1865,9 +1958,9 @@ export default function ChatPage() {
                 )}
                 <ErrorBox error={messages.error} />
               </div>
-              <div className="border-t border-slate-100 p-4">
+              <div className="chat-composer border-t border-slate-100 p-4">
                 {reply && (
-                  <div className="flex items-center gap-2 text-xs bg-blue-50 rounded-lg p-2 mb-2">
+                  <div className="chat-reply-preview flex items-center gap-2 text-xs bg-blue-50 rounded-lg p-2 mb-2">
                     <Reply size={14} />
                     <span className="truncate flex-1">
                       Replying to {reply.sender.displayName}: {reply.content}
@@ -1881,7 +1974,7 @@ export default function ChatPage() {
                   </div>
                 )}
                 {file && (
-                  <div className="flex gap-2 text-xs text-slate-500 mb-2">
+                  <div className="chat-file-preview flex gap-2 text-xs text-slate-500 mb-2">
                     <Paperclip size={13} />
                     {file.name}
                     <button
@@ -1893,7 +1986,7 @@ export default function ChatPage() {
                   </div>
                 )}
                 <form
-                  className="flex gap-2 items-end"
+                  className="chat-composer-form flex gap-2 items-end"
                   onSubmit={(e) => {
                     e.preventDefault();
                     submit();
@@ -1911,7 +2004,7 @@ export default function ChatPage() {
                       onChange={(e) => setFile(e.target.files[0])}
                     />
                   </label>
-                  <div className="relative mb-1">
+                  <div className="chat-compose-emoji relative mb-1">
                     <button
                       type="button"
                       className="icon-btn"
@@ -1932,7 +2025,7 @@ export default function ChatPage() {
                   </div>
                   <textarea
                     ref={composer}
-                    className="input resize-none min-h-12"
+                    className="chat-compose-textarea input resize-none min-h-12"
                     rows={1}
                     aria-label="Message"
                     placeholder="Write a message…"
@@ -1950,7 +2043,7 @@ export default function ChatPage() {
                     }}
                   />
                   <button
-                    className="btn-primary px-3"
+                    className="chat-send-btn btn-primary px-3"
                     aria-label="Send message"
                     disabled={send.isPending || (!text.trim() && !file)}
                   >
@@ -1958,7 +2051,7 @@ export default function ChatPage() {
                   </button>
                 </form>
                 <ErrorBox error={send.error} />
-                <p className="hidden sm:block text-[10px] text-slate-400 mt-2 ml-11">
+                <p className="chat-compose-hint hidden sm:block text-[10px] text-slate-400 mt-2 ml-11">
                   Enter to send · Shift + Enter for a new line
                 </p>
               </div>
@@ -1970,6 +2063,7 @@ export default function ChatPage() {
             />
           )}
         </section>
+      </div>
       </div>
       {newChat && (
         <NewChat
