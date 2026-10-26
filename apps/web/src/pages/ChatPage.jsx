@@ -778,7 +778,6 @@ function NewChat({ onClose, onCreated }) {
           <ErrorBox error={save.error} />
         </div>
         <footer className="new-conversation-footer">
-          <button type="button" className="new-conversation-cancel" onClick={onClose}>Cancel</button>
           <button
             type="submit"
             className="new-conversation-submit"
