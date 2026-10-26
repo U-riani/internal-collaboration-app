@@ -1223,8 +1223,9 @@ export default function DrivePage() {
           >
             <Field
               label={modal.kind === "create" ? "Folder name" : "Name"}
-              className={modal.kind === "create" ? "drive-new-folder-input" : undefined}
-              placeholder={modal.kind === "create" ? "Enter folder name" : undefined}
+              {...(modal.kind === "create"
+                ? { className: "drive-new-folder-input", placeholder: "Enter folder name" }
+                : {})}
               value={name}
               autoFocus
               required
