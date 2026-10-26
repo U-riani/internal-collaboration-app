@@ -19,6 +19,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { useSocket } from "../hooks/useSocket.js";
 import { api } from "../lib/api.js";
 import { Avatar } from "./UI.jsx";
+import "../theme.css";
 const links = [
   ["/dashboard", "Overview", LayoutDashboard],
   ["/chat", "Messages", MessageSquare],
@@ -132,8 +133,9 @@ export default function Layout() {
   };
 
   return (
-    <div className={isOverview ? "overview-layout" : "max-h-screen"}>
-      <div className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-slate-200 bg-white px-4 min-[901px]:hidden">
+    <div className={isOverview ? "app-theme-dark overview-layout" : "app-theme-dark max-h-screen"}
+      data-theme="dark">
+      <div className="workspace-mobile-header sticky top-0 z-40 flex h-16 items-center justify-between border-b border-slate-200 bg-white px-4 min-[901px]:hidden">
         <strong>Workspace</strong>
         <button
           className="icon-btn"
@@ -152,19 +154,19 @@ export default function Layout() {
         />
       )}
       <aside
-        className={`${open ? "flex" : "hidden"} fixed bottom-0 left-0 top-16 z-40 w-[82vw] max-w-[320px] flex-col overflow-y-auto border-r border-slate-200 bg-white px-5 shadow-xl min-[901px]:inset-y-0 min-[901px]:top-0 min-[901px]:flex min-[901px]:h-screen min-[901px]:w-[236px] min-[901px]:max-w-none min-[901px]:shadow-none`}
+        className={`workspace-sidebar ${open ? "flex" : "hidden"} fixed bottom-0 left-0 top-16 z-40 w-[82vw] max-w-[320px] flex-col overflow-y-auto border-r border-slate-200 bg-white px-5 shadow-xl min-[901px]:inset-y-0 min-[901px]:top-0 min-[901px]:flex min-[901px]:h-screen min-[901px]:w-[236px] min-[901px]:max-w-none min-[901px]:shadow-none`}
       >
-        <div className="sticky top-0 z-10 bg-white">
+        <div className="workspace-sidebar-top sticky top-0 z-10 bg-white">
           <div className="mb-9 mt-2 flex items-center gap-3 px-2">
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-blue-600 font-bold text-white">
+            <span className="workspace-logo grid h-9 w-9 place-items-center rounded-xl bg-blue-600 font-bold text-white">
               W
             </span>
             <div>
-              <strong className="text-[17px]">Workspace</strong>
-              <p className="text-[11px] text-slate-400">Your team, together</p>
+              <strong className="workspace-brand-name text-[17px]">Workspace</strong>
+              <p className="workspace-brand-caption text-[11px] text-slate-400">Your team, together</p>
             </div>
           </div>
-          <p className="mb-3 px-3 text-[10px] font-bold tracking-[.16em] text-slate-400">
+          <p className="workspace-section-label mb-3 px-3 text-[10px] font-bold tracking-[.16em] text-slate-400">
             WORKSPACE
           </p>
         </div>
@@ -187,7 +189,7 @@ export default function Layout() {
                 to={to}
                 onClick={() => setOpen(false)}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 rounded-xl px-3 py-3 text-[13px] font-medium ${isActive ? "bg-blue-50 text-blue-700" : "text-slate-500 hover:bg-slate-50"}`
+                  `workspace-nav-link flex items-center gap-3 rounded-xl px-3 py-3 text-[13px] font-medium ${isActive ? "bg-blue-50 text-blue-700" : "text-slate-500 hover:bg-slate-50"}`
                 }
               >
                 <Icon size={18} />
