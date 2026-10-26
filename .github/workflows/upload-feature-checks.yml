@@ -1,0 +1,55 @@
+name: Upload feature checks
+
+on:
+  pull_request:
+    branches: [prod]
+    paths:
+      - "apps/api/**"
+      - "apps/web/**"
+      - ".github/workflows/upload-feature-checks.yml"
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: collaboration
+          POSTGRES_PASSWORD: test-password
+          POSTGRES_DB: collaboration_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U collaboration -d collaboration_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://collaboration:test-password@127.0.0.1:5432/collaboration_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: |
+            apps/api/package-lock.json
+            apps/web/package-lock.json
+      - name: Install dependencies
+        run: |
+          npm ci --prefix apps/api
+          npm ci --prefix apps/web
+      - name: Check backend syntax and schema
+        run: npm --prefix apps/api run check
+      - name: Generate Prisma client
+        run: npm --prefix apps/api run db:generate
+      - name: Build web application
+        run: npm --prefix apps/web run build
+      - name: Test web application
+        run: npm --prefix apps/web test
+      - name: Test API including uploads
+        run: npm --prefix apps/api test
