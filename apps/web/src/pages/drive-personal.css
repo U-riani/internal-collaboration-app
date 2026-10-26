@@ -773,8 +773,8 @@
 }
 
 
-/* New shared group modal — same search-field treatment as Drive/Messages, minus icon. */
-.app-theme-dark .modal:has(.drive-new-group-form) {
+/* New Group and New Folder share the same modal and icon-free field design. */
+.app-theme-dark .modal:has(:is(.drive-new-group-form, .drive-new-folder-form)) {
   width: min(530px, calc(100vw - 28px));
   border: 1px solid rgba(185, 195, 240, .12);
   border-radius: 19px;
@@ -782,21 +782,21 @@
   background: #111626;
   box-shadow: 0 26px 85px rgba(1, 4, 16, .6);
 }
-.app-theme-dark .modal:has(.drive-new-group-form) .modal-head {
+.app-theme-dark .modal:has(:is(.drive-new-group-form, .drive-new-folder-form)) .modal-head {
   padding: 19px 22px;
   border-bottom: 1px solid rgba(185, 195, 240, .09);
   background: linear-gradient(120deg, #1b2135, #141a2b);
 }
-.app-theme-dark .modal:has(.drive-new-group-form) .modal-head h2 {
+.app-theme-dark .modal:has(:is(.drive-new-group-form, .drive-new-folder-form)) .modal-head h2 {
   color: #f2f0ff;
   font-size: 17px;
   font-weight: 740;
   letter-spacing: -.025em;
 }
-.app-theme-dark .modal:has(.drive-new-group-form) .modal-body {
+.app-theme-dark .modal:has(:is(.drive-new-group-form, .drive-new-folder-form)) .modal-body {
   padding: 22px 22px 18px;
 }
-.drive-new-group-form .field {
+:is(.drive-new-group-form, .drive-new-folder-form) .field {
   display: flex;
   flex-direction: column;
   gap: 9px;
@@ -804,7 +804,7 @@
   font-size: 12px;
   font-weight: 700;
 }
-.app-theme-dark .drive-new-group-form .drive-new-group-input {
+.app-theme-dark :is(.drive-new-group-form, .drive-new-folder-form) :is(.drive-new-group-input, .drive-new-folder-input) {
   display: block;
   width: 100%;
   min-width: 0;
@@ -820,16 +820,16 @@
   font-weight: 500;
   transition: border-color .16s ease, box-shadow .16s ease;
 }
-.app-theme-dark .drive-new-group-form .drive-new-group-input::placeholder {
+.app-theme-dark :is(.drive-new-group-form, .drive-new-folder-form) :is(.drive-new-group-input, .drive-new-folder-input)::placeholder {
   color: #919bb4;
   opacity: 1;
 }
-.app-theme-dark .drive-new-group-form .drive-new-group-input:focus {
+.app-theme-dark :is(.drive-new-group-form, .drive-new-folder-form) :is(.drive-new-group-input, .drive-new-folder-input):focus {
   border-color: #7670dd;
   outline: none;
   box-shadow: 0 0 0 2px rgba(118, 112, 221, .14);
 }
-.app-theme-dark .drive-new-group-actions {
+.app-theme-dark :is(.drive-new-group-actions, .drive-new-folder-actions) {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -839,18 +839,18 @@
   border-top: 1px solid rgba(185, 195, 240, .09);
   background: transparent;
 }
-.app-theme-dark .drive-new-group-actions .btn-secondary {
+.app-theme-dark :is(.drive-new-group-actions, .drive-new-folder-actions) .btn-secondary {
   border: 1px solid transparent;
   border-radius: 10px;
   color: #b7bfd7;
   background: transparent;
   font-size: 12px;
 }
-.app-theme-dark .drive-new-group-actions .btn-secondary:hover {
+.app-theme-dark :is(.drive-new-group-actions, .drive-new-folder-actions) .btn-secondary:hover {
   color: #f1f1ff;
   background: #252d42;
 }
-.app-theme-dark .drive-new-group-actions .btn-primary {
+.app-theme-dark :is(.drive-new-group-actions, .drive-new-folder-actions) .btn-primary {
   min-height: 38px;
   padding: 9px 16px;
   border-radius: 10px;
@@ -858,22 +858,27 @@
   background: linear-gradient(120deg, #756ef9, #5854e9);
   box-shadow: 0 5px 17px rgba(99, 102, 241, .23);
   font-size: 12px;
+  filter: brightness(1);
+  /* Override the global transition-all; keep gradient unchanged on hover. */
+  transition: filter .16s ease, box-shadow .16s ease;
 }
-.app-theme-dark .drive-new-group-actions .btn-primary:hover:not(:disabled) {
-  background: #7772f7;
+.app-theme-dark :is(.drive-new-group-actions, .drive-new-folder-actions) .btn-primary:hover:not(:disabled) {
+  background: linear-gradient(120deg, #756ef9, #5854e9);
+  filter: brightness(1.08);
+  box-shadow: 0 7px 21px rgba(99, 102, 241, .33);
 }
 @media (max-width: 560px) {
-  .app-theme-dark .modal:has(.drive-new-group-form) {
+  .app-theme-dark .modal:has(:is(.drive-new-group-form, .drive-new-folder-form)) {
     width: min(100vw, 530px);
     border-radius: 18px 18px 0 0;
   }
-  .app-theme-dark .modal:has(.drive-new-group-form) .modal-head {
+  .app-theme-dark .modal:has(:is(.drive-new-group-form, .drive-new-folder-form)) .modal-head {
     padding: 16px 18px;
   }
-  .app-theme-dark .modal:has(.drive-new-group-form) .modal-body {
+  .app-theme-dark .modal:has(:is(.drive-new-group-form, .drive-new-folder-form)) .modal-body {
     padding: 18px 16px;
   }
-  .app-theme-dark .drive-new-group-actions {
+  .app-theme-dark :is(.drive-new-group-actions, .drive-new-folder-actions) {
     margin-top: 16px;
     padding: 13px 0 0;
   }
