@@ -1366,6 +1366,13 @@ export default function ChatPage() {
                       <span className="chat-conversation-title truncate">
                         {displayName(c, user.id)}
                       </span>
+                      <span className="chat-conversation-time">{chatListTime(c.messages[0]?.createdAt || c.updatedAt)}</span>
+                    </div>
+                    <div className="flex min-w-0 items-center justify-between gap-2">
+                    <p className="chat-conversation-preview truncate">
+                      {c.messages[0]?.content ||
+                        (c.messages[0] ? "Attachment" : "Start a conversation")}
+                    </p>
                       <div className="flex shrink-0 items-center gap-1.5">
                         {c.unreadReactionCount > 0 && (
                           <span
@@ -1385,10 +1392,6 @@ export default function ChatPage() {
                         )}
                       </div>
                     </div>
-                    <p className="chat-conversation-preview truncate">
-                      {c.messages[0]?.content ||
-                        (c.messages[0] ? "Attachment" : "Start a conversation")}
-                    </p>
                   </div>
                 </button>
               ))}
