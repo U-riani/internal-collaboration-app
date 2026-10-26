@@ -874,20 +874,6 @@
   font-weight: 700;
 }
 .conversation-members-current-heading { margin-bottom: 9px; }
-.conversation-members-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 24px;
-  height: 24px;
-  padding: 3px 8px;
-  border: 1px solid #30325c;
-  border-radius: 999px;
-  color: #b6b7ff;
-  background: #1d2142;
-  font-size: 11px;
-  font-weight: 700;
-}
 .conversation-members-current-list {
   max-height: 174px;
   min-height: 0;
