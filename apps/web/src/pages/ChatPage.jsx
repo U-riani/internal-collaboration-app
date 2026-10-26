@@ -839,7 +839,9 @@ function Members({ conversation, onClose }) {
       <div className="conversation-members-modal">
         <div className="conversation-members-current-heading">
           <span>Current members</span>
-          <span className="conversation-members-count">{conversation.members.length}</span>
+          <span className="new-conversation-count">
+            {conversation.members.length} {conversation.members.length === 1 ? "member" : "members"}
+          </span>
         </div>
         <div className="conversation-members-current-list">
           {conversation.members.map((member) => (
