@@ -18,9 +18,10 @@ import {
   Search,
   Trash2,
 } from "lucide-react";
-import { api, uploadFile } from "../lib/api.js";
+import { api, uploadFiles } from "../lib/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import PageHeader from "../components/PageHeader.jsx";
+import FileDropzone from "../components/FileDropzone.jsx";
 import {
   Modal,
   Field,
@@ -757,7 +758,7 @@ function RequestForm({ existing, onClose }) {
   const [typeId, setTypeId] = useState(existing?.approvalTypeId || "");
   const [title, setTitle] = useState(existing?.title || "");
   const [values, setValues] = useState(existing?.data || {});
-  const [file, setFile] = useState(null);
+  const [files, setFiles] = useState([]);
   const types = useQuery({
     queryKey: ["approval-types"],
     queryFn: () => api("/approval-types").then((r) => r.data),
@@ -790,7 +791,7 @@ function RequestForm({ existing, onClose }) {
             title,
             data: values,
             submit,
-            attachmentIds: file ? [(await uploadFile(file)).id] : [],
+            attachmentIds: await uploadFiles(files),
           }),
         });
     },
@@ -848,10 +849,11 @@ function RequestForm({ existing, onClose }) {
         />
         <FormFields schema={schema} values={values} setValues={setValues} />
         {!existing && (
-          <Field
-            label="Attachment (optional)"
-            type="file"
-            onChange={(e) => setFile(e.target.files[0])}
+          <FileDropzone
+            label="Approval attachments"
+            files={files}
+            onChange={setFiles}
+            disabled={save.isPending}
           />
         )}
         <ErrorBox error={save.error} />
