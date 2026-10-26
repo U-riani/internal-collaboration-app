@@ -92,9 +92,43 @@ export async function api(path, options = {}, retry = true) {
 }
 
 export async function uploadFile(file) {
-  const form = new FormData();
-  form.append("file", file);
-  return (await api("/files", { method: "POST", body: form })).data;
+  // Keep the original endpoint for small files and older clients. Chunk large
+  // files so one request never exceeds a proxy's body-size limit.
+  if (file.size <= 16 * 1024 * 1024) {
+    const form = new FormData();
+    form.append("file", file);
+    return (await api("/files", { method: "POST", body: form })).data;
+  }
+
+  const started = await api("/files/uploads", {
+    method: "POST",
+    body: JSON.stringify({
+      name: file.name,
+      sizeBytes: file.size,
+      mimeType: file.type || "application/octet-stream",
+    }),
+  });
+  const { uploadId, chunkSize } = started.data;
+  let completed = false;
+  try {
+    for (let offset = 0, index = 0; offset < file.size; offset += chunkSize, index++) {
+      const form = new FormData();
+      form.append("file", file.slice(offset, offset + chunkSize), file.name);
+      await api(`/files/uploads/${uploadId}/chunks/${index}`, {
+        method: "POST",
+        body: form,
+      });
+    }
+    const response = await api(`/files/uploads/${uploadId}/complete`, {
+      method: "POST",
+    });
+    completed = true;
+    return response.data;
+  } finally {
+    if (!completed) {
+      await api(`/files/uploads/${uploadId}`, { method: "DELETE" }).catch(() => {});
+    }
+  }
 }
 
 // Upload sequentially to avoid saturating the server and to preserve each
