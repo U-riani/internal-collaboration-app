@@ -900,7 +900,7 @@ function Members({ conversation, onClose }) {
                     const selected = id === colleague.id;
                     const initials = (colleague.displayName || "Colleague")
                       .trim()
-                      .split(/\\s+/)
+                      .split(/\s+/)
                       .slice(0, 2)
                       .map((part) => part[0] || "")
                       .join("")
