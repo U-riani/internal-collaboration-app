@@ -963,7 +963,7 @@ export default function DrivePage() {
                 return (
                   <div className={`drive-item-row list-row ${section === "personal" ? "drive-personal-row" : ""}`} key={item.id}>
                     <div
-                      className={`rounded-xl p-2.5 ${
+                      className={`drive-item-icon drive-item-icon--${driveFileTone(item, spreadsheet)} rounded-xl p-2.5 ${
                         item.kind === "FOLDER"
                           ? "bg-amber-50 text-amber-500"
                           : spreadsheet
@@ -992,10 +992,13 @@ export default function DrivePage() {
                         }
                       }}
                     >
-                      <p className="truncate text-sm font-medium">
-                        {item.name}
+                      <p className="drive-item-name truncate text-sm font-medium">
+                        <span className="drive-item-label">{item.name}</span>
+                        {section === "personal" && fileType && (
+                          <span className="drive-file-type">{fileType}</span>
+                        )}
                       </p>
-                      <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-400">
+                      <div className={`mt-1 flex items-center gap-2 text-[11px] text-slate-400 ${section === "personal" ? "drive-name-meta-personal" : ""}`}>
                         <span>{item.owner.displayName}</span>
                         {item.shared && <Share2 size={11} />}
                         <span>
@@ -1012,15 +1015,19 @@ export default function DrivePage() {
                           )}
                       </div>
                     </button>
-                    <span className="hidden w-28 text-xs text-slate-400 md:block">
+                    {section === "personal" && (
+                      <span className="drive-owner-cell">
+                        <Avatar small name={item.owner?.displayName || "User"} />
+                        <span className="drive-owner-name" title={item.owner?.displayName || ""}>
+                          {item.owner?.displayName || "Unknown"}
+                        </span>
+                      </span>
+                    )}
+                    <span className="drive-updated-cell hidden w-28 text-xs text-slate-400 md:block">
                       {prettyDate(item.updatedAt)}
                     </span>
-                    <span className="hidden w-24 text-xs text-slate-400 md:block">
-                      {spreadsheet
-                        ? "XLSX"
-                        : item.file
-                          ? fileSize(item.file.sizeBytes)
-                          : "—"}
+                    <span className="drive-size-cell hidden w-24 text-xs text-slate-400 md:block">
+                      {driveItemSize(item)}
                     </span>
                     <div className="drive-row-actions flex w-40 flex-wrap justify-end">
                       {section === "trash" ? (
@@ -1041,16 +1048,12 @@ export default function DrivePage() {
                         </button>
                       ) : (
                         <>
-                          <div className="flex flex-1 items-center gap-2 md:hidden">
+                          <div className="drive-mobile-metadata flex flex-1 items-center gap-2 md:hidden">
                             <span className="w-28 text-xs text-slate-400 ">
                               {prettyDate(item.updatedAt)}
                             </span>
                             <span className="w-24 text-xs text-slate-400 ">
-                              {spreadsheet
-                                ? "XLSX"
-                                : item.file
-                                  ? fileSize(item.file.sizeBytes)
-                                  : "—"}
+                              {driveItemSize(item)}
                             </span>
                           </div>
                           <div>
@@ -1144,9 +1147,10 @@ export default function DrivePage() {
                 />
               )
             )}
+            </div>
           </div>
 
-          <p className="mt-0 text-xs text-slate-400">
+          <p className={`mt-0 text-xs text-slate-400 ${section === "personal" ? "drive-personal-summary" : ""}`}>
             {query.data?.data.length || 0} items
             {section === "personal" &&
               ` · ${fileSize(query.data?.meta.usedBytes || 0)} in Personal`}
