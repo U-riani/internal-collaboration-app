@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import {
   Bell,
   CheckSquare,
@@ -36,6 +36,7 @@ function badgeLabel(count) {
 
 export default function Layout() {
   const { user, logout, hasPermission } = useAuth();
+  const isOverview = useLocation().pathname === "/dashboard";
   const [open, setOpen] = useState(false);
   const qc = useQueryClient();
 
@@ -131,7 +132,7 @@ export default function Layout() {
   };
 
   return (
-    <div className="max-h-screen ">
+    <div className={isOverview ? "overview-layout" : "max-h-screen"}>
       <div className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-slate-200 bg-white px-4 min-[901px]:hidden">
         <strong>Workspace</strong>
         <button
@@ -205,7 +206,7 @@ export default function Layout() {
             <Avatar name={user.displayName} />
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold">
-                {user.displayName}s
+                {user.displayName}
               </p>
               <p className="truncate text-xs text-slate-400">
                 {user.department?.name || "Team member"}
