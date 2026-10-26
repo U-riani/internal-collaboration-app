@@ -657,11 +657,10 @@ function NewChat({ onClose, onCreated }) {
 
         <div className="new-conversation-body">
           <div className="new-conversation-types">
-            <div className="new-conversation-type-switch" role="tablist" aria-label="Conversation type">
+            <div className="new-conversation-type-switch" role="group" aria-label="Conversation type">
               <button
                 type="button"
-                role="tab"
-                aria-selected={!group}
+                aria-pressed={!group}
                 className={!group ? "is-active" : ""}
                 onClick={() => changeType(false)}
               >
@@ -670,8 +669,7 @@ function NewChat({ onClose, onCreated }) {
               </button>
               <button
                 type="button"
-                role="tab"
-                aria-selected={group}
+                aria-pressed={group}
                 className={group ? "is-active" : ""}
                 onClick={() => changeType(true)}
               >
