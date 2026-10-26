@@ -781,7 +781,7 @@
 .new-conversation-footer {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 15px;
   flex: 0 0 auto;
   min-height: 69px;
@@ -789,17 +789,6 @@
   border-top: 1px solid #22283b;
   background: linear-gradient(100deg, #111625 45%, #12283a);
 }
-.new-conversation-cancel {
-  min-height: 35px;
-  padding: 8px 11px;
-  border: 0;
-  border-radius: 9px;
-  color: #abb4ce;
-  background: transparent;
-  font-size: 11px;
-  font-weight: 650;
-}
-.new-conversation-cancel:hover { color: #fff; background: #262d43; }
 .new-conversation-submit {
   display: inline-flex;
   align-items: center;
