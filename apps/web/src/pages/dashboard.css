@@ -1,19 +1,18 @@
 /*
- * Overview-only dark visual system.
- * Deliberately scoped to .overview-dashboard and .overview-layout so that
- * light pages, dialogs and shared UI primitives keep their existing styling.
+ * Overview page-specific layout. Shared navigation, profile styling, colors
+ * and component tokens live in src/theme.css.
  */
 .overview-layout {
-  --ov-bg: #0a0f1d;
-  --ov-sidebar: #101625;
-  --ov-surface: #151b2c;
-  --ov-surface-2: #1b2234;
-  --ov-line: rgba(195, 204, 246, .075);
-  --ov-text: #e6e7f8;
-  --ov-muted: #969cb5;
-  --ov-primary: #6366f1;
-  --ov-cyan: #06b6d4;
-  --ov-violet: #a855f7;
+  --ov-bg: var(--app-bg);
+  --ov-sidebar: var(--app-sidebar);
+  --ov-surface: var(--app-surface);
+  --ov-surface-2: var(--app-surface-raised);
+  --ov-line: var(--app-border);
+  --ov-text: var(--app-text);
+  --ov-muted: var(--app-muted);
+  --ov-primary: var(--app-primary);
+  --ov-cyan: var(--app-secondary);
+  --ov-violet: var(--app-tertiary);
   color: var(--ov-text);
   background: var(--ov-bg);
   min-height: 100dvh;
@@ -30,180 +29,7 @@
   overflow-y: auto;
 }
 
-.overview-layout > aside {
-  background: var(--ov-sidebar);
-  border-color: var(--ov-line);
-  color: var(--ov-text);
-}
-.overview-layout > aside > div:first-child,
-.overview-layout > aside > div:last-child {
-  background: var(--ov-sidebar);
-}
-.overview-layout > aside > div:last-child {
-  border-color: var(--ov-line);
-}
-.overview-layout > aside > div:first-child > div > span:first-child {
-  background: linear-gradient(140deg, #5663f7, #6a9cfe);
-  box-shadow: 0 4px 16px rgba(99, 102, 241, .25);
-}
-.overview-layout > aside strong,
-.overview-layout > aside .text-slate-900 {
-  color: var(--ov-text);
-}
-.overview-layout > aside .text-slate-400,
-.overview-layout > aside p {
-  color: var(--ov-muted);
-}
-.overview-layout > aside nav a {
-  color: #b7bdd4;
-  transition: background-color .15s ease, color .15s ease, transform .15s ease;
-}
-.overview-layout > aside nav a:hover {
-  color: #fff;
-  background: #242b40;
-}
-.overview-layout > aside nav a[aria-current="page"] {
-  background: linear-gradient(112deg, #6265ed, #7772f7);
-  box-shadow: 0 4px 16px rgba(99, 102, 241, .21);
-  color: #fff;
-}
-.overview-layout > aside nav a[aria-current="page"] svg {
-  color: #fff;
-}
-.overview-layout > aside > div:last-child a,
-.overview-layout > aside > div:last-child button {
-  color: #bfc8ef;
-}
-.overview-layout > aside > div:last-child button:hover {
-  color: #fff;
-}
-.overview-layout > div:first-child {
-  background: var(--ov-sidebar);
-  border-color: var(--ov-line);
-  color: var(--ov-text);
-}
-.overview-layout > div:first-child .icon-btn {
-  color: var(--ov-text);
-}
-.overview-layout > div:first-child .icon-btn:hover {
-  background: #262f46;
-}
-
-
-/* Sidebar profile card: shared markup, light by default and dark on Overview. */
-.sidebar-profile {
-  background: #fff;
-  border-top: 1px solid #e2e8f0;
-  z-index: 10;
-}
-.sidebar-profile-card {
-  width: 100%;
-  min-width: 0;
-  padding: 10px;
-  border-radius: 16px;
-  border: 1px solid #e2e8f0;
-  background: #f8fafc;
-}
-.sidebar-profile-identity {
-  display: flex;
-  align-items: center;
-  min-width: 0;
-  gap: 10px;
-  padding: 5px 4px;
-  border-radius: 10px;
-  transition: background-color .15s ease;
-}
-.sidebar-profile-identity:hover {
-  background: rgba(99, 102, 241, .08);
-}
-.sidebar-profile-identity:focus-visible,
-.sidebar-profile-logout:focus-visible {
-  outline: 2px solid #818cf8;
-  outline-offset: 2px;
-}
-.sidebar-profile-identity .avatar {
-  flex: 0 0 36px;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  font-size: 12px;
-}
-.sidebar-profile-details {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 0;
-}
-.sidebar-profile-name,
-.sidebar-profile-department {
-  display: block;
-  width: 100%;
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  line-height: 1.35;
-}
-.sidebar-profile-name {
-  font-size: 12px;
-  font-weight: 750;
-  color: #233047;
-}
-.sidebar-profile-department {
-  font-size: 10px;
-  color: #64748b;
-}
-.sidebar-profile-footer {
-  display: flex;
-  justify-content: flex-start;
-  padding: 7px 3px 0;
-}
-.sidebar-profile-logout {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 32px;
-  padding: 6px 9px;
-  border-radius: 8px;
-  color: #475569;
-  font-size: 11px;
-  font-weight: 650;
-  transition: color .15s ease, background-color .15s ease;
-}
-.sidebar-profile-logout:hover {
-  background: #e7eaf2;
-  color: #1e293b;
-}
-.overview-layout .sidebar-profile {
-  border-color: var(--ov-line);
-  background: var(--ov-sidebar);
-}
-.overview-layout .sidebar-profile-card {
-  border-color: rgba(184, 191, 240, .06);
-  background: linear-gradient(145deg, #1b2233, #161c2b);
-  box-shadow: 0 9px 22px #00000018;
-}
-.overview-layout .sidebar-profile-identity:hover {
-  background: rgba(126, 129, 244, .12);
-}
-.overview-layout .sidebar-profile-identity .avatar {
-  background: linear-gradient(135deg, #343a6b, #535baa);
-  color: #f1f1ff;
-}
-.overview-layout .sidebar-profile-name {
-  color: #eeeefe;
-}
-.overview-layout .sidebar-profile-department {
-  color: #aeb5cd;
-}
-.overview-layout .sidebar-profile-logout {
-  color: #c2c9df;
-}
-.overview-layout .sidebar-profile-logout:hover {
-  background: #2a3247;
-  color: #fff;
-}
+/* Shared navigation and profile styles now live in src/theme.css. */
 
 .overview-dashboard {
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
