@@ -55,47 +55,6 @@
   white-space: nowrap;
 }
 .messages-page .page-header .btn-primary:hover { background: #7971ff; }
-.messages-page .chat-header-filter { position: relative; }
-.messages-page .chat-filter-trigger {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 37px;
-  padding: 8px 12px;
-  border: 1px solid var(--message-line);
-  border-radius: 10px;
-  color: #c3c9df;
-  background: #202537;
-  font-size: 12px;
-  font-weight: 600;
-}
-.messages-page .chat-filter-trigger:hover { background:#2c3148; }
-.messages-page .chat-filter-popover {
-  position: absolute;
-  z-index: 70;
-  right: 0;
-  top: calc(100% + 8px);
-  width: 185px;
-  padding: 6px;
-  border: 1px solid #373d55;
-  border-radius: 12px;
-  background: #23283a;
-  box-shadow: 0 16px 45px #080b1a99;
-}
-.messages-page .chat-filter-popover button {
-  display: block;
-  width: 100%;
-  padding: 9px 11px;
-  border-radius: 8px;
-  color: #bec4d7;
-  font-size: 12px;
-  text-align: left;
-}
-.messages-page .chat-filter-popover button:hover,
-.messages-page .chat-filter-popover button[aria-pressed="true"] {
-  background: #393b70;
-  color: #fff;
-}
 .messages-page .chat-shell {
   width: 100%;
   min-width: 0;
@@ -660,10 +619,7 @@
   text-align: right;
 }
 .new-conversation-people-panel {
-  overflow: hidden;
-  border: 1px solid #252b40;
-  border-radius: 13px;
-  background: #111625;
+  min-width: 0;
 }
 .new-conversation-search {
   display: flex;
@@ -671,8 +627,10 @@
   gap: 11px;
   min-width: 0;
   min-height: 47px;
+  margin-bottom: 7px;
   padding: 5px 14px;
-  border-bottom: 1px solid #272d43;
+  border: 1px solid #2a3046;
+  border-radius: 12px;
   color: #909bb6;
   background: #151a2a;
   transition: box-shadow .15s, background-color .15s;
@@ -708,7 +666,9 @@
 .new-conversation-people-list {
   max-height: 252px;
   min-height: 54px;
-  overflow-y: auto;
+  overflow: auto;
+  border: 1px solid #252b40;
+  border-radius: 12px;
   overscroll-behavior: contain;
   scrollbar-width: thin;
   scrollbar-color: #404561 transparent;
