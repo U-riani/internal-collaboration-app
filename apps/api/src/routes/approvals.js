@@ -39,7 +39,7 @@ const requestSchema = z.object({
   approvalTypeId: z.uuid(),
   title: z.string().trim().min(2).max(250),
   data: z.record(z.string(), z.unknown()),
-  attachmentIds: z.array(z.uuid()).max(10).default([]),
+  attachmentIds: z.array(z.uuid()).max(50).default([]),
   submit: z.boolean().default(false),
 });
 const typeUpdateSchema = typeSchema.extend({

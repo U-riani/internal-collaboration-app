@@ -18,7 +18,7 @@ const messageSchema = z
   .object({
     content: z.string().trim().max(20000),
     replyToMessageId: z.uuid().nullable().optional(),
-    attachmentIds: z.array(z.uuid()).max(10).default([]),
+    attachmentIds: z.array(z.uuid()).max(50).default([]),
   })
   .refine(
     (x) => x.content.length || x.attachmentIds.length,

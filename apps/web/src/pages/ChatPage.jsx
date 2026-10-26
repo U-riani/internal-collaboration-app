@@ -37,10 +37,11 @@ import {
   Sparkles,
   Trophy,
 } from "lucide-react";
-import { api, uploadFile } from "../lib/api.js";
+import { api, uploadFiles } from "../lib/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useSocket } from "../hooks/useSocket.js";
 import PageHeader from "../components/PageHeader.jsx";
+import FileDropzone from "../components/FileDropzone.jsx";
 import {
   Modal,
   Field,
@@ -735,7 +736,7 @@ export default function ChatPage() {
   );
   const [focusMessageId, setFocusMessageId] = useState(linkedMessageId);
   const [text, setText] = useState("");
-  const [file, setFile] = useState(null);
+  const [files, setFiles] = useState([]);
   const [reply, setReply] = useState(null);
   const [newChat, setNewChat] = useState(false);
   const [members, setMembers] = useState(false);
@@ -1026,7 +1027,7 @@ export default function ChatPage() {
 
   useEffect(() => {
     setText("");
-    setFile(null);
+    setFiles([]);
     setReply(null);
     setMessageSearch("");
     setSearchType("messages");
@@ -1148,19 +1149,19 @@ export default function ChatPage() {
     },
   });
   const send = useMutation({
-    mutationFn: async ({ id, content, attachment, replyId }) =>
+    mutationFn: async ({ id, content, attachments, replyId }) =>
       api(`/conversations/${id}/messages`, {
         method: "POST",
         body: JSON.stringify({
           content,
-          attachmentIds: attachment ? [(await uploadFile(attachment)).id] : [],
+          attachmentIds: await uploadFiles(attachments),
           replyToMessageId: replyId,
         }),
       }),
     onSuccess: (_, vars) => {
       if (vars.id === selectedId) {
         setText("");
-        setFile(null);
+        setFiles([]);
         setReply(null);
       }
       qc.invalidateQueries({ queryKey: ["messages", vars.id] });
@@ -1202,11 +1203,11 @@ export default function ChatPage() {
     },
   });
   const submit = () => {
-    if (selectedId && (text.trim() || file) && !send.isPending)
+    if (selectedId && (text.trim() || files.length) && !send.isPending)
       send.mutate({
         id: selectedId,
         content: text,
-        attachment: file,
+        attachments: files,
         replyId: reply?.id || null,
       });
   };
@@ -1880,18 +1881,14 @@ export default function ChatPage() {
                     </button>
                   </div>
                 )}
-                {file && (
-                  <div className="flex gap-2 text-xs text-slate-500 mb-2">
-                    <Paperclip size={13} />
-                    {file.name}
-                    <button
-                      aria-label="Remove attachment"
-                      onClick={() => setFile(null)}
-                    >
-                      <X size={13} />
-                    </button>
-                  </div>
-                )}
+                <FileDropzone
+                  files={files}
+                  onChange={setFiles}
+                  label="Message attachments"
+                  compact
+                  disabled={send.isPending}
+                  maxFiles={50}
+                />
                 <form
                   className="flex gap-2 items-end"
                   onSubmit={(e) => {
@@ -1899,18 +1896,6 @@ export default function ChatPage() {
                     submit();
                   }}
                 >
-                  <label
-                    className="icon-btn mb-1 cursor-pointer"
-                    title="Attach file"
-                  >
-                    <Paperclip size={20} />
-                    <input
-                      type="file"
-                      className="sr-only"
-                      aria-label="Message attachment"
-                      onChange={(e) => setFile(e.target.files[0])}
-                    />
-                  </label>
                   <div className="relative mb-1">
                     <button
                       type="button"
@@ -1952,7 +1937,7 @@ export default function ChatPage() {
                   <button
                     className="btn-primary px-3"
                     aria-label="Send message"
-                    disabled={send.isPending || (!text.trim() && !file)}
+                    disabled={send.isPending || (!text.trim() && !files.length)}
                   >
                     <Send size={18} />
                   </button>

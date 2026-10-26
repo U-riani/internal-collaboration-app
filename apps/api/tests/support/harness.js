@@ -80,7 +80,7 @@ export async function harness() {
   const { PrismaClient } = await import("@prisma/client");
   const { PrismaPg } = await import("@prisma/adapter-pg");
   const prisma = new PrismaClient({
-    adapter: new PrismaPg({ connectionString: databaseUrl }),
+    adapter: new PrismaPg({ connectionString: databaseUrl }, { schema }),
   });
   const { localStorage } = await import("../../src/lib/local-storage.js");
   const storage = localStorage(path.join(dir, "files"));

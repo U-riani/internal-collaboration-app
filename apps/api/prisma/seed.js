@@ -6,9 +6,11 @@ if (!process.env.DATABASE_URL) {
   throw new Error('DATABASE_URL is required to seed the database.');
 }
 
-const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL,
-});
+const databaseSchema = new URL(process.env.DATABASE_URL).searchParams.get('schema');
+const adapter = new PrismaPg(
+  { connectionString: process.env.DATABASE_URL },
+  databaseSchema ? { schema: databaseSchema } : undefined,
+);
 
 const prisma = new PrismaClient({ adapter });
 
