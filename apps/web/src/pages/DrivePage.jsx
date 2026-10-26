@@ -26,6 +26,7 @@ import {
 import { api, uploadFile, downloadFile } from "../lib/api.js";
 import { importExcelToUniverSnapshot } from "../lib/xlsx.js";
 import PageHeader from "../components/PageHeader.jsx";
+import FileDropzone from "../components/FileDropzone.jsx";
 import {
   Modal,
   Field,
@@ -657,6 +658,24 @@ export default function DrivePage() {
     }
   }
 
+  function uploadDriveFiles(files) {
+    if (!files.length || busy || !canAdd) return;
+    act(async () => {
+      for (const file of files) {
+        const uploaded = await uploadFile(file);
+        await api("/drive", {
+          method: "POST",
+          body: JSON.stringify({
+            name: file.name,
+            fileId: uploaded.id,
+            parentId: parent,
+            spaceId,
+          }),
+        });
+      }
+    });
+  }
+
   function switchSection(next) {
     setSection(next);
     setParent(null);
@@ -753,20 +772,7 @@ export default function DrivePage() {
                   onChange={(e) => {
                     const files = [...e.target.files];
                     e.target.value = "";
-                    act(async () => {
-                      for (const file of files) {
-                        const uploaded = await uploadFile(file);
-                        await api("/drive", {
-                          method: "POST",
-                          body: JSON.stringify({
-                            name: file.name,
-                            fileId: uploaded.id,
-                            parentId: parent,
-                            spaceId,
-                          }),
-                        });
-                      }
-                    });
+                    uploadDriveFiles(files);
                   }}
                 />
               </label>
@@ -889,6 +895,16 @@ export default function DrivePage() {
             </div>
           )}
 
+          {canAdd && (
+            <div className="mb-4">
+              <FileDropzone
+                label="Drop files into this folder"
+                onFilesSelected={uploadDriveFiles}
+                disabled={busy}
+                compact
+              />
+            </div>
+          )}
           <ErrorBox error={error || query.error || spaces.error} />
 
           {parent && (
