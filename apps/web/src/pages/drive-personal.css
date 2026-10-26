@@ -832,23 +832,12 @@
 .app-theme-dark :is(.drive-new-group-actions, .drive-new-folder-actions) {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 10px;
   margin-top: 18px;
   padding-top: 15px;
   border-top: 1px solid rgba(185, 195, 240, .09);
   background: transparent;
-}
-.app-theme-dark :is(.drive-new-group-actions, .drive-new-folder-actions) .btn-secondary {
-  border: 1px solid transparent;
-  border-radius: 10px;
-  color: #b7bfd7;
-  background: transparent;
-  font-size: 12px;
-}
-.app-theme-dark :is(.drive-new-group-actions, .drive-new-folder-actions) .btn-secondary:hover {
-  color: #f1f1ff;
-  background: #252d42;
 }
 .app-theme-dark :is(.drive-new-group-actions, .drive-new-folder-actions) .btn-primary {
   min-height: 38px;
