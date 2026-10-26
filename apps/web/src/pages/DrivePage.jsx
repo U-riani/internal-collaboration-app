@@ -1215,13 +1215,16 @@ export default function DrivePage() {
           onClose={() => setModal(null)}
         >
           <form
+            className={modal.kind === "create" ? "drive-new-folder-form" : undefined}
             onSubmit={(e) => {
               e.preventDefault();
               save.mutate();
             }}
           >
             <Field
-              label="Name"
+              label={modal.kind === "create" ? "Folder name" : "Name"}
+              className={modal.kind === "create" ? "drive-new-folder-input" : undefined}
+              placeholder={modal.kind === "create" ? "Enter folder name" : undefined}
               value={name}
               autoFocus
               required
@@ -1229,7 +1232,7 @@ export default function DrivePage() {
               onChange={(e) => setName(e.target.value)}
             />
             <ErrorBox error={error} />
-            <div className="form-actions">
+            <div className={modal.kind === "create" ? "drive-new-folder-actions form-actions" : "form-actions"}>
               <button
                 type="button"
                 className="btn-secondary"
