@@ -36,7 +36,9 @@ import {
   Lightbulb,
   Sparkles,
   Trophy,
-  ListFilter,
+  Hash,
+  Check,
+  UserRound,
 } from "lucide-react";
 import { api, uploadFile } from "../lib/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -561,13 +563,29 @@ function ReceiptDetails({ details, onClose }) {
 }
 function NewChat({ onClose, onCreated }) {
   const { user } = useAuth();
+  const dialogRef = useRef(null);
   const [group, setGroup] = useState(false);
   const [name, setName] = useState("");
   const [members, setMembers] = useState([]);
+  const [memberSearch, setMemberSearch] = useState("");
+
   const users = useQuery({
     queryKey: ["users"],
     queryFn: () => api("/users").then((r) => r.data),
   });
+  const colleagues = useMemo(
+    () => (users.data || []).filter((person) => person.id !== user.id && person.status === "ACTIVE"),
+    [users.data, user.id],
+  );
+  const filteredColleagues = useMemo(() => {
+    const query = memberSearch.trim().toLocaleLowerCase();
+    if (!query) return colleagues;
+    return colleagues.filter((person) =>
+      [person.displayName, person.jobTitle, person.department?.name, person.email]
+        .some((value) => value?.toLocaleLowerCase().includes(query)),
+    );
+  }, [colleagues, memberSearch]);
+
   const save = useMutation({
     mutationFn: () =>
       api("/conversations", {
@@ -583,76 +601,196 @@ function NewChat({ onClose, onCreated }) {
       onClose();
     },
   });
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    dialog.showModal();
+    return () => {
+      if (dialog.open) dialog.close();
+    };
+  }, []);
+
+  const changeType = (nextGroup) => {
+    if (group === nextGroup) return;
+    setGroup(nextGroup);
+    setMembers([]);
+  };
+  const toggleMember = (id) => {
+    setMembers((selected) => {
+      if (!group) return [id];
+      return selected.includes(id)
+        ? selected.filter((memberId) => memberId !== id)
+        : [...selected, id];
+    });
+  };
+
   return (
-    <Modal title="New conversation" onClose={onClose}>
-      <div className="tabs mb-5">
-        <button
-          className={!group ? "active" : ""}
-          onClick={() => {
-            setGroup(false);
-            setMembers([]);
-          }}
-        >
-          Direct message
-        </button>
-        <button
-          className={group ? "active" : ""}
-          onClick={() => {
-            setGroup(true);
-            setMembers([]);
-          }}
-        >
-          Group
-        </button>
-      </div>
+    <dialog
+      ref={dialogRef}
+      className="new-conversation-dialog"
+      aria-labelledby="new-conversation-title"
+      aria-describedby="new-conversation-description"
+      onCancel={onClose}
+      onClick={(event) => {
+        if (event.target === dialogRef.current) onClose();
+      }}
+    >
       <form
-        onSubmit={(e) => {
-          e.preventDefault();
+        className="new-conversation-form"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (save.isPending || members.length === 0 || (group && name.trim().length < 2)) return;
           save.mutate();
         }}
       >
-        {group && (
-          <Field
-            label="Group name"
-            required
-            minLength={2}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-        )}
-        <Field label={group ? "Members" : "Person"}>
-          <select
-            className={`input ${group ? "h-40" : ""}`}
-            multiple={group}
-            required
-            value={group ? members : members[0] || ""}
-            onChange={(e) =>
-              setMembers([...e.target.selectedOptions].map((o) => o.value))
-            }
-          >
-            {!group && <option value="">Choose a colleague</option>}
-            {users.data
-              ?.filter((u) => u.id !== user.id && u.status === "ACTIVE")
-              .map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.displayName}
-                </option>
-              ))}
-          </select>
-        </Field>
-        {group && (
-          <p className="mt-2 text-xs text-slate-400">
-            Hold Ctrl / Cmd to select multiple people.
-          </p>
-        )}
-        <ErrorBox error={save.error} />
-        <div className="form-actions">
-          <button className="btn-primary" disabled={save.isPending}>
-            Start conversation
+        <header className="new-conversation-header">
+          <span className="new-conversation-header-icon" aria-hidden="true"><Plus size={24} /></span>
+          <div className="new-conversation-heading">
+            <h2 id="new-conversation-title">New conversation</h2>
+            <p id="new-conversation-description">Reach out to a team colleague or form a group channel</p>
+          </div>
+          <button type="button" className="new-conversation-close" aria-label="Close new conversation" onClick={onClose}>
+            <X size={18} />
           </button>
+        </header>
+
+        <div className="new-conversation-body">
+          <div className="new-conversation-types">
+            <div className="new-conversation-type-switch" role="tablist" aria-label="Conversation type">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={!group}
+                className={!group ? "is-active" : ""}
+                onClick={() => changeType(false)}
+              >
+                <UserRound size={14} />
+                Direct message
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={group}
+                className={group ? "is-active" : ""}
+                onClick={() => changeType(true)}
+              >
+                <Users size={14} />
+                Group
+              </button>
+            </div>
+            <span className="new-conversation-count" aria-live="polite">
+              {members.length} {members.length === 1 ? "member" : "members"} selected
+            </span>
+          </div>
+
+          {group && (
+            <label className="new-conversation-name-label">
+              <span>Group name <span className="new-conversation-required">*</span></span>
+              <span className="new-conversation-name-field">
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  minLength={2}
+                  required
+                  placeholder="Enter a group name"
+                  autoComplete="off"
+                />
+                <Hash size={16} aria-hidden="true" />
+              </span>
+            </label>
+          )}
+
+          <div className="new-conversation-members-heading">
+            <span>{group ? "Members" : "Person / Colleague"}</span>
+            <span>Search colleagues</span>
+          </div>
+          <div className="new-conversation-people-panel">
+            <label className="new-conversation-search">
+              <Search size={19} aria-hidden="true" />
+              <input
+                type="search"
+                aria-label="Search colleagues"
+                placeholder="Type name or branch to filter..."
+                value={memberSearch}
+                onChange={(event) => setMemberSearch(event.target.value)}
+                autoComplete="off"
+              />
+            </label>
+            <div
+              className="new-conversation-people-list"
+              role={group ? "group" : "radiogroup"}
+              aria-label={group ? "Select group members" : "Select a colleague"}
+            >
+              {users.isLoading ? (
+                <p className="new-conversation-list-state">Loading colleagues…</p>
+              ) : users.error ? (
+                <ErrorBox error={users.error} />
+              ) : !filteredColleagues.length ? (
+                <p className="new-conversation-list-state">
+                  {memberSearch.trim() ? "No matching colleagues found." : "No colleagues available."}
+                </p>
+              ) : (
+                filteredColleagues.map((person, index) => {
+                  const isSelected = members.includes(person.id);
+                  const initials = (person.displayName || "Colleague")
+                    .trim()
+                    .split(/\s+/)
+                    .slice(0, 2)
+                    .map((part) => part[0] || "")
+                    .join("")
+                    .toUpperCase();
+                  return (
+                    <button
+                      key={person.id}
+                      type="button"
+                      role={group ? "checkbox" : "radio"}
+                      aria-checked={isSelected}
+                      className={"new-conversation-person" + (isSelected ? " is-selected" : "")}
+                      onClick={() => toggleMember(person.id)}
+                    >
+                      <span className={"new-conversation-person-avatar avatar-tone-" + (index % 4)} aria-hidden="true">
+                        {initials}
+                      </span>
+                      <span className="new-conversation-person-details">
+                        <span className="new-conversation-person-name">
+                          {person.displayName}
+                        </span>
+                        <span className="new-conversation-person-subtitle">
+                          {[person.jobTitle, person.department?.name].filter(Boolean).join(" · ") || "Colleague"}
+                        </span>
+                      </span>
+                      <span className={"new-conversation-check" + (isSelected ? " is-selected" : "")} aria-hidden="true">
+                        {isSelected && <Check size={13} strokeWidth={3} />}
+                      </span>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </div>
+          <div className="new-conversation-helper">
+            <span className="new-conversation-hint">
+              <span className="new-conversation-hint-dot" aria-hidden="true" />
+              {group ? "Click to select multiple colleagues." : "Select a colleague to open a private channel."}
+            </span>
+            <span className="new-conversation-available">{colleagues.length} colleagues available</span>
+          </div>
+          <ErrorBox error={save.error} />
         </div>
+        <footer className="new-conversation-footer">
+          <button type="button" className="new-conversation-cancel" onClick={onClose}>Cancel</button>
+          <button
+            type="submit"
+            className="new-conversation-submit"
+            disabled={save.isPending || members.length === 0 || (group && name.trim().length < 2)}
+          >
+            Start conversation <ArrowRight size={17} />
+          </button>
+        </footer>
       </form>
-    </Modal>
+    </dialog>
   );
 }
 function Members({ conversation, onClose }) {
@@ -769,7 +907,6 @@ export default function ChatPage() {
   const [members, setMembers] = useState(false);
   const [search, setSearch] = useState("");
   const [conversationFilter, setConversationFilter] = useState("all");
-  const [filterOpen, setFilterOpen] = useState(false);
   const [messageSearch, setMessageSearch] = useState("");
   const [searchType, setSearchType] = useState("messages");
   const [searchOpen, setSearchOpen] = useState(false);
@@ -1283,35 +1420,6 @@ export default function ChatPage() {
         description="Real-time team collaboration and system channels"
         action={
           <>
-            <div className="chat-header-filter">
-              <button
-                type="button"
-                className="chat-filter-trigger"
-                aria-label="Filter conversations"
-                aria-expanded={filterOpen}
-                onClick={() => setFilterOpen((open) => !open)}
-              >
-                <ListFilter size={15} />
-                Filter
-              </button>
-              {filterOpen && (
-                <div className="chat-filter-popover" role="group" aria-label="Conversation filters">
-                  {CONVERSATION_FILTERS.map((option) => (
-                    <button
-                      key={option.id}
-                      type="button"
-                      aria-pressed={conversationFilter === option.id}
-                      onClick={() => {
-                        setConversationFilter(option.id);
-                        setFilterOpen(false);
-                      }}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
             <button className="btn-primary" onClick={() => setNewChat(true)}>
               <Plus size={17} />
               New conversation
