@@ -349,12 +349,44 @@ export default async function conversationRoutes(app) {
       unreadMessageState(app, request.authUser.id),
       unreadReactionState(app, request.authUser.id),
     ]);
+    // Only active direct-conversation peers are visible in presence results.
+    // No generic endpoint exists for looking up arbitrary user identifiers.
+    const peerIds = [...new Set(
+      data
+        .filter((conversation) => conversation.type === "DIRECT")
+        .flatMap((conversation) =>
+          conversation.members
+            .map((member) => member.userId)
+            .filter((id) => id !== request.authUser.id),
+        ),
+    )];
+    const onlinePeers = new Map(
+      await Promise.all(
+        peerIds.map(async (id) => [
+          id,
+          (await app.redis.get(`presence:${id}`)) === "online",
+        ]),
+      ),
+    );
     const enriched = data.map((conversation) => {
       const unreadMessageCount = messageCounts.get(conversation.id) || 0;
       const unreadReactionCount =
         reactionState.counts.get(conversation.id) || 0;
       return {
         ...conversation,
+        // Preserve the current REST shape and add a verified status only
+        // to direct conversation members (where the avatar dot is used).
+        ...(conversation.type === "DIRECT"
+          ? {
+              members: conversation.members.map((member) => ({
+                ...member,
+                user: {
+                  ...member.user,
+                  isOnline: onlinePeers.get(member.userId) ?? false,
+                },
+              })),
+            }
+          : {}),
         unreadMessageCount,
         unreadReactionCount,
         unreadCount: unreadMessageCount + unreadReactionCount,
