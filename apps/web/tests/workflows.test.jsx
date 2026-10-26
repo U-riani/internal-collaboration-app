@@ -8,10 +8,11 @@ import DrivePage from "../src/pages/DrivePage.jsx";
 import ChatPage from "../src/pages/ChatPage.jsx";
 import TasksPage from "../src/pages/TasksPage.jsx";
 import ApprovalsPage from "../src/pages/ApprovalsPage.jsx";
-import { api } from "../src/lib/api.js";
+import { api, uploadFiles } from "../src/lib/api.js";
 vi.mock("../src/lib/api.js", () => ({
   api: vi.fn(),
   uploadFile: vi.fn(),
+  uploadFiles: vi.fn(),
   downloadFile: vi.fn(),
 }));
 vi.mock("../src/hooks/useSocket.js", () => ({
@@ -46,12 +47,20 @@ function mount(Page) {
   );
   return userEvent.setup();
 }
-beforeEach(() => vi.resetAllMocks());
+beforeEach(() => {
+  vi.resetAllMocks();
+  uploadFiles.mockResolvedValue([]);
+  sessionStorage.clear();
+});
 
 describe("main workspace flows", () => {
   it("creates a Drive folder through a labeled form and refreshes the list", async () => {
     const items = [];
     api.mockImplementation(async (path, options = {}) => {
+      if (path === "/drive/spaces")
+        return {
+          data: [{ id: "personal", type: "PERSONAL", name: "Personal", access: "OWNER" }],
+        };
       if (options.method === "POST") {
         const input = JSON.parse(options.body);
         items.push({
@@ -66,7 +75,12 @@ describe("main workspace flows", () => {
       }
       return {
         data: [...items],
-        meta: { breadcrumbs: [], folder: null, usedBytes: 0 },
+        meta: {
+          breadcrumbs: [],
+          folder: null,
+          space: { id: "personal", access: "OWNER" },
+          usedBytes: 0,
+        },
       };
     });
     const user = mount(DrivePage);
@@ -76,7 +90,7 @@ describe("main workspace flows", () => {
     await screen.findByRole("button", { name: /^Team handbook/ });
     expect(api).toHaveBeenCalledWith("/drive", {
       method: "POST",
-      body: JSON.stringify({ name: "Team handbook", parentId: null }),
+      body: JSON.stringify({ name: "Team handbook", parentId: null, spaceId: "personal" }),
     });
   });
 
@@ -113,7 +127,7 @@ describe("main workspace flows", () => {
       throw new Error(`Unexpected request: ${path}`);
     });
     const user = mount(ChatPage);
-    await screen.findByRole("heading", { name: "Existing team" });
+    await screen.findByRole("button", { name: /Existing team/ });
     await user.click(screen.getByRole("button", { name: "New conversation" }));
     await user.selectOptions(
       await screen.findByLabelText("Person"),
