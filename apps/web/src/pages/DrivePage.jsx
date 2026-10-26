@@ -26,6 +26,7 @@ import {
 import { api, uploadFile, downloadFile } from "../lib/api.js";
 import { importExcelToUniverSnapshot } from "../lib/xlsx.js";
 import PageHeader from "../components/PageHeader.jsx";
+import "./drive-personal.css";
 import {
   Modal,
   Field,
@@ -33,6 +34,7 @@ import {
   Empty,
   Loading,
   Badge,
+  Avatar,
   fileSize,
   prettyDate,
 } from "../components/UI.jsx";
@@ -47,6 +49,29 @@ function isSpreadsheet(item) {
 
 function spreadsheetName(filename = "Imported spreadsheet") {
   return filename.replace(/\.(xlsx|xlsm|xls)$/i, "") || "Imported spreadsheet";
+}
+
+/* Display byte metadata as size, never a file extension. */
+function driveItemSize(item) {
+  const bytes = item?.file?.sizeBytes;
+  return typeof bytes === "number" && Number.isFinite(bytes) && bytes >= 0
+    ? fileSize(bytes)
+    : "—";
+}
+function driveFileExtension(item, spreadsheet) {
+  if (item.kind === "FOLDER") return "";
+  if (spreadsheet) return "XLSX";
+  const match = item.name?.match(/\.([a-z0-9]{1,8})$/i);
+  return match ? match[1].toUpperCase() : "FILE";
+}
+function driveFileTone(item, spreadsheet) {
+  if (item.kind === "FOLDER") return "folder";
+  if (spreadsheet) return "sheet";
+  const ext = driveFileExtension(item, false);
+  if (["XLSX", "XLS", "XLSM", "CSV"].includes(ext)) return "sheet";
+  if (ext === "PDF") return "pdf";
+  if (["DOC", "DOCX", "TXT", "RTF"].includes(ext)) return "document";
+  return "file";
 }
 
 function Permissions({ item, onClose, reload }) {
@@ -674,14 +699,14 @@ export default function DrivePage() {
   const canManageSpace =
     section === "shared" && selectedSpace?.access === "MANAGER";
 
-  console.log(query.data?.meta.breadcrumbs?.length);
   return (
     <>
+      <div className="drive-page">
       <PageHeader
         title="Drive"
         action={
           canAdd && (
-            <div className="overflow-x-auto  flex md:flex-wrap gap-2">
+            <div className="drive-header-actions flex flex-wrap gap-2">
               <Link to="/drive/sheets/new" className="btn-secondary text-nowrap">
                 <Table2 size={17} />
                 New spreadsheet
@@ -793,13 +818,10 @@ export default function DrivePage() {
           ))}
         </div>
         {section !== "trash" && (
-          <div className="relative ml-auto w-full sm:w-64">
-            <Search
-              size={16}
-              className="absolute right-3 top-3 text-slate-400"
-            />
+          <div className="drive-search-bar relative ml-auto w-full sm:w-64">
+            <Search size={16} aria-hidden="true" />
             <input
-              className="input pl-9 pe-7!"
+              className="drive-search-input input"
               aria-label="Search files"
               placeholder="Search files and folders"
               value={search}
@@ -915,10 +937,12 @@ export default function DrivePage() {
 
           {/* <div className="drive-list-card card max-h-[calc(100vh-24.5rem)] md:max-h-[calc(100vh-13.94rem)] overflow-y-auto"> */}
           <div
-            className={`drive-list-card card ${query.data?.meta.breadcrumbs?.length ? "max-h-[calc(100vh-407px)]" : "max-h-[calc(100vh-370px)]"} md:max-h-[calc(100vh-14rem)] overflow-y-auto`}
+            className={`drive-list-card card ${section === "personal" ? "drive-personal-list" : ""} ${query.data?.meta.breadcrumbs?.length ? "max-h-[calc(100vh-407px)]" : "max-h-[calc(100vh-370px)]"} md:max-h-[calc(100vh-14rem)] overflow-y-auto`}
           >
-            <div className="list-row sticky top-0 bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-400 ">
+            <div className={section === "personal" ? "drive-personal-table" : undefined}>
+            <div className="drive-table-head list-row sticky top-0 bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-400 ">
               <span className="flex-1">Name</span>
+              {section === "personal" && <span className="drive-owner-heading">Owner</span>}
               <span className="hidden w-28 md:block">Updated</span>
               <span className="hidden w-24 md:block">Size</span>
               <span className="drive-actions-header w-40 text-right">
@@ -935,8 +959,9 @@ export default function DrivePage() {
                   item.access === "OWNER" || item.access === "MANAGER";
                 const canDelete = deleteAccess.has(item.access);
                 const spreadsheet = isSpreadsheet(item);
+                const fileType = driveFileExtension(item, spreadsheet);
                 return (
-                  <div className="drive-item-row list-row" key={item.id}>
+                  <div className={`drive-item-row list-row ${section === "personal" ? "drive-personal-row" : ""}`} key={item.id}>
                     <div
                       className={`rounded-xl p-2.5 ${
                         item.kind === "FOLDER"
@@ -1127,6 +1152,7 @@ export default function DrivePage() {
               ` · ${fileSize(query.data?.meta.usedBytes || 0)} in Personal`}
           </p>
         </main>
+      </div>
       </div>
 
       {modal && ["create", "rename"].includes(modal.kind) && (
