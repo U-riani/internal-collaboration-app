@@ -252,7 +252,9 @@
  * modules until each is migrated to semantic tokens. These overrides are
  * intentionally scoped to the authenticated workspace.
  */
-.app-theme-dark .bg-white:not(.chat-message-bubble) { background-color: var(--app-surface); }
+.app-theme-dark .bg-white:not(.chat-message-bubble):not(.workspace-sidebar):not(.workspace-sidebar-top):not(.workspace-mobile-header):not(.page-header) {
+  background-color: var(--app-surface);
+}
 .app-theme-dark .bg-slate-50,
 .app-theme-dark .bg-gray-50 { background-color: #1b2234; }
 .app-theme-dark .bg-slate-100,
@@ -309,12 +311,31 @@
   border-color: var(--app-border);
   background: var(--app-surface-raised);
 }
+/* Hard-coded legacy list backgrounds are also dark on small screens. */
+.app-theme-dark .list-row:hover { background: var(--app-surface-hover); }
+.app-theme-dark .task-list-row,
+.app-theme-dark .approval-list-row,
+.app-theme-dark .task-empty-row,
+.app-theme-dark .approval-empty-row {
+  background: var(--app-surface);
+  border-color: var(--app-border-strong) !important;
+}
 .app-theme-dark .task-list-card,
 .app-theme-dark .approval-list-card,
 .app-theme-dark .approval-base-table-wrap,
 .app-theme-dark .drive-list-card {
   border-color: var(--app-border);
   background: var(--app-surface);
+}
+/* Messages retains its custom input/gradient even when shared input rules apply. */
+.app-theme-dark .messages-page .chat-compose-textarea {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.app-theme-dark .messages-page .page-header {
+  background: transparent;
+  border: 0;
 }
 .app-theme-dark table { color: var(--app-text); }
 .app-theme-dark table th {
