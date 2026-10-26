@@ -113,19 +113,19 @@
   border: 1px solid transparent;
   border-radius: 10px;
   color: #848fa9;
-  background: #0c1221;
+  background: #252a3b;
   transition: border-color .16s ease, box-shadow .16s ease;
 }
 .drive-page .drive-search-bar:focus-within {
-  border-color: #6b67d6;
-  box-shadow: 0 0 0 2px rgba(102,102,241,.12);
+  border-color: #7670dd;
+  box-shadow: 0 0 0 2px rgba(118,112,221,.14);
 }
 .drive-page .drive-search-bar > svg {
   position: static;
   flex-shrink: 0;
   margin: 0 0 0 12px;
   pointer-events: none;
-  color: #838ea8;
+  color: #77809c;
 }
 .app-theme-dark .drive-page .drive-search-bar > input,
 .drive-page .drive-search-bar > input {
