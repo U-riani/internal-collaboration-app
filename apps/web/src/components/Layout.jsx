@@ -201,32 +201,32 @@ export default function Layout() {
             );
           })}
         </nav>
-        <div className="sticky bottom-0 bg-white mt-auto pb-3 border-t border-slate-100 pt-5">
-          <div className="mb-4 flex items-center gap-3">
-            <Avatar name={user.displayName} />
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold">
-                {user.displayName}
-              </p>
-              <p className="truncate text-xs text-slate-400">
-                {user.department?.name || "Team member"}
-              </p>
+        <div className="sidebar-profile sticky bottom-0 mt-auto pb-3 pt-4">
+          <div className="sidebar-profile-card">
+            <NavLink
+              to="/account"
+              onClick={() => setOpen(false)}
+              className="sidebar-profile-identity"
+              title="My account"
+              aria-label={`Open account for ${user.displayName || user.firstName || "user"}`}
+            >
+              <Avatar name={user.displayName || user.firstName || "User"} />
+              <span className="sidebar-profile-details">
+                <strong className="sidebar-profile-name">
+                  {user.displayName || user.firstName || "User"}
+                </strong>
+                <span className="sidebar-profile-department">
+                  {user.department?.name || "Team member"}
+                </span>
+              </span>
+            </NavLink>
+            <div className="sidebar-profile-footer">
+              <button type="button" className="sidebar-profile-logout" onClick={logout}>
+                <LogOut size={15} />
+                <span>Sign out</span>
+              </button>
             </div>
           </div>
-          <NavLink
-            to="/account"
-            onClick={() => setOpen(false)}
-            className="block text-xs text-blue-600 mb-4"
-          >
-            My account
-          </NavLink>
-          <button
-            className="flex items-center gap-2 text-xs text-slate-500 hover:text-slate-900"
-            onClick={logout}
-          >
-            <LogOut size={15} />
-            Sign out
-          </button>
         </div>
       </aside>
       {/* <main className="workspace-main max-[900px]:h-[calc(100dvh-4rem)] max-[900px]:overflow-y-auto min-[901px]:h-screen min-[901px]:overflow-y-auto"> */}
