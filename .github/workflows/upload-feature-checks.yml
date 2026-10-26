@@ -51,5 +51,5 @@ jobs:
         run: npm --prefix apps/web run build
       - name: Test web application
         run: npm --prefix apps/web test
-      - name: Test API including uploads
-        run: npm --prefix apps/api test
+      - name: Test authenticated uploads and multi-module attachments
+        run: cd apps/api && node --env-file-if-exists=../../.env --test tests/upload.test.js
