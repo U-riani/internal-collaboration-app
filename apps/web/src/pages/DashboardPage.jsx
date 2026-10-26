@@ -108,9 +108,9 @@ export default function DashboardPage() {
 
   const stats = [
     { label: "Active tasks", value: activeTasks.length, loading: tasks.isLoading, icon: CheckSquare2, tone: "cyan", to: "/tasks", chip: "In flight" },
-    { label: "Overdue tasks", value: overdueCount, loading: tasks.isLoading, icon: Clock3, tone: "coral", to: "/tasks", chip: "Urgent" },
-    { label: "Needs your approval", value: pendingReviews.length, loading: approvals.isLoading, icon: FileCheck2, tone: "indigo", to: "/approvals", chip: "Caught up" },
-    { label: "Unread updates", value: unreadCount, loading: notifications.isLoading, icon: MessageSquare, tone: "violet", to: "/notifications", chip: "Clear" },
+    { label: "Overdue tasks", value: overdueCount, loading: tasks.isLoading, icon: Clock3, tone: "coral", to: "/tasks", chip: overdueCount > 0 ? "Urgent" : "On track" },
+    { label: "Needs your approval", value: pendingReviews.length, loading: approvals.isLoading, icon: FileCheck2, tone: "indigo", to: "/approvals", chip: pendingReviews.length > 0 ? "Pending" : "Caught up" },
+    { label: "Unread updates", value: unreadCount, loading: notifications.isLoading, icon: MessageSquare, tone: "violet", to: "/notifications", chip: unreadCount > 0 ? "New" : "Clear" },
   ];
 
   return (
