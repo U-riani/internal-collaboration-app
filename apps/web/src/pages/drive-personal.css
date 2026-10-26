@@ -465,8 +465,8 @@
 .drive-page .drive-shared-list {
   max-height: calc(100dvh - 323px) !important;
 }
-.drive-page .drive-shared-list .drive-personal-row { background: #151b2c; }
-.drive-page .drive-shared-list .drive-personal-row:hover { background: #20283d; }
+.drive-page .drive-shared-list .drive-shared-row { background: #151b2c; }
+.drive-page .drive-shared-list .drive-shared-row:hover { background: #20283d; }
 .drive-page .drive-shared-list .drive-item-name { color: #eef0ff; }
 .drive-page .drive-shared-list .drive-owner-cell { overflow: hidden; }
 .drive-page .drive-shared-list .drive-item-row button .text-slate-400 {
