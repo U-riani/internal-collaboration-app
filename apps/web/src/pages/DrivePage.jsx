@@ -584,6 +584,7 @@ function CreateGroup({ onClose, onCreated }) {
   return (
     <Modal title="New shared group" onClose={onClose}>
       <form
+        className="drive-new-group-form"
         onSubmit={(e) => {
           e.preventDefault();
           save.mutate();
@@ -591,6 +592,8 @@ function CreateGroup({ onClose, onCreated }) {
       >
         <Field
           label="Group name"
+          className="drive-new-group-input"
+          placeholder="Enter group name"
           value={name}
           required
           maxLength={200}
@@ -598,7 +601,7 @@ function CreateGroup({ onClose, onCreated }) {
           onChange={(e) => setName(e.target.value)}
         />
         <ErrorBox error={error} />
-        <div className="form-actions">
+        <div className="drive-new-group-actions form-actions">
           <button type="button" className="btn-secondary" onClick={onClose}>
             Cancel
           </button>
