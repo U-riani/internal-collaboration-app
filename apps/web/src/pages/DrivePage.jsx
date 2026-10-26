@@ -22,6 +22,7 @@ import {
   Plus,
   Settings2,
   ShieldCheck,
+  LockKeyhole,
 } from "lucide-react";
 import { api, uploadFile, downloadFile } from "../lib/api.js";
 import { importExcelToUniverSnapshot } from "../lib/xlsx.js";
@@ -422,14 +423,19 @@ function SpaceMembers({ space, onClose, reload }) {
           return (
             <div
               key={person.id}
-              className="drive-member-person flex items-center gap-3 border-b border-slate-100 px-3 py-2 last:border-0"
+              className={`drive-member-person flex items-center gap-3 border-b border-slate-100 px-3 py-2 last:border-0 ${systemAdmin ? "drive-member-person--admin" : ""}`}
             >
-              <div className="drive-member-avatar" aria-hidden="true">
-                {(person.displayName || "?").trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase()}
+              <div className={`drive-member-avatar ${systemAdmin ? "drive-member-avatar--admin" : ""}`} aria-hidden="true">
+                {systemAdmin ? (
+                  <ShieldCheck size={19} strokeWidth={2} />
+                ) : (
+                  (person.displayName || "?").trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase()
+                )}
               </div>
               <div className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-medium">
-                  {person.displayName}
+                <span className="drive-member-display-name block truncate text-sm font-medium">
+                  <span className="truncate">{person.displayName}</span>
+                  {systemAdmin && <LockKeyhole size={13} className="drive-admin-name-lock" aria-hidden="true" />}
                 </span>
                 {!systemAdmin && (
                   <span className="drive-member-subtitle">
@@ -437,39 +443,45 @@ function SpaceMembers({ space, onClose, reload }) {
                   </span>
                 )}
                 {systemAdmin && (
-                  <span className="text-[11px] text-slate-400">
-                    System administrator · Always manager
+                  <span className="drive-member-subtitle drive-member-admin-subtitle">
+                    Global Tenant Policy · Manager Access
                   </span>
                 )}
               </div>
-              <select
-                className="drive-member-role-select input !w-36"
-                aria-label={`Role for ${person.displayName}`}
-                value={systemAdmin ? "MANAGER" : roles[person.id] || "NONE"}
-                disabled={systemAdmin}
-                onChange={(e) =>
-                  setRoles((current) => ({
-                    ...current,
-                    [person.id]: e.target.value,
-                  }))
-                }
-              >
-                <option value="NONE">
-                  {space.type === "GLOBAL" ? "Default viewer" : "Not a member"}
-                </option>
-                <option value="VIEWER">Viewer</option>
-                <option value="EDITOR">Editor</option>
-                <option value="MANAGER">Manager</option>
-              </select>
+              {systemAdmin ? (
+                <span
+                  className="drive-member-admin-manager"
+                  aria-label="Manager access is locked for system administrators"
+                >
+                  <LockKeyhole size={15} aria-hidden="true" />
+                  Manager
+                </span>
+              ) : (
+                <select
+                  className="drive-member-role-select input !w-36"
+                  aria-label={`Role for ${person.displayName}`}
+                  value={roles[person.id] || "NONE"}
+                  onChange={(e) =>
+                    setRoles((current) => ({
+                      ...current,
+                      [person.id]: e.target.value,
+                    }))
+                  }
+                >
+                  <option value="NONE">
+                    {space.type === "GLOBAL" ? "Default viewer" : "Not a member"}
+                  </option>
+                  <option value="VIEWER">Viewer</option>
+                  <option value="EDITOR">Editor</option>
+                  <option value="MANAGER">Manager</option>
+                </select>
+              )}
             </div>
           );
         })}
       </div>
       <ErrorBox error={error || people.error || members.error} />
       <div className="drive-member-form-actions form-actions">
-        <button className="btn-secondary" onClick={onClose}>
-          Cancel
-        </button>
         <button
           className="btn-primary"
           disabled={save.isPending}
@@ -709,6 +721,22 @@ export default function DrivePage() {
     writeAccess.has(currentAccess);
   const canManageSpace =
     section === "shared" && selectedSpace?.access === "MANAGER";
+
+  // This listing contains only the visible folder/search results. The API's
+  // meta.usedBytes is for Personal storage and must not label Shared usage.
+  const visibleSharedFiles = query.data?.data || [];
+  const sharedBytesKnown = visibleSharedFiles.every(
+    (item) => item.kind !== "FILE" ||
+      (typeof item.file?.sizeBytes === "number" &&
+        Number.isFinite(item.file.sizeBytes) && item.file.sizeBytes >= 0),
+  );
+  const sharedVisibleSize = sharedBytesKnown
+    ? fileSize(visibleSharedFiles.reduce(
+        (sum, item) => sum +
+          (item.kind === "FILE" ? item.file.sizeBytes : 0),
+        0,
+      ))
+    : "—";
 
   return (
     <>
@@ -1166,6 +1194,8 @@ export default function DrivePage() {
             {query.data?.data.length || 0} items
             {section === "personal" &&
               ` · ${fileSize(query.data?.meta.usedBytes || 0)} in Personal`}
+            {section === "shared" &&
+              ` · ${sharedVisibleSize} in Shared`}
           </p>
         </main>
       </div>
