@@ -1,10 +1,8 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowRight,
   ArrowUpRight,
-  Bell,
   CalendarDays,
   CheckSquare2,
   CircleCheck,
@@ -13,7 +11,6 @@ import {
   FolderClosed,
   Inbox,
   MessageSquare,
-  Search,
 } from "lucide-react";
 import { api } from "../lib/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -64,7 +61,6 @@ function StatCard({ label, value, loading, icon: Icon, tone, to, chip }) {
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const [search, setSearch] = useState("");
   const tasks = useQuery({
     queryKey: ["tasks"],
     queryFn: () => api("/tasks").then((r) => r.data),
@@ -92,13 +88,6 @@ export default function DashboardPage() {
       ),
   );
   const unreadCount = notifications.data?.meta?.unreadCount || 0;
-  const normalizedSearch = search.trim().toLocaleLowerCase();
-  const matchingTasks = normalizedSearch
-    ? activeTasks.filter((task) =>
-        [task.title, task.assignee?.displayName, task.status]
-          .some((value) => String(value || "").toLocaleLowerCase().includes(normalizedSearch)),
-      )
-    : activeTasks;
   const recentUpdates = notifications.data?.data?.slice(0, 4) || [];
   const dateLabel = new Date().toLocaleDateString(undefined, {
     weekday: "long",
@@ -115,41 +104,11 @@ export default function DashboardPage() {
 
   return (
     <div className="overview-dashboard">
-      <header className="overview-toolbar">
-        <div className="overview-toolbar-search">
-          <Search aria-hidden="true" size={17} />
-          <input
-            aria-label="Search focus tasks"
-            type="search"
-            placeholder="Search focus tasks..."
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-          />
-          {search && (
-            <button type="button" onClick={() => setSearch("")} className="overview-search-clear" aria-label="Clear search">
-              Clear
-            </button>
-          )}
-        </div>
-        <div className="overview-toolbar-right">
-          <span className="overview-toolbar-date"><CalendarDays size={15} />{dateLabel}</span>
-          <span className="overview-live"><span aria-hidden="true" />Workspace</span>
-          <Link to="/notifications" className="overview-toolbar-link" aria-label="Notifications">
-            <Bell size={18} />
-            {unreadCount > 0 && <span className="overview-notification-dot" />}
-          </Link>
-          <Link to="/account" className="overview-toolbar-profile" title={user.displayName || "My account"} aria-label="My account">
-            {(user.displayName || user.firstName || "U").charAt(0).toLocaleUpperCase()}
-          </Link>
-        </div>
-      </header>
-
       <div className="overview-body">
         <div className="overview-hero">
           <div className="overview-hero-main">
             <div className="overview-hero-title">
               <h1>Hello, {user.firstName}</h1>
-              <span className="overview-hero-badge"><span aria-hidden="true" /> ACTIVE WORKSPACE</span>
             </div>
             <p>Here's what's happening across your workspace today.</p>
           </div>
@@ -168,12 +127,12 @@ export default function DashboardPage() {
           <section className="overview-panel overview-focus">
             <div className="overview-panel-heading">
               <h2><span className="overview-heading-mark overview-heading-mark--indigo" />Work to focus on
-                <span className="overview-focus-count">{matchingTasks.length}</span>
+                <span className="overview-focus-count">{activeTasks.length}</span>
               </h2>
               <Link to="/tasks" className="overview-panel-action">All tasks <ArrowRight size={15} /></Link>
             </div>
             <div className="overview-focus-list">
-              {matchingTasks.slice(0, 6).map((task) => (
+              {activeTasks.slice(0, 6).map((task) => (
                 <Link key={task.id} to="/tasks" className="overview-task-row">
                   <span className="overview-task-check" aria-hidden="true" />
                   <div className="overview-task-info">
@@ -184,11 +143,11 @@ export default function DashboardPage() {
                   <ArrowUpRight size={15} className="overview-task-arrow" aria-hidden="true" />
                 </Link>
               ))}
-              {!tasks.isLoading && matchingTasks.length === 0 && (
+              {!tasks.isLoading && activeTasks.length === 0 && (
                 <div className="overview-empty">
                   <CircleCheck size={26} />
-                  <strong>{search ? "No matching tasks" : "A clear start"}</strong>
-                  <span>{search ? "Try another search to find a focus task." : "Create a task to plan your team's next steps."}</span>
+                  <strong>A clear start</strong>
+                  <span>Create a task to plan your team's next steps.</span>
                 </div>
               )}
               {tasks.isLoading && <p className="overview-loading">Loading tasks…</p>}
