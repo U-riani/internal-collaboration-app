@@ -1,11 +1,11 @@
 /* Messages workspace refresh. All selectors are scoped to Messages. */
 .messages-page {
-  --message-bg: #111524;
-  --message-panel: #171c2d;
-  --message-raised: #212739;
-  --message-line: rgba(180, 190, 230, .085);
-  --message-muted: #929bb4;
-  --message-text: #edf0ff;
+  --message-bg: var(--app-bg, #0a0f1d);
+  --message-panel: var(--app-surface, #151b2c);
+  --message-raised: var(--app-surface-raised, #1b2234);
+  --message-line: var(--app-border, rgba(180, 190, 230, .085));
+  --message-muted: var(--app-muted, #969cb5);
+  --message-text: var(--app-text, #e6e7f8);
   min-height: calc(100dvh - 28px);
   margin: 0 -34px -28px;
   padding: 25px clamp(16px, 2.5vw, 32px) 24px;
