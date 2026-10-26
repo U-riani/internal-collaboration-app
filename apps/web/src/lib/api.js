@@ -97,6 +97,17 @@ export async function uploadFile(file) {
   return (await api("/files", { method: "POST", body: form })).data;
 }
 
+// Upload sequentially to avoid saturating the server and to preserve each
+// file's individual authorization and quota checks.
+export async function uploadFiles(files = []) {
+  const ids = [];
+  for (const file of files) {
+    const uploaded = await uploadFile(file);
+    ids.push(uploaded.id);
+  }
+  return ids;
+}
+
 export async function downloadFile(id, filename) {
   try {
     const sheetLink = await api(`/drive/sheets/by-file/${id}`);
