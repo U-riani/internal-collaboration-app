@@ -50,8 +50,13 @@ can reselect and retry the file.
 1. Run `npm --prefix apps/api run check` and
    `npm --prefix apps/web run build`.
 2. Run `npm --prefix apps/web test`.
-3. Run `npm --prefix apps/api test` with a **test PostgreSQL database**;
-   tests create and drop their own temporary PostgreSQL schemas.
+3. Run focused upload tests with `cd apps/api && node --test tests/upload.test.js`
+   against a **test PostgreSQL database** (requires DATABASE_URL).
+   The full `npm --prefix apps/api test` suite should also be reviewed:
+   its existing integration tests currently have unrelated failures involving
+   idempotent direct conversations, Drive membership permissions, and the
+   strict per-minute file-upload rate limit. CI focuses on this feature,
+   not those legacy scenarios.
 4. In a staging deployment, upload a small file and a file larger than 100 MB
    through the Cloudflare hostname. Confirm downloaded checksums match.
 5. Upload 2+ files in Messages, Tasks, Task Comments, and Approvals, and check
