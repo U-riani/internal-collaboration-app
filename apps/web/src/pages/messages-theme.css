@@ -57,8 +57,10 @@
   /* Avoid transition-all between a gradient and a flat hover background. */
   transition: filter .16s ease, box-shadow .16s ease;
 }
-.messages-page .page-header .btn-primary:hover:not(:disabled) {
+.messages-page .page-header .btn-primary:hover {
   background: linear-gradient(125deg, #8077ff, #5755e8);
+}
+.messages-page .page-header .btn-primary:hover:not(:disabled) {
   filter: brightness(1.08);
   box-shadow: 0 7px 21px rgba(87, 85, 232, .28);
 }
