@@ -13,6 +13,7 @@ import {
   hasLinks,
 } from "../lib/file-access.js";
 import { hasPermission } from "../lib/authz.js";
+import registerChunkedUploads from "../lib/chunked-upload.js";
 
 const blockedExtensions = new Set([
   ".exe",
@@ -28,6 +29,7 @@ const blockedExtensions = new Set([
 ]);
 export default async function fileRoutes(app) {
   app.addHook("preHandler", app.authenticate);
+  await registerChunkedUploads(app);
   app.post(
     "/",
     { config: { rateLimit: { max: 60, timeWindow: "1 minute" } } },
