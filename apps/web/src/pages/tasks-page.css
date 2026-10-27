@@ -844,8 +844,9 @@
   font-weight: 700;
   line-height: 1.35;
 }
-.task-form > .field, .task-form > .filter-multiselect { margin-top: 18px; }
-.task-form > .field:first-child { margin-top: 0; }
+.task-form .task-form-scroll > .field,
+.task-form .task-form-scroll > .filter-multiselect { margin-top: 18px; }
+.task-form .task-form-scroll > .field:first-child { margin-top: 0; }
 .task-form .field > span:first-child { color: var(--task-muted); }
 /* Keep vertical spacing between consecutive fields; only the two-column row is aligned flush. */
 .task-form .task-form-row {
@@ -888,24 +889,38 @@
   line-height: 1.55;
   resize: vertical;
 }
+/* Match Filter Tasks dropdown interaction; do not override option backgrounds.
+   The shared .app-modern-select option/picker rules supply hover and selected colors. */
 .task-form select.app-modern-select,
 .app-theme-dark .task-form select.app-modern-select {
   min-height: 40px;
-  border: 1px solid var(--task-border);
-  background: var(--task-control);
+  border: 1px solid var(--task-border) !important;
+  border-radius: 10px;
+  background: var(--task-control) !important;
   color: var(--task-text);
+  font-size: 12px;
   font-weight: 650;
+  box-shadow: none !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
 }
 .task-form select.app-modern-select:hover,
 .app-theme-dark .task-form select.app-modern-select:hover {
-  border-color: var(--task-border);
-  background: var(--task-control);
+  border-color: var(--task-border) !important;
+  background: var(--task-control) !important;
 }
 .task-form select.app-modern-select:focus,
-.app-theme-dark .task-form select.app-modern-select:focus { border-color: #8078ed; }
-.task-form select.app-modern-select option {
-  color: var(--task-text);
-  background: var(--task-surface);
+.task-form select.app-modern-select:focus-visible,
+.app-theme-dark .task-form select.app-modern-select:focus,
+.app-theme-dark .task-form select.app-modern-select:focus-visible {
+  border: 1px solid #7873ca !important;
+  outline: none !important;
+  box-shadow: none !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+}
+.task-form select.app-modern-select:focus-visible,
+.app-theme-dark .task-form select.app-modern-select:focus-visible {
+  outline: 1px solid #8e89ec !important;
+  outline-offset: 1px;
 }
 .task-form .task-form-date { color-scheme: light; }
 .app-theme-dark .task-form .task-form-date { color-scheme: dark; }
@@ -932,38 +947,89 @@
   color: var(--task-muted);
   font-weight: 700;
 }
-.task-form .task-form-actions {
-  justify-content: flex-end;
-  margin-top: 22px;
-  padding: 16px 0 0;
+/* Sticky-looking but structurally independent footer:
+   dialog header and footer never scroll with the editable fields. */
+.modal[open]:has(.task-form) {
+  display: flex;
+  flex-direction: column;
+  width: min(600px, calc(100vw - 32px));
+  height: min(760px, calc(100dvh - 48px));
+  max-height: calc(100dvh - 48px);
+  overflow: hidden;
 }
-.task-form .task-form-actions .btn-primary {
+.modal:has(.task-form) .modal-head { flex: 0 0 auto; }
+.modal:has(.task-form) .modal-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  max-height: none;
+  padding: 0;
+  overflow: hidden;
+}
+.task-form { flex: 1 1 auto; min-height: 0; overflow: hidden; }
+.task-form .task-form-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 22px 24px 24px;
+  scrollbar-width: thin;
+  scrollbar-color: #535d78 transparent;
+}
+.task-form .task-form-footer {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 70px;
+  padding: 14px 24px 16px;
+  border-top: 1px solid var(--task-border);
+  background: var(--task-surface);
+}
+.task-form .task-form-footer-note {
+  color: var(--task-subtle);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+.task-form .task-form-footer .btn-primary {
+  flex: 0 0 auto;
   min-height: 38px;
   padding: 8px 17px;
   border-radius: 9px;
+  border: 0;
   background: #716bf4;
   color: #fff;
   font-size: 12px;
   font-weight: 700;
 }
-.task-form .task-form-actions .btn-primary:hover { background: #817afa; }
-.app-theme-dark .task-form .task-form-actions {
-  background: transparent;
-  border-color: var(--task-border);
+.task-form .task-form-footer .btn-primary:hover { background: #817afa; }
+.modal:has(.task-form) .modal-head h2 {
+  font-weight: 750;
+  letter-spacing: -.015em;
 }
-.modal:has(.task-form) .modal-head h2 { font-weight: 750; letter-spacing: -.015em; }
-.modal:has(.task-form) .modal-body {
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  max-height: calc(100dvh - 135px);
+@media (max-width: 900px) {
+  .modal[open]:has(.task-form) {
+    top: auto;
+    bottom: 0;
+    width: 100vw;
+    height: min(760px, 94dvh);
+    max-height: 94dvh;
+    transform: translateX(-50%);
+    border-radius: 20px 20px 0 0;
+  }
 }
-.modal:has(.task-form) .form-actions { position: sticky; bottom: -1px; }
 @media (max-width: 640px) {
   .task-form .task-form-row { grid-template-columns: minmax(0, 1fr); }
   .task-form .filter-multiselect-options { max-height: 150px; }
-  .modal:has(.task-form) .modal-body { max-height: calc(100dvh - 115px); }
-  .task-form .task-form-actions {
-    margin: 18px -18px -18px;
-    padding: 14px 18px 18px;
+  .task-form .task-form-scroll { padding: 18px 18px 24px; }
+  .task-form .task-form-footer {
+    min-height: 64px;
+    padding: 12px 18px calc(12px + env(safe-area-inset-bottom, 0px));
   }
+}
+@media (max-width: 450px) {
+  .task-form .task-form-footer-note { max-width: 55%; }
 }
