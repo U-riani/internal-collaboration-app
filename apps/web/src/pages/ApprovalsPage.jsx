@@ -618,9 +618,7 @@ function Configure({ existing, onClose }) {
   );
 }
 
-export { Configure as ApprovalTypeConfigure };
-
-function ApprovalDateField({ label, value, onChange }) {
+export function ApprovalDateField({ label, value, onChange }) {
   const displayValue = value
     ? `${value.slice(5, 7)}/${value.slice(8, 10)}/${value.slice(0, 4)}`
     : "mm/dd/yyyy";
