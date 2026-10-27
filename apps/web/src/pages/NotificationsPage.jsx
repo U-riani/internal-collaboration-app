@@ -180,7 +180,7 @@ export default function NotificationsPage() {
       />
 
       <div className="notifications-shell">
-        <div className="notifications-toolbar">
+        <div className="task-toolbar task-toolbar--refresh notifications-toolbar">
           <div className="tabs task-quick-tabs notifications-tabs" aria-label="Notification filters">
             {[
               { value: "all", label: "All Activity", count: items.length },
