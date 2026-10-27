@@ -241,357 +241,382 @@ function Configure({ existing, onClose }) {
   });
   return (
     <Modal
-      title={existing ? `Edit ${existing.name}` : "New approval type"}
+      title={
+        <span className="approval-config-heading">
+          <span className="approval-config-heading-icon" aria-hidden="true">
+            <FileCheck2 size={20} />
+          </span>
+          <span className="approval-config-heading-copy">
+            <span className="approval-config-heading-title">
+              {existing ? `Edit ${existing.name}` : "New approval type"}
+            </span>
+            <span className="approval-config-heading-subtitle">
+              Configure intake form fields and hierarchical approval chain routing
+            </span>
+          </span>
+        </span>
+      }
       wide
       onClose={onClose}
     >
       <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          save.mutate();
+        className="task-form approval-config-form"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (!save.isPending) save.mutate();
         }}
       >
-        {existing && (
-          <div className="mb-5 rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-500">
-            <strong className="text-slate-700">
-              Version {existing.version}
-            </strong>
-            {" · "}
-            {usedCount} request{usedCount === 1 ? "" : "s"} created from this
-            type. Saving configuration changes creates version{" "}
-            {existing.version + 1}; existing requests keep their saved workflow.
-          </div>
-        )}
-        <div className="grid sm:grid-cols-2 gap-4">
-          <Field
-            label="Name"
-            required
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <div>
-            <Field label="Code (letters, numbers, underscores)">
-              <input
-                className="input"
-                required
-                disabled={Boolean(existing && usedCount > 0)}
-                value={code}
-                onChange={(e) => setCode(e.target.value.toUpperCase())}
-              />
-            </Field>
-            {existing && usedCount > 0 && (
-              <p className="mt-1 text-xs text-slate-400">
-                The code is locked because this request type is already in use.
-              </p>
-            )}
-          </div>
-        </div>
-        <Field label="Description">
-          <textarea
-            className="input min-h-20"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
-        </Field>
-        <h3 className="text-sm font-bold mt-6 mb-3">Request form</h3>
-        <div className="space-y-3">
-          {fields.map((f, i) => (
-            <div className="rounded-xl border border-slate-200 p-3" key={f.key}>
-              <div className="flex flex-wrap gap-2">
+        <div className="task-form-scroll approval-config-scroll">
+          {existing && (
+            <div className="approval-config-version">
+              <strong>Version {existing.version}</strong>
+              {" · "}
+              {usedCount} request{usedCount === 1 ? "" : "s"} created from this
+              type. Saving configuration changes creates version{" "}
+              {existing.version + 1}; existing requests keep their saved workflow.
+            </div>
+          )}
+
+          <div className="task-form-row approval-config-main-fields grid gap-4 sm:grid-cols-2">
+            <Field
+              label="Name"
+              required
+              placeholder="e.g. Travel & Expense Claim"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+            />
+            <div className="approval-config-code-field">
+              <Field label="Code (letters, numbers, underscores)">
                 <input
-                  className="input w-32"
-                  aria-label={`Field ${i + 1} key`}
-                  title="Technical field key"
+                  className="input"
+                  placeholder="e.g. EXPENSE_APPROVAL_V2"
                   required
-                  pattern="[A-Za-z][A-Za-z0-9_]*"
-                  value={f.key}
-                  onChange={(e) =>
-                    setFields(
-                      fields.map((x, j) =>
-                        i === j ? { ...x, key: e.target.value } : x,
-                      ),
-                    )
-                  }
+                  disabled={Boolean(existing && usedCount > 0)}
+                  value={code}
+                  onChange={(event) => setCode(event.target.value.toUpperCase())}
                 />
-                <input
-                  className="input flex-1 min-w-40"
-                  aria-label={`Field ${i + 1} label`}
-                  placeholder="Field label"
-                  required
-                  value={f.label}
-                  onChange={(e) =>
-                    setFields(
-                      fields.map((x, j) =>
-                        i === j ? { ...x, label: e.target.value } : x,
-                      ),
-                    )
-                  }
-                />
-                <select
-                  className="input w-32"
-                  aria-label={`Field ${i + 1} type`}
-                  value={f.type}
-                  onChange={(e) =>
-                    setFields(
-                      fields.map((x, j) =>
-                        i === j
-                          ? {
-                              ...x,
-                              type: e.target.value,
-                              ...(e.target.value === "select"
-                                ? {
-                                    options: x.options?.length
-                                      ? x.options
-                                      : ["Option 1"],
-                                  }
-                                : { options: undefined }),
-                            }
-                          : x,
-                      ),
-                    )
-                  }
-                >
-                  {[
-                    "text",
-                    "textarea",
-                    "number",
-                    "date",
-                    "select",
-                    "checkbox",
-                  ].map((t) => (
-                    <option key={t}>{t}</option>
-                  ))}
-                </select>
-                <label className="flex gap-2 items-center text-xs">
-                  <input
-                    type="checkbox"
-                    checked={f.required}
-                    onChange={(e) =>
-                      setFields(
-                        fields.map((x, j) =>
-                          i === j ? { ...x, required: e.target.checked } : x,
-                        ),
-                      )
-                    }
-                  />
-                  Required
-                </label>
-                <button
-                  type="button"
-                  className="icon-btn"
-                  aria-label={`Remove field ${i + 1}`}
-                  onClick={() => setFields(fields.filter((_, j) => j !== i))}
-                >
-                  ×
-                </button>
-              </div>
-              {f.type === "select" && (
-                <div className="mt-3 rounded-xl bg-slate-50 p-3">
-                  <div className="mb-2 flex items-center justify-between gap-3">
-                    <p className="text-xs font-semibold text-slate-600">
-                      Options
-                    </p>
-                    <button
-                      type="button"
-                      className="btn-secondary"
-                      disabled={(f.options || []).length >= 50}
-                      onClick={() =>
+              </Field>
+              {existing && usedCount > 0 && (
+                <p className="approval-config-help">
+                  The code is locked because this request type is already in use.
+                </p>
+              )}
+            </div>
+          </div>
+
+          <Field label="Description">
+            <textarea
+              className="input task-form-description approval-config-description"
+              placeholder="Describe when this approval type should be requested and any policy constraints..."
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+            />
+          </Field>
+
+          <section className="approval-config-section" aria-label="Request form">
+            <div className="approval-config-section-heading">
+              <h3>Request form</h3>
+              <span className="approval-config-section-hint">Define intake inputs</span>
+            </div>
+            <div className="approval-config-items">
+              {fields.map((field, index) => (
+                <div className="approval-config-field-card" key={index}>
+                  <div className="approval-config-field-stack">
+                    <input
+                      className="input"
+                      aria-label={`Field ${index + 1} key`}
+                      title="Technical field key"
+                      placeholder="Field key"
+                      required
+                      pattern="[A-Za-z][A-Za-z0-9_]*"
+                      value={field.key}
+                      onChange={(event) =>
                         setFields(
-                          fields.map((x, j) =>
-                            i === j
+                          fields.map((current, i) =>
+                            index === i ? { ...current, key: event.target.value } : current,
+                          ),
+                        )
+                      }
+                    />
+                    <input
+                      className="input"
+                      aria-label={`Field ${index + 1} label`}
+                      placeholder="Field label"
+                      required
+                      value={field.label}
+                      onChange={(event) =>
+                        setFields(
+                          fields.map((current, i) =>
+                            index === i ? { ...current, label: event.target.value } : current,
+                          ),
+                        )
+                      }
+                    />
+                    <select
+                      className="input app-modern-select"
+                      aria-label={`Field ${index + 1} type`}
+                      value={field.type}
+                      onChange={(event) =>
+                        setFields(
+                          fields.map((current, i) =>
+                            index === i
                               ? {
-                                  ...x,
-                                  options: [...(x.options || []), ""],
+                                  ...current,
+                                  type: event.target.value,
+                                  ...(event.target.value === "select"
+                                    ? {
+                                        options: current.options?.length
+                                          ? current.options
+                                          : ["Option 1"],
+                                      }
+                                    : { options: undefined }),
                                 }
-                              : x,
+                              : current,
                           ),
                         )
                       }
                     >
-                      <Plus size={14} />
-                      Add option
+                      {["text", "textarea", "number", "date", "select", "checkbox"].map((type) => (
+                        <option key={type}>{type}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="approval-config-field-actions">
+                    <label className="task-filter-choice approval-config-required">
+                      <input
+                        type="checkbox"
+                        checked={field.required}
+                        onChange={(event) =>
+                          setFields(
+                            fields.map((current, i) =>
+                              index === i ? { ...current, required: event.target.checked } : current,
+                            ),
+                          )
+                        }
+                      />
+                      <span>Required</span>
+                    </label>
+                    <button
+                      type="button"
+                      className="icon-btn approval-config-remove"
+                      aria-label={`Remove field ${index + 1}`}
+                      title="Remove field"
+                      onClick={() => setFields(fields.filter((_, i) => i !== index))}
+                    >
+                      <X size={15} />
                     </button>
                   </div>
-                  <div className="space-y-2">
-                    {(f.options || ["Option 1"]).map((option, optionIndex) => (
-                      <div
-                        className="flex items-center gap-2"
-                        key={`option-${optionIndex}`}
-                      >
-                        <input
-                          className="input flex-1"
-                          aria-label={`Field ${i + 1} option ${optionIndex + 1}`}
-                          placeholder={`Option ${optionIndex + 1}`}
-                          required
-                          value={option}
-                          onChange={(e) =>
+
+                  {field.type === "select" && (
+                    <div className="approval-config-options">
+                      <div className="approval-config-options-heading">
+                        <span>Options</span>
+                        <button
+                          type="button"
+                          className="btn-secondary approval-config-secondary"
+                          disabled={(field.options || []).length >= 50}
+                          onClick={() =>
                             setFields(
-                              fields.map((x, j) =>
-                                i === j
-                                  ? {
-                                      ...x,
-                                      options: (x.options || []).map(
-                                        (value, index) =>
-                                          index === optionIndex
-                                            ? e.target.value
-                                            : value,
-                                      ),
-                                    }
-                                  : x,
+                              fields.map((current, i) =>
+                                index === i
+                                  ? { ...current, options: [...(current.options || []), ""] }
+                                  : current,
                               ),
                             )
                           }
-                        />
-                        {(f.options || []).length > 1 && (
-                          <button
-                            type="button"
-                            className="icon-btn"
-                            aria-label={`Remove field ${i + 1} option ${optionIndex + 1}`}
-                            onClick={() =>
-                              setFields(
-                                fields.map((x, j) =>
-                                  i === j
-                                    ? {
-                                        ...x,
-                                        options: (x.options || []).filter(
-                                          (_, index) => index !== optionIndex,
-                                        ),
-                                      }
-                                    : x,
-                                ),
-                              )
-                            }
-                          >
-                            ×
-                          </button>
-                        )}
+                        >
+                          <Plus size={14} />
+                          Add option
+                        </button>
                       </div>
-                    ))}
-                  </div>
+                      <div className="approval-config-option-list">
+                        {(field.options || ["Option 1"]).map((option, optionIndex) => (
+                          <div className="approval-config-option-row" key={optionIndex}>
+                            <input
+                              className="input"
+                              aria-label={`Field ${index + 1} option ${optionIndex + 1}`}
+                              placeholder={`Option ${optionIndex + 1}`}
+                              required
+                              value={option}
+                              onChange={(event) =>
+                                setFields(
+                                  fields.map((current, i) =>
+                                    index === i
+                                      ? {
+                                          ...current,
+                                          options: (current.options || []).map((value, j) =>
+                                            j === optionIndex ? event.target.value : value,
+                                          ),
+                                        }
+                                      : current,
+                                  ),
+                                )
+                              }
+                            />
+                            {(field.options || []).length > 1 && (
+                              <button
+                                type="button"
+                                className="icon-btn approval-config-remove"
+                                aria-label={`Remove field ${index + 1} option ${optionIndex + 1}`}
+                                onClick={() =>
+                                  setFields(
+                                    fields.map((current, i) =>
+                                      index === i
+                                        ? {
+                                            ...current,
+                                            options: (current.options || []).filter((_, j) => j !== optionIndex),
+                                          }
+                                        : current,
+                                    ),
+                                  )
+                                }
+                              >
+                                <X size={15} />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
+              ))}
             </div>
-          ))}
-        </div>
-        <button
-          type="button"
-          className="btn-secondary mt-3"
-          onClick={() =>
-            setFields([
-              ...fields,
-              {
-                key: nextFieldKey(fields),
-                label: "",
-                type: "text",
-                required: false,
-              },
-            ])
-          }
-        >
-          Add field
-        </button>
-        <h3 className="text-sm font-bold mt-6 mb-3">
-          Approval steps, in order
-        </h3>
-        <div className="space-y-3">
-          {steps.map((s, i) => (
-            <div
-              className="rounded-xl border border-slate-200 p-3 flex flex-wrap gap-2"
-              key={i}
+            <button
+              type="button"
+              className="btn-secondary approval-config-secondary approval-config-add"
+              onClick={() =>
+                setFields([
+                  ...fields,
+                  {
+                    key: nextFieldKey(fields),
+                    label: "",
+                    type: "text",
+                    required: false,
+                  },
+                ])
+              }
             >
-              <span className="text-xs pt-3">{i + 1}.</span>
-              <input
-                className="input flex-1 min-w-36"
-                aria-label={`Step ${i + 1} name`}
-                required
-                value={s.name}
-                onChange={(e) =>
-                  setSteps(
-                    steps.map((x, j) =>
-                      i === j ? { ...x, name: e.target.value } : x,
-                    ),
-                  )
-                }
-              />
-              <select
-                className="input flex-1 min-w-44"
-                aria-label={`Step ${i + 1} approver`}
-                value={
-                  s.approverRule === "USER" ? s.approverValue : s.approverRule
-                }
-                onChange={(e) =>
-                  setSteps(
-                    steps.map((x, j) =>
-                      i === j
-                        ? {
-                            ...x,
-                            approverRule: [
-                              "REQUESTER_MANAGER",
-                              "DEPARTMENT_MANAGER",
-                            ].includes(e.target.value)
-                              ? e.target.value
-                              : "USER",
-                            approverValue: [
-                              "REQUESTER_MANAGER",
-                              "DEPARTMENT_MANAGER",
-                            ].includes(e.target.value)
-                              ? ""
-                              : e.target.value,
-                          }
-                        : x,
-                    ),
-                  )
-                }
-              >
-                <option value="REQUESTER_MANAGER">Requester’s manager</option>
-                <option value="DEPARTMENT_MANAGER">Department manager</option>
-                {users.data
-                  ?.filter((u) => u.status === "ACTIVE")
-                  .map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.displayName}
-                    </option>
-                  ))}
-              </select>
-              {steps.length > 1 && (
-                <button
-                  className="icon-btn"
-                  aria-label={`Remove step ${i + 1}`}
-                  type="button"
-                  onClick={() => setSteps(steps.filter((_, j) => j !== i))}
-                >
-                  ×
-                </button>
-              )}
+              <Plus size={14} />
+              Add field
+            </button>
+          </section>
+
+          <section className="approval-config-section" aria-label="Approval steps">
+            <div className="approval-config-section-heading">
+              <h3>Approval steps, in order</h3>
+              <span className="approval-config-section-hint">Sequential step triggers</span>
             </div>
-          ))}
+            <div className="approval-config-items">
+              {steps.map((step, index) => (
+                <div className="approval-config-step-row" key={index}>
+                  <span className="approval-config-step-number">{index + 1}</span>
+                  <input
+                    className="input approval-config-step-name"
+                    aria-label={`Step ${index + 1} name`}
+                    placeholder="Step name"
+                    required
+                    value={step.name}
+                    onChange={(event) =>
+                      setSteps(
+                        steps.map((current, i) =>
+                          index === i ? { ...current, name: event.target.value } : current,
+                        ),
+                      )
+                    }
+                  />
+                  <select
+                    className="input app-modern-select approval-config-step-approver"
+                    aria-label={`Step ${index + 1} approver`}
+                    value={step.approverRule === "USER" ? step.approverValue : step.approverRule}
+                    onChange={(event) =>
+                      setSteps(
+                        steps.map((current, i) =>
+                          index === i
+                            ? {
+                                ...current,
+                                approverRule: [
+                                  "REQUESTER_MANAGER",
+                                  "DEPARTMENT_MANAGER",
+                                ].includes(event.target.value)
+                                  ? event.target.value
+                                  : "USER",
+                                approverValue: [
+                                  "REQUESTER_MANAGER",
+                                  "DEPARTMENT_MANAGER",
+                                ].includes(event.target.value)
+                                  ? ""
+                                  : event.target.value,
+                              }
+                            : current,
+                        ),
+                      )
+                    }
+                  >
+                    <option value="REQUESTER_MANAGER">Requester’s manager</option>
+                    <option value="DEPARTMENT_MANAGER">Department manager</option>
+                    {users.data
+                      ?.filter((person) => person.status === "ACTIVE")
+                      .map((person) => (
+                        <option key={person.id} value={person.id}>
+                          {person.displayName}
+                        </option>
+                      ))}
+                  </select>
+                  {steps.length > 1 && (
+                    <button
+                      type="button"
+                      className="icon-btn approval-config-remove approval-config-step-remove"
+                      aria-label={`Remove step ${index + 1}`}
+                      title="Remove step"
+                      onClick={() => setSteps(steps.filter((_, i) => i !== index))}
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              className="btn-secondary approval-config-secondary approval-config-add"
+              onClick={() =>
+                setSteps([
+                  ...steps,
+                  {
+                    name: "Review",
+                    approverRule: "REQUESTER_MANAGER",
+                    approverValue: "",
+                  },
+                ])
+              }
+            >
+              <Plus size={14} />
+              Add step
+            </button>
+          </section>
+          <ErrorBox error={save.error} />
         </div>
-        <button
-          type="button"
-          className="btn-secondary mt-3"
-          onClick={() =>
-            setSteps([
-              ...steps,
-              {
-                name: "Review",
-                approverRule: "REQUESTER_MANAGER",
-                approverValue: "",
-              },
-            ])
-          }
-        >
-          Add step
-        </button>
-        <ErrorBox error={save.error} />
-        <div className="form-actions">
-          <button className="btn-primary" disabled={save.isPending}>
-            {existing ? "Save new version" : "Create approval type"}
+        <div className="task-form-footer approval-config-footer">
+          <span className="task-form-footer-note">
+            {existing
+              ? "Existing requests keep their saved workflow."
+              : "Define your fields and approval steps before saving."}
+          </span>
+          <button className="btn-primary" type="submit" disabled={save.isPending}>
+            {save.isPending
+              ? "Saving…"
+              : existing
+                ? "Save new version"
+                : "Create approval type"}
           </button>
         </div>
       </form>
     </Modal>
   );
 }
+
 function ApprovalDateField({ label, value, onChange }) {
   const displayValue = value
     ? `${value.slice(5, 7)}/${value.slice(8, 10)}/${value.slice(0, 4)}`
