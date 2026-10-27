@@ -6,7 +6,6 @@ import {
   ArrowUpDown,
   ArrowUpRight,
   CheckCircle2,
-  CircleDot,
   X,
   CalendarDays,
   CheckSquare,
@@ -257,7 +256,7 @@ function TaskForm({ existing, parentTask, defaultGroupId = "", onClose }) {
           <Field label="Assigned to">
             <select
               aria-label="Assigned to"
-              className="input"
+              className="input app-modern-select"
               value={form.assigneeId}
               onChange={(event) => change("assigneeId", event.target.value)}
             >
@@ -279,7 +278,7 @@ function TaskForm({ existing, parentTask, defaultGroupId = "", onClose }) {
           </Field>
           <Field label="Priority">
             <select
-              className="input"
+              className="input app-modern-select"
               value={form.priority}
               onChange={(event) => change("priority", event.target.value)}
             >
@@ -293,7 +292,7 @@ function TaskForm({ existing, parentTask, defaultGroupId = "", onClose }) {
         {!isSubtask && (
           <Field label="Group">
             <select
-              className="input"
+              className="input app-modern-select"
               value={form.groupId}
               onChange={(event) => change("groupId", event.target.value)}
             >
@@ -505,7 +504,7 @@ function TaskDetail({ id, onClose }) {
               <p className="text-xs text-slate-400 mb-2">Status</p>
               <select
                 aria-label="Task status"
-                className="input"
+                className="input app-modern-select"
                 value={task.status}
                 disabled={updateStatus.isPending || !canChangeStatus}
                 onChange={(event) => changeParentStatus(event.target.value)}
@@ -522,7 +521,7 @@ function TaskDetail({ id, onClose }) {
                 <p className="text-xs text-slate-400 mb-2">My group</p>
                 <select
                   aria-label="My task group"
-                  className="input"
+                  className="input app-modern-select"
                   value={task.personalLayout?.groupId || ""}
                   disabled={updateLayout.isPending}
                   onChange={(event) => updateLayout.mutate(event.target.value)}
@@ -819,7 +818,6 @@ export default function TasksPage() {
       (task.dueDate && new Date(task.dueDate).getTime() < Date.now());
 
     return {
-      active: unfinished.length,
       attention: unfinished.filter(needsAttention).length,
       completed: tasks.filter((task) => task.status === "COMPLETED").length,
     };
@@ -1381,12 +1379,6 @@ export default function TasksPage() {
         }
       />
       <div className="task-summary" aria-label="Task overview">
-        <button type="button" className="task-summary-card task-summary-card--active"
-          onClick={() => setFilter("active")} aria-pressed={filter === "active"}>
-          <span className="task-summary-icon"><CircleDot size={19} /></span>
-          <span className="task-summary-number">{taskSummary.active}</span>
-          <span className="task-summary-bottom"><span>Active tasks</span><ArrowUpRight size={15} /></span>
-        </button>
         <button type="button" className="task-summary-card task-summary-card--attention"
           onClick={() => setFilter("attention")} aria-pressed={filter === "attention"}>
           <span className="task-summary-icon"><AlertCircle size={19} /></span>
@@ -1536,7 +1528,7 @@ export default function TasksPage() {
                     <label className="mt-4 block text-xs font-semibold text-slate-500">
                       Due date
                       <select
-                        className="input mt-1.5"
+                        className="input app-modern-select mt-1.5"
                         value={advancedFilters.due}
                         onChange={(event) =>
                           setAdvancedValue("due", event.target.value)
@@ -1645,7 +1637,7 @@ export default function TasksPage() {
                   <label className="text-xs font-semibold text-slate-500">
                     Attachments
                     <select
-                      className="input mt-1.5"
+                      className="input app-modern-select mt-1.5"
                       value={advancedFilters.attachments}
                       onChange={(event) =>
                         setAdvancedValue("attachments", event.target.value)
@@ -1703,7 +1695,7 @@ export default function TasksPage() {
             <ArrowUpDown size={15} className="text-slate-400" />
             <select
               aria-label="Sort tasks"
-              className="input task-sort-select"
+              className="input app-modern-select task-sort-select"
               value={sortBy}
               onChange={(event) => setSortBy(event.target.value)}
             >
@@ -1717,6 +1709,7 @@ export default function TasksPage() {
 
           <div
             className="task-view-toggle"
+            role="group"
             aria-label="Task view"
           >
             <button
@@ -1727,7 +1720,7 @@ export default function TasksPage() {
               onClick={() => setBoard(false)}
             >
               <List size={15} />
-              <span className="hidden xl:inline">List</span>
+              <span>List</span>
             </button>
             <button
               type="button"
@@ -1737,7 +1730,7 @@ export default function TasksPage() {
               onClick={() => setBoard(true)}
             >
               <Columns3 size={15} />
-              <span className="hidden xl:inline">Board</span>
+              <span>Board</span>
             </button>
           </div>
         </div>

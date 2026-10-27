@@ -86,9 +86,9 @@
 
 .tasks-page .task-summary {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 240px));
+  grid-template-columns: repeat(2, minmax(0, 240px));
   gap: 12px;
-  max-width: 755px;
+  max-width: 492px;
   margin: 0 0 22px;
 }
 .tasks-page .task-summary-card {
@@ -110,7 +110,6 @@
   border-radius: 8px;
   margin-bottom: 12px;
 }
-.tasks-page .task-summary-card--active .task-summary-icon { color: #31cde6; background: #0c4858; }
 .tasks-page .task-summary-card--attention .task-summary-icon { color: #ffa0a5; background: #59313d; }
 .tasks-page .task-summary-card--completed .task-summary-icon { color: #b7b2ff; background: #37345c; }
 .tasks-page .task-summary-number {
@@ -265,21 +264,40 @@
   outline: none;
   cursor: pointer;
 }
-.tasks-page .task-sort-select option { color: var(--task-text); background: var(--task-surface); }
-.tasks-page .task-view-toggle { gap: 2px; padding: 3px; }
+.tasks-page .task-toolbar .task-view-toggle {
+  gap: 3px;
+  height: auto;
+  min-height: 38px;
+  padding: 4px;
+  border-color: var(--task-border);
+  border-radius: 11px;
+  background: var(--task-surface-raised);
+}
 .tasks-page .task-view-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  min-width: 34px;
-  height: 30px;
-  padding: 5px 8px;
-  border-radius: 7px;
+  gap: 7px;
+  flex: 0 0 auto;
+  min-height: 31px;
+  padding: 6px 12px;
+  border-radius: 8px;
   color: var(--task-muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  transition: background .16s ease, color .16s ease;
 }
-.tasks-page .task-view-button:hover { background: var(--task-hover); color: var(--task-text); }
-.tasks-page .task-view-button--active { background: var(--task-surface); color: var(--task-text); }
+.tasks-page .task-view-button:hover {
+  background: var(--task-hover);
+  color: var(--task-text);
+}
+.tasks-page .task-view-button--active,
+.tasks-page .task-view-button--active:hover {
+  background: linear-gradient(115deg, #8880ff, #6f6af1);
+  box-shadow: 0 3px 10px #6e68f52a;
+  color: #fff;
+}
 .tasks-page .task-filter-panel {
   color: var(--task-text);
   border-color: var(--task-border);
@@ -349,11 +367,28 @@
 .tasks-page .task-group-state--complete { color: #7bd8bb; background: #183b35; }
 .tasks-page .task-group-header > .ml-auto { min-width: 0; flex-shrink: 0; }
 .tasks-page .task-group-add {
-  color: var(--task-muted);
-  background: var(--task-control);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 6px 12px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: linear-gradient(110deg, #867afa 0%, #6465ef 100%);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.3;
   white-space: nowrap;
+  transition: filter .15s ease, box-shadow .15s ease;
 }
-.tasks-page .task-group-add:hover { color: var(--task-text); background: var(--task-hover); }
+.tasks-page .task-group-add:hover {
+  color: #fff;
+  background: linear-gradient(110deg, #867afa 0%, #6465ef 100%);
+  filter: brightness(1.08);
+  box-shadow: 0 4px 14px #6660ef29;
+}
 .tasks-page .task-group-header button[aria-label^="Rename"]:hover,
 .tasks-page .task-group-header button[aria-label^="Delete"]:hover { background: var(--task-hover); }
 .tasks-page .task-group-content { min-width: 0; overflow-x: auto; scrollbar-width: thin; scrollbar-color: #565c85 transparent; }
@@ -422,7 +457,7 @@
   .tasks-page .task-toolbar--refresh { padding: 10px; }
 }
 @media (max-width: 767px) {
-  .tasks-page .task-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .tasks-page .task-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .tasks-page .task-summary-card { min-height: 108px; padding: 11px; }
   .tasks-page .task-summary-icon { width: 28px; height: 28px; margin-bottom: 9px; }
   .tasks-page .task-summary-icon svg { width: 16px; height: 16px; }
@@ -462,4 +497,16 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .tasks-page *, .tasks-page *::before, .tasks-page *::after { transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}
+
+/* Shared dropdown on Tasks keeps native selection and the Drive Members popup. */
+.tasks-page .task-sort-control { min-width: 155px; }
+.app-theme-dark .tasks-page .task-sort-select::picker(select) {
+  min-width: 190px;
+}
+.tasks-page .task-filter-panel .app-modern-select {
+  width: 100%;
+}
+@media (max-width: 560px) {
+  .tasks-page .task-view-button { padding-inline: 10px; }
 }

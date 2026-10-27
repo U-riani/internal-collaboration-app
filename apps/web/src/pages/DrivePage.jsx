@@ -204,7 +204,8 @@ function Permissions({ item, onClose, reload }) {
       ) : (
         <Field label="Visibility">
           <select
-            className="input"
+            className="input app-modern-select drive-permission-mode-select"
+            aria-label="Visibility"
             value={permissionMode}
             onChange={(e) => setPermissionMode(e.target.value)}
           >
@@ -296,7 +297,7 @@ function Permissions({ item, onClose, reload }) {
                 <p className="text-[11px] text-slate-400">{recipient.kind}</p>
               </div>
               <select
-                className="input !w-32"
+                className="input app-modern-select drive-permission-access-select"
                 aria-label={`Permission for ${recipient.label}`}
                 value={assignments[recipient.key] || "NONE"}
                 onChange={(e) => {
@@ -458,7 +459,7 @@ function SpaceMembers({ space, onClose, reload }) {
                 </span>
               ) : (
                 <select
-                  className="drive-member-role-select input !w-36"
+                  className="drive-member-role-select app-modern-select input !w-36"
                   aria-label={`Role for ${person.displayName}`}
                   value={roles[person.id] || "NONE"}
                   onChange={(e) =>

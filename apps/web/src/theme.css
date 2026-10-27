@@ -353,3 +353,101 @@ body:has(.app-theme-dark) { background: #0a0f1d; }
 @media (max-width: 900px) {
   .app-theme-dark > .workspace-sidebar { box-shadow: 16px 0 45px #0005; }
 }
+
+
+/* Shared select design — extracted from Drive > Members, now used by
+   Tasks and Drive Permissions. Keep native select behavior/keyboard support.
+   Browsers without base-select fall back to a styled native select. */
+.app-modern-select {
+  min-height: 36px;
+  border: 1px solid #dce2ef;
+  border-radius: 9px;
+  padding: 7px 10px;
+  color: #34425b;
+  background: #f0f2f8;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.app-modern-select:focus-visible {
+  outline: 2px solid #9b91ff;
+  outline-offset: 2px;
+}
+.app-modern-select:disabled {
+  cursor: not-allowed;
+  opacity: .65;
+}
+.app-modern-select option {
+  padding: 9px 11px;
+  color: #34425b;
+  background: #f0f2f8;
+}
+.app-theme-dark .app-modern-select {
+  border-color: #30384e;
+  background: #262c40;
+  color: #d1d5ec;
+}
+.app-theme-dark .app-modern-select option {
+  color: #d7d9ee;
+  background: #242a3d;
+}
+@supports (appearance: base-select) {
+  .app-modern-select,
+  .app-modern-select::picker(select) {
+    appearance: base-select;
+  }
+  .app-modern-select::picker(select) {
+    margin-top: 8px;
+    padding: 6px;
+    min-width: max-content;
+    max-width: min(360px, calc(100vw - 20px));
+    max-height: min(400px, 65dvh);
+    overflow-y: auto;
+    border: 1px solid #d9deed;
+    border-radius: 13px;
+    background: #fff;
+    color: #34425b;
+    box-shadow: 0 15px 36px rgba(2,5,17,.18);
+  }
+  .app-modern-select option {
+    margin: 2px 0;
+    padding: 10px 12px;
+    border: 0;
+    border-radius: 9px;
+    color: #4f5b73;
+    background: transparent;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .app-modern-select option:hover,
+  .app-modern-select option:focus {
+    color: #292b4b;
+    background: #edf0ff;
+  }
+  .app-modern-select option:checked {
+    color: #fff;
+    background: #655ff1;
+  }
+  .app-modern-select option::checkmark {
+    color: #fff;
+  }
+  .app-theme-dark .app-modern-select::picker(select) {
+    border-color: #3a4059;
+    background: #23283c;
+    color: #e9e8ff;
+    box-shadow: 0 15px 36px rgba(2,5,17,.53);
+  }
+  .app-theme-dark .app-modern-select option {
+    color: #c7ccdf;
+    background: transparent;
+  }
+  .app-theme-dark .app-modern-select option:hover,
+  .app-theme-dark .app-modern-select option:focus {
+    color: #fff;
+    background: #3a405c;
+  }
+  .app-theme-dark .app-modern-select option:checked {
+    color: #f4f1ff;
+    background: #655ff1;
+  }
+}
