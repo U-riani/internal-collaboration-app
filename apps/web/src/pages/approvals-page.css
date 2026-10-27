@@ -504,7 +504,22 @@
 }
 
 .approval-types-manager {
+  --task-control: #edf1f8;
+  --task-text: #27314b;
+  --task-muted: #6a7590;
+  --task-subtle: #8590a7;
+  --task-border: #e5eaf3;
+  --task-hover: #f2f5fd;
   min-width: 0;
+}
+
+.app-theme-dark .approval-types-manager {
+  --task-control: #252b3d;
+  --task-text: #e8eafa;
+  --task-muted: #a9b1ca;
+  --task-subtle: #808ca8;
+  --task-border: #293147;
+  --task-hover: #222b40;
 }
 
 .approval-types-toolbar {
@@ -521,12 +536,12 @@
   gap: 9px;
   flex: 1 1 250px;
   min-width: 180px;
-  height: 40px;
+  height: 38px;
   padding: 0 12px;
   border: 1px solid transparent;
   border-radius: 10px;
-  background: #edf1f8;
-  color: #8792a9;
+  background: var(--task-control);
+  color: var(--task-subtle);
   transition: border-color .16s ease, box-shadow .16s ease;
 }
 
@@ -571,12 +586,16 @@
   flex: 0 0 164px;
   width: 164px;
   min-width: 0;
-  height: 40px;
-  padding: 0 11px;
-  border: 1px solid #e5eaf3;
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--task-border);
   border-radius: 10px;
-  background: #edf1f8;
-  color: #6a7590;
+  background: var(--task-control);
+  color: var(--task-muted);
+}
+
+.approval-types-status-control:hover {
+  background: var(--task-hover);
 }
 
 .approval-types-status-control:focus-within {
@@ -590,44 +609,55 @@
   pointer-events: none;
 }
 
+/* Use the exact Tasks select primitive: app-modern-select supplies the
+   browser-supported styled popup, checkmark, theme and native keyboard access.
+   Do not force appearance:none: doing so caused the white OS dropdown. */
 .approval-types-status-control > select.app-modern-select,
 .app-theme-dark .approval-types-status-control > select.app-modern-select {
   flex: 1 1 auto;
   width: 100%;
+  max-width: none;
   min-width: 0;
-  height: 38px;
+  height: 36px;
   min-height: 0;
   margin: 0;
-  padding: 0;
+  padding: 5px 0;
   border: 0 !important;
   border-radius: 0;
   background: transparent !important;
   box-shadow: none !important;
-  color: #27314b;
+  color: var(--task-text);
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 700;
   line-height: 1.2;
   outline: none !important;
-  appearance: none !important;
   cursor: pointer;
 }
 
 .approval-types-status-control > select.app-modern-select::picker-icon {
-  display: none;
+  color: var(--task-subtle);
+  margin-inline-start: auto;
 }
 
-.approval-types-create.btn-primary {
+@supports (appearance: base-select) {
+  .approval-types-status-control > select.app-modern-select::picker(select) {
+    min-width: 174px;
+  }
+}
+
+.approval-types-create.btn-primary.task-style-primary {
+  /* Matches Tasks > New task rather than introducing a separate button style. */
   flex: 0 0 auto;
-  min-height: 40px;
+  min-height: 38px;
   margin-left: auto;
-  padding: 9px 16px;
+  padding: 8px 13px;
   border: 1px solid transparent;
-  border-radius: 10px;
-  background: linear-gradient(110deg, #867afa, #6465ef);
+  border-radius: 9px;
+  background: linear-gradient(110deg, #867afa 0%, #6465ef 100%);
   color: #fff;
   box-shadow: none;
   white-space: nowrap;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   transition: filter .15s ease, box-shadow .15s ease;
 }
@@ -736,27 +766,27 @@
   gap: 8px;
 }
 
-.approval-type-actions .btn-secondary {
+.approval-type-actions .btn-secondary.task-style-secondary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
   flex: 0 0 auto;
-  min-height: 31px;
-  padding: 6px 10px;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  color: #536078;
-  background: #edf1f8;
+  min-height: 34px;
+  padding: 7px 11px;
+  border: 1px solid var(--task-border);
+  border-radius: 9px;
+  color: var(--task-text);
+  background: var(--task-control);
   font-size: 11px;
   font-weight: 700;
   white-space: nowrap;
-  transition: background-color .16s ease, color .16s ease;
+  transition: background-color .16s ease, color .16s ease, border-color .16s ease;
 }
 
 .approval-type-actions .approval-type-edit:hover {
-  color: #27314b;
-  background: #e6eaf5;
+  color: var(--task-text);
+  background: var(--task-hover);
 }
 
 .approval-type-actions .approval-type-deactivate {
@@ -806,9 +836,9 @@
 
 .app-theme-dark .approval-types-search,
 .app-theme-dark .approval-types-status-control {
-  border-color: #293147;
-  background: #252b3d;
-  color: #a9b1ca;
+  border-color: var(--task-border);
+  background: var(--task-control);
+  color: var(--task-muted);
 }
 
 .app-theme-dark .approval-types-search > input,
@@ -857,15 +887,15 @@
   color: #9aa4be;
 }
 
-.app-theme-dark .approval-type-actions .btn-secondary {
-  border-color: transparent;
-  background: #293146;
-  color: #d3daec;
+.app-theme-dark .approval-type-actions .btn-secondary.task-style-secondary {
+  border-color: var(--task-border);
+  background: var(--task-control);
+  color: var(--task-text);
 }
 
 .app-theme-dark .approval-type-actions .approval-type-edit:hover {
-  background: #354058;
-  color: #fff;
+  background: var(--task-hover);
+  color: var(--task-text);
 }
 
 .app-theme-dark .approval-type-actions .approval-type-deactivate {
