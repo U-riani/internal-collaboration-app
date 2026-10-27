@@ -151,7 +151,18 @@ describe("main workspace flows", () => {
     );
     const user = mount(TasksPage);
     await user.click(screen.getByRole("button", { name: "New task" }));
+    // Header, scrollable fields and footer must be independent for all TaskForm modes.
+    const dialog = screen.getByRole("dialog");
+    const fields = dialog.querySelector(".task-form-scroll");
+    const footer = dialog.querySelector(".task-form-footer");
+    expect(fields).not.toBeNull();
+    expect(footer).not.toBeNull();
+    expect(fields.contains(footer)).toBe(false);
+    expect(footer.querySelector('button[type="submit"]').textContent).toBe("Save task");
+    expect(footer.querySelector('button[type="button"]')).toBeNull();
+    expect(dialog.querySelector(".task-form")?.classList.contains("task-form")).toBe(true);
     await user.type(screen.getByLabelText("Task title"), "Prepare handbook");
+    expect(screen.getByLabelText("Priority").classList.contains("app-modern-select")).toBe(true);
     const assignee = screen.getByLabelText("Assigned to");
     await waitFor(() =>
       expect(assignee.querySelectorAll("option")).toHaveLength(2),
