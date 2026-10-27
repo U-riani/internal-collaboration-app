@@ -213,6 +213,65 @@ describe("main workspace flows", () => {
     });
   });
 
+  it("keeps long task group names compact and shows participants as user rows", async () => {
+    const group = {
+      id: "group-1",
+      name: "Flutter Mobile App Team with a very long group name",
+      canManage: true,
+      canUse: true,
+    };
+    const task = {
+      id: "task-details-fixture",
+      title: "Task details visual regression",
+      description: "Review the current implementation.",
+      creatorId: "me",
+      assigneeId: "me",
+      creator: people[0],
+      assignee: people[0],
+      status: "OPEN",
+      priority: "NORMAL",
+      dueDate: null,
+      createdAt: "2026-10-27T08:00:00.000Z",
+      parentTaskId: null,
+      personalLayout: { groupId: group.id, group, position: 0 },
+      participants: [{ userId: "colleague", user: people[1] }],
+      subtasks: [],
+      attachments: [],
+      comments: [],
+      history: [],
+      _count: { comments: 0 },
+    };
+    api.mockImplementation(async (path, options = {}) => {
+      if (path === "/tasks") return { data: [task] };
+      if (path === `/tasks/${task.id}`) return { data: task };
+      if (path === "/tasks/groups") return { data: [group] };
+      if (path === "/notifications") return { data: [] };
+      if (path === "/notifications/read-related") return { data: {} };
+      if (path === `/tasks/${task.id}/layout` && options.method === "PUT") {
+        return { data: {} };
+      }
+      throw new Error(`Unexpected API request: ${path}`);
+    });
+    const user = mount(TasksPage);
+    await user.click(await screen.findByText("Task details visual regression"));
+    const details = await screen.findByRole("dialog", { name: "Task details" });
+    const groupSelect = screen.getByRole("combobox", { name: "My task group" });
+    expect(groupSelect.classList.contains("task-detail-group-select")).toBe(true);
+    expect(groupSelect.title).toBe(group.name);
+    expect(groupSelect.value).toBe(group.id);
+    expect(details.querySelector(".task-detail-person-name")?.textContent).toBe("Test Colleague");
+    expect(details.querySelector(".task-detail-person-icon")).not.toBeNull();
+    expect(details.querySelector(".task-detail-participants-list")).not.toBeNull();
+
+    await user.selectOptions(groupSelect, "");
+    await waitFor(() =>
+      expect(api).toHaveBeenCalledWith(`/tasks/${task.id}/layout`, {
+        method: "PUT",
+        body: JSON.stringify({ groupId: null }),
+      }),
+    );
+  });
+
   it("submits typed approval fields without asking employees to edit JSON", async () => {
     const type = {
       id: "equipment",
