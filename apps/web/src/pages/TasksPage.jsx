@@ -25,6 +25,7 @@ import {
 import { api, uploadFile } from "../lib/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import PageHeader from "../components/PageHeader.jsx";
+import FilterMultiSelect from "../components/FilterMultiSelect.jsx";
 import {
   Attachments,
   Avatar,
@@ -117,25 +118,27 @@ function GroupForm({ existing, onClose }) {
       onClose={onClose}
     >
       <form
+        className="task-group-form"
         onSubmit={(event) => {
           event.preventDefault();
-          save.mutate();
+          if (name.trim() && !save.isPending) save.mutate();
         }}
       >
-        <Field
-          label="Group name"
-          required
-          minLength={1}
-          maxLength={120}
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-        />
+        <Field label="Group name">
+          <input
+            className="input task-group-name-input"
+            type="text"
+            required
+            minLength={1}
+            maxLength={120}
+            autoFocus
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+          />
+        </Field>
         <ErrorBox error={save.error} />
-        <div className="form-actions">
-          <button type="button" className="btn-secondary" onClick={onClose}>
-            Cancel
-          </button>
-          <button className="btn-primary" disabled={save.isPending}>
+        <div className="form-actions task-group-form-actions">
+          <button type="submit" className="btn-primary" disabled={save.isPending || !name.trim()}>
             {save.isPending ? "Saving…" : existing ? "Save" : "Create group"}
           </button>
         </div>
@@ -880,13 +883,6 @@ export default function TasksPage() {
     }));
   };
 
-  const setAdvancedValues = (key, event) => {
-    const values = [...event.target.selectedOptions].map(
-      (option) => option.value,
-    );
-    setAdvancedFilters((current) => ({ ...current, [key]: values }));
-  };
-
   const setAdvancedValue = (key, value) =>
     setAdvancedFilters((current) => ({ ...current, [key]: value }));
 
@@ -1379,17 +1375,31 @@ export default function TasksPage() {
         }
       />
       <div className="task-summary" aria-label="Task overview">
-        <button type="button" className="task-summary-card task-summary-card--attention"
-          onClick={() => setFilter("attention")} aria-pressed={filter === "attention"}>
+        <button
+          type="button"
+          className="task-summary-card task-summary-card--attention"
+          onClick={() => setFilter("attention")}
+          aria-pressed={filter === "attention"}
+        >
           <span className="task-summary-icon"><AlertCircle size={19} /></span>
-          <span className="task-summary-number">{taskSummary.attention}</span>
-          <span className="task-summary-bottom"><span>Needs attention</span><ArrowUpRight size={15} /></span>
+          <span className="task-summary-copy">
+            <span className="task-summary-number">{taskSummary.attention}</span>
+            <span className="task-summary-label">Needs attention</span>
+          </span>
+          <ArrowUpRight className="task-summary-arrow" size={15} aria-hidden="true" />
         </button>
-        <button type="button" className="task-summary-card task-summary-card--completed"
-          onClick={() => setFilter("completed")} aria-pressed={filter === "completed"}>
+        <button
+          type="button"
+          className="task-summary-card task-summary-card--completed"
+          onClick={() => setFilter("completed")}
+          aria-pressed={filter === "completed"}
+        >
           <span className="task-summary-icon"><CheckCircle2 size={19} /></span>
-          <span className="task-summary-number">{taskSummary.completed}</span>
-          <span className="task-summary-bottom"><span>Completed tasks</span><ArrowUpRight size={15} /></span>
+          <span className="task-summary-copy">
+            <span className="task-summary-number">{taskSummary.completed}</span>
+            <span className="task-summary-label">Completed tasks</span>
+          </span>
+          <ArrowUpRight className="task-summary-arrow" size={15} aria-hidden="true" />
         </button>
       </div>
       <div className="toolbar task-toolbar task-toolbar--refresh">
@@ -1445,7 +1455,7 @@ export default function TasksPage() {
             </button>
 
             {filtersOpen && (
-              <div className="task-filter-panel fixed top-2 left-1/2 -translate-x-1/2 w-[680px] max-w-[calc(100vw-48px)] max-h-[calc(100vh-1rem)] overflow-y-auto rounded-2xl border border-slate-200 bg-white px-5 shadow-xl z-50">
+              <div className="task-filter-panel fixed top-2 left-1/2 -translate-x-1/2 w-[760px] max-w-[calc(100vw-32px)] max-h-[calc(100dvh-1rem)] overflow-y-auto rounded-2xl border border-slate-200 bg-white px-5 shadow-xl z-50">
                 <div className="sticky top-0 z-10  bg-white pt-5 pb-3 flex items-center justify-between gap-4 border-b border-slate-200">
                   <div>
                     <h3 className="text-sm font-bold text-slate-800 sticky">
@@ -1465,19 +1475,23 @@ export default function TasksPage() {
                     </button>
                   </div>
                 </div>
-                <div className="relative h-full mb-4 flex items-start justify-between gap-4">
-                  {advancedFilterCount > 0 && (
-                    <button
-                      type="button"
-                      className="text-xs font-semibold text-blue-600 hover:text-blue-800"
-                      onClick={clearAdvancedFilters}
-                    >
-                      Clear all
-                    </button>
-                  )}
+                <div className="task-filter-utilities">
+                  <span className="task-filter-count">
+                    {advancedFilterCount > 0
+                      ? `${advancedFilterCount} active filter${advancedFilterCount === 1 ? "" : "s"}`
+                      : "Refine the task list"}
+                  </span>
+                  <button
+                    type="button"
+                    className="btn-secondary task-filter-clear"
+                    onClick={clearAdvancedFilters}
+                    disabled={advancedFilterCount === 0}
+                  >
+                    Clear all
+                  </button>
                 </div>
 
-                <div className="grid gap-5 md:grid-cols-2">
+                <div className="task-filter-fields grid gap-5 md:grid-cols-2">
                   <div>
                     <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">
                       Status
@@ -1543,96 +1557,66 @@ export default function TasksPage() {
                     </label>
                   </div>
 
-                  <label className="text-xs font-semibold text-slate-500">
-                    Assigned to
-                    <select
-                      multiple
-                      className="input mt-1.5 h-28"
-                      value={advancedFilters.assigneeIds}
-                      onChange={(event) =>
-                        setAdvancedValues("assigneeIds", event)
-                      }
-                    >
-                      <option value={UNASSIGNED}>Unassigned</option>
-                      {filterPeople.map((person) => (
-                        <option key={person.id} value={person.id}>
-                          {person.displayName || person.email}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                  <FilterMultiSelect
+                    label="Assigned to"
+                    options={[
+                      { value: UNASSIGNED, label: "Unassigned" },
+                      ...filterPeople.map((person) => ({
+                        value: person.id,
+                        label: person.displayName || person.email || "Unknown",
+                      })),
+                    ]}
+                    values={advancedFilters.assigneeIds}
+                    onToggle={(value) => toggleAdvancedValue("assigneeIds", value)}
+                  />
 
-                  <label className="text-xs font-semibold text-slate-500">
-                    Created by
-                    <select
-                      multiple
-                      className="input mt-1.5 h-28"
-                      value={advancedFilters.creatorIds}
-                      onChange={(event) =>
-                        setAdvancedValues("creatorIds", event)
-                      }
-                    >
-                      {filterPeople.map((person) => (
-                        <option key={person.id} value={person.id}>
-                          {person.displayName || person.email}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                  <FilterMultiSelect
+                    label="Created by"
+                    options={filterPeople.map((person) => ({
+                      value: person.id,
+                      label: person.displayName || person.email || "Unknown",
+                    }))}
+                    values={advancedFilters.creatorIds}
+                    onToggle={(value) => toggleAdvancedValue("creatorIds", value)}
+                  />
 
-                  <label className="text-xs font-semibold text-slate-500">
-                    Participant
-                    <select
-                      multiple
-                      className="input mt-1.5 h-28"
-                      value={advancedFilters.participantIds}
-                      onChange={(event) =>
-                        setAdvancedValues("participantIds", event)
-                      }
-                    >
-                      {filterPeople.map((person) => (
-                        <option key={person.id} value={person.id}>
-                          {person.displayName || person.email}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                  <FilterMultiSelect
+                    label="Participant"
+                    options={filterPeople.map((person) => ({
+                      value: person.id,
+                      label: person.displayName || person.email || "Unknown",
+                    }))}
+                    values={advancedFilters.participantIds}
+                    onToggle={(value) => toggleAdvancedValue("participantIds", value)}
+                  />
 
-                  <label className="text-xs font-semibold text-slate-500">
-                    Personal group
-                    <select
-                      multiple
-                      className="input mt-1.5 h-28"
-                      value={advancedFilters.groupIds}
-                      onChange={(event) => setAdvancedValues("groupIds", event)}
-                    >
-                      <option value={UNGROUPED}>Ungrouped</option>
-                      {(groups.data || []).map((group) => (
-                        <option key={group.id} value={group.id}>
-                          {group.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                  <FilterMultiSelect
+                    label="Personal group"
+                    kind="group"
+                    options={[
+                      { value: UNGROUPED, label: "Ungrouped" },
+                      ...(groups.data || []).map((group) => ({
+                        value: group.id,
+                        label: group.name,
+                      })),
+                    ]}
+                    values={advancedFilters.groupIds}
+                    onToggle={(value) => toggleAdvancedValue("groupIds", value)}
+                  />
 
-                  <label className="text-xs font-semibold text-slate-500">
-                    Department
-                    <select
-                      multiple
-                      className="input mt-1.5 h-28"
-                      value={advancedFilters.departmentIds}
-                      onChange={(event) =>
-                        setAdvancedValues("departmentIds", event)
-                      }
-                    >
-                      <option value={NO_DEPARTMENT}>No department</option>
-                      {filterDepartments.map((department) => (
-                        <option key={department.id} value={department.id}>
-                          {department.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                  <FilterMultiSelect
+                    label="Department"
+                    kind="department"
+                    options={[
+                      { value: NO_DEPARTMENT, label: "No department" },
+                      ...filterDepartments.map((department) => ({
+                        value: department.id,
+                        label: department.name,
+                      })),
+                    ]}
+                    values={advancedFilters.departmentIds}
+                    onToggle={(value) => toggleAdvancedValue("departmentIds", value)}
+                  />
 
                   <label className="text-xs font-semibold text-slate-500">
                     Attachments
@@ -1649,7 +1633,7 @@ export default function TasksPage() {
                     </select>
                   </label>
 
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:col-span-2">
+                  <div className="task-filter-dates grid grid-cols-1 gap-3 sm:grid-cols-2 md:col-span-2">
                     <label className="text-xs font-semibold text-slate-500">
                       Created from
                       <input
@@ -1675,9 +1659,9 @@ export default function TasksPage() {
                   </div>
                 </div>
 
-                <div className="sticky bottom-0 py-3 flex items-center justify-between border-t border-slate-100 bg-white pt-4">
+                <div className="task-filter-footer sticky bottom-0 flex items-center justify-between border-t border-slate-100 bg-white">
                   <span className="hidden text-xs text-slate-400 sm:inline">
-                    Hold Ctrl/Cmd to select multiple people or groups.
+                    Select multiple values with checkboxes.
                   </span>
                   <button
                     type="button"
