@@ -34,6 +34,7 @@ import {
   Empty,
   Loading,
   Attachments,
+  Avatar,
   prettyDate,
 } from "../components/UI.jsx";
 import "./tasks-page.css";
