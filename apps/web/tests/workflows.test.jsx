@@ -259,6 +259,14 @@ describe("main workspace flows", () => {
     expect(groupSelect.classList.contains("task-detail-group-select")).toBe(true);
     expect(groupSelect.title).toBe(group.name);
     expect(groupSelect.value).toBe(group.id);
+    const statusSelect = screen.getByRole("combobox", { name: "Task status" });
+    const groupWrap = groupSelect.closest(".task-detail-select-wrap");
+    const statusWrap = statusSelect.closest(".task-detail-select-wrap");
+    expect(groupWrap).not.toBeNull();
+    expect(statusWrap).not.toBeNull();
+    expect(groupWrap.querySelector(".task-detail-select-preview-label").textContent).toBe(group.name);
+    expect(statusWrap.querySelector(".task-detail-select-preview-label").textContent).toBe("OPEN");
+    expect(details.querySelectorAll(".task-detail-select-preview > svg")).toHaveLength(2);
     expect(details.querySelector(".task-detail-person-name")?.textContent).toBe("Test Colleague");
     expect(details.querySelector(".task-detail-person-icon")).not.toBeNull();
     expect(details.querySelector(".task-detail-participants-list")).not.toBeNull();
