@@ -1065,7 +1065,8 @@
 .modal[open]:has(> .modal-body > .task-detail) {
   display: flex;
   flex-direction: column;
-  height: auto;
+  /* Restore the spacious Details dialog. The inner body is the only scroller. */
+  height: min(900px, calc(100dvh - 48px));
   max-height: calc(100dvh - 48px);
   overflow: hidden;
 }
@@ -1434,6 +1435,7 @@
 }
 @media (max-width: 900px) {
   .modal[open]:has(> .modal-body > .task-detail) {
+    height: min(900px, 94dvh);
     max-height: 94dvh;
   }
 }
