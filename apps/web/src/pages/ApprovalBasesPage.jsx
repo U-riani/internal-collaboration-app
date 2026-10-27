@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
   ArrowUpDown,
@@ -7,13 +7,11 @@ import {
   ListFilter,
   Search,
   Layers3,
-  Plus,
   X,
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import PageHeader from "../components/PageHeader.jsx";
 import FilterMultiSelect from "../components/FilterMultiSelect.jsx";
-import { useAuth } from "../context/AuthContext.jsx";
 import {
   Badge,
   Empty,
@@ -22,7 +20,7 @@ import {
   prettyDate,
 } from "../components/UI.jsx";
 import { api } from "../lib/api.js";
-import { RequestDetail, ApprovalTypeConfigure } from "./ApprovalsPage.jsx";
+import { RequestDetail, ApprovalDateField } from "./ApprovalsPage.jsx";
 import "./tasks-page.css";
 import "./approval-bases-page.css";
 
@@ -126,10 +124,7 @@ function ApprovalStepProgress({ record }) {
 
 export default function ApprovalBasesPage() {
   const navigate = useNavigate();
-  const qc = useQueryClient();
-  const { hasPermission } = useAuth();
   const { typeId } = useParams();
-  const [showCreateType, setShowCreateType] = useState(false);
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState(DEFAULT_BASE_FILTERS);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -468,18 +463,6 @@ export default function ApprovalBasesPage() {
                 />
               )}
             </div>
-            {hasPermission("approvals.configure") && (
-              <div className="approval-bases-nav-footer">
-                <button
-                  type="button"
-                  className="btn-secondary approval-bases-new-type"
-                  onClick={() => setShowCreateType(true)}
-                >
-                  <Plus size={16} />
-                  New request type
-                </button>
-              </div>
-            )}
           </aside>
 
         <main className="approval-bases-content">
@@ -649,65 +632,28 @@ export default function ApprovalBasesPage() {
                             />
                           </div>
 
-                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:col-span-2">
-                            <label className="text-xs font-semibold text-slate-500">
-                              Created from
-                              <input
-                                type="date"
-                                className="input mt-1.5"
-                                value={filters.createdFrom}
-                                onChange={(event) =>
-                                  setFilterValue(
-                                    "createdFrom",
-                                    event.target.value,
-                                  )
-                                }
-                              />
-                            </label>
-                            <label className="text-xs font-semibold text-slate-500">
-                              Created to
-                              <input
-                                type="date"
-                                className="input mt-1.5"
-                                value={filters.createdTo}
-                                onChange={(event) =>
-                                  setFilterValue(
-                                    "createdTo",
-                                    event.target.value,
-                                  )
-                                }
-                              />
-                            </label>
-                            <label className="text-xs font-semibold text-slate-500">
-                              Submitted from
-                              <input
-                                type="date"
-                                className="input mt-1.5"
-                                value={filters.submittedFrom}
-                                onChange={(event) =>
-                                  setFilterValue(
-                                    "submittedFrom",
-                                    event.target.value,
-                                  )
-                                }
-                              />
-                            </label>
-                            <label className="text-xs font-semibold text-slate-500">
-                              Submitted to
-                              <input
-                                type="date"
-                                className="input mt-1.5"
-                                value={filters.submittedTo}
-                                onChange={(event) =>
-                                  setFilterValue(
-                                    "submittedTo",
-                                    event.target.value,
-                                  )
-                                }
-                              />
-                            </label>
+                          <div className="approval-bases-filter-dates grid grid-cols-1 gap-3 sm:grid-cols-2 md:col-span-2">
+                            <ApprovalDateField
+                              label="Created from"
+                              value={filters.createdFrom}
+                              onChange={(value) => setFilterValue("createdFrom", value)}
+                            />
+                            <ApprovalDateField
+                              label="Created to"
+                              value={filters.createdTo}
+                              onChange={(value) => setFilterValue("createdTo", value)}
+                            />
+                            <ApprovalDateField
+                              label="Submitted from"
+                              value={filters.submittedFrom}
+                              onChange={(value) => setFilterValue("submittedFrom", value)}
+                            />
+                            <ApprovalDateField
+                              label="Submitted to"
+                              value={filters.submittedTo}
+                              onChange={(value) => setFilterValue("submittedTo", value)}
+                            />
                           </div>
-                        </div>
 
                         <div className="task-filter-footer sticky bottom-0 flex items-center justify-between border-t border-slate-100 bg-white">
                           <span className="hidden text-xs text-slate-400 sm:inline">
@@ -961,14 +907,6 @@ export default function ApprovalBasesPage() {
         <RequestDetail
           item={selectedRequest.data}
           onClose={() => setSelectedRequestId(null)}
-        />
-      )}
-      {showCreateType && (
-        <ApprovalTypeConfigure
-          onClose={() => {
-            setShowCreateType(false);
-            qc.invalidateQueries({ queryKey: ["approval-bases"] });
-          }}
         />
       )}
       </div>
