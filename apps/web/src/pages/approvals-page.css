@@ -347,21 +347,21 @@
   padding-bottom: 20px;
 }
 
-.approvals-page .approval-date-field {
+:is(.approvals-page, .approval-bases-page) .approval-date-field {
   display: flex;
   flex-direction: column;
   gap: 8px;
   min-width: 0;
 }
 
-.approvals-page .approval-date-label {
+:is(.approvals-page, .approval-bases-page) .approval-date-label {
   color: var(--task-muted);
   font-size: 11px;
   font-weight: 700;
   line-height: 1.4;
 }
 
-.approvals-page .approval-date-control {
+:is(.approvals-page, .approval-bases-page) .approval-date-control {
   position: relative;
   display: flex;
   align-items: center;
@@ -378,16 +378,16 @@
   transition: border-color .16s ease, box-shadow .16s ease;
 }
 
-.approvals-page .approval-date-control:hover {
+:is(.approvals-page, .approval-bases-page) .approval-date-control:hover {
   border-color: #817cf088;
 }
 
-.approvals-page .approval-date-control:focus-within {
+:is(.approvals-page, .approval-bases-page) .approval-date-control:focus-within {
   border-color: #817cf0;
   box-shadow: 0 0 0 2px #8077f621;
 }
 
-.approvals-page .approval-date-preview {
+:is(.approvals-page, .approval-bases-page) .approval-date-preview {
   flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
@@ -400,17 +400,17 @@
   pointer-events: none;
 }
 
-.approvals-page .approval-date-preview--filled {
+:is(.approvals-page, .approval-bases-page) .approval-date-preview--filled {
   color: var(--task-text);
 }
 
-.approvals-page .approval-date-icon {
+:is(.approvals-page, .approval-bases-page) .approval-date-icon {
   flex: 0 0 auto;
   color: var(--task-subtle);
   pointer-events: none;
 }
 
-.approvals-page .approval-date-native {
+:is(.approvals-page, .approval-bases-page) .approval-date-native {
   position: absolute;
   inset: 0;
   z-index: 1;
@@ -425,7 +425,7 @@
   cursor: pointer;
 }
 
-.approvals-page .approval-date-native:focus-visible {
+:is(.approvals-page, .approval-bases-page) .approval-date-native:focus-visible {
   outline: none;
 }
 
