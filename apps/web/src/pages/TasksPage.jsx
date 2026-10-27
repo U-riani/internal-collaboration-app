@@ -2,7 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import {
+  AlertCircle,
   ArrowUpDown,
+  ArrowUpRight,
+  CheckCircle2,
+  CircleDot,
+  X,
   CalendarDays,
   CheckSquare,
   ChevronDown,
@@ -32,6 +37,7 @@ import {
   Modal,
   prettyDate,
 } from "../components/UI.jsx";
+import "./tasks-page.css";
 
 const statuses = [
   "DRAFT",
@@ -62,7 +68,7 @@ const DEFAULT_TASK_FILTERS = {
 };
 
 const SORT_OPTIONS = [
-  ["manual", "Default / manual"],
+  ["manual", "Default"],
   ["due_asc", "Due date · earliest"],
   ["due_desc", "Due date · latest"],
   ["priority_desc", "Priority · high to low"],
@@ -801,6 +807,23 @@ export default function TasksPage() {
   };
 
   const allTasks = query.data || [];
+  // Summary cards reflect top-level tasks in this user's accessible task feed.
+  // Keep counts independent of the quick filter, search and personal grouping.
+  const taskSummary = useMemo(() => {
+    const tasks = allTasks.filter((task) => !task.parentTaskId);
+    const unfinished = tasks.filter(
+      (task) => !["COMPLETED", "CANCELLED"].includes(task.status),
+    );
+    const needsAttention = (task) =>
+      task.status === "BLOCKED" ||
+      (task.dueDate && new Date(task.dueDate).getTime() < Date.now());
+
+    return {
+      active: unfinished.length,
+      attention: unfinished.filter(needsAttention).length,
+      completed: tasks.filter((task) => task.status === "COMPLETED").length,
+    };
+  }, [allTasks]);
   const unreadTaskIds = useMemo(
     () =>
       new Set(
@@ -910,6 +933,10 @@ export default function TasksPage() {
         )) ||
       (filter === "active" &&
         !["COMPLETED", "CANCELLED"].includes(task.status)) ||
+      (filter === "attention" &&
+        !["COMPLETED", "CANCELLED"].includes(task.status) &&
+        (task.status === "BLOCKED" ||
+          (task.dueDate && new Date(task.dueDate).getTime() < Date.now()))) ||
       (filter === "completed" && task.status === "COMPLETED");
 
     const layoutOwner = task.parentTaskId && parentTask ? parentTask : task;
@@ -1150,7 +1177,7 @@ export default function TasksPage() {
     return (
       <button
         key={task.id}
-        className="card relative p-4 text-left w-full hover:border-blue-300 transition"
+        className="task-board-card card relative p-4 text-left w-full hover:border-blue-300 transition"
         onClick={() => setId(task.id)}
       >
         {hasUnread && (
@@ -1216,7 +1243,7 @@ export default function TasksPage() {
         <div
           role="button"
           tabIndex={0}
-          className={`task-list-row relative grid min-w-[940px] grid-cols-[minmax(300px,1.8fr)_180px_165px_110px_145px_70px] items-center gap-4 border-t border-slate-100 px-5 py-3.5 text-left transition hover:bg-slate-50 focus:bg-slate-50 focus:outline-none ${subtask ? "bg-slate-50/40" : ""}`}
+          className={`task-list-row relative grid min-w-[890px] grid-cols-[minmax(280px,1.8fr)_160px_145px_105px_125px_70px] items-center gap-4 border-t border-slate-100 px-5 py-3.5 text-left transition hover:bg-slate-50 focus:bg-slate-50 focus:outline-none ${subtask ? "task-list-row--subtask" : ""}`}
           onClick={() => setId(task.id)}
           onKeyDown={(event) => {
             if (event.key === "Enter" || event.key === " ") {
@@ -1328,10 +1355,12 @@ export default function TasksPage() {
 
   return (
     <>
+      <div className="tasks-page">
       <PageHeader
         title="Tasks"
+        description="Manage project milestones, sprints, and team execution."
         action={
-          <div className="flex items-center gap-2">
+          <div className="task-header-actions flex items-center gap-2">
             <button className="btn-secondary" onClick={() => setGroupForm({})}>
               <FolderPlus size={17} />
               New group
@@ -1351,7 +1380,27 @@ export default function TasksPage() {
           </div>
         }
       />
-      <div className="toolbar task-toolbar stickytop-20 z-30 flex items-center gap-4 rounded-lg border border-slate-200 bg-white shadow-sm">
+      <div className="task-summary" aria-label="Task overview">
+        <button type="button" className="task-summary-card task-summary-card--active"
+          onClick={() => setFilter("active")} aria-pressed={filter === "active"}>
+          <span className="task-summary-icon"><CircleDot size={19} /></span>
+          <span className="task-summary-number">{taskSummary.active}</span>
+          <span className="task-summary-bottom"><span>Active tasks</span><ArrowUpRight size={15} /></span>
+        </button>
+        <button type="button" className="task-summary-card task-summary-card--attention"
+          onClick={() => setFilter("attention")} aria-pressed={filter === "attention"}>
+          <span className="task-summary-icon"><AlertCircle size={19} /></span>
+          <span className="task-summary-number">{taskSummary.attention}</span>
+          <span className="task-summary-bottom"><span>Needs attention</span><ArrowUpRight size={15} /></span>
+        </button>
+        <button type="button" className="task-summary-card task-summary-card--completed"
+          onClick={() => setFilter("completed")} aria-pressed={filter === "completed"}>
+          <span className="task-summary-icon"><CheckCircle2 size={19} /></span>
+          <span className="task-summary-number">{taskSummary.completed}</span>
+          <span className="task-summary-bottom"><span>Completed tasks</span><ArrowUpRight size={15} /></span>
+        </button>
+      </div>
+      <div className="toolbar task-toolbar task-toolbar--refresh">
         <div className="tabs task-quick-tabs" aria-label="Task quick filters">
           {[
             ["active", "Active", "Active"],
@@ -1365,6 +1414,7 @@ export default function TasksPage() {
               key={value}
               type="button"
               className={filter === value ? "active" : ""}
+              aria-pressed={filter === value}
               onClick={() => setFilter(value)}
               title={label}
             >
@@ -1375,24 +1425,21 @@ export default function TasksPage() {
         </div>
 
         <div className="task-toolbar-actions ml-auto flex items-center gap-2">
-          <div className="relative">
-            <Search
-              className={`absolute right-3  top-3 text-slate-400`}
-              size={15}
-            />
+          <label className="task-search-bar">
+            <Search size={16} aria-hidden="true" />
             <input
               aria-label="Search tasks"
-              className="input pl-9 pe-8! w-44 xl:w-52"
-              placeholder="Search tasks"
+              className="input"
+              placeholder="Search tasks..."
               value={search}
               onChange={(event) => setSearch(event.target.value)}
             />
-          </div>
+          </label>
 
           <div className="relative">
             <button
               type="button"
-              className={`btn-secondary relative ${advancedFilterCount ? "border-blue-300 bg-blue-50 text-blue-700" : ""}`}
+              className={`btn-secondary task-filter-trigger relative ${advancedFilterCount ? "task-filter-trigger--active" : ""}`}
               onClick={() => setFiltersOpen((current) => !current)}
               aria-expanded={filtersOpen}
             >
@@ -1421,7 +1468,8 @@ export default function TasksPage() {
                       className="btn-secondary btn-sm"
                       onClick={() => setFiltersOpen((current) => !current)}
                     >
-                      x
+                      <X size={16} aria-hidden="true" />
+                      <span className="sr-only">Close filters</span>
                     </button>
                   </div>
                 </div>
@@ -1651,11 +1699,11 @@ export default function TasksPage() {
             )}
           </div>
 
-          <label className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600">
+          <label className="task-sort-control">
             <ArrowUpDown size={15} className="text-slate-400" />
             <select
               aria-label="Sort tasks"
-              className="max-w-40 bg-transparent outline-none"
+              className="input task-sort-select"
               value={sortBy}
               onChange={(event) => setSortBy(event.target.value)}
             >
@@ -1668,12 +1716,14 @@ export default function TasksPage() {
           </label>
 
           <div
-            className="inline-flex rounded-xl border border-slate-200 bg-white p-1"
+            className="task-view-toggle"
             aria-label="Task view"
           >
             <button
               type="button"
-              className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${!board ? "bg-slate-100 text-slate-800" : "text-slate-500 hover:text-slate-800"}`}
+              className={`task-view-button ${!board ? "task-view-button--active" : ""}`}
+              aria-label="List view"
+              aria-pressed={!board}
               onClick={() => setBoard(false)}
             >
               <List size={15} />
@@ -1681,7 +1731,9 @@ export default function TasksPage() {
             </button>
             <button
               type="button"
-              className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${board ? "bg-slate-100 text-slate-800" : "text-slate-500 hover:text-slate-800"}`}
+              className={`task-view-button ${board ? "task-view-button--active" : ""}`}
+              aria-label="Board view"
+              aria-pressed={board}
               onClick={() => setBoard(true)}
             >
               <Columns3 size={15} />
@@ -1728,7 +1780,7 @@ export default function TasksPage() {
             [["WAITING_REVIEW"], "IN REVIEW"],
             [["COMPLETED", "CANCELLED"], "DONE"],
           ].map(([statusGroup, label]) => (
-            <section key={label} className="rounded-xl bg-slate-100 p-3">
+            <section key={label} className="task-board-column rounded-xl bg-slate-100 p-3">
               <h3 className="text-xs font-bold px-1 mb-4 text-slate-500">
                 {label}
                 <span className="float-right">
@@ -1748,22 +1800,17 @@ export default function TasksPage() {
           ))}
         </div>
       ) : (
-        // <div className="task-list-card card max-h-[calc(100vh-18.6rem)] md:max-h-[calc(100vh-10.74rem)] overflow-auto">
-        <div className="task-list-card card max-h-[calc(100vh-377px)] md:max-h-[calc(100vh-10.8rem)] overflow-auto">
-          <div className=" ">
-            <div className="task-list-header sticky top-0 z-5 grid min-w-[940px] grid-cols-[minmax(300px,1.8fr)_180px_165px_110px_145px_70px] items-center gap-4 bg-slate-50 px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-slate-400">
-              <span>Task</span>
-              <span>Assignee</span>
-              <span>Due date</span>
-              <span>Priority</span>
-              <span>Status</span>
-              <span className="text-right">Comments</span>
-            </div>
+        <div className="task-list-card">
+          <div className="task-groups-stack">
             {groupSections.map((group) => {
               const collapsed = collapsedGroups.has(group.id);
+              const groupAttention = group.tasks.some((task) =>
+                task.status === "BLOCKED" || isOverdue(task));
+              const groupCompleted = group.tasks.length > 0 &&
+                group.tasks.every((task) => task.status === "COMPLETED");
               return (
-                <section key={group.id}>
-                  <div className="task-group-header sticky top-0 md:top-10 z-4 flex min-w-[940px] items-center gap-2 border-t border-slate-200 bg-slate-100 px-4 py-2.5">
+                <section key={group.id} className="task-group-card">
+                  <div className="task-group-header flex min-w-0 items-center gap-2 px-4 py-2.5">
                     <button
                       type="button"
                       className="grid h-7 w-7 place-items-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700"
@@ -1783,16 +1830,24 @@ export default function TasksPage() {
                     <span className="font-semibold text-sm text-slate-700">
                       {group.name}
                     </span>
-                    <span className="text-xs text-slate-400">
-                      {group.tasks.length} task
-                      {group.tasks.length === 1 ? "" : "s"}
+                    <span className="task-group-count">
+                      {group.tasks.length} task{group.tasks.length === 1 ? "" : "s"}
                     </span>
+                    {group.tasks.length > 0 && (
+                      <span className={`task-group-state ${groupCompleted
+                        ? "task-group-state--complete"
+                        : groupAttention
+                          ? "task-group-state--attention"
+                          : "task-group-state--progress"}`}>
+                        {groupCompleted ? "Completed" : groupAttention ? "Needs attention" : "In progress"}
+                      </span>
+                    )}
                     <div className="ml-auto flex items-center gap-1">
                       {hasPermission("tasks.create") &&
                         group.canUse !== false && (
                           <button
                             type="button"
-                            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-slate-500 hover:bg-white hover:text-slate-800"
+                            className="task-group-add inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-slate-500 hover:bg-white hover:text-slate-800"
                             onClick={(event) =>
                               openCreateForGroup(event, group.id)
                             }
@@ -1831,20 +1886,35 @@ export default function TasksPage() {
                       )}
                     </div>
                   </div>
-                  {!collapsed &&
-                    (group.tasks.length ? (
-                      group.tasks.map((task) => listRow(task))
-                    ) : (
-                      <div className="task-empty-row min-w-[940px] border-t border-slate-100 px-14 py-4 text-sm text-slate-400">
-                        No tasks in this group.
-                      </div>
-                    ))}
+                  {!collapsed && (
+                    <div className="task-group-content">
+                      {group.tasks.length ? (
+                        <>
+                          <div className="task-list-header grid min-w-[890px] grid-cols-[minmax(280px,1.8fr)_160px_145px_105px_125px_70px] items-center gap-4 px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-slate-400">
+                            <span>Task</span>
+                            <span>Assignee</span>
+                            <span>Due date</span>
+                            <span>Priority</span>
+                            <span>Status</span>
+                            <span className="text-right">Comments</span>
+                          </div>
+                          {group.tasks.map((task) => listRow(task))}
+                        </>
+                      ) : (
+                        <div className="task-empty-row">
+                          <CheckCircle2 size={16} aria-hidden="true" />
+                          <span>No tasks match the selected filters in this group.</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </section>
               );
             })}
           </div>
         </div>
       )}
+      </div>
       {create && (
         <TaskForm
           defaultGroupId={createInGroup}
