@@ -1063,177 +1063,266 @@ export function RequestDetail({ item, onClose }) {
       qc.invalidateQueries({ queryKey: ["approval", item.id] });
     },
   });
+  const selectedGroupName =
+    (groups.data || []).find((group) => group.id === item.personalLayout?.groupId)?.name ||
+    item.personalLayout?.group?.name ||
+    "Ungrouped";
+
+  const canComment =
+    !canAct &&
+    (mine ||
+      user.roles.includes("SYSTEM_ADMIN") ||
+      item.steps.some((step) => step.approverId === user.id));
+
   return (
     <Modal title={item.title} onClose={onClose} wide>
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-sm text-slate-400">
-          {item.requester.displayName} ·{" "}
-          {item.workflowSnapshot?.type?.name || item.approvalType.name} · v
-          {item.workflowSnapshot?.type?.version || item.approvalTypeVersion} ·{" "}
-          {prettyDate(item.createdAt)}
-        </p>
-        <Badge value={item.status} />
-      </div>
-      <div className="mt-5 max-w-xs">
-        <Field label="My group">
-          <select
-            className="input"
-            value={item.personalLayout?.groupId || ""}
-            disabled={updateLayout.isPending}
-            onChange={(event) => updateLayout.mutate(event.target.value)}
-          >
-            <option value="">Ungrouped</option>
-            {(groups.data || []).map((group) => (
-              <option key={group.id} value={group.id}>
-                {group.name}
-              </option>
-            ))}
-          </select>
-        </Field>
-      </div>
-      <div className="grid sm:grid-cols-2 gap-5 my-6 rounded-xl bg-slate-50 p-5">
-        {Object.entries(schema).map(([key, field]) => (
-          <div key={key}>
-            <p className="text-xs text-slate-400 mb-1">{field.label}</p>
-            <p className="text-sm whitespace-pre-wrap break-words">
-              {typeof item.data[key] === "boolean"
-                ? item.data[key]
-                  ? "Yes"
-                  : "No"
-                : String(item.data[key] ?? "—")}
-            </p>
-          </div>
-        ))}
-      </div>
-      <Attachments items={item.attachments} />
-      <h3 className="font-semibold text-sm mt-6 mb-4">Approval progress</h3>
-      <div className="space-y-3">
-        {item.steps.map((s) => (
-          <div key={s.id} className="flex gap-3 items-start">
-            <span
-              className={`rounded-full w-7 h-7 flex items-center justify-center text-xs ${s.status === "APPROVED" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}
-            >
-              {s.status === "APPROVED" ? <Check size={15} /> : s.stepNumber}
+      <div className="task-detail approval-detail">
+        <div className="task-detail-intro approval-detail-intro">
+          <div className="approval-detail-request-meta">
+            <span className="approval-detail-request-icon" aria-hidden="true">
+              <FileCheck2 size={18} />
             </span>
-            <div className="flex-1">
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-sm font-medium">{s.stepName}</span>
-                <Badge value={s.status} />
-              </div>
-              <p className="text-xs text-slate-400 mt-1">
-                {s.approver.displayName}
-              </p>
-              {s.comment && (
-                <p className="mt-2 text-sm text-slate-500">{s.comment}</p>
-              )}
+            <div className="approval-detail-request-copy">
+              <span className="approval-detail-requester">{item.requester.displayName}</span>
+              <span className="approval-detail-meta-separator" aria-hidden="true">·</span>
+              <span>{item.workflowSnapshot?.type?.name || item.approvalType.name}</span>
+              <span className="approval-detail-version">
+                v{item.workflowSnapshot?.type?.version || item.approvalTypeVersion}
+              </span>
+              <span className="approval-detail-meta-separator" aria-hidden="true">·</span>
+              <span>{prettyDate(item.createdAt)}</span>
             </div>
           </div>
-        ))}
-      </div>
-      {mine && ["DRAFT", "CHANGES_REQUESTED"].includes(item.status) && (
-        <div className="mt-6">
-          <button className="btn-primary" onClick={() => setEdit(true)}>
-            Edit and submit
-          </button>
+          <Badge value={item.status} />
         </div>
-      )}
-      {canAct && (
-        <div className="mt-6 rounded-xl bg-blue-50 p-4">
-          <p className="font-semibold text-sm mb-3">Your review is needed</p>
-          <select
-            className="input mb-3"
-            aria-label="Decision"
-            value={decision}
-            onChange={(e) => setDecision(e.target.value)}
-          >
-            <option value="APPROVE">Approve</option>
-            <option value="REQUEST_CHANGES">Request changes</option>
-            <option value="REJECT">Reject</option>
-          </select>
-          <textarea
-            className="input mb-3"
-            aria-label="Review comment"
-            placeholder={
-              decision === "APPROVE"
-                ? "Comment (optional)"
-                : "Explain your decision (required)"
-            }
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-          />
-          <button
-            className="btn-primary"
-            disabled={
-              save.isPending || (decision !== "APPROVE" && !comment.trim())
-            }
-            onClick={() => save.mutate({})}
-          >
-            Confirm decision
-          </button>
+
+        <div className="approval-detail-group">
+          <p className="task-detail-meta-label">My group</p>
+          <div className="task-detail-select-wrap" title={selectedGroupName}>
+            <select
+              className="input app-modern-select task-detail-select task-detail-group-select"
+              aria-label="My approval group"
+              title={selectedGroupName}
+              value={item.personalLayout?.groupId || ""}
+              disabled={updateLayout.isPending}
+              onChange={(event) => updateLayout.mutate(event.target.value)}
+            >
+              <option value="">Ungrouped</option>
+              {(groups.data || []).map((group) => (
+                <option key={group.id} value={group.id}>
+                  {group.name}
+                </option>
+              ))}
+            </select>
+            <span className="task-detail-select-preview" aria-hidden="true">
+              <span className="task-detail-select-preview-label">
+                {selectedGroupName}
+              </span>
+              <ChevronDown size={15} />
+            </span>
+          </div>
         </div>
-      )}
-      <ErrorBox error={save.error || updateLayout.error || groups.error} />
-      <h3 className="text-sm font-semibold mt-6 mb-3">Comments</h3>
-      {item.comments.map((c) => (
-        <p key={c.id} className="text-sm my-3">
-          <strong className="text-xs">{c.author.displayName}</strong>
-          <br />
-          {c.content}
-        </p>
-      ))}
-      {!canAct &&
-        (mine ||
-          user.roles.includes("SYSTEM_ADMIN") ||
-          item.steps.some((step) => step.approverId === user.id)) && (
-          <form
-            className="flex gap-2"
-            onSubmit={(e) => {
-              e.preventDefault();
-              save.mutate({ commentOnly: true });
-            }}
-          >
-            <input
-              className="input"
-              aria-label="Approval comment"
-              required
-              placeholder="Add a comment…"
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-            />
-            <button className="btn-secondary" disabled={save.isPending}>
-              Send
-            </button>
-          </form>
-        )}
-      {item.rounds?.length > 0 && (
-        <details className="mt-5 text-xs text-slate-500">
-          <summary>Earlier review rounds ({item.rounds.length})</summary>
-          {item.rounds.map((r, i) => (
-            <div key={i} className="mt-3">
-              Round {i + 1}
-              {r.steps.map((s) => (
-                <p key={s.id} className="ml-3 mt-1">
-                  {s.stepName}: {s.status.toLowerCase()}{" "}
-                  {s.comment && `— ${s.comment}`}
-                </p>
+
+        {Object.entries(schema || {}).length > 0 && (
+          <section className="task-detail-section approval-detail-fields" aria-label="Request fields">
+            <div className="approval-detail-fields-grid">
+              {Object.entries(schema).map(([key, field]) => (
+                <div className="approval-detail-field" key={key}>
+                  <p className="approval-detail-field-label">{field.label}</p>
+                  <p className="approval-detail-field-value">
+                    {typeof item.data[key] === "boolean"
+                      ? item.data[key] ? "Yes" : "No"
+                      : String(item.data[key] ?? "—")}
+                  </p>
+                </div>
               ))}
             </div>
-          ))}
-        </details>
-      )}
-      {mine && !["APPROVED", "REJECTED", "CANCELLED"].includes(item.status) && (
-        <button
-          className="mt-6 text-xs text-red-600"
-          disabled={save.isPending}
-          onClick={() => save.mutate({ action: "CANCEL" })}
-        >
-          Cancel request
-        </button>
-      )}
-      {edit && <RequestForm existing={item} onClose={() => setEdit(false)} />}
+          </section>
+        )}
+
+        <div className="approval-detail-attachments">
+          <Attachments items={item.attachments} />
+        </div>
+
+        <section className="approval-detail-progress" aria-label="Approval progress">
+          <h3 className="task-detail-discussion-title approval-detail-section-title">
+            Approval progress
+          </h3>
+          <div className="approval-detail-timeline">
+            {item.steps.map((step) => (
+              <div className="approval-detail-timeline-item" key={step.id}>
+                <span
+                  className={`approval-detail-step-indicator approval-detail-step-indicator--${step.status.toLowerCase()}`}
+                  aria-hidden="true"
+                >
+                  {step.status === "APPROVED" ? <Check size={15} /> : step.stepNumber}
+                </span>
+                <div className="approval-detail-step-info">
+                  <div className="approval-detail-step-top">
+                    <span className="approval-detail-step-name">{step.stepName}</span>
+                    <Badge value={step.status} />
+                  </div>
+                  <p className="approval-detail-step-approver">{step.approver.displayName}</p>
+                  {step.comment && (
+                    <p className="approval-detail-step-comment">{step.comment}</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {mine && ["DRAFT", "CHANGES_REQUESTED"].includes(item.status) && (
+          <div className="approval-detail-edit-actions">
+            <button
+              type="button"
+              className="btn-secondary task-detail-edit"
+              onClick={() => setEdit(true)}
+            >
+              <Pencil size={15} />
+              Edit and submit
+            </button>
+          </div>
+        )}
+
+        {canAct && (
+          <section className="task-detail-section approval-detail-review" aria-label="Approval decision">
+            <div className="task-detail-section-header">
+              <h3>Your review is needed</h3>
+              <p>Select a decision and include a reason when required.</p>
+            </div>
+            <div className="approval-detail-review-body">
+              <label className="approval-detail-review-field">
+                <span>Decision</span>
+                <select
+                  className="input app-modern-select task-detail-select"
+                  aria-label="Decision"
+                  value={decision}
+                  onChange={(event) => setDecision(event.target.value)}
+                >
+                  <option value="APPROVE">Approve</option>
+                  <option value="REQUEST_CHANGES">Request changes</option>
+                  <option value="REJECT">Reject</option>
+                </select>
+              </label>
+              <label className="approval-detail-review-field">
+                <span>Comment</span>
+                <textarea
+                  className="input task-detail-comment-input"
+                  aria-label="Review comment"
+                  placeholder={
+                    decision === "APPROVE"
+                      ? "Comment (optional)"
+                      : "Explain your decision (required)"
+                  }
+                  value={comment}
+                  onChange={(event) => setComment(event.target.value)}
+                />
+              </label>
+              <button
+                type="button"
+                className="btn-primary task-detail-comment-submit approval-detail-confirm"
+                disabled={save.isPending || (decision !== "APPROVE" && !comment.trim())}
+                onClick={() => save.mutate({})}
+              >
+                <Check size={15} />
+                Confirm decision
+              </button>
+            </div>
+          </section>
+        )}
+
+        <ErrorBox error={save.error || updateLayout.error || groups.error} />
+
+        <section className="approval-detail-discussion" aria-label="Comments">
+          <h3 className="task-detail-discussion-title approval-detail-section-title">
+            Comments{item.comments.length ? ` · ${item.comments.length}` : ""}
+          </h3>
+          {item.comments.length > 0 && (
+            <div className="task-detail-comments approval-detail-comments">
+              {item.comments.map((entry) => (
+                <div className="task-detail-comment approval-detail-comment" key={entry.id}>
+                  <Avatar small name={entry.author.displayName} />
+                  <div className="approval-detail-comment-copy">
+                    <div className="approval-detail-comment-byline">
+                      <span>{entry.author.displayName}</span>
+                      {entry.createdAt && (
+                        <span className="approval-detail-comment-date">
+                          {prettyDate(entry.createdAt)}
+                        </span>
+                      )}
+                    </div>
+                    <p className="approval-detail-comment-body">{entry.content}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {canComment && (
+            <form
+              className="approval-detail-comment-form"
+              onSubmit={(event) => {
+                event.preventDefault();
+                save.mutate({ commentOnly: true });
+              }}
+            >
+              <input
+                className="input approval-detail-comment-input"
+                aria-label="Approval comment"
+                required
+                placeholder="Add a comment..."
+                value={comment}
+                onChange={(event) => setComment(event.target.value)}
+              />
+              <button
+                type="submit"
+                className="btn-primary task-detail-comment-submit approval-detail-send"
+                disabled={save.isPending}
+              >
+                Send
+              </button>
+            </form>
+          )}
+        </section>
+
+        {item.rounds?.length > 0 && (
+          <details className="task-detail-history approval-detail-history">
+            <summary className="cursor-pointer font-semibold">
+              Earlier review rounds ({item.rounds.length})
+            </summary>
+            <div className="approval-detail-rounds">
+              {item.rounds.map((round, index) => (
+                <div key={index} className="approval-detail-round">
+                  <strong>Round {index + 1}</strong>
+                  {round.steps.map((step) => (
+                    <p key={step.id}>
+                      {step.stepName}: {step.status.toLowerCase()}{" "}
+                      {step.comment && `— ${step.comment}`}
+                    </p>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </details>
+        )}
+
+        {mine && !["APPROVED", "REJECTED", "CANCELLED"].includes(item.status) && (
+          <button
+            type="button"
+            className="approval-detail-cancel"
+            disabled={save.isPending}
+            onClick={() => save.mutate({ action: "CANCEL" })}
+          >
+            <X size={15} />
+            Cancel request
+          </button>
+        )}
+        {edit && <RequestForm existing={item} onClose={() => setEdit(false)} />}
+      </div>
     </Modal>
   );
 }
+
 export default function ApprovalsPage() {
   const { user, hasPermission } = useAuth();
   const qc = useQueryClient();
