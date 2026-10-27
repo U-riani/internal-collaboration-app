@@ -654,6 +654,7 @@ export default function ApprovalBasesPage() {
                               onChange={(value) => setFilterValue("submittedTo", value)}
                             />
                           </div>
+                        </div>
 
                         <div className="task-filter-footer sticky bottom-0 flex items-center justify-between border-t border-slate-100 bg-white">
                           <span className="hidden text-xs text-slate-400 sm:inline">
