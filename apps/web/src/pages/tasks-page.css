@@ -847,7 +847,7 @@
 .task-form > .field, .task-form > .filter-multiselect { margin-top: 18px; }
 .task-form > .field:first-child { margin-top: 0; }
 .task-form .field > span:first-child { color: var(--task-muted); }
-.task-form .field + .field { margin-top: 0; }
+/* Keep vertical spacing between consecutive fields; only the two-column row is aligned flush. */
 .task-form .task-form-row {
   align-items: start;
   gap: 14px;
