@@ -703,8 +703,8 @@ function TaskDetail({ id, onClose }) {
               value={comment}
               onChange={(event) => setComment(event.target.value)}
             />
-            <div className="task-detail-comment-actions flex justify-between items-center mt-3>
-              <label className="task-detail-file-label text-xs text-slate-500 flex items-center gap-2 cursor-pointer>
+            <div className="task-detail-comment-actions flex justify-between items-center mt-3">
+              <label className="task-detail-file-label text-xs text-slate-500 flex items-center gap-2 cursor-pointer">
                 <Paperclip size={16} />
                 {file?.name || "Attach a file"}
                 <input
