@@ -12,6 +12,7 @@ import {
   Heart,
   ChevronLeft,
   ChevronRight,
+  ArrowUpDown,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useNavigate } from "react-router-dom";
@@ -25,6 +26,11 @@ import "./notifications-page.css";
 
 const priorities = ["LOW", "NORMAL", "HIGH", "URGENT"];
 const PAGE_SIZE = 7;
+const SORT_OPTIONS = [
+  ["default", "Default"],
+  ["priority_desc", "Priority · high to low"],
+  ["priority_asc", "Priority · low to high"],
+];
 
 // Only notifications explicitly categorized or titled as mentions appear here.
 // The current notification API does not provide a dedicated mentions endpoint.
@@ -82,6 +88,7 @@ export default function NotificationsPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("all");
+  const [sortBy, setSortBy] = useState("default");
   const [page, setPage] = useState(1);
   const query = useQuery({
     queryKey: ["notifications"],
@@ -148,16 +155,35 @@ export default function NotificationsPage() {
       : activeTab === "mentions"
         ? items.filter(isMention)
         : items;
-  const totalPages = Math.max(1, Math.ceil(filteredItems.length / PAGE_SIZE));
+  // Sort the complete filtered list *before* pagination. The API returns
+  // newest-first by default; explicit priority sorting uses a newest-first
+  // tie-breaker so items of equal priority retain their expected order.
+  const sortedItems = [...filteredItems].sort((left, right) => {
+    if (sortBy !== "default") {
+      const leftPriority = priorities.indexOf(
+        priorities.includes(left.priority) ? left.priority : "NORMAL",
+      );
+      const rightPriority = priorities.indexOf(
+        priorities.includes(right.priority) ? right.priority : "NORMAL",
+      );
+      const priorityDifference =
+        sortBy === "priority_desc"
+          ? rightPriority - leftPriority
+          : leftPriority - rightPriority;
+      if (priorityDifference !== 0) return priorityDifference;
+    }
+    return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
+  });
+  const totalPages = Math.max(1, Math.ceil(sortedItems.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
   const firstItem = (currentPage - 1) * PAGE_SIZE;
-  const pageItems = filteredItems.slice(firstItem, firstItem + PAGE_SIZE);
+  const pageItems = sortedItems.slice(firstItem, firstItem + PAGE_SIZE);
   const rangeStart = filteredItems.length ? firstItem + 1 : 0;
   const rangeEnd = Math.min(firstItem + PAGE_SIZE, filteredItems.length);
 
   useEffect(() => {
     setPage(1);
-  }, [activeTab]);
+  }, [activeTab, sortBy]);
 
   return (
     <div className="tasks-page notifications-page">
@@ -165,7 +191,22 @@ export default function NotificationsPage() {
         title="Notifications"
         description={`${unreadCount} unread notification${unreadCount === 1 ? "" : "s"}.`}
         action={
-          <div className="task-header-actions">
+          <div className="task-header-actions notifications-header-actions">
+            <label className="task-sort-control notifications-header-sort">
+              <ArrowUpDown size={15} aria-hidden="true" />
+              <select
+                className="input app-modern-select task-sort-select"
+                aria-label="Sort notifications"
+                value={sortBy}
+                onChange={(event) => setSortBy(event.target.value)}
+              >
+                {SORT_OPTIONS.map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
             <button
               type="button"
               className="btn-secondary notifications-read-all"
