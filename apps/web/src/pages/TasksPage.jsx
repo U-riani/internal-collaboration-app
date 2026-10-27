@@ -228,9 +228,10 @@ function TaskForm({ existing, parentTask, defaultGroupId = "", onClose }) {
       onClose={onClose}
     >
       <form
+        className="task-form"
         onSubmit={(event) => {
           event.preventDefault();
-          save.mutate();
+          if (!save.isPending) save.mutate();
         }}
       >
         {(parentTask || existing?.parentTask) && (
@@ -250,12 +251,12 @@ function TaskForm({ existing, parentTask, defaultGroupId = "", onClose }) {
         />
         <Field label="Description">
           <textarea
-            className="input min-h-24"
+            className="input task-form-description min-h-24"
             value={form.description}
             onChange={(event) => change("description", event.target.value)}
           />
         </Field>
-        <div className="grid gap-4 sm:grid-cols-2 mt-4">
+        <div className="task-form-row grid gap-4 sm:grid-cols-2">
           <Field label="Assigned to">
             <select
               aria-label="Assigned to"
@@ -308,47 +309,46 @@ function TaskForm({ existing, parentTask, defaultGroupId = "", onClose }) {
             </select>
           </Field>
         )}
-        <Field
-          label="Due date"
-          type="datetime-local"
-          value={form.dueDate}
-          onChange={(event) => change("dueDate", event.target.value)}
-        />
-        <Field label="Participants">
-          <select
-            className="input h-24"
-            multiple
-            value={form.participantIds}
-            onChange={(event) =>
-              change(
-                "participantIds",
-                [...event.target.selectedOptions].map((option) => option.value),
-              )
-            }
-          >
-            {users.data
-              ?.filter((member) => member.status === "ACTIVE")
-              .map((member) => (
-                <option key={member.id} value={member.id}>
-                  {member.displayName}
-                </option>
-              ))}
-          </select>
+        <Field label="Due date">
+          <input
+            className="input task-form-date"
+            type="datetime-local"
+            value={form.dueDate}
+            onChange={(event) => change("dueDate", event.target.value)}
+          />
         </Field>
-        <p className="text-xs text-slate-400 mt-1">
-          Hold Ctrl / Cmd to select multiple people.
-        </p>
-        <Field
-          label="Attachment"
-          type="file"
-          onChange={(event) => setFile(event.target.files[0])}
+        <FilterMultiSelect
+          label="Participants"
+          options={(users.data || [])
+            .filter(
+              (member) =>
+                member.status === "ACTIVE" ||
+                form.participantIds.includes(member.id),
+            )
+            .map((member) => ({
+              value: member.id,
+              label: member.displayName || member.email || "Unknown",
+            }))}
+          values={form.participantIds}
+          onToggle={(value) =>
+            change(
+              "participantIds",
+              form.participantIds.includes(value)
+                ? form.participantIds.filter((id) => id !== value)
+                : [...form.participantIds, value],
+            )
+          }
         />
+        <Field label="Attachment">
+          <input
+            className="input task-form-file"
+            type="file"
+            onChange={(event) => setFile(event.target.files[0] || null)}
+          />
+        </Field>
         <ErrorBox error={save.error || groups.error} />
-        <div className="form-actions">
-          <button className="btn-secondary" type="button" onClick={onClose}>
-            Cancel
-          </button>
-          <button className="btn-primary" disabled={save.isPending}>
+        <div className="form-actions task-form-actions">
+          <button className="btn-primary" type="submit" disabled={save.isPending}>
             {save.isPending
               ? "Saving…"
               : parentTask
