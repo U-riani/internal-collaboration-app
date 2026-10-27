@@ -496,6 +496,7 @@ export default function ApprovalBasesPage() {
             </div>
           ) : (
             <>
+              <div className="approval-bases-records-surface">
               <section className="approval-bases-records-panel">
                 <div className="approval-bases-records-header">
                   <div className="approval-bases-records-summary">
@@ -743,9 +744,9 @@ export default function ApprovalBasesPage() {
                 </div>
 
                 {(advancedFilterCount > 0 || search.trim()) && (
-                  <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+                  <div className="approval-bases-active-filters flex flex-wrap items-center gap-2 text-xs">
                     {advancedFilterCount > 0 && (
-                      <span className="rounded-full bg-blue-50 px-3 py-1.5 font-semibold text-blue-700">
+                      <span className="approval-bases-active-filter-chip">
                         {advancedFilterCount} filter
                         {advancedFilterCount === 1 ? "" : "s"} active
                       </span>
@@ -776,8 +777,8 @@ export default function ApprovalBasesPage() {
                 </div>
               ) : payload?.records?.length ? (
                 <>
-                  <section className="approval-base-table-section rounded-2xl border border-slate-200 bg-white">
-                    <div className="approval-base-table-wrap max-h-[calc(100vh-32.8rem)] md:max-h-[calc(100vh-14.6rem)] overflow-auto">
+                  <section className="approval-base-table-section">
+                    <div className="approval-base-table-wrap">
                       <table className="approval-base-table min-w-max w-full border-separate border-spacing-0 text-left text-sm">
                         <thead className="sticky top-0 z-20 bg-slate-50 text-xs uppercase tracking-wide text-slate-400">
                           <tr>
@@ -822,8 +823,16 @@ export default function ApprovalBasesPage() {
                           {payload.records.map((record) => (
                             <tr
                               key={record.id}
-                              className="group cursor-pointer"
+                              className="group approval-base-record-row cursor-pointer"
                               onClick={() => setSelectedRequestId(record.id)}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter" || event.key === " ") {
+                                  event.preventDefault();
+                                  setSelectedRequestId(record.id);
+                                }
+                              }}
+                              tabIndex={0}
+                              aria-label={`View ${record.title}`}
                             >
                               <td className="approval-base-request-cell md:sticky left-0 z-10 min-w-[260px] max-w-[260px] border-b border-r border-slate-100 bg-white px-4 py-3 transition group-hover:bg-slate-50">
                                 <p className="truncate font-semibold text-slate-700">
@@ -876,13 +885,13 @@ export default function ApprovalBasesPage() {
                   </section>
 
                   {(payload.columns || []).some((column) => column.legacy) && (
-                    <p className="mt-2 text-[11px] text-slate-400">
+                    <p className="approval-bases-legacy-note">
                       * Field comes from an earlier saved version of this
                       request type.
                     </p>
                   )}
 
-                  <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="approval-bases-pagination flex flex-wrap items-center justify-between gap-3">
                     <span className="text-xs text-slate-400">
                       Page {payload.pagination.page} of{" "}
                       {payload.pagination.pageCount} ·{" "}
@@ -891,7 +900,7 @@ export default function ApprovalBasesPage() {
                     <div className="flex gap-2">
                       <button
                         type="button"
-                        className="btn-secondary py-1!"
+                        className="btn-secondary approval-bases-page-button"
                         disabled={payload.pagination.page <= 1}
                         onClick={() =>
                           setPage((current) => Math.max(1, current - 1))
@@ -901,7 +910,7 @@ export default function ApprovalBasesPage() {
                       </button>
                       <button
                         type="button"
-                        className="btn-secondary py-1!"
+                        className="btn-secondary approval-bases-page-button"
                         disabled={
                           payload.pagination.page >=
                           payload.pagination.pageCount
@@ -914,13 +923,14 @@ export default function ApprovalBasesPage() {
                   </div>
                 </>
               ) : (
-                <div className="card">
+                <div className="approval-bases-empty">
                   <Empty
                     title="No records found"
                     text="This request type has no approvals matching the current filters."
                   />
                 </div>
               )}
+              </div>
             </>
           )}
         </main>
