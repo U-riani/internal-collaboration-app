@@ -1,14 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   ArrowUpDown,
   FileCheck2,
   ListFilter,
   Search,
+  Layers3,
+  Plus,
+  X,
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import PageHeader from "../components/PageHeader.jsx";
+import FilterMultiSelect from "../components/FilterMultiSelect.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
 import {
   Badge,
   Empty,
@@ -17,7 +22,9 @@ import {
   prettyDate,
 } from "../components/UI.jsx";
 import { api } from "../lib/api.js";
-import { RequestDetail } from "./ApprovalsPage.jsx";
+import { RequestDetail, ApprovalTypeConfigure } from "./ApprovalsPage.jsx";
+import "./tasks-page.css";
+import "./approval-bases-page.css";
 
 const approvalStatuses = [
   "DRAFT",
@@ -119,7 +126,10 @@ function ApprovalStepProgress({ record }) {
 
 export default function ApprovalBasesPage() {
   const navigate = useNavigate();
+  const qc = useQueryClient();
+  const { hasPermission } = useAuth();
   const { typeId } = useParams();
+  const [showCreateType, setShowCreateType] = useState(false);
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState(DEFAULT_BASE_FILTERS);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -383,13 +393,6 @@ export default function ApprovalBasesPage() {
         : [...current[key], value],
     }));
 
-  const setFilterValues = (key, event) => {
-    const values = [...event.target.selectedOptions].map(
-      (option) => option.value,
-    );
-    setFilters((current) => ({ ...current, [key]: values }));
-  };
-
   const setFilterValue = (key, value) =>
     setFilters((current) => ({ ...current, [key]: value }));
 
@@ -397,78 +400,89 @@ export default function ApprovalBasesPage() {
 
   return (
     <>
-      <PageHeader
-        title="Approval Bases"
-        action={
-          <button
-            type="button"
-            className="btn-secondary"
-            onClick={() => navigate("/approvals")}
-          >
-            <ArrowLeft size={16} />
-            Back to approvals
-          </button>
-        }
-      />
+      <div className="tasks-page approval-bases-page">
+        <PageHeader
+          title={
+            <span className="approval-bases-page-title">
+              <span className="approval-bases-page-title-icon" aria-hidden="true">
+                <Layers3 size={21} />
+              </span>
+              <span>Approval Bases</span>
+            </span>
+          }
+          description="Workspace Config & Form Workflows"
+          action={
+            <button
+              type="button"
+              className="btn-secondary approval-bases-back"
+              onClick={() => navigate("/approvals")}
+            >
+              <ArrowLeft size={16} />
+              Back to approvals
+            </button>
+          }
+        />
 
-      <div className=" md:max-h-[calc(100vh-6.7rem)] approval-bases-layout grid gap-2 xl:grid-cols-[260px_minmax(0,1fr)]">
-        <aside className="overflow-x-auto max-h-screen approval-bases-nav self-start rounded-2xl border border-slate-200 bg-white px-2! py-1! xl:sticky xl:top-6">
-          <div className=" px-1 py-1 mb-0">
-            <p className="text-xs mb-0 font-bold uppercase tracking-wide text-slate-400">
-              Request types
-            </p>
-          </div>
-
-          {bases.isLoading ? (
-            <Loading />
-          ) : bases.error ? (
-            <ErrorBox error={bases.error} />
-          ) : (bases.data || []).length ? (
-            <div className="approval-bases-nav-list max-h-[calc(100vh-8.5rem)] space-y-1 overflow-y-auto pr-1">
-              {(bases.data || []).map((base) => (
+        <div className="approval-bases-layout">
+          <aside className="approval-bases-nav" aria-label="Request types">
+            <div className="approval-bases-nav-heading">
+              <span>Request types</span>
+              <span className="approval-bases-active-count">
+                {(bases.data || []).filter((base) => base.status === "ACTIVE").length} active
+              </span>
+            </div>
+            <div className="approval-bases-nav-list">
+              {bases.isLoading ? (
+                <Loading />
+              ) : bases.error ? (
+                <ErrorBox error={bases.error} />
+              ) : (bases.data || []).length ? (
+                (bases.data || []).map((base) => (
+                  <button
+                    type="button"
+                    key={base.id}
+                    className={`approval-bases-nav-item ${typeId === base.id ? "approval-bases-nav-item--active" : ""}`}
+                    aria-current={typeId === base.id ? "page" : undefined}
+                    onClick={() => navigate(`/approvals/bases/${base.id}`)}
+                  >
+                    <span className="approval-bases-nav-item-icon" aria-hidden="true">
+                      <FileCheck2 size={16} />
+                    </span>
+                    <span className="approval-bases-nav-item-info">
+                      <span className="approval-bases-nav-item-name" title={base.name}>{base.name}</span>
+                      <span className="approval-bases-nav-item-code">{base.code}</span>
+                    </span>
+                    <span className="approval-bases-nav-item-side">
+                      <span className="approval-bases-record-count">{base.recordCount}</span>
+                      <span className={`approval-bases-nav-item-state ${base.status === "ACTIVE" ? "is-active" : ""}`}>
+                        <span className="approval-bases-nav-state-dot" aria-hidden="true" />
+                        {base.status.toLowerCase()}
+                      </span>
+                    </span>
+                  </button>
+                ))
+              ) : (
+                <Empty
+                  title="No approval bases"
+                  text="Create a request type to create its data base."
+                />
+              )}
+            </div>
+            {hasPermission("approvals.configure") && (
+              <div className="approval-bases-nav-footer">
                 <button
                   type="button"
-                  key={base.id}
-                  className={`w-full rounded-xl px-3 py-3 text-left transition ${
-                    typeId === base.id
-                      ? "bg-blue-50 ring-1 ring-blue-100"
-                      : "hover:bg-slate-50"
-                  }`}
-                  onClick={() => navigate(`/approvals/bases/${base.id}`)}
+                  className="btn-secondary approval-bases-new-type"
+                  onClick={() => setShowCreateType(true)}
                 >
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`rounded-lg p-1.5 ${
-                        typeId === base.id
-                          ? "bg-blue-100 text-blue-600"
-                          : "bg-slate-100 text-slate-500"
-                      }`}
-                    >
-                      <FileCheck2 size={15} />
-                    </span>
-                    <span className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-700">
-                      {base.name}
-                    </span>
-                    <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-500 ring-1 ring-slate-200">
-                      {base.recordCount}
-                    </span>
-                  </div>
-                  <div className="mt-2 flex items-center justify-between gap-2 pl-8 text-[11px] text-slate-400">
-                    <span className="truncate">{base.code}</span>
-                    <span>{base.status.toLowerCase()}</span>
-                  </div>
+                  <Plus size={16} />
+                  New request type
                 </button>
-              ))}
-            </div>
-          ) : (
-            <Empty
-              title="No approval bases"
-              text="Create a request type to create its data base."
-            />
-          )}
-        </aside>
+              </div>
+            )}
+          </aside>
 
-        <main className="min-w-0 ">
+        <main className="approval-bases-content">
           {!typeId ? (
             <div className="card">
               {bases.isLoading ? (
@@ -482,91 +496,60 @@ export default function ApprovalBasesPage() {
             </div>
           ) : (
             <>
-              <section className="flex flex-col md:flex-row md:items-center justify-between mb-4 rounded-2xl border border-slate-200 bg-white px-2 py-1">
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h2 className="truncate text-xl font-bold text-slate-800">
-                        {records.data?.type?.name ||
-                          selectedBase?.name ||
-                          "Approval base"}
+              <section className="approval-bases-records-panel">
+                <div className="approval-bases-records-header">
+                  <div className="approval-bases-records-summary">
+                    <div className="approval-bases-records-heading">
+                      <h2 title={records.data?.type?.name || selectedBase?.name || "Approval base"}>
+                        {records.data?.type?.name || selectedBase?.name || "Approval base"}
                       </h2>
                       {(records.data?.type?.status || selectedBase?.status) && (
-                        <Badge
-                          value={
-                            records.data?.type?.status || selectedBase?.status
-                          }
-                        />
-                      )}{" "}
-                      <label className="inline-flex md:hidden h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600">
-                        <ArrowUpDown size={15} className="text-slate-400" />
-                        <select
-                          aria-label="Sort approval base"
-                          className="max-w-48 bg-transparent outline-none"
-                          value={sortBy}
-                          onChange={(event) => setSortBy(event.target.value)}
-                        >
-                          {BASE_SORT_OPTIONS.map(([value, label]) => (
-                            <option key={value} value={value}>
-                              {label}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
+                        <Badge value={records.data?.type?.status || selectedBase?.status} />
+                      )}
                     </div>
-                    <p className="mt-1 text-sm text-slate-400">
+                    <p className="approval-bases-records-meta">
                       {records.data?.type?.code || selectedBase?.code}
                       {records.data
-                        ? ` · ${allRecords.length} record${
-                            allRecords.length === 1 ? "" : "s"
-                          }`
+                        ? ` · ${allRecords.length} record${allRecords.length === 1 ? "" : "s"}`
                         : ""}
                     </p>
-                    {records.data?.type?.description && (
-                      <p className="mt-2 max-w-3xl text-sm text-slate-500">
-                        {records.data.type.description}
+                    {(records.data?.type?.description || selectedBase?.description) && (
+                      <p className="approval-bases-records-description">
+                        {records.data?.type?.description || selectedBase?.description}
                       </p>
                     )}
                   </div>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2 border-t border-slate-100 ">
-                  <div className="relative min-w-[220px] flex-1 sm:max-w-72">
-                    <Search
-                      className="absolute right-3 top-3 text-slate-400"
-                      size={15}
-                    />
-                    <input
-                      className="input w-full pe-8!"
-                      aria-label="Search approval base"
-                      placeholder="Search records"
-                      value={search}
-                      onChange={(event) => setSearch(event.target.value)}
-                    />
-                  </div>
-
+                  <div className="approval-bases-records-toolbar">
+                    <label className="task-search-bar approval-bases-record-search">
+                      <Search size={16} aria-hidden="true" />
+                      <input
+                        className="input"
+                        aria-label="Search approval base"
+                        placeholder="Search records..."
+                        value={search}
+                        onChange={(event) => setSearch(event.target.value)}
+                      />
+                    </label>
                   <div className="relative">
                     <button
                       type="button"
-                      className={`btn-secondary relative ${
-                        advancedFilterCount
-                          ? "border-blue-300 bg-blue-50 text-blue-700"
-                          : ""
+                      className={`btn-secondary task-filter-trigger approval-bases-filter-button ${
+                        advancedFilterCount ? "task-filter-trigger--active" : ""
                       }`}
                       onClick={() => setFiltersOpen((current) => !current)}
                       aria-expanded={filtersOpen}
                     >
                       <ListFilter size={16} />
-                      <span className="hidden xl:inline">Filter</span>
+                      <span>Filter</span>
                       {advancedFilterCount > 0 && (
-                        <span className="grid h-5 min-w-5 place-items-center rounded-full bg-blue-600 px-1 text-[10px] font-bold text-white">
+                        <span className="task-filter-count-badge">
                           {advancedFilterCount}
                         </span>
                       )}
                     </button>
 
                     {filtersOpen && (
-                      <div className="approval-filter-panel fixed left-1/2 top-2 z-50 w-[680px] max-w-[calc(100vw-48px)] -translate-x-1/2 overflow-y-auto rounded-2xl border border-slate-200 bg-white px-5 shadow-xl max-h-[calc(100vh-1rem)]">
+                      <div className="approval-filter-panel task-filter-panel approval-bases-filter-panel fixed left-1/2 top-2 z-50 w-[720px] max-w-[calc(100vw-32px)] -translate-x-1/2 overflow-y-auto rounded-2xl border border-slate-200 bg-white px-5 shadow-xl max-h-[calc(100dvh-1rem)]">
                         <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-slate-200 bg-white pb-3 pt-5">
                           <div>
                             <h3 className="text-sm font-bold text-slate-800">
@@ -581,23 +564,28 @@ export default function ApprovalBasesPage() {
                             className="btn-secondary btn-sm"
                             onClick={() => setFiltersOpen(false)}
                           >
-                            x
+                            <X size={16} aria-hidden="true" />
+                            <span className="sr-only">Close filters</span>
                           </button>
                         </div>
 
-                        <div className="relative mb-4 flex min-h-8 items-center pt-3">
-                          {advancedFilterCount > 0 && (
-                            <button
-                              type="button"
-                              className="text-xs font-semibold text-blue-600 hover:text-blue-800"
-                              onClick={clearFilters}
-                            >
-                              Clear all
-                            </button>
-                          )}
+                        <div className="task-filter-utilities">
+                          <span className="task-filter-count">
+                            {advancedFilterCount
+                              ? `${advancedFilterCount} active filter${advancedFilterCount === 1 ? "" : "s"}`
+                              : "Refine approval records"}
+                          </span>
+                          <button
+                            type="button"
+                            className="btn-secondary task-filter-clear"
+                            onClick={clearFilters}
+                            disabled={!advancedFilterCount}
+                          >
+                            Clear all
+                          </button>
                         </div>
 
-                        <div className="grid gap-5 md:grid-cols-2">
+                        <div className="task-filter-fields grid gap-5 md:grid-cols-2">
                           <div className="md:col-span-2">
                             <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">
                               Status
@@ -606,7 +594,7 @@ export default function ApprovalBasesPage() {
                               {approvalStatuses.map((status) => (
                                 <label
                                   key={status}
-                                  className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-100 px-2.5 py-2 text-xs text-slate-600 hover:bg-slate-50"
+                                  className="task-filter-choice flex cursor-pointer items-center gap-2 rounded-lg border border-slate-100 px-2.5 py-2 text-xs text-slate-600"
                                 >
                                   <input
                                     type="checkbox"
@@ -621,68 +609,44 @@ export default function ApprovalBasesPage() {
                             </div>
                           </div>
 
-                          <label className="text-xs font-semibold text-slate-500">
-                            Requester
-                            <select
-                              multiple
-                              className="input mt-1.5 h-28"
-                              value={filters.requesterIds}
-                              onChange={(event) =>
-                                setFilterValues("requesterIds", event)
-                              }
-                            >
-                              {filterOptions.requesters.map((requester) => (
-                                <option key={requester.id} value={requester.id}>
-                                  {requester.displayName}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
+                          <FilterMultiSelect
+                            label="Requester"
+                            values={filters.requesterIds}
+                            options={filterOptions.requesters.map((requester) => ({
+                              value: requester.id,
+                              label: requester.displayName,
+                            }))}
+                            onToggle={(value) => toggleFilterValue("requesterIds", value)}
+                          />
 
-                          <label className="text-xs font-semibold text-slate-500">
-                            Department
-                            <select
-                              multiple
-                              className="input mt-1.5 h-28"
-                              value={filters.departmentIds}
-                              onChange={(event) =>
-                                setFilterValues("departmentIds", event)
-                              }
-                            >
-                              <option value={NO_DEPARTMENT}>
-                                No department
-                              </option>
-                              {filterOptions.departments.map((department) => (
-                                <option
-                                  key={department.id}
-                                  value={department.id}
-                                >
-                                  {department.name}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
+                          <FilterMultiSelect
+                            label="Department"
+                            kind="department"
+                            values={filters.departmentIds}
+                            options={[
+                              { value: NO_DEPARTMENT, label: "No department" },
+                              ...filterOptions.departments.map((department) => ({
+                                value: department.id,
+                                label: department.name,
+                              })),
+                            ]}
+                            onToggle={(value) => toggleFilterValue("departmentIds", value)}
+                          />
 
-                          <label className="text-xs font-semibold text-slate-500 md:col-span-2">
-                            Current approver
-                            <select
-                              multiple
-                              className="input mt-1.5 h-28"
-                              value={filters.approverIds}
-                              onChange={(event) =>
-                                setFilterValues("approverIds", event)
-                              }
-                            >
-                              <option value={NO_APPROVER}>
-                                No current approver
-                              </option>
-                              {filterOptions.approvers.map((approver) => (
-                                <option key={approver.id} value={approver.id}>
-                                  {approver.displayName}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
+                          <div className="md:col-span-2">
+                            <FilterMultiSelect
+                              label="Current approver"
+                              values={filters.approverIds}
+                              options={[
+                                { value: NO_APPROVER, label: "No current approver" },
+                                ...filterOptions.approvers.map((approver) => ({
+                                  value: approver.id,
+                                  label: approver.displayName,
+                                })),
+                              ]}
+                              onToggle={(value) => toggleFilterValue("approverIds", value)}
+                            />
+                          </div>
 
                           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:col-span-2">
                             <label className="text-xs font-semibold text-slate-500">
@@ -744,9 +708,9 @@ export default function ApprovalBasesPage() {
                           </div>
                         </div>
 
-                        <div className="sticky bottom-0 flex items-center justify-between border-t border-slate-100 bg-white py-3 pt-4">
+                        <div className="task-filter-footer sticky bottom-0 flex items-center justify-between border-t border-slate-100 bg-white">
                           <span className="hidden text-xs text-slate-400 sm:inline">
-                            Hold Ctrl/Cmd to select multiple values.
+                            Select multiple values with checkboxes.
                           </span>
                           <button
                             type="button"
@@ -760,11 +724,11 @@ export default function ApprovalBasesPage() {
                     )}
                   </div>
 
-                  <label className="hidden md:inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600">
+                  <label className="task-sort-control approval-bases-sort-control">
                     <ArrowUpDown size={15} className="text-slate-400" />
                     <select
                       aria-label="Sort approval base"
-                      className="max-w-48 bg-transparent outline-none"
+                      className="input app-modern-select task-sort-select"
                       value={sortBy}
                       onChange={(event) => setSortBy(event.target.value)}
                     >
@@ -775,6 +739,7 @@ export default function ApprovalBasesPage() {
                       ))}
                     </select>
                   </label>
+                  </div>
                 </div>
 
                 {(advancedFilterCount > 0 || search.trim()) && (
@@ -988,6 +953,15 @@ export default function ApprovalBasesPage() {
           onClose={() => setSelectedRequestId(null)}
         />
       )}
+      {showCreateType && (
+        <ApprovalTypeConfigure
+          onClose={() => {
+            setShowCreateType(false);
+            qc.invalidateQueries({ queryKey: ["approval-bases"] });
+          }}
+        />
+      )}
+      </div>
     </>
   );
 }
