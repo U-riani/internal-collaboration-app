@@ -234,6 +234,7 @@ function TaskForm({ existing, parentTask, defaultGroupId = "", onClose }) {
           if (!save.isPending) save.mutate();
         }}
       >
+        <div className="task-form-scroll">
         {(parentTask || existing?.parentTask) && (
           <div className="mb-4 rounded-xl bg-slate-50 px-4 py-3 text-xs text-slate-500">
             Subtask of{" "}
@@ -347,7 +348,11 @@ function TaskForm({ existing, parentTask, defaultGroupId = "", onClose }) {
           />
         </Field>
         <ErrorBox error={save.error || groups.error} />
-        <div className="form-actions task-form-actions">
+        </div>
+        <div className="task-form-footer">
+          <span className="task-form-footer-note">
+            Select participants using checkboxes.
+          </span>
           <button className="btn-primary" type="submit" disabled={save.isPending}>
             {save.isPending
               ? "Saving…"
