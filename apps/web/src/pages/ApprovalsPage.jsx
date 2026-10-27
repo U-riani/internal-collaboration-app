@@ -19,8 +19,8 @@ import {
   Trash2,
   X,
   CheckCircle2,
-  AlertCircle,
-  ArrowUpRight,
+  CalendarDays,
+  Ban,
 } from "lucide-react";
 import { api, uploadFile } from "../lib/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -592,6 +592,45 @@ function Configure({ existing, onClose }) {
     </Modal>
   );
 }
+function ApprovalDateField({ label, value, onChange }) {
+  const displayValue = value
+    ? `${value.slice(5, 7)}/${value.slice(8, 10)}/${value.slice(0, 4)}`
+    : "mm/dd/yyyy";
+
+  return (
+    <label className="approval-date-field">
+      <span className="approval-date-label">{label}</span>
+      <span className="approval-date-control">
+        <span
+          className={`approval-date-preview ${value ? "approval-date-preview--filled" : ""}`}
+          aria-hidden="true"
+        >
+          {displayValue}
+        </span>
+        <CalendarDays size={17} className="approval-date-icon" aria-hidden="true" />
+        <input
+          type="date"
+          className="approval-date-native"
+          aria-label={label}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          onClick={(event) => {
+            // The native date picker remains the only source of selected dates.
+            // The visual overlay hides Chrome's separately highlighted mm/dd/yyyy segments.
+            if (typeof event.currentTarget.showPicker === "function") {
+              try {
+                event.currentTarget.showPicker();
+              } catch {
+                // Other browsers can open their own native picker normally.
+              }
+            }
+          }}
+        />
+      </span>
+    </label>
+  );
+}
+
 function RequestTypesManager({ onClose }) {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
@@ -631,87 +670,131 @@ function RequestTypesManager({ onClose }) {
   );
 
   return (
-    <Modal title="Request types" wide onClose={onClose}>
-      <div className="flex flex-wrap gap-2 mb-4">
-        <input
-          className="input flex-1 min-w-52"
-          aria-label="Search request types"
-          placeholder="Search request types…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <select
-          className="input w-36"
-          aria-label="Request type status"
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
-        >
-          <option value="all">All statuses</option>
-          <option value="ACTIVE">Active</option>
-          <option value="INACTIVE">Inactive</option>
-          <option value="DRAFT">Draft</option>
-        </select>
-        <button className="btn-primary" onClick={() => setEditing("new")}>
-          <Plus size={16} />
-          New type
-        </button>
-      </div>
-      <ErrorBox error={query.error || changeStatus.error} />
-      {query.isLoading ? (
-        <Loading />
-      ) : items.length ? (
-        <div className="space-y-2">
-          {items.map((item) => {
-            const requestCount = item._count?.requests || 0;
-            return (
-              <div
-                key={item.id}
-                className="rounded-xl border border-slate-200 p-4 flex flex-wrap items-center gap-3"
-              >
-                <div className="flex-1 min-w-52">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-semibold text-sm">{item.name}</h3>
-                    <Badge value={item.status} />
-                  </div>
-                  <p className="text-xs text-slate-400 mt-1">
-                    {item.code} · v{item.version} · {requestCount} request
-                    {requestCount === 1 ? "" : "s"}
-                    {item.createdBy?.displayName
-                      ? ` · Created by ${item.createdBy.displayName}`
-                      : ""}
-                  </p>
-                </div>
-                <button
-                  className="btn-secondary"
-                  onClick={() => setEditing(item)}
-                >
-                  Edit
-                </button>
-                <button
-                  className="btn-secondary"
-                  disabled={changeStatus.isPending}
-                  onClick={() =>
-                    changeStatus.mutate({
-                      id: item.id,
-                      status: item.status === "ACTIVE" ? "INACTIVE" : "ACTIVE",
-                    })
-                  }
-                >
-                  {item.status === "ACTIVE" ? "Deactivate" : "Activate"}
-                </button>
-              </div>
-            );
-          })}
+    <Modal
+      title={
+        <span className="approval-types-modal-title">
+          <span className="approval-types-title-icon" aria-hidden="true">
+            <FileCheck2 size={20} />
+          </span>
+          <span>Request types</span>
+        </span>
+      }
+      wide
+      onClose={onClose}
+    >
+      <div className="approval-types-manager">
+        <div className="approval-types-toolbar">
+          <label className="approval-types-search">
+            <Search size={16} aria-hidden="true" />
+            <input
+              type="search"
+              aria-label="Search request types"
+              placeholder="Search request types..."
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+          </label>
+          <label className="approval-types-status-control">
+            <ListFilter size={15} aria-hidden="true" />
+            <select
+              className="app-modern-select"
+              aria-label="Request type status"
+              value={status}
+              onChange={(event) => setStatus(event.target.value)}
+            >
+              <option value="all">All statuses</option>
+              <option value="ACTIVE">Active</option>
+              <option value="INACTIVE">Inactive</option>
+              <option value="DRAFT">Draft</option>
+            </select>
+            <ChevronDown size={14} aria-hidden="true" />
+          </label>
+          <button
+            type="button"
+            className="btn-primary approval-types-create"
+            onClick={() => setEditing("new")}
+          >
+            <Plus size={16} />
+            New type
+          </button>
         </div>
-      ) : (
-        <Empty
-          title="No request types"
-          text="Create a request type or change the current filter."
-        />
-      )}
+
+        <ErrorBox error={query.error || changeStatus.error} />
+        {query.isLoading ? (
+          <Loading />
+        ) : items.length ? (
+          <div className="approval-types-list">
+            {items.map((item) => {
+              const requestCount = item._count?.requests || 0;
+              const isActive = item.status === "ACTIVE";
+              return (
+                <div key={item.id} className="approval-type-row">
+                  <span
+                    className={`approval-type-row-icon approval-type-row-icon--${item.status.toLowerCase()}`}
+                    aria-hidden="true"
+                  >
+                    <FileCheck2 size={17} />
+                  </span>
+                  <div className="approval-type-info">
+                    <div className="approval-type-name-line">
+                      <h3 className="approval-type-name" title={item.name}>
+                        {item.name}
+                      </h3>
+                      <Badge value={item.status} />
+                    </div>
+                    <p className="approval-type-meta">
+                      <span>{item.code}</span>
+                      <span aria-hidden="true">·</span>
+                      <span>v{item.version}</span>
+                      <span aria-hidden="true">·</span>
+                      <span>{requestCount} request{requestCount === 1 ? "" : "s"}</span>
+                      {item.createdBy?.displayName && (
+                        <>
+                          <span aria-hidden="true">·</span>
+                          <span>Created by {item.createdBy.displayName}</span>
+                        </>
+                      )}
+                    </p>
+                  </div>
+                  <div className="approval-type-actions">
+                    <button
+                      type="button"
+                      className="btn-secondary approval-type-edit"
+                      onClick={() => setEditing(item)}
+                    >
+                      <Pencil size={14} aria-hidden="true" />
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      className={`btn-secondary approval-type-status-action ${isActive ? "approval-type-deactivate" : "approval-type-activate"}`}
+                      disabled={changeStatus.isPending}
+                      onClick={() =>
+                        changeStatus.mutate({
+                          id: item.id,
+                          status: isActive ? "INACTIVE" : "ACTIVE",
+                        })
+                      }
+                    >
+                      {isActive ? <Ban size={14} aria-hidden="true" /> : <CheckCircle2 size={14} aria-hidden="true" />}
+                      {isActive ? "Deactivate" : "Activate"}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <Empty
+            title="No request types"
+            text="Create a request type or change the current filter."
+          />
+        )}
+      </div>
     </Modal>
   );
 }
+
 function ApprovalGroupForm({ existing, onClose }) {
   const qc = useQueryClient();
   const [name, setName] = useState(existing?.name || "");
@@ -1524,14 +1607,6 @@ export default function ApprovalsPage() {
     Boolean(advancedFilters.createdTo),
   ].filter(Boolean).length;
 
-  const approvalSummary = {
-    needsReview: allRequests.filter((request) =>
-      request.steps.some(
-        (step) => step.status === "PENDING" && step.approverId === user.id,
-      ),
-    ).length,
-    approved: allRequests.filter((request) => request.status === "APPROVED").length,
-  };
 
   return (
     <>
@@ -1576,51 +1651,6 @@ export default function ApprovalsPage() {
           </div>
         }
       />
-      <div className="task-summary approval-summary" aria-label="Approval overview">
-        <button
-          type="button"
-          className="task-summary-card task-summary-card--attention"
-          onClick={() => {
-            resetFilters();
-            setInvolvement("review");
-          }}
-          aria-pressed={involvement === "review" && !advancedFilterCount && !search.trim()}
-        >
-          <span className="task-summary-icon"><AlertCircle size={16} /></span>
-          <span className="task-summary-copy">
-            <span className="task-summary-number">{approvalSummary.needsReview}</span>
-            <span className="task-summary-label">Needs my review</span>
-          </span>
-          <ArrowUpRight className="task-summary-arrow" size={12} aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          className="task-summary-card task-summary-card--completed"
-          onClick={() => {
-            setInvolvement("all");
-            setSearch("");
-            setAdvancedFilters({ ...DEFAULT_APPROVAL_FILTERS, statuses: ["APPROVED"] });
-          }}
-          aria-pressed={
-            involvement === "all" &&
-            advancedFilters.statuses.length === 1 &&
-            advancedFilters.statuses[0] === "APPROVED" &&
-            !advancedFilters.typeIds.length &&
-            !advancedFilters.requesterIds.length &&
-            !advancedFilters.groupIds.length &&
-            !advancedFilters.createdFrom &&
-            !advancedFilters.createdTo &&
-            !search.trim()
-          }
-        >
-          <span className="task-summary-icon"><CheckCircle2 size={16} /></span>
-          <span className="task-summary-copy">
-            <span className="task-summary-number">{approvalSummary.approved}</span>
-            <span className="task-summary-label">Approved requests</span>
-          </span>
-          <ArrowUpRight className="task-summary-arrow" size={12} aria-hidden="true" />
-        </button>
-      </div>
 
       <div className="relative">
         <div className="approval-toolbar toolbar task-toolbar task-toolbar--refresh">
@@ -1773,29 +1803,17 @@ export default function ApprovalsPage() {
                       />
                     </div>
 
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:col-span-2">
-                      <label className="text-xs font-semibold text-slate-500">
-                        Created from
-                        <input
-                          type="date"
-                          className="input mt-1.5"
-                          value={advancedFilters.createdFrom}
-                          onChange={(event) =>
-                            setAdvancedValue("createdFrom", event.target.value)
-                          }
-                        />
-                      </label>
-                      <label className="text-xs font-semibold text-slate-500">
-                        Created to
-                        <input
-                          type="date"
-                          className="input mt-1.5"
-                          value={advancedFilters.createdTo}
-                          onChange={(event) =>
-                            setAdvancedValue("createdTo", event.target.value)
-                          }
-                        />
-                      </label>
+                    <div className="approval-filter-dates grid grid-cols-1 gap-3 sm:grid-cols-2 md:col-span-2">
+                      <ApprovalDateField
+                        label="Created from"
+                        value={advancedFilters.createdFrom}
+                        onChange={(value) => setAdvancedValue("createdFrom", value)}
+                      />
+                      <ApprovalDateField
+                        label="Created to"
+                        value={advancedFilters.createdTo}
+                        onChange={(value) => setAdvancedValue("createdTo", value)}
+                      />
                     </div>
                   </div>
 
