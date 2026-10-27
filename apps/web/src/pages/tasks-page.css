@@ -1060,8 +1060,23 @@
   --detail-hover: #293249;
   --detail-accent: #8078ff;
 }
+/* Exactly one scrolling region: the dialog itself clips overflow; only
+   its body scrolls while the shared header remains in place. */
+.modal[open]:has(> .modal-body > .task-detail) {
+  display: flex;
+  flex-direction: column;
+  height: auto;
+  max-height: calc(100dvh - 48px);
+  overflow: hidden;
+}
+.modal:has(> .modal-body > .task-detail) .modal-head {
+  flex: 0 0 auto;
+}
 .modal:has(> .modal-body > .task-detail) .modal-body {
-  max-height: calc(100dvh - 130px);
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+  overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
@@ -1346,4 +1361,79 @@
   .task-detail .task-detail-participants-list { grid-template-columns: minmax(0, 1fr); }
   .task-detail .task-detail-meta { gap: 14px; padding: 12px; }
   .task-detail .task-detail-comment-form { padding: 11px; }
+}
+
+/* The browser's base-select icon can wrap below long selected text.
+   Keep the native select and accessible picker, but display its closed value
+   and chevron in a non-interactive overlay with dependable one-line ellipsis. */
+.task-detail .task-detail-select-wrap {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: 40px;
+}
+.task-detail .task-detail-select-wrap > select.task-detail-select,
+.app-theme-dark .task-detail .task-detail-select-wrap > select.task-detail-select {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: 40px;
+  max-height: 40px;
+  margin: 0;
+  cursor: pointer;
+}
+.task-detail .task-detail-select-preview {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 9px;
+  min-width: 0;
+  width: 100%;
+  height: 40px;
+  padding: 0 11px;
+  border: 1px solid var(--detail-border);
+  border-radius: 10px;
+  background: var(--detail-control);
+  color: var(--detail-text);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.2;
+  pointer-events: none;
+  box-sizing: border-box;
+}
+.task-detail .task-detail-select-preview-label {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.task-detail .task-detail-select-preview > svg {
+  flex: 0 0 auto;
+  width: 15px;
+  height: 15px;
+  color: var(--detail-muted);
+}
+.task-detail .task-detail-select-wrap:hover .task-detail-select-preview {
+  border-color: var(--detail-border);
+}
+.task-detail .task-detail-select-wrap:focus-within .task-detail-select-preview {
+  border-color: #7873ca;
+  outline: 1px solid #8e89ec;
+  outline-offset: 0;
+}
+.task-detail .task-detail-select-wrap:has(select:disabled) .task-detail-select-preview {
+  opacity: .65;
+}
+@media (max-width: 900px) {
+  .modal[open]:has(> .modal-body > .task-detail) {
+    max-height: 94dvh;
+  }
 }
