@@ -684,10 +684,10 @@ function RequestTypesManager({ onClose }) {
     >
       <div className="approval-types-manager">
         <div className="approval-types-toolbar">
-          <label className="approval-types-search">
+          <label className="task-search-bar approval-types-search">
             <Search size={16} aria-hidden="true" />
             <input
-              type="search"
+              className="input"
               aria-label="Search request types"
               placeholder="Search request types..."
               value={search}
@@ -695,7 +695,6 @@ function RequestTypesManager({ onClose }) {
             />
           </label>
           <label className="approval-types-status-control task-sort-control">
-            <ListFilter size={15} aria-hidden="true" />
             <select
               className="input app-modern-select task-sort-select"
               aria-label="Request type status"
