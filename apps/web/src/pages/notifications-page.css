@@ -75,6 +75,9 @@
 }
 .notifications-page .notifications-header-sort select.task-sort-select,
 .app-theme-dark .notifications-page .notifications-header-sort select.task-sort-select {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   flex: 1 1 auto;
   width: 100%;
   max-width: 212px;
@@ -90,6 +93,8 @@
   color: var(--notice-text);
   font-size: 11px;
   font-weight: 700;
+  line-height: 1;
+  vertical-align: middle;
   cursor: pointer;
 }
 .notifications-page .notifications-header-sort select.task-sort-select:focus-visible {
