@@ -569,6 +569,9 @@
    Do not force appearance:none: doing so caused the white OS dropdown. */
 .approval-types-status-control > select.app-modern-select,
 .app-theme-dark .approval-types-status-control > select.app-modern-select {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   flex: 1 1 auto;
   width: 100%;
   max-width: none;
@@ -576,7 +579,7 @@
   height: 36px;
   min-height: 0;
   margin: 0;
-  padding: 5px 0;
+  padding: 0;
   border: 0 !important;
   border-radius: 0;
   background: transparent !important;
@@ -584,7 +587,7 @@
   color: var(--task-text);
   font-size: 12px;
   font-weight: 700;
-  line-height: 1.2;
+  line-height: 1;
   outline: none !important;
   cursor: pointer;
 }
