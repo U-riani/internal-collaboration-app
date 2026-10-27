@@ -789,22 +789,22 @@
   background: var(--task-hover);
 }
 
-.approval-type-actions .approval-type-deactivate {
+.approval-type-actions .btn-secondary.approval-type-deactivate {
   color: #c8556b;
   background: #ffebf0;
 }
 
-.approval-type-actions .approval-type-deactivate:hover {
+.approval-type-actions .btn-secondary.approval-type-deactivate:hover {
   color: #ab334f;
   background: #ffe0e8;
 }
 
-.approval-type-actions .approval-type-activate {
+.approval-type-actions .btn-secondary.approval-type-activate {
   color: #138e81;
   background: #e0f8f3;
 }
 
-.approval-type-actions .approval-type-activate:hover {
+.approval-type-actions .btn-secondary.approval-type-activate:hover {
   color: #06776b;
   background: #c9f3ea;
 }
@@ -898,21 +898,21 @@
   color: var(--task-text);
 }
 
-.app-theme-dark .approval-type-actions .approval-type-deactivate {
+.app-theme-dark .approval-type-actions .btn-secondary.approval-type-deactivate {
   background: #3a2233;
   color: #ff9aa8;
 }
 
-.app-theme-dark .approval-type-actions .approval-type-deactivate:hover {
+.app-theme-dark .approval-type-actions .btn-secondary.approval-type-deactivate:hover {
   background: #4b2c41;
 }
 
-.app-theme-dark .approval-type-actions .approval-type-activate {
+.app-theme-dark .approval-type-actions .btn-secondary.approval-type-activate {
   background: #173c43;
   color: #6ad5ca;
 }
 
-.app-theme-dark .approval-type-actions .approval-type-activate:hover {
+.app-theme-dark .approval-type-actions .btn-secondary.approval-type-activate:hover {
   background: #205157;
 }
 
