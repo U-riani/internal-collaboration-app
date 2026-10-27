@@ -89,15 +89,15 @@
   grid-template-columns: repeat(2, minmax(0, 240px));
   gap: 12px;
   max-width: 492px;
-  margin: 0 0 17px;
+  margin: 0 0 13px;
 }
 .tasks-page .task-summary-card {
   display: flex;
   align-items: center;
-  gap: 11px;
+  gap: 8px;
   min-width: 0;
-  min-height: 68px;
-  padding: 13px 14px;
+  min-height: 54px;
+  padding: 8px 11px;
   border: 1px solid var(--task-border);
   border-radius: 13px;
   background: var(--task-surface);
@@ -113,10 +113,10 @@
 .tasks-page .task-summary-icon {
   display: grid;
   place-items: center;
-  flex: 0 0 34px;
-  width: 34px;
-  height: 34px;
-  border-radius: 9px;
+  flex: 0 0 27px;
+  width: 27px;
+  height: 27px;
+  border-radius: 7px;
 }
 .tasks-page .task-summary-card--attention .task-summary-icon { color: #ffa0a5; background: #59313d; }
 .tasks-page .task-summary-card--completed .task-summary-icon { color: #b7b2ff; background: #37345c; }
@@ -125,11 +125,11 @@
   align-items: baseline;
   flex: 1 1 auto;
   min-width: 0;
-  gap: 8px;
+  gap: 6px;
 }
 .tasks-page .task-summary-number {
   flex: 0 0 auto;
-  font-size: 25px;
+  font-size: 21px;
   font-weight: 800;
   letter-spacing: -.055em;
   line-height: 1;
@@ -139,9 +139,9 @@
 .tasks-page .task-summary-label {
   min-width: 0;
   color: var(--task-muted);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 650;
-  line-height: 1.35;
+  line-height: 1.25;
   white-space: nowrap;
 }
 .tasks-page .task-summary-arrow { flex: 0 0 auto; color: var(--task-subtle); }
@@ -323,9 +323,17 @@
 .tasks-page .task-filter-panel .text-slate-500,
 .tasks-page .task-filter-panel .text-slate-600 { color: var(--task-muted); }
 .tasks-page .task-filter-panel label { border-color: var(--task-border); }
-.tasks-page .task-filter-panel label:hover { background: var(--task-hover); }
+.tasks-page .task-filter-panel .task-filter-choice:hover { background: var(--task-hover); }
 .tasks-page .task-filter-panel .input { color: var(--task-text); background: var(--task-control); }
-.tasks-page .task-filter-panel input[type="checkbox"] { accent-color: var(--task-primary); }
+.tasks-page .task-filter-panel .task-filter-choice {
+  min-height: 34px;
+  font-size: 11px;
+  font-weight: 600;
+  transition: background .14s ease;
+}
+.tasks-page .task-filter-panel .task-filter-choice input[type="checkbox"] {
+  flex-shrink: 0;
+}
 .tasks-page .task-filter-panel .btn-primary { background: #7771f6; }
 
 .tasks-page .task-list-card {
@@ -471,10 +479,10 @@
 }
 @media (max-width: 767px) {
   .tasks-page .task-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .tasks-page .task-summary-card { min-height: 68px; padding: 10px; gap: 8px; }
-  .tasks-page .task-summary-icon { flex-basis: 29px; width: 29px; height: 29px; }
-  .tasks-page .task-summary-icon svg { width: 16px; height: 16px; }
-  .tasks-page .task-summary-number { font-size: 23px; }
+  .tasks-page .task-summary-card { min-height: 54px; padding: 8px; gap: 7px; }
+  .tasks-page .task-summary-icon { flex-basis: 25px; width: 25px; height: 25px; }
+  .tasks-page .task-summary-icon svg { width: 15px; height: 15px; }
+  .tasks-page .task-summary-number { font-size: 20px; }
   .tasks-page .task-summary-copy { flex-wrap: wrap; gap: 3px 7px; }
   .tasks-page .task-summary-label { white-space: normal; font-size: 10px; }
   .tasks-page .task-list-header { display: none !important; }
@@ -498,7 +506,7 @@
   .tasks-page .page-header { align-items: flex-start; }
   .tasks-page .page-header-action { width: 100%; justify-content: flex-start; }
   .tasks-page .task-summary { gap: 7px; }
-  .tasks-page .task-summary-card { padding: 10px 8px; }
+  .tasks-page .task-summary-card { padding: 8px 7px; }
   .tasks-page .task-summary-arrow { display: none; }
   .tasks-page .task-search-bar { flex-basis: 100%; }
   .tasks-page .task-toolbar-actions { flex-wrap: wrap; justify-content: stretch; }
@@ -705,7 +713,7 @@
   font-size: 12px;
   font-weight: 600;
 }
-.tasks-page .filter-multiselect-option input[type="checkbox"] {
+.tasks-page :is(.filter-multiselect-option, .task-filter-choice) input[type="checkbox"] {
   display: grid;
   place-content: center;
   flex: 0 0 18px;
@@ -718,7 +726,7 @@
   appearance: none;
   cursor: pointer;
 }
-.tasks-page .filter-multiselect-option input[type="checkbox"]::before {
+.tasks-page :is(.filter-multiselect-option, .task-filter-choice) input[type="checkbox"]::before {
   content: "";
   display: block;
   width: 9px;
@@ -728,12 +736,12 @@
   transform: rotate(-45deg) scale(0);
   transition: transform .12s ease;
 }
-.tasks-page .filter-multiselect-option input[type="checkbox"]:checked {
+.tasks-page :is(.filter-multiselect-option, .task-filter-choice) input[type="checkbox"]:checked {
   background: #746dff;
   border-color: #746dff;
 }
-.tasks-page .filter-multiselect-option input[type="checkbox"]:checked::before { transform: rotate(-45deg) scale(1); }
-.tasks-page .filter-multiselect-option input[type="checkbox"]:focus-visible {
+.tasks-page :is(.filter-multiselect-option, .task-filter-choice) input[type="checkbox"]:checked::before { transform: rotate(-45deg) scale(1); }
+.tasks-page :is(.filter-multiselect-option, .task-filter-choice) input[type="checkbox"]:focus-visible {
   outline: 2px solid #aaa7ff;
   outline-offset: 2px;
 }
@@ -748,4 +756,54 @@
   .tasks-page .task-filter-dates { padding-bottom: 17px; }
   .tasks-page .task-filter-footer { min-height: 58px; }
   .tasks-page .filter-multiselect-options { max-height: 150px; }
+}
+
+/* Tasks Filter: prevent parent label hover and the Tailwind focus ring from
+   coloring the full select field or producing a thick double outline. */
+.tasks-page .task-filter-panel label:has(> select.app-modern-select):hover {
+  background: transparent;
+}
+.tasks-page .task-filter-panel select.app-modern-select,
+.app-theme-dark .tasks-page .task-filter-panel select.app-modern-select {
+  border: 1px solid var(--task-border) !important;
+  border-radius: 10px;
+  background: var(--task-control) !important;
+  color: var(--task-text);
+  box-shadow: none !important;
+  transition: border-color .15s ease;
+}
+.tasks-page .task-filter-panel select.app-modern-select:hover,
+.app-theme-dark .tasks-page .task-filter-panel select.app-modern-select:hover {
+  border-color: var(--task-border) !important;
+  background: var(--task-control) !important;
+}
+.tasks-page .task-filter-panel select.app-modern-select:focus,
+.tasks-page .task-filter-panel select.app-modern-select:focus-visible,
+.app-theme-dark .tasks-page .task-filter-panel select.app-modern-select:focus,
+.app-theme-dark .tasks-page .task-filter-panel select.app-modern-select:focus-visible {
+  border: 1px solid #7873ca !important;
+  outline: none !important;
+  box-shadow: none !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+}
+.tasks-page .task-filter-panel select.app-modern-select:focus-visible,
+.app-theme-dark .tasks-page .task-filter-panel select.app-modern-select:focus-visible {
+  outline: 1px solid #8e89ec !important;
+  outline-offset: 1px;
+}
+/* Filter count uses the same violet accent as the quick tabs and primary actions. */
+.tasks-page .task-filter-count-badge {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  min-width: 19px;
+  height: 19px;
+  padding: 0 5px;
+  border-radius: 99px;
+  background: linear-gradient(115deg, #8980ff, #6e67ed);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
 }

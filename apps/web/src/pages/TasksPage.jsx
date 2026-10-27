@@ -1381,12 +1381,12 @@ export default function TasksPage() {
           onClick={() => setFilter("attention")}
           aria-pressed={filter === "attention"}
         >
-          <span className="task-summary-icon"><AlertCircle size={19} /></span>
+          <span className="task-summary-icon"><AlertCircle size={16} /></span>
           <span className="task-summary-copy">
             <span className="task-summary-number">{taskSummary.attention}</span>
             <span className="task-summary-label">Needs attention</span>
           </span>
-          <ArrowUpRight className="task-summary-arrow" size={15} aria-hidden="true" />
+          <ArrowUpRight className="task-summary-arrow" size={12} aria-hidden="true" />
         </button>
         <button
           type="button"
@@ -1394,12 +1394,12 @@ export default function TasksPage() {
           onClick={() => setFilter("completed")}
           aria-pressed={filter === "completed"}
         >
-          <span className="task-summary-icon"><CheckCircle2 size={19} /></span>
+          <span className="task-summary-icon"><CheckCircle2 size={16} /></span>
           <span className="task-summary-copy">
             <span className="task-summary-number">{taskSummary.completed}</span>
             <span className="task-summary-label">Completed tasks</span>
           </span>
-          <ArrowUpRight className="task-summary-arrow" size={15} aria-hidden="true" />
+          <ArrowUpRight className="task-summary-arrow" size={12} aria-hidden="true" />
         </button>
       </div>
       <div className="toolbar task-toolbar task-toolbar--refresh">
@@ -1448,7 +1448,7 @@ export default function TasksPage() {
               <ListFilter size={16} />
               <span className="hidden xl:inline">Filter</span>
               {advancedFilterCount > 0 && (
-                <span className="grid h-5 min-w-5 place-items-center rounded-full bg-blue-600 px-1 text-[10px] font-bold text-white">
+                <span className="task-filter-count-badge">
                   {advancedFilterCount}
                 </span>
               )}
@@ -1500,10 +1500,11 @@ export default function TasksPage() {
                       {statuses.map((status) => (
                         <label
                           key={status}
-                          className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-100 px-2.5 py-2 text-xs text-slate-600 hover:bg-slate-50"
+                          className="task-filter-choice flex cursor-pointer items-center gap-2 rounded-lg border border-slate-100 px-2.5 py-2 text-xs text-slate-600"
                         >
                           <input
                             type="checkbox"
+                            className="task-filter-checkbox"
                             checked={advancedFilters.statuses.includes(status)}
                             onChange={() =>
                               toggleAdvancedValue("statuses", status)
@@ -1523,10 +1524,11 @@ export default function TasksPage() {
                       {priorities.map((priority) => (
                         <label
                           key={priority}
-                          className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-100 px-2.5 py-2 text-xs text-slate-600 hover:bg-slate-50"
+                          className="task-filter-choice flex cursor-pointer items-center gap-2 rounded-lg border border-slate-100 px-2.5 py-2 text-xs text-slate-600"
                         >
                           <input
                             type="checkbox"
+                            className="task-filter-checkbox"
                             checked={advancedFilters.priorities.includes(
                               priority,
                             )}
