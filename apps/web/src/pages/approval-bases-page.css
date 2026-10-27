@@ -54,9 +54,23 @@
   background: var(--base-control);
   font-size: 12px;
   font-weight: 700;
+  transition: background-color .16s ease, border-color .16s ease, color .16s ease, box-shadow .16s ease;
 }
-.approval-bases-page .approval-bases-back:hover {
-  background: var(--base-hover);
+.approval-bases-page .page-header-action .approval-bases-back:hover {
+  background: #7772f522;
+  color: #756ef0;
+  border-color: #8d83fa99;
+  box-shadow: 0 0 0 1px #7772f513;
+}
+.approval-bases-page .page-header-action .approval-bases-back:focus-visible {
+  outline: 2px solid #817cf0;
+  outline-offset: 2px;
+}
+.app-theme-dark .approval-bases-page .page-header-action .approval-bases-back:hover {
+  background: #383455;
+  color: #c4baff;
+  border-color: #817cf0;
+  box-shadow: 0 0 0 1px #817cf022;
 }
 .approval-bases-layout {
   display: grid;
@@ -213,26 +227,6 @@
 }
 .approval-bases-nav-item-state.is-active .approval-bases-nav-state-dot {
   background: #11bf91;
-}
-.approval-bases-nav-footer {
-  margin-top: 12px;
-  padding: 12px 2px 0;
-  border-top: 1px solid var(--base-border);
-}
-.approval-bases-nav .approval-bases-new-type {
-  width: 100%;
-  min-height: 37px;
-  border: 1px dashed var(--base-border);
-  border-radius: 10px;
-  color: var(--base-muted);
-  background: var(--base-surface);
-  font-size: 11px;
-  font-weight: 750;
-}
-.approval-bases-nav .approval-bases-new-type:hover {
-  border-color: #7772ed88;
-  color: var(--base-text);
-  background: var(--base-hover);
 }
 .approval-bases-content {
   min-width: 0;
@@ -393,18 +387,23 @@
 .approval-bases-page .approval-bases-filter-panel .task-filter-choice input[type="checkbox"] {
   flex-shrink: 0;
 }
-.approval-bases-page .approval-bases-filter-panel :is(input[type="date"]) {
-  min-height: 40px;
-  border: 1px solid var(--base-border);
-  border-radius: 10px;
+/* The shared ApprovalDateField supplies the same focus treatment and
+   calendar icon as Approvals. Avoid styling its invisible native input. */
+.approval-bases-page .approval-bases-filter-dates {
+  padding-top: 5px;
+  padding-bottom: 20px;
+}
+.approval-bases-page .approval-bases-filter-dates .approval-date-control {
   background: var(--base-control);
-  color: var(--base-text);
-  font-size: 12px;
-  color-scheme: light;
+  border-color: var(--base-border);
 }
-.app-theme-dark .approval-bases-page .approval-bases-filter-panel input[type="date"] {
-  color-scheme: dark;
+.approval-bases-page .approval-bases-filter-dates .approval-date-control:hover {
+  border-color: #817cf088;
 }
+.approval-bases-page .approval-bases-filter-dates .approval-date-control:focus-within {
+  border-color: #817cf0;
+}
+
 .approval-base-table-section {
   min-width: 0;
   padding: 0 22px;
@@ -563,8 +562,6 @@
     flex: 0 0 220px;
     width: 220px;
   }
-  .approval-bases-nav-footer { margin-top: 10px; }
-  .approval-bases-nav .approval-bases-new-type { width: auto; }
   .approval-bases-records-header { flex-direction: row; }
 }
 @media (max-width: 767px) {
