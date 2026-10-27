@@ -933,3 +933,489 @@
     max-width: 230px;
   }
 }
+
+/* New / Edit Approval Type: deliberately use the New Task .task-form
+   primitives for fields, native themed selects, checkbox, scrolling and footer.
+   Only Approval Type specific layout is defined below. */
+.modal[open]:has(> .modal-body > .approval-config-form) {
+  display: flex;
+  flex-direction: column;
+  width: min(860px, calc(100vw - 32px));
+  height: min(880px, calc(100dvh - 42px));
+  max-height: calc(100dvh - 42px);
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid #e1e6f1;
+  border-radius: 19px;
+  color: #27314b;
+  background: #fff;
+  box-shadow: 0 26px 90px #10182d38;
+}
+
+.modal:has(> .modal-body > .approval-config-form) .modal-head {
+  display: flex;
+  flex: 0 0 auto;
+  min-height: 79px;
+  gap: 16px;
+  padding: 17px 24px;
+  border-bottom: 1px solid #e6eaf2;
+  background: #fff;
+}
+
+.modal:has(> .modal-body > .approval-config-form) .modal-head h2 {
+  min-width: 0;
+  flex: 1 1 auto;
+  font-size: 16px;
+  font-weight: 750;
+  letter-spacing: -.022em;
+}
+
+.modal:has(> .modal-body > .approval-config-form) .modal-head .icon-btn {
+  display: inline-flex;
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border-radius: 9px;
+  color: #8590a7;
+}
+
+.modal:has(> .modal-body > .approval-config-form) .modal-head .icon-btn:hover {
+  background: #edf1f8;
+  color: #27314b;
+}
+
+.modal:has(> .modal-body > .approval-config-form) .modal-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  max-height: none;
+  padding: 0;
+  overflow: hidden;
+}
+
+.approval-config-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.approval-config-heading-icon {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  color: #8078f0;
+  background: #eeedff;
+}
+
+.approval-config-heading-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.approval-config-heading-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #27314b;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.approval-config-heading-subtitle {
+  color: #8290a8;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.35;
+  letter-spacing: 0;
+}
+
+.task-form.approval-config-form {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.task-form .task-form-scroll.approval-config-scroll {
+  padding: 24px 25px 28px;
+  scrollbar-width: thin;
+  scrollbar-color: #8f99b5 transparent;
+}
+
+.approval-config-main-fields.task-form-row {
+  margin-top: 0;
+  gap: 14px;
+  align-items: start;
+}
+
+.approval-config-code-field {
+  min-width: 0;
+}
+
+.approval-config-code-field > .field {
+  margin: 0;
+}
+
+.approval-config-help {
+  margin-top: 7px;
+  color: var(--task-subtle);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.task-form.approval-config-form .input::placeholder {
+  color: var(--task-subtle);
+  opacity: .9;
+}
+
+.task-form.approval-config-form .approval-config-description {
+  min-height: 90px;
+  resize: vertical;
+}
+
+.approval-config-version {
+  margin-bottom: 20px;
+  padding: 12px 14px;
+  border: 1px solid var(--task-border);
+  border-radius: 11px;
+  color: var(--task-muted);
+  background: var(--task-surface-raised);
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.approval-config-version strong {
+  color: var(--task-text);
+  font-weight: 750;
+}
+
+.approval-config-section {
+  min-width: 0;
+  margin-top: 25px;
+}
+
+.approval-config-section-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 13px;
+}
+
+.approval-config-section-heading h3 {
+  color: var(--task-text);
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.4;
+}
+
+.approval-config-section-hint {
+  padding: 4px 8px;
+  border-radius: 7px;
+  color: var(--task-muted);
+  background: var(--task-control);
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+.approval-config-items {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  min-width: 0;
+}
+
+.approval-config-field-card,
+.approval-config-step-row {
+  min-width: 0;
+  padding: 13px;
+  border: 1px solid var(--task-border);
+  border-radius: 13px;
+  background: var(--task-surface);
+}
+
+.approval-config-field-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-width: 0;
+}
+
+.task-form.approval-config-form .approval-config-field-stack .input {
+  width: 100%;
+  min-width: 0;
+}
+
+.approval-config-field-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 35px;
+  padding: 9px 1px 0;
+}
+
+.approval-config-required.task-filter-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--task-muted);
+  font-size: 11px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.approval-config-required.task-filter-choice input[type="checkbox"] {
+  flex: 0 0 auto;
+}
+
+.approval-config-remove.icon-btn {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  padding: 5px;
+  border-radius: 8px;
+  color: var(--task-subtle);
+  background: transparent;
+}
+
+.approval-config-remove.icon-btn:hover {
+  color: #fa7b89;
+  background: var(--task-hover);
+}
+
+.approval-config-options {
+  min-width: 0;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--task-border);
+  border-radius: 11px;
+  background: var(--task-surface-raised);
+}
+
+.approval-config-options-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+  color: var(--task-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.approval-config-option-list {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-width: 0;
+}
+
+.approval-config-option-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.approval-config-option-row .input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.approval-config-secondary.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 35px;
+  padding: 7px 12px;
+  border: 1px solid var(--task-border);
+  border-radius: 9px;
+  color: var(--task-text);
+  background: var(--task-control);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: none;
+  transition: background .16s ease, border-color .16s ease;
+}
+
+.approval-config-secondary.btn-secondary:hover {
+  border-color: #817cf055;
+  color: var(--task-text);
+  background: var(--task-hover);
+}
+
+.approval-config-secondary.btn-secondary:focus-visible {
+  outline: 2px solid #918bff;
+  outline-offset: 2px;
+}
+
+.approval-config-add {
+  margin-top: 11px;
+}
+
+.approval-config-step-row {
+  display: grid;
+  grid-template-columns: 27px minmax(0, 1fr) minmax(0, 1fr) 28px;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 12px;
+}
+
+.approval-config-step-number {
+  display: inline-grid;
+  place-items: center;
+  width: 27px;
+  height: 27px;
+  border-radius: 7px;
+  color: var(--task-muted);
+  background: var(--task-control);
+  font-size: 11px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+.approval-config-step-row .approval-config-step-name,
+.approval-config-step-row .approval-config-step-approver {
+  min-width: 0;
+}
+
+.approval-config-step-row:not(:has(.approval-config-step-remove)) {
+  grid-template-columns: 27px minmax(0, 1fr) minmax(0, 1fr) 0;
+}
+
+.approval-config-footer.task-form-footer {
+  min-height: 68px;
+}
+
+.approval-config-footer .btn-primary {
+  white-space: nowrap;
+}
+
+.app-theme-dark .modal[open]:has(> .modal-body > .approval-config-form) {
+  border-color: #293147;
+  color: #e8eafa;
+  background: #151b2c;
+  box-shadow: 0 26px 85px #03061199;
+}
+
+.app-theme-dark .modal:has(> .modal-body > .approval-config-form) .modal-head {
+  border-color: #293147;
+  background: linear-gradient(120deg, #1b2135, #141a2b);
+}
+
+.app-theme-dark .modal:has(> .modal-body > .approval-config-form) .modal-head .icon-btn:hover {
+  color: #e8eafa;
+  background: #293249;
+}
+
+.app-theme-dark .approval-config-heading-title {
+  color: #f2f0ff;
+}
+
+.app-theme-dark .approval-config-heading-subtitle {
+  color: #a0abc4;
+}
+
+.app-theme-dark .approval-config-heading-icon {
+  color: #b9b3ff;
+  background: #35355c;
+}
+
+.app-theme-dark .approval-config-field-card,
+.app-theme-dark .approval-config-step-row {
+  background: #151b2c;
+}
+
+.app-theme-dark .approval-config-options {
+  background: #191f31;
+}
+
+@media (max-width: 900px) {
+  .modal[open]:has(> .modal-body > .approval-config-form) {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    width: 100vw;
+    height: min(880px, 94dvh);
+    max-height: 94dvh;
+    border-radius: 20px 20px 0 0;
+    transform: translateX(-50%);
+  }
+}
+
+@media (max-width: 640px) {
+  .modal:has(> .modal-body > .approval-config-form) .modal-head {
+    min-height: 73px;
+    padding: 15px 18px;
+  }
+
+  .modal:has(> .modal-body > .approval-config-form) .modal-head h2 {
+    font-size: 14px;
+  }
+
+  .approval-config-heading-title {
+    font-size: 14px;
+  }
+
+  .approval-config-heading-subtitle {
+    font-size: 10px;
+  }
+
+  .task-form .task-form-scroll.approval-config-scroll {
+    padding: 18px 18px 23px;
+  }
+
+  .approval-config-main-fields.task-form-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .approval-config-step-row,
+  .approval-config-step-row:not(:has(.approval-config-step-remove)) {
+    grid-template-columns: 25px minmax(0, 1fr) 28px;
+  }
+
+  .approval-config-step-row .approval-config-step-name,
+  .approval-config-step-row .approval-config-step-approver {
+    grid-column: 2;
+  }
+
+  .approval-config-step-row .approval-config-step-number {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .approval-config-step-row .approval-config-step-remove {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .approval-config-footer .task-form-footer-note {
+    max-width: 52%;
+  }
+
+  .approval-config-footer .btn-primary {
+    padding-inline: 12px;
+  }
+}
+
+@media (max-width: 425px) {
+  .approval-config-heading-subtitle { max-width: 235px; }
+  .approval-config-footer.task-form-footer { gap: 8px; }
+  .approval-config-footer .task-form-footer-note { font-size: 10px; }
+}
