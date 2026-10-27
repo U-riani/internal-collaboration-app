@@ -170,6 +170,38 @@ describe("main workspace flows", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
+  it("selects multiple task participants without Ctrl and saves them", async () => {
+    api.mockImplementation(async (path, options = {}) =>
+      path === "/users"
+        ? { data: people }
+        : { data: options.method ? { id: "task" } : [] },
+    );
+    const user = mount(TasksPage);
+    await user.click(screen.getByRole("button", { name: "New task" }));
+    await user.type(screen.getByLabelText("Task title"), "Review milestones");
+
+    const first = await screen.findByRole("checkbox", {
+      name: "Participants: Test User",
+    });
+    const second = screen.getByRole("checkbox", {
+      name: "Participants: Test Colleague",
+    });
+    await user.click(first);
+    await user.click(second);
+    expect(first.checked).toBe(true);
+    expect(second.checked).toBe(true);
+    expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "Save task" }));
+    await waitFor(() => {
+      const call = api.mock.calls.find(
+        ([path, options]) => path === "/tasks" && options?.method === "POST",
+      );
+      expect(call).toBeDefined();
+      expect(JSON.parse(call[1].body).participantIds).toEqual(["me", "colleague"]);
+    });
+  });
+
   it("submits typed approval fields without asking employees to edit JSON", async () => {
     const type = {
       id: "equipment",
