@@ -531,6 +531,7 @@ function TaskDetail({ id, onClose }) {
                 <p className="task-detail-meta-label text-xs text-slate-400 mb-2">My group</p>
                 <select
                   aria-label="My task group"
+                  title={task.personalLayout?.group?.name || "Ungrouped"}
                   className="input app-modern-select task-detail-select task-detail-group-select"
                   value={task.personalLayout?.groupId || ""}
                   disabled={updateLayout.isPending}
