@@ -613,13 +613,13 @@
   font-size: 12px;
   font-weight: 700;
 }
-.tasks-page .filter-multiselect {
+:is(.tasks-page, .task-form) .filter-multiselect {
   min-width: 0;
   width: 100%;
   padding: 0;
   border: 0;
 }
-.tasks-page .filter-multiselect-heading {
+:is(.tasks-page, .task-form) .filter-multiselect-heading {
   float: none;
   width: 100%;
   margin-bottom: 8px;
@@ -629,14 +629,14 @@
   font-weight: 700;
   line-height: 1.5;
 }
-.tasks-page .filter-multiselect-panel {
+:is(.tasks-page, .task-form) .filter-multiselect-panel {
   min-width: 0;
   padding: 9px;
   border: 1px solid var(--task-border);
   border-radius: 12px;
   background: var(--task-surface-raised);
 }
-.tasks-page .filter-multiselect-search {
+:is(.tasks-page, .task-form) .filter-multiselect-search {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -650,13 +650,13 @@
   color: var(--task-subtle);
   transition: border-color .15s ease, box-shadow .15s ease;
 }
-.tasks-page .filter-multiselect-search:focus-within {
+:is(.tasks-page, .task-form) .filter-multiselect-search:focus-within {
   border-color: #817cf0;
   box-shadow: 0 0 0 2px #8077f621;
 }
-.tasks-page .filter-multiselect-search > svg { flex: 0 0 auto; pointer-events: none; }
-.app-theme-dark .tasks-page .filter-multiselect-search input,
-.tasks-page .filter-multiselect-search input {
+:is(.tasks-page, .task-form) .filter-multiselect-search > svg { flex: 0 0 auto; pointer-events: none; }
+.app-theme-dark :is(.tasks-page, .task-form) .filter-multiselect-search input,
+:is(.tasks-page, .task-form) .filter-multiselect-search input {
   flex: 1;
   width: 100%;
   min-width: 0;
@@ -671,8 +671,8 @@
   box-shadow: none !important;
   font-size: 12px;
 }
-.tasks-page .filter-multiselect-search input::placeholder { color: var(--task-subtle); }
-.tasks-page .filter-multiselect-options {
+:is(.tasks-page, .task-form) .filter-multiselect-search input::placeholder { color: var(--task-subtle); }
+:is(.tasks-page, .task-form) .filter-multiselect-options {
   max-height: 177px;
   min-height: 41px;
   overflow-y: auto;
@@ -680,7 +680,7 @@
   scrollbar-width: thin;
   scrollbar-color: #586380 transparent;
 }
-.tasks-page .filter-multiselect-option {
+:is(.tasks-page, .task-form) .filter-multiselect-option {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -691,9 +691,9 @@
   cursor: pointer;
   transition: background .14s ease;
 }
-.tasks-page .filter-multiselect-option:hover { background: var(--task-hover); }
-.tasks-page .filter-multiselect-option.is-selected { background: rgba(118, 109, 245, .13); }
-.tasks-page .filter-multiselect-icon {
+:is(.tasks-page, .task-form) .filter-multiselect-option:hover { background: var(--task-hover); }
+:is(.tasks-page, .task-form) .filter-multiselect-option.is-selected { background: rgba(118, 109, 245, .13); }
+:is(.tasks-page, .task-form) .filter-multiselect-icon {
   display: grid;
   place-items: center;
   flex: 0 0 28px;
@@ -703,7 +703,7 @@
   background: #233b57;
   color: #8baefe;
 }
-.tasks-page .filter-multiselect-name {
+:is(.tasks-page, .task-form) .filter-multiselect-name {
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -713,7 +713,7 @@
   font-size: 12px;
   font-weight: 600;
 }
-.tasks-page :is(.filter-multiselect-option, .task-filter-choice) input[type="checkbox"] {
+:is(.tasks-page, .task-form) :is(.filter-multiselect-option, .task-filter-choice) input[type="checkbox"] {
   display: grid;
   place-content: center;
   flex: 0 0 18px;
@@ -726,7 +726,7 @@
   appearance: none;
   cursor: pointer;
 }
-.tasks-page :is(.filter-multiselect-option, .task-filter-choice) input[type="checkbox"]::before {
+:is(.tasks-page, .task-form) :is(.filter-multiselect-option, .task-filter-choice) input[type="checkbox"]::before {
   content: "";
   display: block;
   width: 9px;
@@ -736,16 +736,16 @@
   transform: rotate(-45deg) scale(0);
   transition: transform .12s ease;
 }
-.tasks-page :is(.filter-multiselect-option, .task-filter-choice) input[type="checkbox"]:checked {
+:is(.tasks-page, .task-form) :is(.filter-multiselect-option, .task-filter-choice) input[type="checkbox"]:checked {
   background: #746dff;
   border-color: #746dff;
 }
-.tasks-page :is(.filter-multiselect-option, .task-filter-choice) input[type="checkbox"]:checked::before { transform: rotate(-45deg) scale(1); }
-.tasks-page :is(.filter-multiselect-option, .task-filter-choice) input[type="checkbox"]:focus-visible {
+:is(.tasks-page, .task-form) :is(.filter-multiselect-option, .task-filter-choice) input[type="checkbox"]:checked::before { transform: rotate(-45deg) scale(1); }
+:is(.tasks-page, .task-form) :is(.filter-multiselect-option, .task-filter-choice) input[type="checkbox"]:focus-visible {
   outline: 2px solid #aaa7ff;
   outline-offset: 2px;
 }
-.tasks-page .filter-multiselect-empty {
+:is(.tasks-page, .task-form) .filter-multiselect-empty {
   padding: 14px 8px;
   color: var(--task-subtle);
   text-align: center;
@@ -806,4 +806,164 @@
   font-weight: 800;
   line-height: 1;
   font-variant-numeric: tabular-nums;
+}
+
+/* New/Edit Task and Subtask share the exact filter-picker styling.
+   Scoped to the form; the shared modal and other modules remain unchanged. */
+.task-form {
+  --task-text: #27314b;
+  --task-muted: #6a7590;
+  --task-subtle: #8590a7;
+  --task-border: #e1e6f1;
+  --task-control: #edf1f8;
+  --task-hover: #f2f5fd;
+  --task-surface: #fff;
+  --task-surface-raised: #f0f3fa;
+  display: flex;
+  flex-direction: column;
+  color: var(--task-text);
+  font-size: 12px;
+}
+.app-theme-dark .task-form {
+  --task-text: #e8eafa;
+  --task-muted: #a9b1ca;
+  --task-subtle: #8995af;
+  --task-border: #31394e;
+  --task-control: #252b3d;
+  --task-hover: #293249;
+  --task-surface: #151b2c;
+  --task-surface-raised: #191f31;
+}
+.task-form .field {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 8px;
+  color: var(--task-muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+.task-form > .field, .task-form > .filter-multiselect { margin-top: 18px; }
+.task-form > .field:first-child { margin-top: 0; }
+.task-form .field > span:first-child { color: var(--task-muted); }
+.task-form .field + .field { margin-top: 0; }
+.task-form .task-form-row {
+  align-items: start;
+  gap: 14px;
+  margin-top: 18px;
+}
+.task-form .task-form-row > .field {
+  min-width: 0;
+  margin: 0;
+  align-self: start;
+}
+.task-form .task-form-row > .field + .field { margin-top: 0; }
+.task-form .input, .app-theme-dark .task-form .input {
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  padding: 9px 12px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  outline: none;
+  background: var(--task-control);
+  color: var(--task-text);
+  font-size: 12px;
+  font-weight: 500;
+  box-shadow: none;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.task-form .input:hover, .app-theme-dark .task-form .input:hover { background: var(--task-control); }
+.task-form .input:focus, .task-form .input:focus-visible,
+.app-theme-dark .task-form .input:focus,
+.app-theme-dark .task-form .input:focus-visible {
+  border-color: #8078ed;
+  outline: none;
+  box-shadow: 0 0 0 1px rgba(127, 119, 243, .18);
+  --tw-ring-shadow: 0 0 #0000;
+}
+.task-form .task-form-description {
+  min-height: 96px;
+  line-height: 1.55;
+  resize: vertical;
+}
+.task-form select.app-modern-select,
+.app-theme-dark .task-form select.app-modern-select {
+  min-height: 40px;
+  border: 1px solid var(--task-border);
+  background: var(--task-control);
+  color: var(--task-text);
+  font-weight: 650;
+}
+.task-form select.app-modern-select:hover,
+.app-theme-dark .task-form select.app-modern-select:hover {
+  border-color: var(--task-border);
+  background: var(--task-control);
+}
+.task-form select.app-modern-select:focus,
+.app-theme-dark .task-form select.app-modern-select:focus { border-color: #8078ed; }
+.task-form select.app-modern-select option {
+  color: var(--task-text);
+  background: var(--task-surface);
+}
+.task-form .task-form-date { color-scheme: light; }
+.app-theme-dark .task-form .task-form-date { color-scheme: dark; }
+.task-form .task-form-file {
+  height: auto;
+  min-height: 43px;
+  padding: 5px 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.task-form .task-form-file::file-selector-button {
+  margin-right: 12px;
+  padding: 7px 12px;
+  border: 1px solid var(--task-border);
+  border-radius: 8px;
+  background: var(--task-surface-raised);
+  color: var(--task-text);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.task-form .task-form-file:hover::file-selector-button { background: var(--task-hover); }
+.task-form .filter-multiselect-heading {
+  color: var(--task-muted);
+  font-weight: 700;
+}
+.task-form .task-form-actions {
+  justify-content: flex-end;
+  margin-top: 22px;
+  padding: 16px 0 0;
+}
+.task-form .task-form-actions .btn-primary {
+  min-height: 38px;
+  padding: 8px 17px;
+  border-radius: 9px;
+  background: #716bf4;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+.task-form .task-form-actions .btn-primary:hover { background: #817afa; }
+.app-theme-dark .task-form .task-form-actions {
+  background: transparent;
+  border-color: var(--task-border);
+}
+.modal:has(.task-form) .modal-head h2 { font-weight: 750; letter-spacing: -.015em; }
+.modal:has(.task-form) .modal-body {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  max-height: calc(100dvh - 135px);
+}
+.modal:has(.task-form) .form-actions { position: sticky; bottom: -1px; }
+@media (max-width: 640px) {
+  .task-form .task-form-row { grid-template-columns: minmax(0, 1fr); }
+  .task-form .filter-multiselect-options { max-height: 150px; }
+  .modal:has(.task-form) .modal-body { max-height: calc(100dvh - 115px); }
+  .task-form .task-form-actions {
+    margin: 18px -18px -18px;
+    padding: 14px 18px 18px;
+  }
 }
