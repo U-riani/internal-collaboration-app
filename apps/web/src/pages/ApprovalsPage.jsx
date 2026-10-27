@@ -694,10 +694,10 @@ function RequestTypesManager({ onClose }) {
               onChange={(event) => setSearch(event.target.value)}
             />
           </label>
-          <label className="approval-types-status-control">
+          <label className="approval-types-status-control task-sort-control">
             <ListFilter size={15} aria-hidden="true" />
             <select
-              className="app-modern-select"
+              className="input app-modern-select task-sort-select"
               aria-label="Request type status"
               value={status}
               onChange={(event) => setStatus(event.target.value)}
@@ -707,11 +707,10 @@ function RequestTypesManager({ onClose }) {
               <option value="INACTIVE">Inactive</option>
               <option value="DRAFT">Draft</option>
             </select>
-            <ChevronDown size={14} aria-hidden="true" />
           </label>
           <button
             type="button"
-            className="btn-primary approval-types-create"
+            className="btn-primary approval-types-create task-style-primary"
             onClick={() => setEditing("new")}
           >
             <Plus size={16} />
@@ -759,7 +758,7 @@ function RequestTypesManager({ onClose }) {
                   <div className="approval-type-actions">
                     <button
                       type="button"
-                      className="btn-secondary approval-type-edit"
+                      className="btn-secondary approval-type-edit task-style-secondary"
                       onClick={() => setEditing(item)}
                     >
                       <Pencil size={14} aria-hidden="true" />
@@ -767,7 +766,7 @@ function RequestTypesManager({ onClose }) {
                     </button>
                     <button
                       type="button"
-                      className={`btn-secondary approval-type-status-action ${isActive ? "approval-type-deactivate" : "approval-type-activate"}`}
+                      className={`btn-secondary approval-type-status-action task-style-secondary ${isActive ? "approval-type-deactivate" : "approval-type-activate"}`}
                       disabled={changeStatus.isPending}
                       onClick={() =>
                         changeStatus.mutate({
