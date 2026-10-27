@@ -1,0 +1,340 @@
+/* Approvals follows the Tasks design system without changing Tasks or shared logic.
+   The page imports tasks-page.css for the existing reusable primitives. */
+.approvals-page .approval-summary {
+  margin-bottom: 14px;
+}
+
+.approvals-page .approval-toolbar {
+  max-width: 100%;
+}
+
+.approvals-page .approval-toolbar-primary {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.approvals-page .approval-toolbar-primary .task-quick-tabs {
+  width: 100%;
+}
+
+.approvals-page .approval-toolbar-secondary {
+  flex: 0 1 auto;
+}
+
+.approvals-page .approval-toolbar .task-quick-tabs button {
+  padding-inline: 12px;
+}
+
+.approvals-page .approval-filter-panel {
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #5d6482 transparent;
+}
+
+.approvals-page .approval-filter-panel .task-filter-fields {
+  padding-bottom: 18px;
+}
+
+.approvals-page .approval-filter-panel .task-filter-choice {
+  min-width: 0;
+}
+
+.approvals-page .approval-filter-panel .task-filter-choice span {
+  overflow-wrap: anywhere;
+}
+
+/* Each personal group has a separate surface and its own column header,
+   matching the Tasks list. Only the group's table scrolls horizontally. */
+.approvals-page .approval-list-card {
+  max-height: none;
+  overflow: visible;
+}
+
+.approvals-page .approval-group-card {
+  isolation: isolate;
+}
+
+.approvals-page .approval-group-header {
+  min-height: 59px;
+  flex-wrap: wrap;
+}
+
+.approvals-page .approval-group-header > [draggable] {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 30px;
+  color: var(--task-subtle);
+}
+
+.approvals-page .approval-group-header > [draggable]:hover {
+  color: var(--task-text);
+}
+
+.approvals-page .approval-group-header .task-group-count {
+  margin-right: auto;
+}
+
+.approvals-page .approval-group-header > .ml-auto {
+  margin-left: auto;
+}
+
+.approvals-page .approval-group-header .icon-btn {
+  width: 30px;
+  min-width: 30px;
+  height: 30px;
+  border: 0;
+  color: var(--task-muted);
+  background: transparent;
+}
+
+.approvals-page .approval-group-header .icon-btn:hover {
+  color: var(--task-text);
+  background: var(--task-hover);
+}
+
+.approvals-page .approval-list-header {
+  color: var(--task-subtle);
+}
+
+.approvals-page .approval-list-row {
+  min-height: 88px;
+  border-color: var(--task-border);
+  color: var(--task-text);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.approvals-page .approval-list-row:focus-visible {
+  outline: 2px solid #827af8;
+  outline-offset: -2px;
+  background: var(--task-hover);
+}
+
+.approvals-page .approval-list-row > div:first-child > span:first-child {
+  flex: 0 0 auto;
+  border-radius: 9px;
+  background: var(--task-control);
+  color: #9790ff;
+}
+
+.approvals-page .approval-list-row p.font-semibold {
+  color: var(--task-text);
+}
+
+.approvals-page .approval-list-row :is(.text-slate-400, .text-slate-500) {
+  color: var(--task-subtle);
+}
+
+.approvals-page .approval-list-row .text-slate-600 {
+  color: var(--task-muted);
+}
+
+.approvals-page .approval-list-row .status {
+  white-space: nowrap;
+  font-size: 10px;
+  border-radius: 6px;
+}
+
+.approvals-page .approval-empty-row {
+  min-width: 0;
+}
+
+.approvals-page .approval-board {
+  min-width: 0;
+  scrollbar-width: thin;
+  scrollbar-color: #5b6088 transparent;
+}
+
+.approvals-page .approval-board-column {
+  border: 1px solid var(--task-border);
+  border-radius: 14px;
+  background: var(--task-surface-raised);
+}
+
+.approvals-page .approval-board-column h3 {
+  color: var(--task-text);
+}
+
+.approvals-page .approval-board-column > div:first-child > span:not([draggable]) {
+  color: var(--task-subtle);
+}
+
+.approvals-page .approval-board-column .icon-btn {
+  flex: 0 0 auto;
+  color: var(--task-muted);
+}
+
+.approvals-page .approval-board-column .icon-btn:hover {
+  color: var(--task-text);
+  background: var(--task-hover);
+}
+
+.approvals-page .approval-board-card {
+  border: 1px solid var(--task-border);
+  border-radius: 12px;
+  box-shadow: none;
+  color: var(--task-text);
+  transition: background-color .16s ease, border-color .16s ease, transform .16s ease;
+}
+
+.approvals-page .approval-board-card:hover {
+  border-color: #8a83f680;
+  background: var(--task-hover);
+  transform: translateY(-1px);
+}
+
+.approvals-page .approval-board-card .text-slate-700 {
+  color: var(--task-text);
+}
+
+.approvals-page .approval-board-card :is(.text-slate-400, .text-slate-500) {
+  color: var(--task-muted);
+}
+
+.approvals-page .approval-board-column .border-dashed {
+  border-color: var(--task-border);
+  color: var(--task-subtle);
+}
+
+/* The create/rename group dialog is outside the page wrapper, like Tasks. */
+.approval-group-form .approval-group-name-input {
+  width: 100%;
+  min-height: 40px;
+  padding: 9px 12px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: #edf1f8;
+  color: #27314b;
+  font-size: 13px;
+  font-weight: 500;
+  transition: border-color .16s ease, box-shadow .16s ease;
+}
+
+.approval-group-form .approval-group-name-input:focus {
+  border-color: #817cf0 !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px #8077f621 !important;
+}
+
+.app-theme-dark .approval-group-form .approval-group-name-input {
+  background: #252a3b !important;
+  color: #e5e9fc;
+}
+
+.approval-group-form .approval-group-form-actions {
+  justify-content: flex-end;
+}
+
+.approval-group-form .approval-group-form-actions .btn-primary {
+  border-radius: 10px;
+  background: #716bf4;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.approval-group-form .approval-group-form-actions .btn-primary:hover {
+  background: #817afa;
+}
+
+@media (max-width: 1180px) {
+  .approvals-page .approval-toolbar-primary,
+  .approvals-page .approval-toolbar-secondary {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .approvals-page .approval-toolbar-secondary {
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 767px) {
+  .approvals-page .approval-toolbar-secondary {
+    flex-wrap: wrap;
+  }
+
+  .approvals-page .approval-toolbar-secondary .task-search-bar {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .approvals-page .approval-group-header {
+    gap: 8px;
+  }
+
+  .approvals-page .approval-group-header > span.font-semibold {
+    min-width: 0;
+    max-width: calc(100% - 85px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .approvals-page .approval-group-header .task-group-count {
+    margin-right: 0;
+  }
+
+  .approvals-page .approval-list-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px 15px;
+    min-width: 0 !important;
+    align-items: center;
+  }
+
+  .approvals-page .approval-list-row > div:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .approvals-page .approval-list-row > span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    font-size: 11px;
+  }
+
+  .approvals-page .approval-list-row > span:last-child {
+    grid-column: 2;
+  }
+
+  .approvals-page .approval-board-column {
+    width: min(300px, 85vw);
+    min-width: min(300px, 85vw);
+  }
+}
+
+@media (max-width: 560px) {
+  .approvals-page .approval-toolbar .task-quick-tabs {
+    flex-basis: 100%;
+  }
+
+  .approvals-page .approval-toolbar-secondary {
+    justify-content: stretch;
+  }
+
+  .approvals-page .approval-toolbar-secondary .task-sort-control {
+    min-width: 0;
+    flex: 1 1 148px;
+  }
+
+  .approvals-page .approval-toolbar-secondary .task-view-toggle {
+    margin-left: 0;
+  }
+
+  .approvals-page .approval-group-header > .ml-auto {
+    margin-left: auto;
+  }
+
+  .approvals-page .approval-filter-panel .task-filter-footer {
+    flex-wrap: wrap;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .approvals-page *,
+  .approvals-page *::before,
+  .approvals-page *::after {
+    transition-duration: .01ms !important;
+  }
+}
