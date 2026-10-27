@@ -17,6 +17,7 @@ import {
   ListFilter,
   MessageSquare,
   Paperclip,
+  UserRound,
   Pencil,
   Plus,
   Search,
@@ -458,61 +459,62 @@ function TaskDetail({ id, onClose }) {
 
   return (
     <Modal title="Task details" onClose={onClose} wide>
+      <div className="task-detail">
       {query.isLoading ? (
         <Loading />
       ) : task ? (
         <>
-          <div className="flex justify-between gap-3 items-start">
+          <div className="task-detail-intro flex justify-between gap-3 items-start">
             <div className="min-w-0">
               {task.parentTask && (
                 <p className="mb-2 text-xs text-slate-400">
                   Subtask of {task.parentTask.title}
                 </p>
               )}
-              <h2 className="text-xl font-bold mb-3">{task.title}</h2>
-              <div className="flex flex-wrap gap-2">
+              <h2 className="task-detail-title text-xl font-bold mb-3">{task.title}</h2>
+              <div className="task-detail-badges flex flex-wrap gap-2">
                 <Badge value={task.priority} />
                 <Badge value={task.status} />
                 {task.personalLayout?.group && (
-                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-500">
+                  <span className="task-detail-group-label" title={task.personalLayout.group.name}>
                     My group · {task.personalLayout.group.name}
                   </span>
                 )}
               </div>
             </div>
             {canManage && (
-              <button className="btn-secondary" onClick={() => setEdit(true)}>
+              <button className="btn-secondary task-detail-edit" onClick={() => setEdit(true)}>
                 Edit task
               </button>
             )}
           </div>
-          <p className="whitespace-pre-wrap text-sm leading-6 text-slate-500 mt-6">
+          <p className="task-detail-description whitespace-pre-wrap text-sm leading-6 text-slate-500 mt-6">
             {task.description || "No description provided."}
           </p>
           <div
-            className={`grid gap-4 my-6 rounded-xl bg-slate-50 p-4 text-sm ${
+            className={`task-detail-meta grid gap-4 my-6 rounded-xl bg-slate-50 p-4 text-sm ${
               task.parentTaskId
                 ? "sm:grid-cols-2 lg:grid-cols-4"
                 : "sm:grid-cols-2 lg:grid-cols-5"
             }`}
           >
-            <div>
-              <p className="text-xs text-slate-400 mb-2">Assigned to</p>
-              {task.assignee?.displayName || "Unassigned"}
+            <div className="task-detail-meta-item">
+              <p className="task-detail-meta-label text-xs text-slate-400 mb-2">Assigned to</p>
+              <span className="task-detail-meta-value task-detail-assignee">{task.assignee?.displayName || "Unassigned"}</span>
             </div>
-            <div>
-              <p className="text-xs text-slate-400 mb-2">Created by</p>
-              {task.creator?.displayName || "Unknown"}
+            <div className="task-detail-meta-item">
+              <p className="task-detail-meta-label text-xs text-slate-400 mb-2">Created by</p>
+              <span className="task-detail-meta-value task-detail-creator">{task.creator?.displayName || "Unknown"}</span>
             </div>
-            <div>
-              <p className="text-xs text-slate-400 mb-2">Due date</p>
-              {prettyDate(task.dueDate)}
+            <div className="task-detail-meta-item">
+              <p className="task-detail-meta-label text-xs text-slate-400 mb-2">Due date</p>
+              <span className="task-detail-meta-value task-detail-due">{prettyDate(task.dueDate)}</span>
             </div>
-            <div>
-              <p className="text-xs text-slate-400 mb-2">Status</p>
+            <div className="task-detail-meta-item">
+              <p className="task-detail-meta-label text-xs text-slate-400 mb-2">Status</p>
               <select
                 aria-label="Task status"
-                className="input app-modern-select"
+                className="input app-modern-select task-detail-select task-detail-status-select"
                 value={task.status}
                 disabled={updateStatus.isPending || !canChangeStatus}
                 onChange={(event) => changeParentStatus(event.target.value)}
@@ -525,11 +527,11 @@ function TaskDetail({ id, onClose }) {
               </select>
             </div>
             {!task.parentTaskId && (
-              <div>
-                <p className="text-xs text-slate-400 mb-2">My group</p>
+              <div className="task-detail-meta-item task-detail-group-field">
+                <p className="task-detail-meta-label text-xs text-slate-400 mb-2">My group</p>
                 <select
                   aria-label="My task group"
-                  className="input app-modern-select"
+                  className="input app-modern-select task-detail-select task-detail-group-select"
                   value={task.personalLayout?.groupId || ""}
                   disabled={updateLayout.isPending}
                   onChange={(event) => updateLayout.mutate(event.target.value)}
@@ -545,8 +547,8 @@ function TaskDetail({ id, onClose }) {
             )}
           </div>
 
-          <section className="my-7 rounded-xl border border-slate-200 overflow-hidden">
-            <div className="bg-slate-50 px-4 py-3">
+          <section className="task-detail-section task-detail-participants my-7 rounded-xl border border-slate-200 overflow-hidden">
+            <div className="task-detail-section-header bg-slate-50 px-4 py-3">
               <h3 className="text-sm font-semibold">Participants</h3>
               <p className="mt-0.5 text-xs text-slate-400">
                 People involved in this task. Use Edit task to change
@@ -554,29 +556,28 @@ function TaskDetail({ id, onClose }) {
               </p>
             </div>
             {task.participants?.length ? (
-              <div className="flex flex-wrap gap-2 border-t border-slate-100 px-4 py-4">
+              <div className="task-detail-participants-list">
                 {task.participants.map((participant) => (
-                  <div
-                    key={participant.userId}
-                    className="flex items-center gap-2 rounded-full border border-slate-200 bg-white py-1.5 pl-1.5 pr-3 text-sm text-slate-600"
-                  >
-                    <Avatar small name={participant.user.displayName} />
-                    <span className="font-medium">
-                      {participant.user.displayName}
+                  <div key={participant.userId} className="task-detail-person">
+                    <span className="task-detail-person-icon" aria-hidden="true">
+                      <UserRound size={17} strokeWidth={1.8} />
+                    </span>
+                    <span className="task-detail-person-name">
+                      {participant.user?.displayName || "Unknown"}
                     </span>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="border-t border-slate-100 px-4 py-4 text-sm text-slate-400">
+              <div className="task-detail-empty border-t border-slate-100 px-4 py-4 text-sm text-slate-400">
                 No participants.
               </div>
             )}
           </section>
 
           {!task.parentTaskId && (
-            <section className="my-7 rounded-xl border border-slate-200 overflow-hidden">
-              <div className="flex items-center justify-between gap-3 bg-slate-50 px-4 py-3">
+            <section className="task-detail-section task-detail-subtasks my-7 rounded-xl border border-slate-200 overflow-hidden">
+              <div className="task-detail-section-header flex items-center justify-between gap-3 bg-slate-50 px-4 py-3">
                 <div>
                   <h3 className="text-sm font-semibold">Subtasks</h3>
                   <p className="mt-0.5 text-xs text-slate-400">
@@ -587,7 +588,7 @@ function TaskDetail({ id, onClose }) {
                 </div>
                 {hasPermission("tasks.create") && (
                   <button
-                    className="btn-secondary px-3 py-1.5 text-xs"
+                    className="btn-secondary task-detail-add-subtask px-3 py-1.5 text-xs"
                     onClick={() => setCreateSubtask(true)}
                   >
                     <Plus size={14} />
@@ -607,7 +608,7 @@ function TaskDetail({ id, onClose }) {
                     return (
                       <div
                         key={subtask.id}
-                        className="flex items-center gap-3 border-t border-slate-100 px-4 py-3"
+                        className="task-detail-subtask-row flex items-center gap-3 border-t border-slate-100 px-4 py-3"
                       >
                         <button
                           type="button"
@@ -616,7 +617,7 @@ function TaskDetail({ id, onClose }) {
                               ? `Reopen ${subtask.title}`
                               : `Complete ${subtask.title}`
                           }
-                          className="grid h-6 w-6 shrink-0 place-items-center rounded-md text-blue-600 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-40"
+                          className="task-detail-subtask-toggle grid h-6 w-6 shrink-0 place-items-center rounded-md text-blue-600 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-40"
                           disabled={
                             updateStatus.isPending || !canChangeSubtaskStatus
                           }
@@ -635,7 +636,7 @@ function TaskDetail({ id, onClose }) {
                         </button>
                         <button
                           type="button"
-                          className={`min-w-0 flex-1 truncate text-left text-sm font-medium hover:text-blue-600 ${completed ? "text-slate-400 line-through" : "text-slate-700"}`}
+                          className={`task-detail-subtask-title min-w-0 flex-1 truncate text-left text-sm font-medium ${completed ? "text-slate-400 line-through" : "text-slate-700"}`}
                           onClick={() => setChildId(subtask.id)}
                         >
                           {subtask.title}
@@ -664,12 +665,12 @@ function TaskDetail({ id, onClose }) {
           <ErrorBox
             error={updateStatus.error || updateLayout.error || groups.error}
           />
-          <h3 className="font-semibold text-sm mt-8 mb-4">
+          <h3 className="task-detail-discussion-title font-semibold text-sm mt-8 mb-4">
             Discussion · {task.comments.length}
           </h3>
-          <div className="space-y-5">
+          <div className="task-detail-comments space-y-5">
             {task.comments.map((entry) => (
-              <div className="flex gap-3" key={entry.id}>
+              <div className="task-detail-comment flex gap-3" key={entry.id}>
                 <Avatar small name={entry.author.displayName} />
                 <div className="min-w-0 flex-1">
                   <div className="text-xs font-semibold">
@@ -687,7 +688,7 @@ function TaskDetail({ id, onClose }) {
             ))}
           </div>
           <form
-            className="mt-5"
+            className="task-detail-comment-form mt-5"
             onSubmit={(event) => {
               event.preventDefault();
               addComment.mutate();
@@ -696,13 +697,13 @@ function TaskDetail({ id, onClose }) {
             <textarea
               aria-label="Comment"
               placeholder="Add a comment…"
-              className="input min-h-24"
+              className="input task-detail-comment-input min-h-24"
               required
               value={comment}
               onChange={(event) => setComment(event.target.value)}
             />
-            <div className="flex justify-between items-center mt-3">
-              <label className="text-xs text-slate-500 flex items-center gap-2 cursor-pointer">
+            <div className="task-detail-comment-actions flex justify-between items-center mt-3>
+              <label className="task-detail-file-label text-xs text-slate-500 flex items-center gap-2 cursor-pointer>
                 <Paperclip size={16} />
                 {file?.name || "Attach a file"}
                 <input
@@ -712,13 +713,13 @@ function TaskDetail({ id, onClose }) {
                   onChange={(event) => setFile(event.target.files[0])}
                 />
               </label>
-              <button className="btn-primary" disabled={addComment.isPending}>
+              <button className="btn-primary task-detail-comment-submit" disabled={addComment.isPending}>
                 Comment
               </button>
             </div>
             <ErrorBox error={addComment.error} />
           </form>
-          <details className="mt-7 text-xs text-slate-500">
+          <details className="task-detail-history mt-7 text-xs text-slate-500">
             <summary className="cursor-pointer font-semibold">
               Activity history
             </summary>
@@ -745,6 +746,7 @@ function TaskDetail({ id, onClose }) {
       ) : (
         <ErrorBox error={query.error} />
       )}
+      </div>
     </Modal>
   );
 }
