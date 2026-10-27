@@ -512,38 +512,56 @@ function TaskDetail({ id, onClose }) {
             </div>
             <div className="task-detail-meta-item">
               <p className="task-detail-meta-label text-xs text-slate-400 mb-2">Status</p>
-              <select
-                aria-label="Task status"
-                className="input app-modern-select task-detail-select task-detail-status-select"
-                value={task.status}
-                disabled={updateStatus.isPending || !canChangeStatus}
-                onChange={(event) => changeParentStatus(event.target.value)}
-              >
-                {statuses.map((status) => (
-                  <option key={status} value={status}>
-                    {status.replaceAll("_", " ")}
-                  </option>
-                ))}
-              </select>
+              <div className="task-detail-select-wrap">
+                <select
+                  aria-label="Task status"
+                  className="input app-modern-select task-detail-select task-detail-status-select"
+                  value={task.status}
+                  disabled={updateStatus.isPending || !canChangeStatus}
+                  onChange={(event) => changeParentStatus(event.target.value)}
+                >
+                  {statuses.map((status) => (
+                    <option key={status} value={status}>
+                      {status.replaceAll("_", " ")}
+                    </option>
+                  ))}
+                </select>
+                <span className="task-detail-select-preview" aria-hidden="true">
+                  <span className="task-detail-select-preview-label">
+                    {task.status.replaceAll("_", " ")}
+                  </span>
+                  <ChevronDown size={15} />
+                </span>
+              </div>
             </div>
             {!task.parentTaskId && (
               <div className="task-detail-meta-item task-detail-group-field">
                 <p className="task-detail-meta-label text-xs text-slate-400 mb-2">My group</p>
-                <select
-                  aria-label="My task group"
+                <div
+                  className="task-detail-select-wrap"
                   title={task.personalLayout?.group?.name || "Ungrouped"}
-                  className="input app-modern-select task-detail-select task-detail-group-select"
-                  value={task.personalLayout?.groupId || ""}
-                  disabled={updateLayout.isPending}
-                  onChange={(event) => updateLayout.mutate(event.target.value)}
                 >
-                  <option value="">Ungrouped</option>
-                  {(groups.data || []).map((group) => (
-                    <option key={group.id} value={group.id}>
-                      {group.name}
-                    </option>
-                  ))}
-                </select>
+                  <select
+                    aria-label="My task group"
+                    className="input app-modern-select task-detail-select task-detail-group-select"
+                    value={task.personalLayout?.groupId || ""}
+                    disabled={updateLayout.isPending}
+                    onChange={(event) => updateLayout.mutate(event.target.value)}
+                  >
+                    <option value="">Ungrouped</option>
+                    {(groups.data || []).map((group) => (
+                      <option key={group.id} value={group.id}>
+                        {group.name}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="task-detail-select-preview" aria-hidden="true">
+                    <span className="task-detail-select-preview-label">
+                      {task.personalLayout?.group?.name || "Ungrouped"}
+                    </span>
+                    <ChevronDown size={15} />
+                  </span>
+                </div>
               </div>
             )}
           </div>
