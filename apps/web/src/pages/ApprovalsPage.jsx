@@ -17,10 +17,15 @@ import {
   Pencil,
   Search,
   Trash2,
+  X,
+  CheckCircle2,
+  AlertCircle,
+  ArrowUpRight,
 } from "lucide-react";
 import { api, uploadFile } from "../lib/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import PageHeader from "../components/PageHeader.jsx";
+import FilterMultiSelect from "../components/FilterMultiSelect.jsx";
 import {
   Modal,
   Field,
@@ -31,6 +36,9 @@ import {
   Attachments,
   prettyDate,
 } from "../components/UI.jsx";
+import "./tasks-page.css";
+import "./approvals-page.css";
+
 const approvalStatuses = [
   "DRAFT",
   "SUBMITTED",
@@ -725,25 +733,27 @@ function ApprovalGroupForm({ existing, onClose }) {
       onClose={onClose}
     >
       <form
+        className="approval-group-form"
         onSubmit={(event) => {
           event.preventDefault();
-          save.mutate();
+          if (name.trim() && !save.isPending) save.mutate();
         }}
       >
-        <Field
-          label="Group name"
-          required
-          minLength={1}
-          maxLength={120}
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-        />
+        <Field label="Group name">
+          <input
+            className="input approval-group-name-input"
+            type="text"
+            required
+            minLength={1}
+            maxLength={120}
+            autoFocus
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+          />
+        </Field>
         <ErrorBox error={save.error} />
-        <div className="form-actions">
-          <button type="button" className="btn-secondary" onClick={onClose}>
-            Cancel
-          </button>
-          <button className="btn-primary" disabled={save.isPending}>
+        <div className="form-actions approval-group-form-actions">
+          <button type="submit" className="btn-primary" disabled={save.isPending || !name.trim()}>
             {save.isPending ? "Saving…" : existing ? "Save" : "Create group"}
           </button>
         </div>
@@ -1386,13 +1396,6 @@ export default function ApprovalsPage() {
     }));
   };
 
-  const setAdvancedValues = (key, event) => {
-    const values = [...event.target.selectedOptions].map(
-      (option) => option.value,
-    );
-    setAdvancedFilters((current) => ({ ...current, [key]: values }));
-  };
-
   const setAdvancedValue = (key, value) =>
     setAdvancedFilters((current) => ({ ...current, [key]: value }));
 
@@ -1429,7 +1432,7 @@ export default function ApprovalsPage() {
         }}
         onDragEnd={() => setDraggingId(null)}
         onClick={() => setSelectedId(request.id)}
-        className={`card relative w-full p-4 text-left transition hover:border-blue-300 ${
+        className={`card task-board-card approval-board-card relative w-full p-4 text-left transition ${
           draggingId === request.id ? "opacity-50" : ""
         }`}
       >
@@ -1471,7 +1474,7 @@ export default function ApprovalsPage() {
     const hasUnread = unreadApprovalIds.has(request.id);
     return (
       <button
-        className="approval-list-row relative grid min-w-[900px] w-full grid-cols-[minmax(280px,1.8fr)_180px_190px_145px_160px] items-center gap-4 border-t border-slate-100 px-5 py-3.5 text-left transition hover:bg-slate-50"
+        className="task-list-row approval-list-row relative grid min-w-[900px] w-full grid-cols-[minmax(280px,1.8fr)_180px_190px_145px_160px] items-center gap-4 border-t border-slate-100 px-5 py-3.5 text-left transition hover:bg-slate-50"
         key={request.id}
         onClick={() => setSelectedId(request.id)}
       >
@@ -1521,17 +1524,23 @@ export default function ApprovalsPage() {
     Boolean(advancedFilters.createdTo),
   ].filter(Boolean).length;
 
-  const activeFilterCount =
-    (involvement !== "all" ? 1 : 0) +
-    advancedFilterCount +
-    (search.trim() ? 1 : 0);
+  const approvalSummary = {
+    needsReview: allRequests.filter((request) =>
+      request.steps.some(
+        (step) => step.status === "PENDING" && step.approverId === user.id,
+      ),
+    ).length,
+    approved: allRequests.filter((request) => request.status === "APPROVED").length,
+  };
 
   return (
     <>
+      <div className="tasks-page approvals-page">
       <PageHeader
         title="Approvals"
+        description="Review requests, track decisions, and keep approvals moving."
         action={
-          <div className="flex  md:flex-wrap text-nowrap items-center gap-2 overflow-x-auto scrollbar-none">
+          <div className="task-header-actions flex flex-wrap items-center gap-2">
             <button
               className="btn-secondary"
               onClick={() => setGroupForm({})}
@@ -1567,11 +1576,56 @@ export default function ApprovalsPage() {
           </div>
         }
       />
+      <div className="task-summary approval-summary" aria-label="Approval overview">
+        <button
+          type="button"
+          className="task-summary-card task-summary-card--attention"
+          onClick={() => {
+            resetFilters();
+            setInvolvement("review");
+          }}
+          aria-pressed={involvement === "review" && !advancedFilterCount && !search.trim()}
+        >
+          <span className="task-summary-icon"><AlertCircle size={16} /></span>
+          <span className="task-summary-copy">
+            <span className="task-summary-number">{approvalSummary.needsReview}</span>
+            <span className="task-summary-label">Needs my review</span>
+          </span>
+          <ArrowUpRight className="task-summary-arrow" size={12} aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          className="task-summary-card task-summary-card--completed"
+          onClick={() => {
+            setInvolvement("all");
+            setSearch("");
+            setAdvancedFilters({ ...DEFAULT_APPROVAL_FILTERS, statuses: ["APPROVED"] });
+          }}
+          aria-pressed={
+            involvement === "all" &&
+            advancedFilters.statuses.length === 1 &&
+            advancedFilters.statuses[0] === "APPROVED" &&
+            !advancedFilters.typeIds.length &&
+            !advancedFilters.requesterIds.length &&
+            !advancedFilters.groupIds.length &&
+            !advancedFilters.createdFrom &&
+            !advancedFilters.createdTo &&
+            !search.trim()
+          }
+        >
+          <span className="task-summary-icon"><CheckCircle2 size={16} /></span>
+          <span className="task-summary-copy">
+            <span className="task-summary-number">{approvalSummary.approved}</span>
+            <span className="task-summary-label">Approved requests</span>
+          </span>
+          <ArrowUpRight className="task-summary-arrow" size={12} aria-hidden="true" />
+        </button>
+      </div>
 
       <div className="relative">
-        <div className="approval-toolbar toolbar flex items-center gap-4 rounded-lg border border-slate-200 bg-white shadow-sm">
+        <div className="approval-toolbar toolbar task-toolbar task-toolbar--refresh">
           <div className="approval-toolbar-primary min-w-0 flex-1">
-            <div className="tabs" aria-label="Approval quick filters">
+            <div className="tabs task-quick-tabs" aria-label="Approval quick filters">
               {[
                 ["all", "All"],
                 ["review", "Needs my review"],
@@ -1582,6 +1636,7 @@ export default function ApprovalsPage() {
                   key={value}
                   type="button"
                   className={involvement === value ? "active" : ""}
+                  aria-pressed={involvement === value}
                   onClick={() => setInvolvement(value)}
                 >
                   {label}
@@ -1590,28 +1645,23 @@ export default function ApprovalsPage() {
             </div>
           </div>
 
-          <div className="approval-toolbar-secondary ml-auto flex items-center gap-2">
-            <div className="approval-search relative min-w-60!">
-              <Search
-                className="absolute right-3 top-3 text-slate-400"
-                size={15}
-              />
+          <div className="approval-toolbar-secondary task-toolbar-actions ml-auto flex items-center gap-2">
+            <label className="task-search-bar">
+              <Search size={16} aria-hidden="true" />
               <input
                 aria-label="Search approvals"
-                className="input w-full  pl-9 pe-8! "
-                placeholder="Search approvals"
+                className="input"
+                placeholder="Search approvals..."
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
               />
-            </div>
+            </label>
 
             <div className="relative">
               <button
                 type="button"
-                className={`btn-secondary relative ${
-                  advancedFilterCount
-                    ? "border-blue-300 bg-blue-50 text-blue-700"
-                    : ""
+                className={`btn-secondary task-filter-trigger relative ${
+                  advancedFilterCount ? "task-filter-trigger--active" : ""
                 }`}
                 onClick={() => setFiltersOpen((current) => !current)}
                 aria-expanded={filtersOpen}
@@ -1619,14 +1669,14 @@ export default function ApprovalsPage() {
                 <ListFilter size={16} />
                 <span className="hidden xl:inline">Filter</span>
                 {advancedFilterCount > 0 && (
-                  <span className="grid h-5 min-w-5 place-items-center rounded-full bg-blue-600 px-1 text-[10px] font-bold text-white">
+                  <span className="task-filter-count-badge">
                     {advancedFilterCount}
                   </span>
                 )}
               </button>
 
               {filtersOpen && (
-                <div className="approval-filter-panel fixed left-1/2 top-2 z-50 w-[680px] max-w-[calc(100vw-48px)] -translate-x-1/2 overflow-y-auto rounded-2xl border border-slate-200 bg-white px-5 shadow-xl max-h-[calc(100vh-1rem)]">
+                <div className="approval-filter-panel task-filter-panel fixed left-1/2 top-2 z-50 w-[760px] max-w-[calc(100vw-32px)] -translate-x-1/2 overflow-y-auto rounded-2xl border border-slate-200 bg-white px-5 shadow-xl max-h-[calc(100dvh-1rem)]">
                   <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-slate-200 bg-white pb-3 pt-5">
                     <div>
                       <h3 className="text-sm font-bold text-slate-800">
@@ -1641,23 +1691,28 @@ export default function ApprovalsPage() {
                       className="btn-secondary btn-sm"
                       onClick={() => setFiltersOpen(false)}
                     >
-                      x
+                      <X size={16} aria-hidden="true" />
+                      <span className="sr-only">Close filters</span>
                     </button>
                   </div>
 
-                  <div className="relative mb-4 flex min-h-8 items-center pt-3">
-                    {advancedFilterCount > 0 && (
-                      <button
-                        type="button"
-                        className="text-xs font-semibold text-blue-600 hover:text-blue-800"
-                        onClick={clearAdvancedFilters}
-                      >
-                        Clear all
-                      </button>
-                    )}
+                  <div className="task-filter-utilities">
+                    <span className="task-filter-count">
+                      {advancedFilterCount > 0
+                        ? `${advancedFilterCount} active filter${advancedFilterCount === 1 ? "" : "s"}`
+                        : "Refine the approval list"}
+                    </span>
+                    <button
+                      type="button"
+                      className="btn-secondary task-filter-clear"
+                      onClick={clearAdvancedFilters}
+                      disabled={advancedFilterCount === 0}
+                    >
+                      Clear all
+                    </button>
                   </div>
 
-                  <div className="grid gap-5 md:grid-cols-2">
+                  <div className="task-filter-fields grid gap-5 md:grid-cols-2">
                     <div className="md:col-span-2">
                       <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">
                         Status
@@ -1666,10 +1721,11 @@ export default function ApprovalsPage() {
                         {approvalStatuses.map((status) => (
                           <label
                             key={status}
-                            className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-100 px-2.5 py-2 text-xs text-slate-600 hover:bg-slate-50"
+                            className="task-filter-choice flex cursor-pointer items-center gap-2 rounded-lg border border-slate-100 px-2.5 py-2 text-xs text-slate-600"
                           >
                             <input
                               type="checkbox"
+                              className="task-filter-checkbox"
                               checked={advancedFilters.statuses.includes(
                                 status,
                               )}
@@ -1683,60 +1739,39 @@ export default function ApprovalsPage() {
                       </div>
                     </div>
 
-                    <label className="text-xs font-semibold text-slate-500">
-                      Request type
-                      <select
-                        multiple
-                        className="input mt-1.5 h-28"
-                        value={advancedFilters.typeIds}
-                        onChange={(event) =>
-                          setAdvancedValues("typeIds", event)
-                        }
-                      >
-                        {typeOptions.map((type) => (
-                          <option key={type.id} value={type.id}>
-                            {type.name}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
+                    <FilterMultiSelect
+                      label="Request type"
+                      kind="group"
+                      options={typeOptions.map((type) => ({ value: type.id, label: type.name }))}
+                      values={advancedFilters.typeIds}
+                      onToggle={(value) => toggleAdvancedValue("typeIds", value)}
+                    />
 
-                    <label className="text-xs font-semibold text-slate-500">
-                      Requester
-                      <select
-                        multiple
-                        className="input mt-1.5 h-28"
-                        value={advancedFilters.requesterIds}
-                        onChange={(event) =>
-                          setAdvancedValues("requesterIds", event)
-                        }
-                      >
-                        {requesterOptions.map((requester) => (
-                          <option key={requester.id} value={requester.id}>
-                            {requester.displayName}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
+                    <FilterMultiSelect
+                      label="Requester"
+                      options={requesterOptions.map((requester) => ({
+                        value: requester.id,
+                        label: requester.displayName,
+                      }))}
+                      values={advancedFilters.requesterIds}
+                      onToggle={(value) => toggleAdvancedValue("requesterIds", value)}
+                    />
 
-                    <label className="text-xs font-semibold text-slate-500 md:col-span-2">
-                      Personal group
-                      <select
-                        multiple
-                        className="input mt-1.5 h-28"
-                        value={advancedFilters.groupIds}
-                        onChange={(event) =>
-                          setAdvancedValues("groupIds", event)
-                        }
-                      >
-                        <option value={UNGROUPED}>Ungrouped</option>
-                        {(groups.data || []).map((group) => (
-                          <option key={group.id} value={group.id}>
-                            {group.name}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
+                    <div className="md:col-span-2">
+                      <FilterMultiSelect
+                        label="Personal group"
+                        kind="group"
+                        options={[
+                          { value: UNGROUPED, label: "Ungrouped" },
+                          ...(groups.data || []).map((group) => ({
+                            value: group.id,
+                            label: group.name,
+                          })),
+                        ]}
+                        values={advancedFilters.groupIds}
+                        onToggle={(value) => toggleAdvancedValue("groupIds", value)}
+                      />
+                    </div>
 
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:col-span-2">
                       <label className="text-xs font-semibold text-slate-500">
@@ -1764,9 +1799,9 @@ export default function ApprovalsPage() {
                     </div>
                   </div>
 
-                  <div className="sticky bottom-0 flex items-center justify-between border-t border-slate-100 bg-white py-3 pt-4">
+                  <div className="task-filter-footer sticky bottom-0 flex items-center justify-between border-t border-slate-100 bg-white">
                     <span className="hidden text-xs text-slate-400 sm:inline">
-                      Hold Ctrl/Cmd to select multiple values.
+                      Select multiple values with checkboxes.
                     </span>
                     <button
                       type="button"
@@ -1780,11 +1815,11 @@ export default function ApprovalsPage() {
               )}
             </div>
 
-            <label className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600">
+            <label className="task-sort-control">
               <ArrowUpDown size={15} className="text-slate-400" />
               <select
                 aria-label="Sort approvals"
-                className="max-w-44 bg-transparent outline-none"
+                className="input app-modern-select task-sort-select"
                 value={sortBy}
                 onChange={(event) => setSortBy(event.target.value)}
               >
@@ -1797,16 +1832,15 @@ export default function ApprovalsPage() {
             </label>
 
             <div
-              className="inline-flex rounded-xl border border-slate-200 bg-white p-1"
+              className="task-view-toggle"
+              role="group"
               aria-label="Approval view"
             >
               <button
                 type="button"
-                className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                  !board
-                    ? "bg-slate-100 text-slate-800"
-                    : "text-slate-500 hover:text-slate-800"
-                }`}
+                className={`task-view-button ${!board ? "task-view-button--active" : ""}`}
+                aria-label="List view"
+                aria-pressed={!board}
                 onClick={() => setBoard(false)}
               >
                 <List size={15} />
@@ -1814,11 +1848,9 @@ export default function ApprovalsPage() {
               </button>
               <button
                 type="button"
-                className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                  board
-                    ? "bg-slate-100 text-slate-800"
-                    : "text-slate-500 hover:text-slate-800"
-                }`}
+                className={`task-view-button ${board ? "task-view-button--active" : ""}`}
+                aria-label="Board view"
+                aria-pressed={board}
                 onClick={() => setBoard(true)}
               >
                 <Columns3 size={15} />
@@ -1856,11 +1888,11 @@ export default function ApprovalsPage() {
         {query.isLoading || groups.isLoading ? (
           <Loading />
         ) : board ? (
-          <div className="flex gap-4 overflow-x-auto pb-4">
+          <div className="approval-board flex gap-4 overflow-x-auto pb-4">
             {groupSections.map((group) => (
               <section
                 key={group.id}
-                className="approval-board-column w-[300px] min-w-[300px] rounded-xl bg-slate-100 p-3"
+                className="task-board-column approval-board-column w-[300px] min-w-[300px] rounded-xl p-3"
                 onDragOver={(event) => {
                   event.preventDefault();
                   event.dataTransfer.dropEffect = "move";
@@ -1962,21 +1994,14 @@ export default function ApprovalsPage() {
             ))}
           </div>
         ) : (
-          <div className="approval-list-card card max-h-[calc(100vh-22.3rem)] md:max-h-[calc(100vh-10.8rem)] overflow-auto">
-            <div className="">
-              <div className="approval-list-header sticky -top-[0.1px] z-5 grid min-w-[900px] grid-cols-[minmax(280px,1.8fr)_180px_190px_145px_160px] items-center gap-4 bg-slate-50 px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-slate-400">
-                <span>Request</span>
-                <span>Requester</span>
-                <span>Request type</span>
-                <span>Status</span>
-                <span>Created</span>
-              </div>
+          <div className="task-list-card approval-list-card">
+            <div className="task-groups-stack">
               {groupSections.map((group) => {
                 const collapsed = collapsedGroups.has(group.id);
                 return (
-                  <section key={group.id}>
+                  <section key={group.id} className="task-group-card approval-group-card">
                     <div
-                      className="approval-group-header sticky top-0 md:top-10 flex min-w-[900px] items-center gap-2 border-t border-slate-200 bg-slate-100 px-4 py-2.5"
+                      className="task-group-header approval-group-header flex min-w-0 items-center gap-2 px-4 py-2.5"
                       onDragOver={(event) => {
                         event.preventDefault();
                         event.dataTransfer.dropEffect = "move";
@@ -2039,7 +2064,7 @@ export default function ApprovalsPage() {
                       <span className="font-semibold text-sm text-slate-700">
                         {group.name}
                       </span>
-                      <span className="text-xs text-slate-400">
+                      <span className="task-group-count">
                         {group.requests.length} request
                         {group.requests.length === 1 ? "" : "s"}
                       </span>
@@ -2072,14 +2097,27 @@ export default function ApprovalsPage() {
                         </div>
                       )}
                     </div>
-                    {!collapsed &&
-                      (group.requests.length ? (
-                        group.requests.map(approvalRow)
-                      ) : (
-                        <div className="approval-empty-row min-w-[900px] border-t border-slate-100 px-14 py-4 text-sm text-slate-400">
-                          No approvals in this group.
-                        </div>
-                      ))}
+                    {!collapsed && (
+                      <div className="task-group-content">
+                        {group.requests.length ? (
+                          <>
+                            <div className="task-list-header approval-list-header grid min-w-[900px] grid-cols-[minmax(280px,1.8fr)_180px_190px_145px_160px] items-center gap-4 px-5 py-3 text-[11px] font-bold uppercase tracking-wide">
+                              <span>Request</span>
+                              <span>Requester</span>
+                              <span>Request type</span>
+                              <span>Status</span>
+                              <span>Created</span>
+                            </div>
+                            {group.requests.map(approvalRow)}
+                          </>
+                        ) : (
+                          <div className="task-empty-row approval-empty-row">
+                            <FileCheck2 size={16} aria-hidden="true" />
+                            <span>No approvals match the selected filters in this group.</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </section>
                 );
               })}
@@ -2110,6 +2148,7 @@ export default function ApprovalsPage() {
           />
         )}
         {item && <RequestDetail item={item} onClose={closeRequest} />}
+      </div>
       </div>
     </>
   );
