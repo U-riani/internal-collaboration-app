@@ -5,6 +5,10 @@ import {
   accentStorageKey,
   getAccentPreference,
   saveAccentPreference,
+  THEME_EVENT,
+  themeStorageKey,
+  getThemePreference,
+  saveThemePreference,
 } from "../src/lib/appearance.js";
 
 beforeEach(() => {
@@ -40,4 +44,41 @@ describe("appearance preferences", () => {
       window.removeEventListener(ACCENT_EVENT, listener);
     }
   });
+  it("defaults to Midnight and persists themes independently per account", () => {
+    expect(getThemePreference("user-1")).toBe("midnight");
+    expect(saveThemePreference("user-1", "oled")).toBe(true);
+    expect(window.localStorage.getItem(themeStorageKey("user-1"))).toBe("oled");
+    expect(getThemePreference("user-1")).toBe("oled");
+    expect(getThemePreference("user-2")).toBe("midnight");
+    expect(saveThemePreference("user-1", "slate")).toBe(true);
+    expect(getThemePreference("user-1")).toBe("slate");
+  });
+
+  it("rejects System Sync and invalid theme values until light support is ready", () => {
+    expect(saveThemePreference("user-1", "oled")).toBe(true);
+    expect(saveThemePreference("user-1", "system")).toBe(false);
+    expect(saveThemePreference("user-1", "invalid")).toBe(false);
+    expect(getThemePreference("user-1")).toBe("oled");
+    window.localStorage.setItem(themeStorageKey("user-2"), "invalid");
+    expect(getThemePreference("user-2")).toBe("midnight");
+  });
+
+  it("broadcasts theme changes independently of the accent event", () => {
+    const themeListener = vi.fn();
+    const accentListener = vi.fn();
+    window.addEventListener(THEME_EVENT, themeListener);
+    window.addEventListener(ACCENT_EVENT, accentListener);
+    try {
+      expect(saveThemePreference("user-1", "slate")).toBe(true);
+      expect(themeListener).toHaveBeenCalledTimes(1);
+      expect(themeListener.mock.calls[0][0].detail).toEqual({
+        userId: "user-1", theme: "slate",
+      });
+      expect(accentListener).not.toHaveBeenCalled();
+    } finally {
+      window.removeEventListener(THEME_EVENT, themeListener);
+      window.removeEventListener(ACCENT_EVENT, accentListener);
+    }
+  });
+
 });
