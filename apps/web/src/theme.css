@@ -50,6 +50,39 @@ body:has(.app-theme-dark) { background: #0a0f1d; }
   color: var(--app-text);
   background: var(--app-bg);
 }
+/* Accent options inherit Midnight surfaces and only recolor interactive accents.
+   Semantic status colors (danger, success, warning) are deliberately untouched. */
+.app-theme-dark[data-accent="cyan"] {
+  --app-accent: #17adc4;
+  --app-accent-hover: #37c8d9;
+  --app-accent-soft: #123b47;
+  --app-accent-gradient-start: #46cfe0;
+  --app-accent-gradient-end: #19adc4;
+  --app-on-accent: #092630;
+  --app-accent-shadow: rgba(23,173,196,.2);
+  --app-focus-ring: #42c7dc;
+}
+.app-theme-dark[data-accent="violet"] {
+  --app-accent: #ac7cdd;
+  --app-accent-hover: #c397ef;
+  --app-accent-soft: #37284a;
+  --app-accent-gradient-start: #d3a0f2;
+  --app-accent-gradient-end: #a970db;
+  --app-on-accent: #261737;
+  --app-accent-shadow: rgba(172,124,221,.2);
+  --app-focus-ring: #c59cef;
+}
+.app-theme-dark[data-accent="sky"] {
+  --app-accent: #83cfe4;
+  --app-accent-hover: #a7e5f1;
+  --app-accent-soft: #1b3949;
+  --app-accent-gradient-start: #afe7f3;
+  --app-accent-gradient-end: #80cde1;
+  --app-on-accent: #17313a;
+  --app-accent-shadow: rgba(131,207,228,.2);
+  --app-focus-ring: #a5e3f0;
+}
+
 .app-theme-dark > .workspace-main {
   min-width: 0;
   color: var(--app-text);
