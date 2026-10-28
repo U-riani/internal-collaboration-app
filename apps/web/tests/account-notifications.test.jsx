@@ -14,6 +14,7 @@ vi.mock("../src/context/AuthContext.jsx", () => ({
       id: "profile-1",
       displayName: "Test Employee",
       email: "employee@example.com",
+      phone: "+995 555 12 34 56",
       department: { name: "Information Technology" },
       roles: ["SYSTEM_ADMIN"],
     },
@@ -81,13 +82,16 @@ describe("My Account notification design", () => {
     const name = screen.getByRole("textbox", { name: "Display name (Full name)" });
     const email = screen.getByRole("textbox", { name: "Work email address" });
     const department = screen.getByRole("textbox", { name: "Department" });
+    const phone = screen.getByRole("textbox", { name: "Mobile phone number" });
 
     expect(name.value).toBe("Test Employee");
     expect(email.value).toBe("employee@example.com");
     expect(department.value).toBe("Information Technology");
+    expect(phone.value).toBe("+995 555 12 34 56");
     expect(name.readOnly).toBe(true);
     expect(email.readOnly).toBe(true);
     expect(department.readOnly).toBe(true);
+    expect(phone.readOnly).toBe(true);
     expect(screen.getByRole("button", { name: "Upload new photo" }).disabled).toBe(true);
     expect(screen.getByRole("button", { name: "Remove" }).disabled).toBe(true);
     expect(screen.queryByRole("button", { name: "Save profile" })).toBeNull();
