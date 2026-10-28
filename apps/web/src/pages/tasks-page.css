@@ -392,7 +392,10 @@
 .tasks-page .task-group-state--attention { color: #ff9a9f; background: #4a2737; }
 .tasks-page .task-group-state--complete { color: #7bd8bb; background: #183b35; }
 .tasks-page .task-group-header > .ml-auto { min-width: 0; flex-shrink: 0; }
-.tasks-page .task-group-add {
+/* Group Add task is the same primary action as the page Add task.
+   The label and icon always use the accent's contrast color; hover is subtle. */
+.tasks-page .task-group-add.btn-primary,
+.app-theme-dark .tasks-page .task-group-add.btn-primary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -401,19 +404,27 @@
   padding: 6px 12px;
   border: 1px solid transparent;
   border-radius: 9px;
-  background: linear-gradient(110deg, var(--app-ui-accent-start, #867afa) 0%, var(--app-ui-accent-end, #6465ef) 100%);
+  background: linear-gradient(110deg, var(--app-ui-accent-start, #867afa), var(--app-ui-accent-end, #6465ef));
   color: var(--app-ui-accent-label, #fff);
-  font-size: 11px;
+  font-size: var(--app-text-sm, 11px);
   font-weight: 700;
   line-height: 1.3;
   white-space: nowrap;
   transition: filter .15s ease, box-shadow .15s ease;
 }
-.tasks-page .task-group-add:hover {
+.tasks-page .task-group-add.btn-primary:hover:not(:disabled),
+.app-theme-dark .tasks-page .task-group-add.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(110deg, var(--app-ui-accent-start, #867afa), var(--app-ui-accent-end, #6465ef));
   color: var(--app-ui-accent-label, #fff);
-  background: linear-gradient(110deg, var(--app-ui-accent-start, #867afa) 0%, var(--app-ui-accent-end, #6465ef) 100%);
-  filter: brightness(1.08);
-  box-shadow: 0 4px 14px #6660ef29;
+  filter: brightness(1.045);
+  box-shadow: 0 3px 10px var(--app-ui-accent-shadow, rgba(99, 102, 241, .12));
+}
+.tasks-page .task-group-add.btn-primary:focus-visible {
+  outline: 2px solid var(--app-ui-focus-ring, #918bff);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tasks-page .task-group-add.btn-primary { transition: none; }
 }
 .tasks-page .task-group-header button[aria-label^="Rename"]:hover,
 .tasks-page .task-group-header button[aria-label^="Delete"]:hover { background: var(--task-hover); }
