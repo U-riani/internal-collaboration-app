@@ -68,7 +68,7 @@ describe("My Account notification design", () => {
       expect(screen.getByText("OLED Pure Black")).not.toBeNull();
       expect(screen.getAllByText("Coming soon")).toHaveLength(1);
 
-      const cyan = screen.getByRole("radio", { name: "Cyan Glaze" });
+      const cyan = screen.getByRole("radio", { name: /Cyan Glaze/ });
       expect(cyan.checked).toBe(false);
       await user.click(cyan);
       expect(cyan.checked).toBe(true);
@@ -79,7 +79,7 @@ describe("My Account notification design", () => {
       await user.click(screen.getByRole("button", { name: "Notifications" }));
       expect(screen.getByText("Notification sounds")).not.toBeNull();
       await user.click(screen.getByRole("button", { name: "Appearance & Theme" }));
-      expect(screen.getByRole("radio", { name: "Cyan Glaze" }).checked).toBe(true);
+      expect(screen.getByRole("radio", { name: /Cyan Glaze/ }).checked).toBe(true);
     } finally {
       window.removeEventListener(ACCENT_EVENT, onAccent);
     }
@@ -106,7 +106,7 @@ describe("My Account notification design", () => {
       expect(oled.checked).toBe(true);
       expect(window.localStorage.getItem(themeStorageKey("profile-1"))).toBe("oled");
       expect(onTheme.mock.calls[0][0].detail).toEqual({ userId: "profile-1", theme: "oled" });
-      expect(screen.getByRole("radio", { name: "Cyan Glaze" }).checked).toBe(true);
+      expect(screen.getByRole("radio", { name: /Cyan Glaze/ }).checked).toBe(true);
       await user.click(slate);
       expect(slate.checked).toBe(true);
       expect(window.localStorage.getItem(themeStorageKey("profile-1"))).toBe("slate");
