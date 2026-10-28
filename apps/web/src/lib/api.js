@@ -97,6 +97,69 @@ export async function uploadFile(file) {
   return (await api("/files", { method: "POST", body: form })).data;
 }
 
+// Opt-in upload transport for interfaces that need real byte progress and cancellation.
+// The existing uploadFile() API stays intact for Messages, Tasks and Approvals.
+export async function uploadFileWithProgress(file, { onProgress, signal } = {}) {
+  async function send() {
+    return new Promise((resolve, reject) => {
+      if (signal?.aborted) {
+        reject(new DOMException("Upload cancelled", "AbortError"));
+        return;
+      }
+      const xhr = new XMLHttpRequest();
+      const data = new FormData();
+      data.append("file", file);
+      xhr.open("POST", "/api/v1/files");
+      xhr.withCredentials = true;
+      const token = getAccessToken();
+      if (token) xhr.setRequestHeader("authorization", "Bearer " + token);
+
+      const abort = () => xhr.abort();
+      const cleanup = () => signal?.removeEventListener("abort", abort);
+      signal?.addEventListener("abort", abort, { once: true });
+      xhr.upload.onprogress = (event) => {
+        onProgress?.(event.loaded, event.lengthComputable ? event.total : file.size);
+      };
+      xhr.onerror = () => {
+        cleanup();
+        reject(new Error("Network error while uploading file"));
+      };
+      xhr.onabort = () => {
+        cleanup();
+        reject(new DOMException("Upload cancelled", "AbortError"));
+      };
+      xhr.onload = () => {
+        cleanup();
+        let response = {};
+        try {
+          response = JSON.parse(xhr.responseText || "{}");
+        } catch {
+          // A non-JSON error page is still reported as an HTTP error below.
+        }
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve(response.data);
+          return;
+        }
+        const error = new Error(
+          response.error?.message || "Upload failed (HTTP " + xhr.status + ")",
+        );
+        error.status = xhr.status;
+        error.code = response.error?.code;
+        reject(error);
+      };
+      xhr.send(data);
+    });
+  }
+
+  try {
+    return await send();
+  } catch (error) {
+    if (error.status !== 401 || signal?.aborted) throw error;
+    await refreshSession();
+    return send();
+  }
+}
+
 export async function downloadFile(id, filename) {
   try {
     const sheetLink = await api(`/drive/sheets/by-file/${id}`);
