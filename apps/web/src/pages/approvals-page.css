@@ -612,7 +612,7 @@
   border: 1px solid transparent;
   border-radius: 9px;
   background: linear-gradient(110deg, var(--app-primary-gradient-start, #867afa) 0%, var(--app-primary-gradient-end, #6465ef) 100%);
-  color: #fff;
+  color: var(--app-on-primary, #fff);
   box-shadow: none;
   white-space: nowrap;
   font-size: 11px;
