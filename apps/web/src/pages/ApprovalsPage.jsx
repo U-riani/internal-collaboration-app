@@ -941,53 +941,53 @@ function RequestForm({ existing, onClose }) {
         }}
       >
         <div className="approval-request-fields">
-        <Field label="Request type">
-          <select
-            className="input app-modern-select approval-request-type"
-            disabled={Boolean(existing)}
+          <Field label="Request type">
+            <select
+              className="input app-modern-select approval-request-type"
+              disabled={Boolean(existing)}
+              required
+              value={typeId}
+              onChange={(e) => {
+                setTypeId(e.target.value);
+                setValues({});
+              }}
+            >
+              <option value="">Choose a type</option>
+              {types.data?.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field
+            label="Title"
+            className="input approval-request-title"
             required
-            value={typeId}
-            onChange={(e) => {
-              setTypeId(e.target.value);
-              setValues({});
-            }}
-          >
-            <option value="">Choose a type</option>
-            {types.data?.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field
-          label="Title"
-          className="input approval-request-title"
-          required
-          minLength={2}
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
-        <FormFields schema={schema} values={values} setValues={setValues} />
-        {!existing && (
-          <>
-            <Field
-              label="Attachments (optional)"
-              type="file"
-              className="input approval-request-file"
-              multiple
-              disabled={save.isPending}
-              onChange={addFiles}
-            />
-            <SelectedFiles
-              files={files}
-              onRemove={removeFile}
-              disabled={save.isPending}
-              className="mt-2"
-            />
-          </>
-        )}
-        <ErrorBox error={selectionError || save.error} />
+            minLength={2}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+          />
+          <FormFields schema={schema} values={values} setValues={setValues} />
+          {!existing && (
+            <>
+              <Field
+                label="Attachments (optional)"
+                type="file"
+                className="input approval-request-file"
+                multiple
+                disabled={save.isPending}
+                onChange={addFiles}
+              />
+              <SelectedFiles
+                files={files}
+                onRemove={removeFile}
+                disabled={save.isPending}
+                className="mt-2"
+              />
+            </>
+          )}
+          <ErrorBox error={selectionError || save.error} />
         </div>
         <div className="form-actions approval-request-actions">
           <button
