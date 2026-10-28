@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { api, setAccessToken, refreshSession } from "../lib/api.js";
+import { disableBrowserPush, clearForeignBrowserSubscription } from "../lib/pushNotifications.js";
 const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const queryClient = useQueryClient();
@@ -79,9 +80,12 @@ export function AuthProvider({ children }) {
         queryClient.clear();
         setAccessToken(result.data.accessToken);
         setUser(result.data.user);
+        // A shared browser must not keep delivering a different account's push.
+        void clearForeignBrowserSubscription(result.data.user.id).catch(() => {});
       },
       async logout() {
         try {
+          if (user?.id) await disableBrowserPush(user.id).catch(() => {});
           await api("/auth/logout", { method: "POST" });
         } finally {
           setAccessToken(null);
