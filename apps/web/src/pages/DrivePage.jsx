@@ -32,6 +32,7 @@ import "./drive-personal.css";
 import {
   Modal,
   Field,
+  SearchBar,
   ErrorBox,
   Empty,
   Loading,
@@ -198,9 +199,12 @@ function Permissions({ item, onClose, reload }) {
   return (
     <Modal title={`Permissions · ${item.name}`} onClose={onClose}>
       {item.space.type === "PERSONAL" ? (
-        <div className="mb-5 rounded-xl border border-blue-100 bg-blue-50 p-3 text-sm text-blue-700">
-          Personal items stay private unless you explicitly share them. Folder
-          sharing is item-only by default.
+        <div className="drive-permission-note drive-permission-note--personal" role="note">
+          <ShieldCheck size={18} aria-hidden="true" />
+          <p>
+            Personal items stay private unless you explicitly share them. Folder
+            sharing is item-only by default.
+          </p>
         </div>
       ) : (
         <Field label="Visibility">
@@ -217,16 +221,19 @@ function Permissions({ item, onClose, reload }) {
       )}
 
       {item.space.type !== "PERSONAL" && permissionMode === "CUSTOM" && (
-        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-          <strong>Restricted access.</strong> Only the selected recipients can
-          see this {item.kind === "FOLDER" ? "folder" : "file"}. Unselected
-          group members have no access.
-          {item.kind === "FOLDER" && (
-            <span className="mt-1 block text-xs text-amber-700">
-              Folder permissions also apply to current and future files and
-              nested folders unless a child item defines its own custom access.
-            </span>
-          )}
+        <div className="drive-permission-note drive-permission-note--restricted" role="note">
+          <LockKeyhole size={18} aria-hidden="true" />
+          <p>
+            <strong>Restricted access.</strong> Only the selected recipients can
+            see this {item.kind === "FOLDER" ? "folder" : "file"}. Unselected
+            group members have no access.
+            {item.kind === "FOLDER" && (
+              <span className="drive-permission-note-detail">
+                Folder permissions also apply to current and future files and
+                nested folders unless a child item defines its own custom access.
+              </span>
+            )}
+          </p>
         </div>
       )}
 
@@ -249,19 +256,14 @@ function Permissions({ item, onClose, reload }) {
       )}
 
       <div className="mt-5">
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <div className="relative min-w-52 flex-1">
-            <Search
-              size={15}
-              className="absolute left-3 top-3 text-slate-400"
-            />
-            <input
-              className="input pl-9"
-              placeholder="Search people or departments"
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-            />
-          </div>
+        <div className="drive-permission-toolbar mb-3 flex flex-wrap items-center gap-2">
+          <SearchBar
+            className="drive-member-search drive-permission-search min-w-52 flex-1"
+            ariaLabel="Search people or departments"
+            placeholder="Search people or departments"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+          />
           <button
             className="btn-secondary"
             onClick={() => setVisible("VIEWER")}
@@ -409,16 +411,13 @@ function SpaceMembers({ space, onClose, reload }) {
           ? "Everyone can view Global. Add Editor or Manager roles for people who should maintain it."
           : "Group members receive the workspace role shown here. System administrators always have Manager access and cannot be downgraded."}
       </p>
-      <label className="drive-member-search">
-        <Search size={16} aria-hidden="true" />
-        <input
-          type="search"
-          aria-label="Search people or branches"
-          placeholder="Search people or branches..."
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-        />
-      </label>
+      <SearchBar
+        className="drive-member-search"
+        ariaLabel="Search people or branches"
+        placeholder="Search people or branches..."
+        value={filter}
+        onChange={(e) => setFilter(e.target.value)}
+      />
       <div className="drive-member-list max-h-80 overflow-y-auto rounded-xl border border-slate-200">
         {visible.map((person) => {
           const systemAdmin = person.roles?.includes("SYSTEM_ADMIN");
@@ -846,16 +845,15 @@ export default function DrivePage() {
           ))}
         </div>
         {section !== "trash" && (
-          <div className="drive-search-bar relative ml-auto w-full sm:w-64">
-            <Search size={16} aria-hidden="true" />
-            <input
-              className="drive-search-input input"
-              aria-label="Search files"
-              placeholder="Search files and folders"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
+          <SearchBar
+            className="drive-search-bar relative ml-auto w-full sm:w-64"
+            inputClassName="drive-search-input input"
+            type="text"
+            ariaLabel="Search files"
+            placeholder="Search files and folders"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         )}
       </div>
 
