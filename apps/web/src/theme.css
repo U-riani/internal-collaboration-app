@@ -83,6 +83,19 @@ body:has(.app-theme-dark) { background: #0a0f1d; }
   --app-focus-ring: #a5e3f0;
 }
 
+/*
+ * Compatibility bridge for legacy module gradients.
+ * These aliases exist only when a NON-default accent is selected.
+ * Indigo keeps each module's previously approved exact gradient and label
+ * contrast; subsequent accents use the shared palette.
+ */
+.app-theme-dark:is([data-accent="cyan"], [data-accent="violet"], [data-accent="sky"]) {
+  --app-ui-accent-start: var(--app-accent-gradient-start);
+  --app-ui-accent-end: var(--app-accent-gradient-end);
+  --app-ui-accent-label: var(--app-on-accent);
+  --app-ui-accent-shadow: var(--app-accent-shadow);
+}
+
 .app-theme-dark > .workspace-main {
   min-width: 0;
   color: var(--app-text);
