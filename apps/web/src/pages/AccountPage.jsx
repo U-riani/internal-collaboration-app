@@ -218,7 +218,7 @@ function AccountSecurity() {
 
       <section className="account-settings-card account-password-policy" aria-labelledby="account-password-policy-title">
         <h2 id="account-password-policy-title">Password Policy Requirements</h2>
-        <p>Requirements enforced by the current workspace authentication system.</p>
+        <p>Server password limits and confirmation checks before saving.</p>
         <ul className="account-password-rules" aria-label="Password requirements">
           {rules.map((rule) => (
             <li key={rule.id} className={rule.met ? "is-met" : "is-pending"}>
