@@ -243,7 +243,10 @@
   align-items: center;
   gap: 7px;
 }
-.overview-panel-action:hover { background: var(--app-ui-accent-tint, rgba(99, 102, 241, .24)); color: white; }
+.overview-panel-action:hover {
+  background: var(--app-ui-accent-tint, rgba(99, 102, 241, .24));
+  color: var(--app-interactive-hover-text);
+}
 .overview-focus-list {
   padding: 2px 13px 17px;
 }
