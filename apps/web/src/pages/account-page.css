@@ -357,7 +357,7 @@
 .account-push-error { color: #f4a9b2; background: #4b283640; overflow-wrap: anywhere; }
 .account-push-result { color: #65d7ba; background: #1d443547; }
 
-.account-security-card, .account-pending-card {
+.account-pending-card {
   max-width: 570px;
   margin-top: 23px;
 }
@@ -631,4 +631,189 @@
   .account-profile-grid .account-settings-card { padding: 17px 14px; }
   .account-profile-photo-actions { grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr); }
   .account-profile-contact-row { grid-template-columns: minmax(0, 1fr); gap: 15px; }
+}
+
+
+/* Security tab — balanced two-card layout and real password policy diagnostics. */
+.account-security-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  align-items: stretch;
+  gap: 19px;
+  margin-top: 23px;
+}
+.account-security-grid .account-settings-card {
+  min-width: 0;
+  min-height: 370px;
+  padding: 22px 20px 19px;
+}
+.account-security-grid .account-security-card {
+  max-width: none;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+.account-security-grid .account-card-heading h2,
+.account-password-policy h2 {
+  font-size: 16px;
+  font-weight: 760;
+  letter-spacing: -.025em;
+  color: var(--account-text);
+}
+.account-security-grid .account-settings-description {
+  margin-top: 13px;
+  line-height: 1.6;
+}
+.account-security-card .account-password-form {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 13px;
+  margin-top: 17px;
+  flex: 1;
+}
+.account-security-card .account-password-field {
+  position: relative;
+  min-width: 0;
+}
+.account-security-card .account-password-field .field {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin: 0;
+  color: var(--account-text);
+  font-size: 11px;
+  font-weight: 710;
+}
+.account-security-card .account-password-field .account-password-input.input,
+.app-theme-dark .account-security-card .account-password-field .account-password-input.input {
+  display: block;
+  width: 100%;
+  height: 38px;
+  min-height: 38px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 9px 42px 9px 13px;
+  background: var(--account-deep);
+  color: var(--account-text);
+  box-shadow: none;
+  font-size: 12px;
+  font-weight: 560;
+  line-height: 1.4;
+  transition: border-color .15s ease;
+}
+.account-security-card .account-password-field .account-password-input.input::placeholder {
+  color: var(--account-muted);
+  opacity: .75;
+}
+.account-security-card .account-password-field .account-password-input.input:focus,
+.app-theme-dark .account-security-card .account-password-field .account-password-input.input:focus {
+  border-color: var(--account-accent);
+  outline: none;
+  box-shadow: 0 0 0 1px rgba(116, 108, 241, .2);
+}
+.account-security-card .account-password-field .account-password-input::-ms-reveal,
+.account-security-card .account-password-field .account-password-input::-ms-clear {
+  display: none;
+}
+.account-password-field .account-password-eye {
+  position: absolute;
+  right: 9px;
+  bottom: 6px;
+  width: 28px;
+  height: 27px;
+  display: inline-grid;
+  place-items: center;
+  border: 0;
+  border-radius: 7px;
+  color: var(--account-muted);
+  background: transparent;
+  cursor: pointer;
+  transition: color .15s ease, background-color .15s ease;
+}
+.account-password-field .account-password-eye:hover:not(:disabled),
+.account-password-field .account-password-eye:focus-visible {
+  color: var(--account-text);
+  background: var(--account-button);
+}
+.account-security-card .account-validation-error {
+  margin: -3px 0 0;
+  color: #ff9daf;
+  font-size: 11px;
+}
+.account-security-card .account-save-password.btn-primary {
+  min-width: 125px;
+  min-height: 35px;
+  align-self: flex-start;
+  margin: auto 0 0;
+  padding: 9px 18px;
+  border: 0;
+  border-radius: 9px;
+  background: linear-gradient(115deg, #8e83ff, #706af0);
+  color: #1c1844;
+  font-size: 12px;
+  font-weight: 750;
+  box-shadow: none;
+  transition: filter .15s ease;
+}
+.account-security-card .account-save-password.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(115deg, #8e83ff, #706af0);
+  filter: brightness(1.09);
+}
+.account-security-grid .account-password-policy {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.account-password-policy > p {
+  margin-top: 9px;
+  color: var(--account-muted);
+  font-size: 11px;
+  line-height: 1.55;
+}
+.account-password-rules {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0;
+  margin: 19px 0 0;
+}
+.account-password-rules > li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 630;
+  line-height: 1.45;
+  color: var(--account-muted);
+}
+.account-password-rules > li svg {
+  flex: 0 0 16px;
+  color: #4aa8b9;
+}
+.account-password-rules > li.is-met {
+  color: #25c1d5;
+}
+.account-password-rules > li.is-met svg {
+  color: #25c1d5;
+}
+@media (max-width: 1120px) {
+  .account-security-grid { gap: 12px; }
+  .account-security-grid .account-settings-card { padding: 19px 15px; }
+}
+@media (max-width: 720px) {
+  .account-security-grid { grid-template-columns: minmax(0, 1fr); gap: 13px; }
+  .account-security-grid .account-settings-card { min-height: 325px; }
+  .account-security-grid .account-password-policy { min-height: 240px; }
+}
+@media (max-width: 480px) {
+  .account-security-grid .account-settings-card { padding: 17px 14px; }
+  .account-security-card .account-save-password.btn-primary { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .account-security-card .account-password-field .account-password-input.input,
+  .account-security-card .account-save-password.btn-primary,
+  .account-password-field .account-password-eye { transition: none; }
 }
