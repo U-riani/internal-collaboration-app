@@ -92,6 +92,10 @@ describe("My Account notification design", () => {
     expect(email.readOnly).toBe(true);
     expect(department.readOnly).toBe(true);
     expect(phone.readOnly).toBe(true);
+    // Department and phone share one responsive row while remaining informational.
+    const contactRow = department.closest(".account-profile-contact-row");
+    expect(contactRow).not.toBeNull();
+    expect(contactRow.contains(phone)).toBe(true);
     expect(screen.getByRole("button", { name: "Upload new photo" }).disabled).toBe(true);
     expect(screen.getByRole("button", { name: "Remove" }).disabled).toBe(true);
     expect(screen.queryByRole("button", { name: "Save profile" })).toBeNull();
