@@ -97,8 +97,7 @@ body:has(.app-theme-dark) { background: #0a0f1d; }
   transition: background-color .15s ease;
 }
 .sidebar-profile-identity:hover { background: rgba(126,129,244,.12); }
-.sidebar-profile-identity:focus-visible,
-.sidebar-profile-logout:focus-visible {
+.sidebar-profile-identity:focus-visible {
   outline: 2px solid #818cf8;
   outline-offset: 2px;
 }
@@ -127,20 +126,6 @@ body:has(.app-theme-dark) { background: #0a0f1d; }
 }
 .sidebar-profile-name { color: var(--app-text-strong, #233047); font-size: 12px; font-weight: 750; }
 .sidebar-profile-department { color: var(--app-muted, #64748b); font-size: 10px; }
-.sidebar-profile-footer { display: flex; justify-content: flex-start; padding: 7px 3px 0; }
-.sidebar-profile-logout {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 32px;
-  padding: 6px 9px;
-  border-radius: 8px;
-  color: var(--app-text, #475569);
-  font-size: 11px;
-  font-weight: 650;
-  transition: color .15s ease, background-color .15s ease;
-}
-.sidebar-profile-logout:hover { background: var(--app-surface-hover, #e7eaf2); color: #fff; }
 .app-theme-dark .sidebar-profile-card {
   border-color: rgba(184,191,240,.06);
   background: linear-gradient(145deg, #1b2233, #161c2b);
