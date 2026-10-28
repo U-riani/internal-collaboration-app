@@ -105,6 +105,8 @@ describe("Dark workspace appearance palettes", () => {
     expect(theme).toContain('color: var(--app-interactive-selected-text);');
     expect(palette).toContain('.workspace-nav-link:not([aria-current="page"]):hover');
     expect(palette).toContain('.workspace-nav-link[aria-current="page"]:hover');
+    expect(theme).toContain('.workspace-nav-link[aria-current="page"] > span:first-of-type');
+    expect(theme).not.toContain('.workspace-nav-link[aria-current="page"] :is(svg, span)');
     expect(theme).toContain('background: linear-gradient(112deg, var(--app-accent-gradient-start), var(--app-accent-gradient-end))');
   });
 
