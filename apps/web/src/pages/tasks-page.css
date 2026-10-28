@@ -80,7 +80,7 @@
 .tasks-page .task-header-actions .btn-primary {
   border-color: transparent;
   background: linear-gradient(110deg, var(--app-primary-gradient-start, #867afa) 0%, var(--app-primary-gradient-end, #6465ef) 100%);
-  color: #fff;
+  color: var(--app-on-primary, #fff);
 }
 .tasks-page .task-header-actions .btn-primary:hover { filter: brightness(1.08); }
 
@@ -189,7 +189,7 @@
 }
 .tasks-page .task-toolbar .task-quick-tabs button:hover { background: var(--task-hover); color: var(--task-text); }
 .tasks-page .task-toolbar .task-quick-tabs button.active {
-  color: #fff;
+  color: var(--app-on-primary, #fff);
   background: linear-gradient(115deg, var(--app-primary-gradient-start, #8880ff), var(--app-primary-gradient-end, #6f6af1));
   box-shadow: 0 3px 10px #6e68f52a;
 }
@@ -309,7 +309,7 @@
 .tasks-page .task-view-button--active:hover {
   background: linear-gradient(115deg, var(--app-primary-gradient-start, #8880ff), var(--app-primary-gradient-end, #6f6af1));
   box-shadow: 0 3px 10px #6e68f52a;
-  color: #fff;
+  color: var(--app-on-primary, #fff);
 }
 .tasks-page .task-filter-panel {
   color: var(--task-text);
@@ -397,7 +397,7 @@
   border: 1px solid transparent;
   border-radius: 9px;
   background: linear-gradient(110deg, var(--app-primary-gradient-start, #867afa) 0%, var(--app-primary-gradient-end, #6465ef) 100%);
-  color: #fff;
+  color: var(--app-on-primary, #fff);
   font-size: 11px;
   font-weight: 700;
   line-height: 1.3;
