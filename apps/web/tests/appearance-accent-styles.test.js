@@ -9,6 +9,8 @@ const tasks = readFileSync(new URL("../src/pages/tasks-page.css", import.meta.ur
 const messages = readFileSync(new URL("../src/pages/messages-theme.css", import.meta.url), "utf8");
 const approvals = readFileSync(new URL("../src/pages/approvals-page.css", import.meta.url), "utf8");
 const notifications = readFileSync(new URL("../src/pages/notifications-page.css", import.meta.url), "utf8");
+const dashboard = readFileSync(new URL("../src/pages/dashboard.css", import.meta.url), "utf8");
+const people = readFileSync(new URL("../src/pages/directory-page.css", import.meta.url), "utf8");
 const drive = readFileSync(new URL("../src/pages/drive-personal.css", import.meta.url), "utf8");
 const driveUpload = readFileSync(new URL("../src/components/DriveUploadModal.css", import.meta.url), "utf8");
 
@@ -189,6 +191,33 @@ describe("Incremental shared accent styling", () => {
     expect(notifications).toContain("border-left-color: var(--notice-accent);");
     expect(notifications).toContain("background: var(--notice-accent);");
     expect(notifications).toContain("background: #10b996;");
+  });
+
+
+  it("links Dashboard focus and interactive hover highlights to the account accent", () => {
+    expect(dashboard).toContain("--ov-primary: var(--app-accent);");
+    expect(dashboard).toContain("outline: 2px solid var(--app-ui-focus-ring, #aaa9ff)");
+    expect(dashboard).toContain("border-color: var(--app-ui-accent-outline, rgba(172, 181, 245, .2))");
+    expect(dashboard).toContain("background: var(--app-ui-accent-tint, rgba(99, 102, 241, .24))");
+    expect(dashboard).toContain("background: var(--app-ui-selection-end, #20283b)");
+    expect(dashboard).toContain("background: var(--app-ui-selection-end, #222a3e)");
+    expect(dashboard).toContain("background: var(--app-ui-selection-end, #1d2538)");
+    expect(dashboard).toContain("background: var(--app-ui-accent-tint, #2b3348)");
+    // Semantic category and unread-indicator colors must not depend on theme accent.
+    expect(dashboard).toContain("color: #ff8c91; background: #541d2a;");
+    expect(dashboard).toContain("background: #28d5f0;");
+    expect(dashboard).toContain(".overview-update-dot--read { background: #7d82b0;");
+  });
+
+  it("unifies People dropdown and contact accents while keeping the shared Search style", () => {
+    expect(people).toContain("var(--app-ui-accent-outline, #817cf088)");
+    expect(people).toContain("border-color: var(--app-ui-focus-ring, #817cf0)");
+    expect(people).toContain("box-shadow: 0 0 0 2px var(--app-ui-accent-tint, #8077f621)");
+    expect(people).toContain('.directory-page .directory-search-bar.task-search-bar');
+    expect(people).toContain('.directory-page article.card a[href^="mailto:"]');
+    expect(people).toContain('.directory-page article.card a[href^="tel:"]');
+    expect(people).toContain("color: var(--app-ui-focus-ring, #2563eb)");
+    expect(people).toContain("background: var(--app-ui-accent-tint, #dbeafe)");
   });
 
 
