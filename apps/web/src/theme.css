@@ -347,9 +347,14 @@ body:has(.app-theme-dark) { background: #0a0f1d; }
 .app-theme-dark .attachment small { color: var(--app-muted); }
 .app-theme-dark .tabs { background: var(--app-surface-raised); }
 .app-theme-dark .tabs button { color: var(--app-muted); }
-.app-theme-dark .tabs button.active {
-  color: #f1f1ff;
-  background: var(--app-primary-soft);
+.app-theme-dark .tabs button.active,
+.app-theme-dark .tabs button.active:hover {
+  color: var(--app-text-strong);
+  background: var(--app-accent-soft);
+}
+.app-theme-dark .tabs button:not(.active):hover {
+  color: var(--app-interactive-hover-text);
+  background: var(--app-interactive-hover);
 }
 .app-theme-dark .status { color: #c7ccdf; background: #2a3147; }
 .app-theme-dark .status-completed,
