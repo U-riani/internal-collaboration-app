@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { api } from "../lib/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
+import { ACCENT_OPTIONS, getAccentPreference, saveAccentPreference } from "../lib/appearance.js";
 import { Avatar, ErrorBox, Field } from "../components/UI.jsx";
 import {
   pushSupported,
@@ -588,6 +589,91 @@ function AccountProfile({ user, displayName, photoUrl }) {
   );
 }
 
+function AccountAppearance({ userId }) {
+  const [accent, setAccent] = useState(() => getAccentPreference(userId));
+
+  useEffect(() => {
+    setAccent(getAccentPreference(userId));
+  }, [userId]);
+
+  function selectAccent(nextAccent) {
+    if (saveAccentPreference(userId, nextAccent)) setAccent(nextAccent);
+  }
+
+  return (
+    <div className="account-appearance-grid">
+      <section className="account-settings-card account-appearance-workspace" aria-labelledby="account-appearance-title">
+        <div className="account-card-heading">
+          <span className="account-card-icon account-card-icon--violet" aria-hidden="true">
+            <MonitorCog size={20} />
+          </span>
+          <div>
+            <h2 id="account-appearance-title">Workspace Appearance</h2>
+            <p>Choose your workspace display style</p>
+          </div>
+        </div>
+        <div className="account-appearance-themes" aria-label="Available workspace themes">
+          <div className="account-appearance-theme is-active">
+            <div className="account-appearance-theme-preview preview-midnight" aria-hidden="true">
+              <span /><span /><span />
+            </div>
+            <strong>Dark Midnight</strong>
+            <span className="account-appearance-theme-state">Active</span>
+          </div>
+          {[
+            ["OLED Pure Black", "oled"],
+            ["Deep Slate", "slate"],
+            ["System Sync", "system"],
+          ].map(([name, id]) => (
+            <div className="account-appearance-theme is-unavailable" key={id}>
+              <div className={`account-appearance-theme-preview preview-${id}`} aria-hidden="true">
+                <span /><span /><span />
+              </div>
+              <strong>{name}</strong>
+              <span className="account-appearance-theme-state">Coming soon</span>
+            </div>
+          ))}
+        </div>
+        <p className="account-appearance-hint">
+          Dark Midnight is the current workspace theme. Additional themes will become available after visual testing across modules.
+        </p>
+      </section>
+
+      <section className="account-settings-card account-appearance-accent-card" aria-labelledby="account-accent-title">
+        <div className="account-card-heading">
+          <span className="account-card-icon account-card-icon--violet" aria-hidden="true">
+            <MonitorCog size={20} />
+          </span>
+          <div>
+            <h2 id="account-accent-title">Accent Color</h2>
+            <p>Customize primary highlights and navigation</p>
+          </div>
+        </div>
+        <div className="account-appearance-accent-list" role="radiogroup" aria-label="Accent Color">
+          {ACCENT_OPTIONS.map((option) => (
+            <label className={`account-appearance-accent-option ${accent === option.id ? "is-selected" : ""}`} key={option.id}>
+              <input
+                type="radio"
+                className="sr-only"
+                name="account-appearance-accent"
+                value={option.id}
+                checked={accent === option.id}
+                onChange={() => selectAccent(option.id)}
+              />
+              <span className="account-appearance-swatch" style={{ backgroundColor: option.color }} aria-hidden="true" />
+              <span className="account-appearance-accent-name">{option.label}</span>
+              {accent === option.id && <span className="account-appearance-selected">Selected</span>}
+            </label>
+          ))}
+        </div>
+        <p className="account-appearance-hint">
+          Saved for this account in this browser. Success, warning and error indicators retain their standard colors.
+        </p>
+      </section>
+    </div>
+  );
+}
+
 export default function AccountPage() {
   const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState("notifications");
@@ -645,17 +731,7 @@ export default function AccountPage() {
       {activeTab === "profile" && (
         <AccountProfile user={user} displayName={displayName} photoUrl={photoUrl} />
       )}
-      {activeTab === "appearance" && (
-        <section className="account-settings-card account-pending-card">
-          <div className="account-card-heading">
-            <span className="account-card-icon account-card-icon--violet"><MonitorCog size={20} /></span>
-            <div><h2>Appearance &amp; Theme</h2><p>Workspace display preferences</p></div>
-          </div>
-          <p className="account-settings-description">
-            Appearance settings will be designed in the next phase. Your existing application theme remains unchanged.
-          </p>
-        </section>
-      )}
+      {activeTab === "appearance" && <AccountAppearance userId={user.id} />}
     </div>
   );
 }
