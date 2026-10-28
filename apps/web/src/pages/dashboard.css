@@ -10,7 +10,7 @@
   --ov-line: var(--app-border);
   --ov-text: var(--app-text);
   --ov-muted: var(--app-muted);
-  --ov-primary: var(--app-primary);
+  --ov-primary: var(--app-accent);
   --ov-cyan: var(--app-secondary);
   --ov-violet: var(--app-tertiary);
   color: var(--ov-text);
@@ -43,7 +43,7 @@
 .overview-dashboard a:focus-visible,
 .overview-dashboard button:focus-visible,
 .overview-dashboard input:focus-visible {
-  outline: 2px solid #aaa9ff;
+  outline: 2px solid var(--app-ui-focus-ring, #aaa9ff);
   outline-offset: 3px;
 }
 
@@ -120,7 +120,7 @@
 }
 .overview-stat:hover {
   transform: translateY(-2px);
-  border-color: rgba(172, 181, 245, .2);
+  border-color: var(--app-ui-accent-outline, rgba(172, 181, 245, .2));
   background: #1d2537;
 }
 .overview-stat-top,
@@ -243,7 +243,7 @@
   align-items: center;
   gap: 7px;
 }
-.overview-panel-action:hover { background: rgba(99, 102, 241, .24); color: white; }
+.overview-panel-action:hover { background: var(--app-ui-accent-tint, rgba(99, 102, 241, .24)); color: white; }
 .overview-focus-list {
   padding: 2px 13px 17px;
 }
@@ -257,7 +257,7 @@
   border-radius: 10px;
 }
 .overview-task-row:hover {
-  background: #20283b;
+  background: var(--app-ui-selection-end, #20283b);
 }
 .overview-task-check {
   flex: 0 0 auto;
@@ -339,7 +339,7 @@
   padding: 11px 9px;
   border-radius: 10px;
 }
-.overview-shortcut-row:hover { background: #222a3e; }
+.overview-shortcut-row:hover { background: var(--app-ui-selection-end, #222a3e); }
 .overview-shortcut-icon {
   display: grid;
   flex: 0 0 auto;
@@ -389,7 +389,7 @@
   padding: 8px 11px;
   border-radius: 9px;
 }
-.overview-update-row:hover { background: #1d2538; }
+.overview-update-row:hover { background: var(--app-ui-selection-end, #1d2538); }
 .overview-update-dot {
   flex: 0 0 auto;
   width: 7px;
@@ -443,7 +443,7 @@
   padding: 7px;
   border-radius: 7px;
 }
-.overview-update-link:hover { background: #2b3348; color: #fff; }
+.overview-update-link:hover { background: var(--app-ui-accent-tint, #2b3348); color: var(--app-ui-focus-ring, #fff); }
 .overview-empty--updates { min-height: 90px; }
 
 @media (max-width: 1320px) {
