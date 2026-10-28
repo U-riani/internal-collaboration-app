@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import {
@@ -23,7 +23,8 @@ import {
   Search,
   Trash2,
 } from "lucide-react";
-import { api, uploadFile } from "../lib/api.js";
+import { api, uploadFiles } from "../lib/api.js";
+import { SelectedFiles, useSelectedFiles } from "../components/SelectedFiles.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import PageHeader from "../components/PageHeader.jsx";
 import FilterMultiSelect from "../components/FilterMultiSelect.jsx";
@@ -175,7 +176,8 @@ function TaskForm({ existing, parentTask, defaultGroupId = "", onClose }) {
     participantIds:
       existing?.participants.map((participant) => participant.userId) || [],
   });
-  const [file, setFile] = useState(null);
+  const { files, addFiles, removeFile, clearFiles, selectionError } = useSelectedFiles();
+  const attachmentUploads = useRef(new Map());
   const users = useQuery({
     queryKey: ["users"],
     queryFn: () => api("/users").then((response) => response.data),
@@ -188,7 +190,7 @@ function TaskForm({ existing, parentTask, defaultGroupId = "", onClose }) {
     mutationFn: async () => {
       const attachmentIds = [
         ...(existing?.attachments.map((attachment) => attachment.fileId) || []),
-        ...(file ? [(await uploadFile(file)).id] : []),
+        ...(await uploadFiles(files, attachmentUploads.current)),
       ];
       const { groupId, ...sharedForm } = form;
       const response = await api(
@@ -341,14 +343,17 @@ function TaskForm({ existing, parentTask, defaultGroupId = "", onClose }) {
             )
           }
         />
-        <Field label="Attachment">
+        <Field label="Attachments">
           <input
             className="input task-form-file"
             type="file"
-            onChange={(event) => setFile(event.target.files[0] || null)}
+            multiple
+            disabled={save.isPending}
+            onChange={addFiles}
           />
         </Field>
-        <ErrorBox error={save.error || groups.error} />
+        <SelectedFiles files={files} onRemove={removeFile} disabled={save.isPending} />
+        <ErrorBox error={selectionError || save.error || groups.error} />
         </div>
         <div className="task-form-footer">
           <span className="task-form-footer-note">
@@ -371,7 +376,8 @@ function TaskDetail({ id, onClose }) {
   const qc = useQueryClient();
   const { user, hasPermission } = useAuth();
   const [comment, setComment] = useState("");
-  const [file, setFile] = useState(null);
+  const { files, addFiles, removeFile, clearFiles, selectionError } = useSelectedFiles();
+  const attachmentUploads = useRef(new Map());
   const [edit, setEdit] = useState(false);
   const [createSubtask, setCreateSubtask] = useState(false);
   const [childId, setChildId] = useState(null);
@@ -401,12 +407,13 @@ function TaskDetail({ id, onClose }) {
         method: "POST",
         body: JSON.stringify({
           content: comment,
-          attachmentIds: file ? [(await uploadFile(file)).id] : [],
+          attachmentIds: await uploadFiles(files, attachmentUploads.current),
         }),
       }),
     onSuccess: () => {
       setComment("");
-      setFile(null);
+      clearFiles();
+      attachmentUploads.current.clear();
       qc.invalidateQueries({ queryKey: ["task", id] });
       qc.invalidateQueries({ queryKey: ["tasks"] });
     },
@@ -725,19 +732,27 @@ function TaskDetail({ id, onClose }) {
             <div className="task-detail-comment-actions flex justify-between items-center mt-3">
               <label className="task-detail-file-label text-xs text-slate-500 flex items-center gap-2 cursor-pointer">
                 <Paperclip size={16} />
-                {file?.name || "Attach a file"}
+                {files.length ? `${files.length} file${files.length === 1 ? "" : "s"} selected` : "Attach files"}
                 <input
                   type="file"
+                  multiple
                   className="sr-only"
-                  aria-label="Comment attachment"
-                  onChange={(event) => setFile(event.target.files[0])}
+                  aria-label="Comment attachments"
+                  disabled={addComment.isPending}
+                  onChange={addFiles}
                 />
               </label>
               <button className="btn-primary task-detail-comment-submit" disabled={addComment.isPending}>
                 Comment
               </button>
             </div>
-            <ErrorBox error={addComment.error} />
+            <SelectedFiles
+              files={files}
+              onRemove={removeFile}
+              disabled={addComment.isPending}
+              className="mt-2"
+            />
+            <ErrorBox error={selectionError || addComment.error} />
           </form>
           <details className="task-detail-history mt-7 text-xs text-slate-500">
             <summary className="cursor-pointer font-semibold">
