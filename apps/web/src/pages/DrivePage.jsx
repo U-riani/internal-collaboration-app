@@ -8,7 +8,6 @@ import {
   FileSpreadsheet,
   Upload,
   FolderPlus,
-  Search,
   ChevronRight,
   Download,
   Share2,
