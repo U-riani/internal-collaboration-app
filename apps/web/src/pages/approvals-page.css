@@ -1989,3 +1989,183 @@
     align-items: stretch;
   }
 }
+
+/* New / Revise Request: the same Modal, Field, modern select, input and
+   button primitives used by Tasks and Request Types. No request logic changes. */
+.app-theme-dark .modal[open]:has(> .modal-body > .approval-request-form) {
+  display: flex;
+  flex-direction: column;
+  width: min(600px, calc(100vw - 32px));
+  max-height: min(780px, calc(100dvh - 48px));
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--app-border-strong);
+  border-radius: 19px;
+  background: var(--app-surface);
+  color: var(--app-text);
+}
+.app-theme-dark .modal:has(> .modal-body > .approval-request-form) .modal-head {
+  flex: 0 0 auto;
+  min-height: 76px;
+  padding: 18px 24px;
+  background: var(--app-surface-raised);
+  border-bottom: 1px solid var(--app-border);
+}
+.app-theme-dark .modal:has(> .modal-body > .approval-request-form) .modal-head h2 {
+  color: var(--app-text-strong);
+  font-size: var(--app-text-modal-title, 18px);
+  font-weight: 750;
+  letter-spacing: -.02em;
+}
+.app-theme-dark .modal:has(> .modal-body > .approval-request-form) .modal-head .icon-btn:hover {
+  background: var(--app-interactive-hover);
+  color: var(--app-interactive-hover-text);
+}
+.app-theme-dark .modal:has(> .modal-body > .approval-request-form) .modal-body {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+  padding: 0;
+  overflow: hidden;
+}
+.approval-request-form {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  color: var(--app-text);
+}
+.approval-request-fields {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 22px 24px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+.approval-request-form .field {
+  min-width: 0;
+  color: var(--app-muted);
+  font-size: var(--app-text-base, 12px);
+  font-weight: 700;
+}
+.approval-request-form .field > span:first-child {
+  color: var(--app-muted);
+}
+.app-theme-dark .approval-request-form .input {
+  width: 100%;
+  min-width: 0;
+  min-height: 41px;
+  padding: 9px 12px;
+  border: 1px solid var(--app-border-strong);
+  border-radius: 10px;
+  background: var(--app-surface-input);
+  color: var(--app-text);
+  font-size: var(--app-text-base, 12px);
+  font-weight: 500;
+  box-shadow: none;
+  --tw-ring-shadow: 0 0 #0000;
+}
+.app-theme-dark .approval-request-form .input:focus,
+.app-theme-dark .approval-request-form .input:focus-visible {
+  outline: none;
+  border-color: var(--app-ui-focus-ring, #918bff);
+  box-shadow: 0 0 0 1px var(--app-ui-accent-tint, rgba(99, 102, 241, .17));
+  --tw-ring-shadow: 0 0 #0000;
+}
+.app-theme-dark .approval-request-form select.app-modern-select {
+  background: var(--app-surface-input);
+  border-color: var(--app-border-strong);
+  color: var(--app-text);
+  font-weight: 650;
+  cursor: pointer;
+}
+.app-theme-dark .approval-request-form select.app-modern-select:disabled {
+  opacity: .7;
+  cursor: not-allowed;
+}
+.approval-request-form textarea.input { min-height: 96px; resize: vertical; }
+.approval-request-form input[type="checkbox"] {
+  accent-color: var(--app-ui-accent-selected, #746dff);
+}
+.approval-request-form input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--app-ui-focus-ring, #918bff);
+  outline-offset: 3px;
+}
+.app-theme-dark .approval-request-form .approval-request-file {
+  height: auto;
+  min-height: 43px;
+  padding: 5px 8px;
+  font-size: var(--app-text-base, 12px);
+  cursor: pointer;
+}
+.approval-request-form .approval-request-file::file-selector-button {
+  margin-right: 12px;
+  padding: 7px 12px;
+  border: 1px solid var(--app-border-strong);
+  border-radius: 8px;
+  background: var(--app-surface-raised);
+  color: var(--app-text);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.approval-request-form .approval-request-file:hover::file-selector-button {
+  background: var(--app-interactive-hover);
+}
+.approval-request-form .selected-attachments > div {
+  background: var(--app-surface-raised);
+  color: var(--app-text);
+}
+.app-theme-dark .approval-request-form .approval-request-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-height: 70px;
+  padding: 14px 24px 16px;
+  border-top: 1px solid var(--app-border);
+  background: var(--app-surface);
+}
+.approval-request-actions :is(.btn-primary, .btn-secondary) {
+  min-height: 38px;
+  padding: 8px 16px;
+  border-radius: 9px;
+  font-size: var(--app-text-base, 12px);
+  font-weight: 700;
+}
+.app-theme-dark .approval-request-actions .btn-primary,
+.app-theme-dark .approval-request-actions .btn-primary:hover:not(:disabled) {
+  background: linear-gradient(110deg, var(--app-ui-accent-start, #867afa), var(--app-ui-accent-end, #6465ef));
+  color: var(--app-ui-accent-label, #fff);
+}
+.app-theme-dark .approval-request-actions .btn-primary:hover:not(:disabled) {
+  filter: brightness(1.045);
+}
+@media (max-width: 640px) {
+  .app-theme-dark .modal[open]:has(> .modal-body > .approval-request-form) {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    width: 100vw;
+    max-height: 94dvh;
+    border-radius: 20px 20px 0 0;
+    transform: translateX(-50%);
+  }
+  .app-theme-dark .modal:has(> .modal-body > .approval-request-form) .modal-head {
+    min-height: 67px;
+    padding: 15px 18px;
+  }
+  .approval-request-fields { padding: 18px; }
+  .app-theme-dark .approval-request-form .approval-request-actions {
+    min-height: 64px;
+    padding: 12px 18px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .approval-request-form .input { transition: none; }
+}
