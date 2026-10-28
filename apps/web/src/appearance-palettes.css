@@ -312,3 +312,76 @@ body:has(.app-theme-dark[data-appearance="slate"]) { background: #171b23; }
 .app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .new-conversation-person.is-selected {
   background: var(--palette-selection);
 }
+
+/* Complete Messages surface coverage, including menus, replies and composer. */
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .messages-page .chat-sidebar-tab:hover:not([aria-pressed="true"]) {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .messages-page .chat-conversation > header .absolute.z-40,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .messages-page .chat-conversation .chat-message-search .absolute.z-40 {
+  background: var(--app-surface-raised);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .messages-page :is(.chat-composer, .chat-date-divider > span, .chat-reply-preview) {
+  background: var(--app-surface-raised);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .messages-page :is(.chat-composer-form, .chat-message-search .input, .chat-sidebar-search .input) {
+  background: var(--app-surface-input);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .messages-page .chat-message-row:not(.chat-message-own) .chat-message-bubble {
+  background: var(--app-surface-input);
+  color: var(--app-text);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .messages-page .chat-message-row .attachment {
+  background: var(--app-surface-raised);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .messages-page .chat-messages-scroll .btn-secondary {
+  background: var(--app-surface-raised);
+  border-color: var(--app-border-strong);
+  color: var(--app-text);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .messages-page .chat-messages-scroll .btn-secondary:hover,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .messages-page .chat-conversation .icon-btn:hover {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .messages-page .chat-messages-scroll .bg-white {
+  background: var(--app-surface-raised);
+  color: var(--app-text);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .messages-page .chat-messages-scroll .bg-blue-50 {
+  background: var(--palette-selection);
+  color: var(--app-text);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .messages-page .chat-date-divider {
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .messages-page .chat-conversation-avatar .avatar,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .messages-page .chat-conversation-header-avatar .avatar {
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .new-conversation-people-list {
+  background: var(--app-surface);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .new-conversation-person.is-selected,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .new-conversation-person.is-selected:hover {
+  background: var(--palette-selection);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .new-conversation-check:not(.is-selected) {
+  background: var(--app-bg);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .modal:has(.conversation-members-modal) {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .modal:has(.conversation-members-modal) .modal-head {
+  background: var(--palette-panel-gradient);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .conversation-members-current-list {
+  background: var(--app-surface-raised);
+  border-color: var(--app-border);
+}
