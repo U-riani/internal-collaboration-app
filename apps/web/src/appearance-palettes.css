@@ -385,3 +385,77 @@ body:has(.app-theme-dark[data-appearance="slate"]) { background: #171b23; }
   background: var(--app-surface-raised);
   border-color: var(--app-border);
 }
+
+/* Drive: directory, Shared spaces, action menus and permissions. */
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-page :is(.drive-directory-list .drive-table-head, .drive-directory-summary) {
+  background: var(--app-surface-raised);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-page .drive-directory-list .drive-directory-row,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-page :is(.drive-space-nav, .drive-shared-list .drive-shared-row) {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-page .drive-directory-list .drive-directory-row:hover,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-page .drive-shared-list .drive-shared-row:hover {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-page :is(.drive-toolbar .tabs, .drive-group-heading .icon-btn) {
+  background: var(--app-bg);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-page :is(.drive-toolbar .tabs button:hover:not(.active), .drive-directory-list .drive-row-actions .icon-btn:hover, .drive-group-heading .icon-btn:hover, .drive-group-link:hover) {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-page :is(.drive-shared-members-button, .drive-header-actions .btn-secondary, .drive-directory-list .drive-file-type) {
+  background: var(--app-surface-raised);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-page :is(.drive-shared-members-button:hover, .drive-header-actions .btn-secondary:hover) {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-page .drive-shared-space-heading {
+  background: var(--palette-panel-gradient);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-page .drive-shared-space-heading > svg {
+  background: var(--app-surface-input);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-member-list {
+  background: var(--app-bg);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-member-person {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-member-person:hover,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-member-person--admin:hover {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-member-person--admin {
+  background: var(--palette-panel-gradient);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) :is(.drive-member-admin-manager, .drive-member-search) {
+  background: var(--app-surface-input);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) :is(.drive-permission-mode-select, .drive-permission-access-select) {
+  background: var(--app-surface-input);
+  border-color: var(--app-border-strong);
+  color: var(--app-text);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .modal:has(.drive-space-members-modal) .modal-head,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .modal:has(:is(.drive-new-group-form, .drive-new-folder-form)) .modal-head {
+  background: var(--palette-panel-gradient);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .modal:has(:is(.drive-new-group-form, .drive-new-folder-form)) {
+  background: var(--app-surface);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-upload-float-icon {
+  background: var(--app-surface-hover);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) dialog.modal:has(.drive-upload-modal) :is(.drive-upload-dropzone, .drive-upload-folder-list, .drive-upload-file-list) {
+  border-color: var(--app-border-strong);
+}
