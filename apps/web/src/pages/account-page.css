@@ -567,10 +567,15 @@
   text-overflow: ellipsis;
   cursor: text;
 }
-.account-profile-input-wrap .account-profile-readonly:focus-visible,
-.app-theme-dark .account-profile-input-wrap .account-profile-readonly:focus-visible {
-  outline: 2px solid var(--account-accent);
-  outline-offset: 1px;
+/* Read-only profile details are informational, not editable controls.
+   Preserve the exact same surface, border and shadow on pointer/keyboard focus. */
+.account-profile-input-wrap .account-profile-readonly.input:is(:hover, :active, :focus, :focus-visible),
+.app-theme-dark .account-profile-input-wrap .account-profile-readonly.input:is(:hover, :active, :focus, :focus-visible) {
+  border-color: transparent;
+  background: var(--account-deep);
+  box-shadow: none;
+  outline: none;
+  outline-offset: 0;
 }
 .account-profile-input-icon {
   position: absolute;
@@ -598,6 +603,9 @@
 }
 .account-profile-department .account-profile-readonly.input {
   padding-right: 13px;
+}
+.account-profile-phone {
+  width: min(100%, 235px);
 }
 
 @media (max-width: 1120px) {
