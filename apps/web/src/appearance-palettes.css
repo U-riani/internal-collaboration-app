@@ -605,7 +605,7 @@ body:has(.app-theme-dark[data-appearance="slate"]) { background: #171b23; }
 }
 
 /* Administration, Roles and Audit use shared cards plus Tailwind utilities. */
-.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) :is(.bg-white, .sticky.bg-white):not(.chat-message-bubble) {
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .bg-white:not(.workspace-sidebar):not(.workspace-sidebar-top):not(.workspace-mobile-header):not(.page-header):not(.chat-message-bubble) {
   background-color: var(--app-surface);
 }
 .app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) :is(.bg-slate-50, .bg-gray-50, .bg-slate-100, .bg-gray-100) {
