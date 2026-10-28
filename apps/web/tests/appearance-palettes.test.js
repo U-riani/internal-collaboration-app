@@ -117,6 +117,9 @@ describe("Dark workspace appearance palettes", () => {
     expect(tasksCss).toContain('color: var(--app-ui-accent-label, #fff);');
     expect(driveCss).toContain('.drive-header-actions .btn-primary:hover:not(:disabled)');
     expect(driveCss).toContain('.drive-toolbar .tabs button.active:hover');
+    expect(messagesCss).toContain('.chat-sidebar-tab:not([aria-pressed="true"]):hover');
+    expect(messagesCss).toContain('background: var(--app-interactive-hover);');
+    expect(dashboardCss).toContain('color: var(--app-interactive-hover-text);');
     expect(theme).toContain('.btn-secondary:hover:not(:disabled)');
   });
 
