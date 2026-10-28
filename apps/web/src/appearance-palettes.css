@@ -669,3 +669,14 @@ body:has(.app-theme-dark[data-appearance="slate"]) { background: #171b23; }
 .app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .workspace-spreadsheet .border-white {
   border-color: var(--app-surface);
 }
+
+/* Open approval dialogs also have their own [open]-qualified legacy rules.
+   Win that cascade explicitly, regardless of CSS module loading order. */
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"])
+  .modal[open]:has(> .modal-body > :is(.approval-types-manager, .approval-config-form, .approval-detail)),
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"])
+  .modal[open]:has(> .modal-body > :is(.task-form, .task-detail)) {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+  color: var(--app-text);
+}
