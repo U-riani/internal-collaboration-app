@@ -10,6 +10,7 @@ import {
   X,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext.jsx";
+import { getThemePreference } from "../lib/appearance.js";
 import { api } from "../lib/api.js";
 import { useSocket } from "../hooks/useSocket.js";
 import {
@@ -626,6 +627,9 @@ function SheetEditor({ id, mobile = false }) {
         hostRef.current.appendChild(container);
 
         const runtime = createUniver({
+          // Univer renders its own toolbar/canvas; use its supported dark mode
+          // for OLED/Slate without changing spreadsheet data or permissions.
+          darkMode: !mobile && getThemePreference(user.id) !== "midnight",
           locale: LocaleType.EN_US,
           locales: {
             [LocaleType.EN_US]: mergeLocales(
@@ -747,7 +751,7 @@ function SheetEditor({ id, mobile = false }) {
     <>
       <div className={mobile
           ? "flex h-[100dvh] min-h-0 w-full flex-col overflow-hidden bg-white"
-          : "flex h-[calc(100vh-9.1rem)] min-h-[580px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm md:h-[calc(100vh-1.8rem)]"}>
+          : "workspace-spreadsheet flex h-[calc(100vh-9.1rem)] min-h-[580px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm md:h-[calc(100vh-1.8rem)]"}>
         <div className="flex min-h-14 items-center gap-3 border-b border-slate-200 px-3 sm:px-4">
           {mobile ? (
             <button
