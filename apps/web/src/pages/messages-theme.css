@@ -50,7 +50,7 @@
   padding: 8px 13px;
   background: linear-gradient(125deg, var(--app-primary-gradient-start, #8077ff), var(--app-primary-gradient-end, #5755e8));
   box-shadow: 0 5px 17px #5755e822;
-  color: var(--app-primary-contrast, #fff);
+  color: var(--app-on-primary, #fff);
   font-size: 12px;
   white-space: nowrap;
   filter: brightness(1);
