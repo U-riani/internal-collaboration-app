@@ -834,6 +834,18 @@
   width: 142px !important;
   max-width: 44vw;
 }
+/* Permissions uses the shared native selects. Only alternate accents need
+   additional control styling; Indigo retains the original modal treatment. */
+.app-theme-dark:is([data-accent="cyan"], [data-accent="violet"], [data-accent="sky"])
+dialog.modal:has(.drive-permission-access-select) input[type="checkbox"] {
+  accent-color: var(--app-ui-accent-selected);
+}
+.app-theme-dark:is([data-accent="cyan"], [data-accent="violet"], [data-accent="sky"])
+dialog.modal:has(.drive-permission-access-select) input.input:focus {
+  border-color: var(--app-ui-focus-ring);
+  outline-color: var(--app-ui-focus-ring);
+  --tw-ring-color: var(--app-ui-accent-tint);
+}
 @media (max-width: 560px) {
   .drive-permission-access-select {
     flex-basis: 120px;
