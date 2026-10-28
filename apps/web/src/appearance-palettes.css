@@ -459,3 +459,76 @@ body:has(.app-theme-dark[data-appearance="slate"]) { background: #171b23; }
 .app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) dialog.modal:has(.drive-upload-modal) :is(.drive-upload-dropzone, .drive-upload-folder-list, .drive-upload-file-list) {
   border-color: var(--app-border-strong);
 }
+
+/* Tasks / Approvals: all list, form, dropdown, detail and builder surfaces. */
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) :is(.task-group-form, .approval-group-form) :is(.task-group-name-input, .approval-group-name-input) {
+  background: var(--app-surface-input) !important;
+  border-color: var(--app-border-strong);
+  color: var(--app-text);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) :is(.task-detail, .approval-detail) :is(.task-detail-person-icon, .filter-multiselect-icon) {
+  background: var(--app-surface-raised);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .task-form .task-form-footer,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .task-form .task-form-scroll {
+  background: var(--app-surface);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .modal:has(> .modal-body > :is(.task-form, .task-detail)) {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .modal:has(> .modal-body > :is(.task-form, .task-detail)) :is(.modal-head, .modal-body) {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .approval-type-row {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .approval-type-row:hover {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .approval-type-row-icon,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .approval-types-title-icon,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .approval-config-heading-icon {
+  background: var(--app-surface-input);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .modal:has(> .modal-body > :is(.approval-types-manager, .approval-config-form, .approval-detail)) {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+  color: var(--app-text);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .modal:has(> .modal-body > :is(.approval-types-manager, .approval-config-form, .approval-detail)) .modal-head {
+  background: var(--palette-panel-gradient);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .modal:has(> .modal-body > :is(.approval-types-manager, .approval-config-form, .approval-detail)) .modal-head .icon-btn:hover {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) :is(.approval-config-field-card, .approval-config-step-row, .approval-detail-fields, .approval-types-list) {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) :is(.approval-config-options, .approval-type-actions .btn-secondary.task-style-secondary) {
+  background: var(--app-surface-raised);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) :is(.approval-types-search, .approval-types-status-control, .approval-config-form .input) {
+  background: var(--app-surface-input);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) :is(.approval-type-row, .approval-config-field-card, .approval-config-step-row) :is(.text-slate-600, .text-slate-500) {
+  color: var(--app-muted);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .approval-bases-page :is(.approval-bases-nav-item, .approval-base-table) {
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .approval-bases-page .approval-bases-nav-item--active {
+  background: var(--palette-selection);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .approval-bases-page .approval-bases-nav-item--active .approval-bases-nav-item-icon {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .approval-bases-page .approval-bases-back:hover {
+  background: var(--app-surface-hover);
+}
