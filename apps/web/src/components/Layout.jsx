@@ -15,13 +15,14 @@ import {
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../context/AuthContext.jsx";
-import { ACCENT_EVENT, getAccentPreference } from "../lib/appearance.js";
+import { ACCENT_EVENT, getAccentPreference, THEME_EVENT, getThemePreference } from "../lib/appearance.js";
 import { useSocket } from "../hooks/useSocket.js";
 import { api } from "../lib/api.js";
 import { handleNotificationCreated, installNotificationAudioUnlock } from "../lib/notificationSounds.js";
 import { syncExistingBrowserPush } from "../lib/pushNotifications.js";
 import { Avatar } from "./UI.jsx";
 import "../theme.css";
+import "../appearance-palettes.css";
 const links = [
   ["/dashboard", "Overview", LayoutDashboard],
   ["/chat", "Messages", MessageSquare],
@@ -40,6 +41,7 @@ function badgeLabel(count) {
 export default function Layout() {
   const { user, hasPermission } = useAuth();
   const [accent, setAccent] = useState(() => getAccentPreference(user.id));
+  const [appearance, setAppearance] = useState(() => getThemePreference(user.id));
   const isOverview = useLocation().pathname === "/dashboard";
   const [open, setOpen] = useState(false);
   const qc = useQueryClient();
@@ -52,6 +54,16 @@ export default function Layout() {
     };
     window.addEventListener(ACCENT_EVENT, onAccentChange);
     return () => window.removeEventListener(ACCENT_EVENT, onAccentChange);
+  }, [user.id]);
+
+  // Theme switching only changes CSS attributes: no remounts or API calls.
+  useEffect(() => {
+    setAppearance(getThemePreference(user.id));
+    const onThemeChange = (event) => {
+      if (event.detail?.userId === user.id) setAppearance(event.detail.theme);
+    };
+    window.addEventListener(THEME_EVENT, onThemeChange);
+    return () => window.removeEventListener(THEME_EVENT, onThemeChange);
   }, [user.id]);
 
   // The existing global listener plays each realtime notification once.
@@ -163,6 +175,7 @@ export default function Layout() {
   return (
     <div className={isOverview ? "app-theme-dark overview-layout" : "app-theme-dark max-h-screen"}
       data-theme="dark"
+      data-appearance={appearance}
       data-accent={accent}>
       <div className="workspace-mobile-header sticky top-0 z-40 flex h-16 items-center justify-between border-b border-slate-200 bg-white px-4 min-[901px]:hidden">
         <strong>Workspace</strong>
