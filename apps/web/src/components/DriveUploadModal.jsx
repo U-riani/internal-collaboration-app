@@ -208,9 +208,6 @@ export default function DriveUploadModal({
     0,
   );
   const percent = totalBytes ? Math.round((transferred / totalBytes) * 100) : 0;
-  const activeFile = entries.find(
-    (entry) => entry.status === "uploading" || entry.status === "saving",
-  );
   const remaining = totalBytes - transferred;
   const eta = transferSpeed > 0 ? Math.ceil(remaining / transferSpeed) : null;
   const folders = (browseData?.data || []).filter(
@@ -459,11 +456,21 @@ export default function DriveUploadModal({
           <button
             type="button"
             className="btn-primary drive-upload-submit"
-            disabled={running || (waiting === 0 && complete !== entries.length)}
+            disabled={running || (waiting === 0 && (entries.length === 0 || complete !== entries.length))}
             onClick={waiting ? uploadSelected : close}
           >
-            {running ? <LoaderCircle size={17} className="drive-upload-spin" /> : waiting ? <CloudUpload size={17} /> : <Check size={17} />}
-            {running ? "Uploading…" : waiting ? "Upload " + waiting + " file" + (waiting === 1 ? "" : "s") : "Done"}
+            {running
+              ? <LoaderCircle size={17} className="drive-upload-spin" />
+              : waiting
+                ? <CloudUpload size={17} />
+                : <Check size={17} />}
+            {running
+              ? "Uploading…"
+              : waiting
+                ? "Upload " + waiting + " file" + (waiting === 1 ? "" : "s")
+                : complete > 0 && complete === entries.length
+                  ? "Done"
+                  : "Upload files"}
           </button>
         </div>
         {error && <p className="drive-upload-error" role="alert">{error}</p>}
