@@ -28,12 +28,12 @@
   --task-subtle: #808ca8;
   --task-border: #293147;
   --task-hover: #222b40;
-  --task-primary: #7972ff;
-  --task-primary-text: #16152c;
+  --task-primary: var(--app-ui-accent-start, #7972ff);
+  --task-primary-text: var(--app-ui-accent-label, #16152c);
   background: radial-gradient(ellipse at 50% 95%, #1c1d36 0%, #12182a 43%, #0c1220 100%);
 }
 .tasks-page :is(button,input,select):focus-visible {
-  outline: 2px solid #918bff;
+  outline: 2px solid var(--app-focus-ring, #918bff);
   outline-offset: 2px;
 }
 .tasks-page .page-header {
@@ -79,8 +79,8 @@
 .tasks-page .task-header-actions .btn-secondary:hover { background: var(--task-hover); }
 .tasks-page .task-header-actions .btn-primary {
   border-color: transparent;
-  background: linear-gradient(110deg, #867afa 0%, #6465ef 100%);
-  color: #fff;
+  background: linear-gradient(110deg, var(--app-ui-accent-start, #867afa) 0%, var(--app-ui-accent-end, #6465ef) 100%);
+  color: var(--app-ui-accent-label, #fff);
 }
 .tasks-page .task-header-actions .btn-primary:hover { filter: brightness(1.08); }
 
@@ -189,8 +189,8 @@
 }
 .tasks-page .task-toolbar .task-quick-tabs button:hover { background: var(--task-hover); color: var(--task-text); }
 .tasks-page .task-toolbar .task-quick-tabs button.active {
-  color: #fff;
-  background: linear-gradient(115deg, #8880ff, #6f6af1);
+  color: var(--app-ui-accent-label, #fff);
+  background: linear-gradient(115deg, var(--app-ui-accent-start, #8880ff), var(--app-ui-accent-end, #6f6af1));
   box-shadow: 0 3px 10px #6e68f52a;
 }
 .tasks-page .task-quick-label-full { display: inline; }
@@ -307,9 +307,9 @@
 }
 .tasks-page .task-view-button--active,
 .tasks-page .task-view-button--active:hover {
-  background: linear-gradient(115deg, #8880ff, #6f6af1);
+  background: linear-gradient(115deg, var(--app-ui-accent-start, #8880ff), var(--app-ui-accent-end, #6f6af1));
   box-shadow: 0 3px 10px #6e68f52a;
-  color: #fff;
+  color: var(--app-ui-accent-label, #fff);
 }
 .tasks-page .task-filter-panel {
   color: var(--task-text);
@@ -396,8 +396,8 @@
   padding: 6px 12px;
   border: 1px solid transparent;
   border-radius: 9px;
-  background: linear-gradient(110deg, #867afa 0%, #6465ef 100%);
-  color: #fff;
+  background: linear-gradient(110deg, var(--app-ui-accent-start, #867afa) 0%, var(--app-ui-accent-end, #6465ef) 100%);
+  color: var(--app-ui-accent-label, #fff);
   font-size: 11px;
   font-weight: 700;
   line-height: 1.3;
@@ -405,8 +405,8 @@
   transition: filter .15s ease, box-shadow .15s ease;
 }
 .tasks-page .task-group-add:hover {
-  color: #fff;
-  background: linear-gradient(110deg, #867afa 0%, #6465ef 100%);
+  color: var(--app-ui-accent-label, #fff);
+  background: linear-gradient(110deg, var(--app-ui-accent-start, #867afa) 0%, var(--app-ui-accent-end, #6465ef) 100%);
   filter: brightness(1.08);
   box-shadow: 0 4px 14px #6660ef29;
 }
