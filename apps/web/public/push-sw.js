@@ -28,8 +28,8 @@ self.addEventListener("push", (event) => {
         String(data.title || "GTEX Collaboration").slice(0, 160),
         {
           body: String(data.body || "You have a new notification.").slice(0, 500),
-          icon: "/icons/icon-192.png",
-          badge: "/icons/icon-192.png",
+          icon: "/favicon.png",
+          badge: "/favicon.png",
           tag: typeof data.tag === "string" ? data.tag : undefined,
           data: { url: sameOriginPath(data.url) },
         },
