@@ -600,20 +600,20 @@ export default function AccountPage() {
       <header className="account-hero">
         <div className="account-hero-top">
           <div className="account-identity">
-          <div className="account-hero-avatar">
-            <Avatar name={displayName} />
-            {photoUrl && (
-              <img src={photoUrl} alt="" onError={(event) => { event.currentTarget.style.display = "none"; }} />
-            )}
-          </div>
-          <div className="account-identity-copy">
-            <div className="account-identity-title">
-              <h1>{displayName}</h1>
-              <span className="account-role-badge">{role}</span>
+            <div className="account-hero-avatar">
+              <Avatar name={displayName} />
+              {photoUrl && (
+                <img src={photoUrl} alt="" onError={(event) => { event.currentTarget.style.display = "none"; }} />
+              )}
             </div>
-            <p className="account-email"><Mail size={14} /> {user.email}</p>
-            <p className="account-workspace-name"><span aria-hidden="true">✦</span> GTEX Workspace Enterprise</p>
-          </div>
+            <div className="account-identity-copy">
+              <div className="account-identity-title">
+                <h1>{displayName}</h1>
+                <span className="account-role-badge">{role}</span>
+              </div>
+              <p className="account-email"><Mail size={14} /> {user.email}</p>
+              <p className="account-workspace-name"><span aria-hidden="true">✦</span> GTEX Workspace Enterprise</p>
+            </div>
           </div>
           <button
             type="button"
