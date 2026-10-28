@@ -7,6 +7,7 @@ const theme = readFileSync(new URL("../src/theme.css", import.meta.url), "utf8")
 const account = readFileSync(new URL("../src/pages/account-page.css", import.meta.url), "utf8");
 const tasks = readFileSync(new URL("../src/pages/tasks-page.css", import.meta.url), "utf8");
 const messages = readFileSync(new URL("../src/pages/messages-theme.css", import.meta.url), "utf8");
+const approvals = readFileSync(new URL("../src/pages/approvals-page.css", import.meta.url), "utf8");
 
 describe("Incremental shared accent styling", () => {
   it("only defines legacy gradient overrides for non-default accents", () => {
@@ -97,6 +98,28 @@ describe("Incremental shared accent styling", () => {
     // Unread and online-state colors must not be overwritten by account accents.
     expect(messages).toContain("background:#50c7de;");
     expect(messages).toContain("background: #204e65;");
+  });
+
+
+  it("keeps Approvals filters, dates and Request Types controls on the selected accent", () => {
+    expect(approvals).toContain("border-color: var(--app-ui-focus-ring, #817cf0)");
+    expect(approvals).toContain("box-shadow: 0 0 0 2px var(--app-ui-accent-tint, #8077f621)");
+    expect(approvals).toContain("border-color: var(--app-ui-accent-outline, #817cf088)");
+    expect(approvals).toContain("background: linear-gradient(110deg, var(--app-ui-accent-start, #867afa) 0%, var(--app-ui-accent-end, #6465ef) 100%)");
+    expect(approvals).toContain("color: var(--app-ui-accent-label, #fff)");
+    expect(approvals).toContain("background: var(--app-ui-accent-selected, #716bf4)");
+    expect(approvals).toContain("border-color: var(--app-ui-accent-outline, #6c67b87a)");
+  });
+
+  it("recolors Approval Type and Request Details focus while preserving status semantics", () => {
+    expect(approvals).toContain("border-color: var(--app-ui-focus-ring, #8078ed)");
+    expect(approvals).toContain("box-shadow: 0 0 0 1px var(--app-ui-accent-tint, #8077f621)");
+    expect(approvals).toContain("color: var(--app-ui-focus-ring, #8b85fd)");
+    expect(approvals).toContain("outline: 2px solid var(--app-ui-focus-ring, #918bff)");
+    // Green / red / neutral state meanings must not be replaced by user accents.
+    expect(approvals).toContain("color: #6ad5ca;");
+    expect(approvals).toContain("color: #ff9aa8;");
+    expect(approvals).toContain("color: #96a0b8;");
   });
 
 
