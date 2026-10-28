@@ -33,7 +33,7 @@
   background: radial-gradient(ellipse at 50% 95%, #1c1d36 0%, #12182a 43%, #0c1220 100%);
 }
 .tasks-page :is(button,input,select):focus-visible {
-  outline: 2px solid var(--app-focus-ring, #918bff);
+  outline: 2px solid var(--app-ui-focus-ring, #918bff);
   outline-offset: 2px;
 }
 .tasks-page .page-header {
