@@ -116,7 +116,7 @@
   flex: 0 0 auto;
   border-radius: 9px;
   background: var(--task-control);
-  color: #9790ff;
+  color: var(--app-ui-focus-ring, #9790ff);
 }
 
 .approvals-page .approval-list-row p.font-semibold {
@@ -501,7 +501,7 @@
   height: 40px;
   border-radius: 12px;
   background: #ecebff;
-  color: #756cf4;
+  color: var(--app-ui-focus-ring, #756cf4);
 }
 
 .approval-types-manager {
@@ -789,7 +789,7 @@
 }
 
 .app-theme-dark .approval-types-title-icon {
-  color: #b9b4ff;
+  color: var(--app-ui-focus-ring, #b9b4ff);
   background: #34345c;
 }
 
@@ -1012,7 +1012,7 @@
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  color: #8078f0;
+  color: var(--app-ui-focus-ring, #8078f0);
   background: #eeedff;
 }
 
@@ -1334,7 +1334,7 @@
 }
 
 .app-theme-dark .approval-config-heading-icon {
-  color: #b9b3ff;
+  color: var(--app-ui-focus-ring, #b9b3ff);
   background: #35355c;
 }
 
@@ -1502,7 +1502,7 @@
   width: 33px;
   height: 33px;
   border-radius: 9px;
-  color: #8b85fd;
+  color: var(--app-ui-focus-ring, #8b85fd);
   background: var(--detail-control);
 }
 
