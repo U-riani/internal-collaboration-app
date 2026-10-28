@@ -889,12 +889,23 @@
   border: 1px solid transparent;
   border-radius: 11px;
   background: var(--account-button);
+  cursor: pointer;
+  transition: border-color .15s ease, background-color .15s ease;
+}
+.account-appearance-theme:not(.is-unavailable):hover {
+  background: var(--account-hero);
+}
+.account-appearance-theme:focus-within {
+  outline: 2px solid var(--app-focus-ring, #818cf8);
+  outline-offset: 2px;
 }
 .account-appearance-theme.is-active {
   border-color: var(--app-focus-ring, #818cf8);
+  box-shadow: 0 0 0 1px var(--app-ui-accent-tint, rgba(99, 102, 241, .21));
 }
 .account-appearance-theme.is-unavailable {
   opacity: .65;
+  cursor: not-allowed;
 }
 .account-appearance-theme strong {
   color: var(--account-text);
