@@ -51,15 +51,15 @@
   transition: border-color .16s ease, background-color .16s ease, box-shadow .16s ease;
 }
 .directory-page .directory-filters select.directory-filter-select:hover {
-  border-color: #817cf088;
+  border-color: var(--app-ui-accent-outline, #817cf088);
   background: var(--task-hover);
 }
 .directory-page .directory-filters select.directory-filter-select:focus,
 .directory-page .directory-filters select.directory-filter-select:focus-visible,
 .app-theme-dark .directory-page .directory-filters select.directory-filter-select:focus {
   outline: none;
-  border-color: #817cf0;
-  box-shadow: 0 0 0 2px #8077f621;
+  border-color: var(--app-ui-focus-ring, #817cf0);
+  box-shadow: 0 0 0 2px var(--app-ui-accent-tint, #8077f621);
 }
 .directory-page .directory-filters select.directory-filter-select::picker-icon {
   align-self: center;
@@ -67,6 +67,32 @@
   margin-inline-start: auto;
   color: var(--task-subtle);
 }
+/* People contact links and neutral directory avatars follow the selected
+   accent. Indigo fallback retains the existing utility-class colors. */
+.directory-page article.card a[href^="mailto:"],
+.directory-page article.card a[href^="tel:"] {
+  color: var(--app-ui-focus-ring, #2563eb);
+  transition: color .16s ease;
+}
+.directory-page article.card a[href^="mailto:"]:hover,
+.directory-page article.card a[href^="tel:"]:hover {
+  color: var(--app-ui-accent-selected-hover, #2563eb);
+}
+.directory-page article.card a[href^="mailto:"]:focus-visible,
+.directory-page article.card a[href^="tel:"]:focus-visible {
+  outline: 2px solid var(--app-ui-focus-ring, #817cf0);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+.directory-page article.card .bg-blue-100 {
+  background: var(--app-ui-accent-tint, #dbeafe);
+  color: var(--app-ui-focus-ring, #1d4ed8);
+}
+@media (prefers-reduced-motion: reduce) {
+  .directory-page article.card a[href^="mailto:"],
+  .directory-page article.card a[href^="tel:"] { transition: none; }
+}
+
 @media (max-width: 900px) {
   .directory-page .directory-filters {
     padding: 12px;
