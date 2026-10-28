@@ -9,6 +9,8 @@ import { previewNotificationSound, setNotificationSoundsEnabled } from "../src/l
 import { sendTestPush } from "../src/lib/pushNotifications.js";
 import { api } from "../src/lib/api.js";
 
+const mockLogout = vi.hoisted(() => vi.fn());
+
 vi.mock("../src/context/AuthContext.jsx", () => ({
   useAuth: () => ({
     user: {
@@ -19,7 +21,7 @@ vi.mock("../src/context/AuthContext.jsx", () => ({
       department: { name: "Information Technology" },
       roles: ["SYSTEM_ADMIN"],
     },
-    logout: vi.fn(),
+    logout: mockLogout,
   }),
 }));
 vi.mock("../src/lib/api.js", () => ({ api: vi.fn() }));
@@ -53,6 +55,15 @@ beforeEach(() => {
 });
 
 describe("My Account notification design", () => {
+  it("shows Sign out in the account header and uses the existing logout action", async () => {
+    const user = userEvent.setup();
+    mountAccount();
+    const signOut = screen.getByRole("button", { name: "Sign out" });
+    expect(signOut.closest(".account-hero-top")).not.toBeNull();
+    await user.click(signOut);
+    expect(mockLogout).toHaveBeenCalledTimes(1);
+  });
+
   it("renders screenshot-inspired notifications panels and preserves sound controls", async () => {
     const user = userEvent.setup();
     mountAccount();
