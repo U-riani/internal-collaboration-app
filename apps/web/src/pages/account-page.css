@@ -861,3 +861,137 @@
   .account-security-card .account-save-password.btn-primary,
   .account-password-field .account-password-eye { transition: none; }
 }
+
+/* Appearance & Theme — incremental accent customization, Midnight surfaces unchanged. */
+.account-appearance-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+  align-items: stretch;
+  gap: 17px;
+  margin-top: 23px;
+}
+.account-appearance-grid .account-settings-card {
+  min-width: 0;
+  padding: 19px 18px;
+}
+.account-appearance-themes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  margin-top: 18px;
+}
+.account-appearance-theme {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  background: var(--account-button);
+}
+.account-appearance-theme.is-active {
+  border-color: var(--app-focus-ring, #818cf8);
+}
+.account-appearance-theme.is-unavailable {
+  opacity: .65;
+}
+.account-appearance-theme strong {
+  color: var(--account-text);
+  font-size: 11px;
+  font-weight: 720;
+}
+.account-appearance-theme-state {
+  color: var(--account-muted);
+  font-size: 10px;
+}
+.account-appearance-theme.is-active .account-appearance-theme-state {
+  color: var(--app-focus-ring, #818cf8);
+}
+.account-appearance-theme-preview {
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+  height: 62px;
+  padding: 10px;
+  border-radius: 8px;
+  background: #101624;
+}
+.account-appearance-theme-preview span {
+  display: block;
+  border-radius: 3px;
+  background: #343e56;
+  height: 18px;
+  width: 25%;
+}
+.account-appearance-theme-preview span:first-child {
+  background: var(--app-accent-gradient-start, #6366f1);
+  height: 31px;
+}
+.account-appearance-theme-preview span:last-child {
+  height: 25px;
+  flex: 1;
+}
+.account-appearance-theme-preview.preview-oled { background: #000; }
+.account-appearance-theme-preview.preview-oled span { background: #242424; }
+.account-appearance-theme-preview.preview-oled span:first-child { background: #32bfd4; }
+.account-appearance-theme-preview.preview-slate { background: #222834; }
+.account-appearance-theme-preview.preview-slate span { background: #424855; }
+.account-appearance-theme-preview.preview-slate span:first-child { background: #b29ae5; }
+.account-appearance-theme-preview.preview-system { background: linear-gradient(110deg, #e6eaf4 50%, #19202d 50%); }
+.account-appearance-theme-preview.preview-system span { background: #8e9bb1; }
+.account-appearance-theme-preview.preview-system span:first-child { background: #8181d7; }
+.account-appearance-accent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin-top: 18px;
+}
+.account-appearance-accent-option {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: var(--account-button);
+  color: var(--account-text);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 650;
+  transition: background-color .15s ease, border-color .15s ease;
+}
+.account-appearance-accent-option:hover { background: var(--account-deep); }
+.account-appearance-accent-option:focus-within {
+  outline: 2px solid var(--app-focus-ring, #818cf8);
+  outline-offset: 1px;
+}
+.account-appearance-accent-option.is-selected {
+  border-color: var(--app-focus-ring, #818cf8);
+}
+.account-appearance-swatch {
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  border: 1px solid rgba(255,255,255,.25);
+  border-radius: 50%;
+}
+.account-appearance-accent-name { flex: 1; min-width: 0; }
+.account-appearance-selected { color: var(--app-focus-ring, #818cf8); font-size: 10px; }
+.account-appearance-hint {
+  margin-top: 15px;
+  color: var(--account-muted);
+  font-size: 10px;
+  line-height: 1.5;
+}
+@media (max-width: 800px) {
+  .account-appearance-grid { grid-template-columns: 1fr; gap: 13px; }
+}
+@media (max-width: 420px) {
+  .account-appearance-themes { gap: 6px; }
+  .account-appearance-theme { padding: 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .account-appearance-accent-option { transition: none; }
+}
