@@ -4,7 +4,6 @@ import {
   CheckSquare,
   FileCheck2,
   LayoutDashboard,
-  LogOut,
   MessageSquare,
   Settings,
   Users,
@@ -38,7 +37,7 @@ function badgeLabel(count) {
 }
 
 export default function Layout() {
-  const { user, logout, hasPermission } = useAuth();
+  const { user, hasPermission } = useAuth();
   const isOverview = useLocation().pathname === "/dashboard";
   const [open, setOpen] = useState(false);
   const qc = useQueryClient();
@@ -239,12 +238,6 @@ export default function Layout() {
                 </span>
               </span>
             </NavLink>
-            <div className="sidebar-profile-footer">
-              <button type="button" className="sidebar-profile-logout" onClick={logout}>
-                <LogOut size={15} />
-                <span>Sign out</span>
-              </button>
-            </div>
           </div>
         </div>
       </aside>
