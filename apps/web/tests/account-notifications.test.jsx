@@ -14,6 +14,7 @@ vi.mock("../src/context/AuthContext.jsx", () => ({
       id: "profile-1",
       displayName: "Test Employee",
       email: "employee@example.com",
+      department: { name: "Information Technology" },
       roles: ["SYSTEM_ADMIN"],
     },
     logout: vi.fn(),
@@ -70,6 +71,27 @@ describe("My Account notification design", () => {
     await user.click(screen.getByRole("button", { name: "Send test notification" }));
     await waitFor(() => expect(sendTestPush).toHaveBeenCalledWith("profile-1"));
     expect(screen.getByText(/Gateway accepted the push/)).not.toBeNull();
+  });
+
+  it("shows only read-only profile information and inactive photo controls", async () => {
+    const user = userEvent.setup();
+    mountAccount();
+    await user.click(screen.getByRole("button", { name: "Profile" }));
+
+    const name = screen.getByRole("textbox", { name: "Display name (Full name)" });
+    const email = screen.getByRole("textbox", { name: "Work email address" });
+    const department = screen.getByRole("textbox", { name: "Department" });
+
+    expect(name.value).toBe("Test Employee");
+    expect(email.value).toBe("employee@example.com");
+    expect(department.value).toBe("Information Technology");
+    expect(name.readOnly).toBe(true);
+    expect(email.readOnly).toBe(true);
+    expect(department.readOnly).toBe(true);
+    expect(screen.getByRole("button", { name: "Upload new photo" }).disabled).toBe(true);
+    expect(screen.getByRole("button", { name: "Remove" }).disabled).toBe(true);
+    expect(screen.queryByRole("button", { name: "Save profile" })).toBeNull();
+    expect(screen.queryByLabelText("Upload profile photo")).toBeNull();
   });
 
   it("keeps the existing password-change form on the Security tab", async () => {
