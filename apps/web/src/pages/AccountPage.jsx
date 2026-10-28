@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import {
   BellRing,
+  BadgeCheck,
   CheckCircle2,
   CircleAlert,
   ClipboardList,
@@ -10,6 +11,10 @@ import {
   MonitorCog,
   Play,
   ShieldCheck,
+  Trash2,
+  Upload,
+  UserRound,
+  UserSquare2,
   Volume2,
   VolumeX,
 } from "lucide-react";
@@ -368,6 +373,120 @@ function AccountNotifications({ userId }) {
   );
 }
 
+function AccountProfile({ user, displayName, photoUrl }) {
+  const departmentName = user.department?.name || "Not assigned";
+
+  return (
+    <div className="account-profile-grid">
+      <section className="account-settings-card account-profile-photo-card" aria-labelledby="account-photo-title">
+        <div className="account-card-heading">
+          <span className="account-card-icon account-card-icon--violet" aria-hidden="true">
+            <UserSquare2 size={20} />
+          </span>
+          <div>
+            <h2 id="account-photo-title">Avatar &amp; Badge</h2>
+            <p>Public team picture representation</p>
+          </div>
+        </div>
+
+        <div
+          className="account-profile-dropzone"
+          aria-disabled="true"
+          title="Profile photo uploads are coming soon"
+          onDragOver={(event) => event.preventDefault()}
+          onDrop={(event) => event.preventDefault()}
+        >
+          <div className="account-profile-portrait" aria-hidden="true">
+            <Avatar name={displayName} />
+            {photoUrl && (
+              <img
+                src={photoUrl}
+                alt=""
+                onError={(event) => { event.currentTarget.style.display = "none"; }}
+              />
+            )}
+          </div>
+          <span className="account-profile-dropzone-caption">
+            Drop image here or click to browse
+          </span>
+          <span className="account-profile-dropzone-hint">Photo changes coming soon</span>
+        </div>
+
+        <div className="account-profile-photo-actions">
+          <button
+            type="button"
+            className="btn-primary account-profile-upload"
+            disabled
+            title="Photo upload will be available in a future update"
+          >
+            <Upload size={15} aria-hidden="true" />
+            Upload new photo
+          </button>
+          <button
+            type="button"
+            className="btn-secondary account-profile-remove"
+            disabled
+            title="Photo removal will be available in a future update"
+          >
+            <Trash2 size={15} aria-hidden="true" />
+            Remove
+          </button>
+        </div>
+      </section>
+
+      <section className="account-settings-card account-profile-info-card" aria-labelledby="account-personal-title">
+        <div className="account-profile-info-header">
+          <h2 id="account-personal-title">Personal Information</h2>
+          <p>Details synced across Workspace Organization directories.</p>
+        </div>
+
+        <div className="account-profile-fields">
+          <div className="account-profile-input-wrap">
+            <Field label="Display name (Full name)">
+              <input
+                className="input account-profile-readonly"
+                type="text"
+                value={displayName}
+                readOnly
+                aria-readonly="true"
+              />
+            </Field>
+            <UserRound className="account-profile-input-icon" size={16} aria-hidden="true" />
+          </div>
+
+          <div className="account-profile-input-wrap">
+            <Field label="Work email address">
+              <input
+                className="input account-profile-readonly"
+                type="email"
+                value={user.email || ""}
+                readOnly
+                aria-readonly="true"
+              />
+            </Field>
+            <BadgeCheck className="account-profile-input-icon account-profile-email-verified" size={18} aria-hidden="true" />
+            <p className="account-profile-field-hint">
+              Work email is managed by your workspace administrator and cannot be changed here.
+            </p>
+          </div>
+
+          <div className="account-profile-input-wrap account-profile-department">
+            <Field label="Department">
+              <input
+                className="input account-profile-readonly"
+                type="text"
+                value={departmentName}
+                readOnly
+                aria-readonly="true"
+              />
+            </Field>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 export default function AccountPage() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("notifications");
@@ -413,18 +532,7 @@ export default function AccountPage() {
       {activeTab === "notifications" && <AccountNotifications userId={user.id} />}
       {activeTab === "security" && <AccountSecurity />}
       {activeTab === "profile" && (
-        <section className="account-settings-card account-pending-card">
-          <div className="account-card-heading">
-            <span className="account-card-icon account-card-icon--violet"><ClipboardList size={20} /></span>
-            <div><h2>Profile</h2><p>Your account details</p></div>
-          </div>
-          <dl>
-            <div><dt>Name</dt><dd>{displayName}</dd></div>
-            <div><dt>Email</dt><dd>{user.email}</dd></div>
-            <div><dt>Role</dt><dd>{role}</dd></div>
-          </dl>
-          <p className="account-settings-description">Additional profile settings will be designed in the next phase.</p>
-        </section>
+        <AccountProfile user={user} displayName={displayName} photoUrl={photoUrl} />
       )}
       {activeTab === "appearance" && (
         <section className="account-settings-card account-pending-card">
