@@ -120,7 +120,7 @@ function FormFields({ schema, values, setValues, draft = false }) {
             />
           ) : field.type === "select" ? (
             <select
-              className="input"
+              className="input app-modern-select"
               required={field.required && !draft}
               value={values[key] ?? ""}
               onChange={(e) => setValues({ ...values, [key]: e.target.value })}
@@ -133,7 +133,7 @@ function FormFields({ schema, values, setValues, draft = false }) {
           ) : field.type === "checkbox" ? (
             <input
               type="checkbox"
-              className="w-5 h-5"
+              className="approval-request-checkbox h-5 w-5"
               checked={values[key] ?? false}
               onChange={(e) =>
                 setValues({ ...values, [key]: e.target.checked })
@@ -934,14 +934,16 @@ function RequestForm({ existing, onClose }) {
       onClose={onClose}
     >
       <form
+        className="approval-request-form"
         onSubmit={(e) => {
           e.preventDefault();
           save.mutate(true);
         }}
       >
+        <div className="approval-request-fields">
         <Field label="Request type">
           <select
-            className="input"
+            className="input app-modern-select approval-request-type"
             disabled={Boolean(existing)}
             required
             value={typeId}
@@ -960,6 +962,7 @@ function RequestForm({ existing, onClose }) {
         </Field>
         <Field
           label="Title"
+          className="input approval-request-title"
           required
           minLength={2}
           value={title}
@@ -971,6 +974,7 @@ function RequestForm({ existing, onClose }) {
             <Field
               label="Attachments (optional)"
               type="file"
+              className="input approval-request-file"
               multiple
               disabled={save.isPending}
               onChange={addFiles}
@@ -984,7 +988,8 @@ function RequestForm({ existing, onClose }) {
           </>
         )}
         <ErrorBox error={selectionError || save.error} />
-        <div className="form-actions">
+        </div>
+        <div className="form-actions approval-request-actions">
           <button
             className="btn-secondary"
             type="button"
