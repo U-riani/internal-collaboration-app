@@ -167,8 +167,11 @@ body:has(.app-theme-dark) { background: #0a0f1d; }
   box-shadow: 0 4px 16px var(--app-accent-shadow);
 }
 .app-theme-dark .workspace-nav-link[aria-current="page"]:hover { filter: brightness(1.055); }
-.app-theme-dark .workspace-nav-link[aria-current="page"] :is(svg, span),
-.app-theme-dark .workspace-nav-link[aria-current="page"]:hover :is(svg, span) {
+/* Scope foreground to the icon and label, never the unread-count badge. */
+.app-theme-dark .workspace-nav-link[aria-current="page"] > svg,
+.app-theme-dark .workspace-nav-link[aria-current="page"] > span:first-of-type,
+.app-theme-dark .workspace-nav-link[aria-current="page"]:hover > svg,
+.app-theme-dark .workspace-nav-link[aria-current="page"]:hover > span:first-of-type {
   color: var(--app-interactive-selected-text);
 }
 .app-theme-dark > .workspace-mobile-header .icon-btn { color: var(--app-text); }
