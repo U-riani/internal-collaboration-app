@@ -334,7 +334,7 @@
 .tasks-page .task-filter-panel .task-filter-choice input[type="checkbox"] {
   flex-shrink: 0;
 }
-.tasks-page .task-filter-panel .btn-primary { background: #7771f6; }
+.tasks-page .task-filter-panel .btn-primary { background: var(--app-ui-accent-selected, #7771f6); color: var(--app-ui-accent-selected-text, #fff); }
 
 .tasks-page .task-list-card {
   max-height: none;
@@ -561,12 +561,13 @@
   justify-content: flex-end;
 }
 .task-group-form .task-group-form-actions .btn-primary {
-  background: #716bf4;
+  background: var(--app-ui-accent-selected, #716bf4);
+  color: var(--app-ui-accent-selected-text, #fff);
   border-radius: 10px;
   font-size: 12px;
   font-weight: 700;
 }
-.task-group-form .task-group-form-actions .btn-primary:hover { background: #817afa; }
+.task-group-form .task-group-form-actions .btn-primary:hover { background: var(--app-ui-accent-selected-hover, #817afa); }
 
 /* Filter panel layout and reusable checkbox picker. */
 .tasks-page .task-filter-utilities {
@@ -800,8 +801,8 @@
   height: 19px;
   padding: 0 5px;
   border-radius: 99px;
-  background: linear-gradient(115deg, #8980ff, #6e67ed);
-  color: #fff;
+  background: linear-gradient(115deg, var(--app-ui-accent-start, #8980ff), var(--app-ui-accent-end, #6e67ed));
+  color: var(--app-ui-accent-label, #fff);
   font-size: 10px;
   font-weight: 800;
   line-height: 1;
@@ -879,9 +880,9 @@
 .task-form .input:focus, .task-form .input:focus-visible,
 .app-theme-dark .task-form .input:focus,
 .app-theme-dark .task-form .input:focus-visible {
-  border-color: #8078ed;
+  border-color: var(--app-ui-focus-ring, #8078ed);
   outline: none;
-  box-shadow: 0 0 0 1px rgba(127, 119, 243, .18);
+  box-shadow: 0 0 0 1px var(--app-ui-accent-tint, rgba(127, 119, 243, .18));
   --tw-ring-shadow: 0 0 #0000;
 }
 .task-form .task-form-description {
@@ -1000,12 +1001,12 @@
   padding: 8px 17px;
   border-radius: 9px;
   border: 0;
-  background: #716bf4;
-  color: #fff;
+  background: var(--app-ui-accent-selected, #716bf4);
+  color: var(--app-ui-accent-selected-text, #fff);
   font-size: 12px;
   font-weight: 700;
 }
-.task-form .task-form-footer .btn-primary:hover { background: #817afa; }
+.task-form .task-form-footer .btn-primary:hover { background: var(--app-ui-accent-selected-hover, #817afa); }
 .modal:has(> .modal-body > .task-form) .modal-head h2 {
   font-weight: 750;
   letter-spacing: -.015em;
@@ -1191,7 +1192,7 @@
 .task-detail select.task-detail-select:focus-visible,
 .app-theme-dark .task-detail select.task-detail-select:focus,
 .app-theme-dark .task-detail select.task-detail-select:focus-visible {
-  border-color: #7873ca !important;
+  border-color: var(--app-ui-focus-ring, #7873ca) !important;
   outline: 1px solid var(--app-ui-focus-ring, #8e89ec) !important;
   outline-offset: 0;
   box-shadow: none !important;
@@ -1323,9 +1324,9 @@
 }
 .task-detail .task-detail-comment-input:focus,
 .app-theme-dark .task-detail .task-detail-comment-input:focus {
-  border-color: #8078ed;
+  border-color: var(--app-ui-focus-ring, #8078ed);
   outline: none;
-  box-shadow: 0 0 0 1px #8077f621;
+  box-shadow: 0 0 0 1px var(--app-ui-accent-tint, #8077f621);
   --tw-ring-shadow: 0 0 #0000;
 }
 .task-detail .task-detail-comment-actions { flex-wrap: wrap; gap: 12px; }
@@ -1426,8 +1427,8 @@
   border-color: var(--detail-border);
 }
 .task-detail .task-detail-select-wrap:focus-within .task-detail-select-preview {
-  border-color: #7873ca;
-  outline: 1px solid #8e89ec;
+  border-color: var(--app-ui-focus-ring, #7873ca);
+  outline: 1px solid var(--app-ui-focus-ring, #8e89ec);
   outline-offset: 0;
 }
 .task-detail .task-detail-select-wrap:has(select:disabled) .task-detail-select-preview {
