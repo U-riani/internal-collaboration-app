@@ -1023,6 +1023,7 @@
   margin-top: 17px;
 }
 .account-accent-option {
+  cursor: pointer;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1043,7 +1044,7 @@
 }
 .account-accent-option:hover:not(.is-selected) { background: var(--account-deep); }
 .account-accent-option.is-selected { border-color: var(--app-accent-focus, #8981ff); }
-.account-accent-option:focus-visible {
+.account-accent-option:focus-within {
   outline: 2px solid var(--app-accent-focus, #8981ff);
   outline-offset: 2px;
 }
