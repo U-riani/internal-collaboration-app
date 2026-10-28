@@ -55,9 +55,9 @@
 }
 .drive-page .drive-header-actions .btn-secondary:hover { background: #293148; }
 .drive-page .drive-header-actions .btn-primary {
-  color: #fff;
-  background: linear-gradient(118deg, #7a6dfe 0%, #6059ed 63%, #08a8e1 130%);
-  box-shadow: 0 4px 17px rgba(99,102,241,.19);
+  color: var(--app-ui-accent-label, #fff);
+  background: linear-gradient(118deg, var(--app-ui-accent-start, #7a6dfe) 0%, var(--app-ui-accent-end, #6059ed) 63%, var(--app-ui-accent-end, #08a8e1) 130%);
+  box-shadow: 0 4px 17px var(--app-ui-accent-shadow, rgba(99,102,241,.19));
 }
 .drive-page .drive-header-actions .btn-primary:hover { filter: brightness(1.13); }
 .drive-page .drive-toolbar {
@@ -99,9 +99,9 @@
 }
 .drive-page .drive-toolbar .tabs button:hover { color: #e8e8ff; background: #22283c; }
 .drive-page .drive-toolbar .tabs button.active {
-  color: #fff;
-  background: linear-gradient(110deg, #7570fd, #5d5deb);
-  box-shadow: 0 4px 14px rgba(97,92,235,.2);
+  color: var(--app-ui-accent-label, #fff);
+  background: linear-gradient(110deg, var(--app-ui-accent-start, #7570fd), var(--app-ui-accent-end, #5d5deb));
+  box-shadow: 0 4px 14px var(--app-ui-accent-shadow, rgba(97,92,235,.2));
 }
 .drive-page .drive-search-bar {
   flex: 0 1 280px;
@@ -117,8 +117,8 @@
   transition: border-color .16s ease, box-shadow .16s ease;
 }
 .drive-page .drive-search-bar:focus-within {
-  border-color: #7670dd;
-  box-shadow: 0 0 0 2px rgba(118,112,221,.14);
+  border-color: var(--app-ui-focus-ring, #7670dd);
+  box-shadow: 0 0 0 2px var(--app-ui-accent-tint, rgba(118,112,221,.14));
 }
 .drive-page .drive-search-bar > svg {
   position: static;
@@ -388,10 +388,10 @@
 .drive-page .drive-space-global.is-selected,
 .drive-page .drive-group-link.is-selected {
   color: #f4f2ff;
-  background: #292d48;
-  box-shadow: inset 0 0 0 1px rgba(164,170,255,.10);
+  background: var(--app-ui-selection-start, #292d48);
+  box-shadow: inset 0 0 0 1px var(--app-ui-accent-outline, rgba(164,170,255,.10));
 }
-.drive-page .drive-group-link.is-selected svg { color:#c6bbff; }
+.drive-page .drive-group-link.is-selected svg { color: var(--app-ui-focus-ring, #c6bbff); }
 .drive-page .drive-group-heading {
   margin-top: 16px;
   margin-bottom: 5px;
@@ -526,8 +526,8 @@
   transition: border-color .15s ease,box-shadow .15s ease;
 }
 .drive-member-search:focus-within {
-  border-color: #7670dd;
-  box-shadow: 0 0 0 2px rgba(118,112,221,.14);
+  border-color: var(--app-ui-focus-ring, #7670dd);
+  box-shadow: 0 0 0 2px var(--app-ui-accent-tint, rgba(118,112,221,.14));
 }
 .drive-member-search svg { flex:0 0 auto; pointer-events:none; }
 .app-theme-dark .drive-member-search > input {
@@ -614,9 +614,10 @@
 .app-theme-dark .drive-member-form-actions > .btn-primary {
   min-width:124px;
   border-radius:10px;
-  background:#6366f1;
+  background: var(--app-ui-accent-selected, #6366f1);
+  color: var(--app-ui-accent-selected-text, #fff);
 }
-.app-theme-dark .drive-member-form-actions > .btn-primary:hover { background:#7772f7; }
+.app-theme-dark .drive-member-form-actions > .btn-primary:hover { background: var(--app-ui-accent-selected-hover, #7772f7); }
 @media (max-width: 560px) {
   .app-theme-dark .modal:has(.drive-space-members-modal) .modal-body { padding:14px 14px 0; }
   .drive-member-person { gap:8px; padding:9px 7px !important; }
@@ -770,9 +771,9 @@
   opacity: 1;
 }
 .app-theme-dark :is(.drive-new-group-form, .drive-new-folder-form) :is(.drive-new-group-input, .drive-new-folder-input):focus {
-  border-color: #7670dd;
+  border-color: var(--app-ui-focus-ring, #7670dd);
   outline: none;
-  box-shadow: 0 0 0 2px rgba(118, 112, 221, .14);
+  box-shadow: 0 0 0 2px var(--app-ui-accent-tint, rgba(118, 112, 221, .14));
 }
 .app-theme-dark :is(.drive-new-group-actions, .drive-new-folder-actions) {
   display: flex;
@@ -788,9 +789,9 @@
   min-height: 38px;
   padding: 9px 16px;
   border-radius: 10px;
-  color: #fff;
-  background: linear-gradient(120deg, #756ef9, #5854e9);
-  box-shadow: 0 5px 17px rgba(99, 102, 241, .23);
+  color: var(--app-ui-accent-label, #fff);
+  background: linear-gradient(120deg, var(--app-ui-accent-start, #756ef9), var(--app-ui-accent-end, #5854e9));
+  box-shadow: 0 5px 17px var(--app-ui-accent-shadow, rgba(99, 102, 241, .23));
   font-size: 12px;
   filter: brightness(1);
   /* Override the global transition-all; keep gradient unchanged on hover. */
@@ -798,11 +799,11 @@
 }
 .app-theme-dark :is(.drive-new-group-actions, .drive-new-folder-actions) .btn-primary:hover {
   /* Keep the gradient even when the button becomes disabled while hovered. */
-  background: linear-gradient(120deg, #756ef9, #5854e9);
+  background: linear-gradient(120deg, var(--app-ui-accent-start, #756ef9), var(--app-ui-accent-end, #5854e9));
 }
 .app-theme-dark :is(.drive-new-group-actions, .drive-new-folder-actions) .btn-primary:hover:not(:disabled) {
   filter: brightness(1.08);
-  box-shadow: 0 7px 21px rgba(99, 102, 241, .33);
+  box-shadow: 0 7px 21px var(--app-ui-accent-shadow, rgba(99, 102, 241, .33));
 }
 @media (max-width: 560px) {
   .app-theme-dark .modal:has(:is(.drive-new-group-form, .drive-new-folder-form)) {
