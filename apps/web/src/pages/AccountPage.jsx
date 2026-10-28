@@ -10,6 +10,7 @@ import {
   Eye,
   EyeOff,
   KeyRound,
+  LogOut,
   Mail,
   MonitorCog,
   Play,
@@ -588,7 +589,7 @@ function AccountProfile({ user, displayName, photoUrl }) {
 }
 
 export default function AccountPage() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState("notifications");
   const displayName = user.displayName || user.firstName || user.email || "Workspace member";
   const role = roleLabel(user.roles);
@@ -597,7 +598,8 @@ export default function AccountPage() {
   return (
     <div className="account-page">
       <header className="account-hero">
-        <div className="account-identity">
+        <div className="account-hero-top">
+          <div className="account-identity">
           <div className="account-hero-avatar">
             <Avatar name={displayName} />
             {photoUrl && (
@@ -612,6 +614,15 @@ export default function AccountPage() {
             <p className="account-email"><Mail size={14} /> {user.email}</p>
             <p className="account-workspace-name"><span aria-hidden="true">✦</span> GTEX Workspace Enterprise</p>
           </div>
+          </div>
+          <button
+            type="button"
+            className="btn-secondary account-hero-signout"
+            onClick={logout}
+          >
+            <LogOut size={17} aria-hidden="true" />
+            <span>Sign out</span>
+          </button>
         </div>
         <nav className="account-tabs" aria-label="Account settings">
           {tabs.map(({ id, label, icon: Icon }) => (
