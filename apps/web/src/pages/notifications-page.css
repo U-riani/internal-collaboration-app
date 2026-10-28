@@ -160,8 +160,8 @@
 }
 .notifications-page .notifications-tabs button.active,
 .notifications-page .notifications-tabs button.active:hover {
-  color: var(--app-on-primary, #fff);
-  background: linear-gradient(115deg, var(--app-primary-gradient-start, #8580fc), var(--app-primary-gradient-end, #6a62e9));
+  color: #fff;
+  background: linear-gradient(115deg, #8580fc, #6a62e9);
   box-shadow: 0 3px 10px #6e68f52a;
 }
 .notifications-tab-count {

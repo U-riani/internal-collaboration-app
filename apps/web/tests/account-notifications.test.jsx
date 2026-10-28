@@ -5,7 +5,6 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import AccountPage from "../src/pages/AccountPage.jsx";
-import { AppearanceProvider, appearanceStorageKey } from "../src/context/AppearanceContext.jsx";
 import { previewNotificationSound, setNotificationSoundsEnabled } from "../src/lib/notificationSounds.js";
 import { sendTestPush } from "../src/lib/pushNotifications.js";
 import { api } from "../src/lib/api.js";
@@ -45,45 +44,17 @@ vi.mock("../src/lib/pushNotifications.js", () => ({
 function mountAccount() {
   return render(
     <QueryClientProvider client={new QueryClient()}>
-      <AppearanceProvider>
-        <AccountPage />
-      </AppearanceProvider>
+      <AccountPage />
     </QueryClientProvider>,
   );
 }
 
 beforeEach(() => {
   vi.clearAllMocks();
-  window.localStorage.clear();
   vi.stubGlobal("Notification", { permission: "granted" });
 });
 
 describe("My Account notification design", () => {
-  it("saves account-scoped accent choices while unfinished themes remain unavailable", async () => {
-    const user = userEvent.setup();
-    const mounted = mountAccount();
-    await user.click(screen.getByRole("button", { name: "Appearance & Theme" }));
-
-    expect(screen.getByText("Workspace Appearance")).not.toBeNull();
-    expect(screen.getByText("OLED Pure Black")).not.toBeNull();
-    expect(screen.getByText("Deep Slate")).not.toBeNull();
-    expect(screen.getByText("System Sync")).not.toBeNull();
-    expect(screen.getAllByText("Coming soon")).toHaveLength(3);
-
-    const cyan = screen.getByRole("radio", { name: /Cyan Glaze/ });
-    expect(cyan.checked).toBe(false);
-    await user.click(cyan);
-    expect(cyan.checked).toBe(true);
-    expect(JSON.parse(window.localStorage.getItem(appearanceStorageKey("profile-1")))).toEqual({
-      accent: "cyan",
-    });
-
-    mounted.unmount();
-    mountAccount();
-    await user.click(screen.getByRole("button", { name: "Appearance & Theme" }));
-    expect(screen.getByRole("radio", { name: /Cyan Glaze/ }).checked).toBe(true);
-  });
-
   it("shows Sign out in the account header and uses the existing logout action", async () => {
     const user = userEvent.setup();
     mountAccount();

@@ -26,13 +26,6 @@ body:has(.app-theme-dark) { background: #0a0f1d; }
   --app-primary: #6366f1;
   --app-primary-hover: #7772f7;
   --app-primary-soft: #272a50;
-  /* Shared semantic accent tokens. Status colors remain independent. */
-  --app-primary-gradient-start: #8981ff;
-  --app-primary-gradient-end: #6c69ed;
-  --app-primary-contrast: #191845;
-  --app-on-primary: #fff;
-  --app-accent-focus: #918bff;
-  --app-accent-glow: rgba(99, 102, 241, .21);
   --app-secondary: #06b6d4;
   --app-tertiary: #a855f7;
   --app-success: #53d7b5;
@@ -41,42 +34,6 @@ body:has(.app-theme-dark) { background: #0a0f1d; }
   color: var(--app-text);
   background: var(--app-bg);
 }
-/* Dark Midnight is the only active surface palette in phase one.
-   Accents are switched via one attribute on the authenticated app root. */
-.app-theme-dark[data-accent="cyan"] {
-  --app-primary: #19b6cc;
-  --app-primary-hover: #38ccde;
-  --app-primary-soft: #153e4a;
-  --app-primary-gradient-start: #46d1e5;
-  --app-primary-gradient-end: #1bb6d0;
-  --app-primary-contrast: #0c2530;
-  --app-on-primary: #07212a;
-  --app-accent-focus: #44c9e0;
-  --app-accent-glow: rgba(25, 182, 204, .24);
-}
-.app-theme-dark[data-accent="violet"] {
-  --app-primary: #ab75de;
-  --app-primary-hover: #c391ef;
-  --app-primary-soft: #39294c;
-  --app-primary-gradient-start: #d29ef4;
-  --app-primary-gradient-end: #a971db;
-  --app-primary-contrast: #2a173c;
-  --app-on-primary: #20122e;
-  --app-accent-focus: #c39aef;
-  --app-accent-glow: rgba(171, 117, 222, .23);
-}
-.app-theme-dark[data-accent="sky"] {
-  --app-primary: #7bcce3;
-  --app-primary-hover: #a3e2f1;
-  --app-primary-soft: #1c3948;
-  --app-primary-gradient-start: #b1e8f6;
-  --app-primary-gradient-end: #79cadf;
-  --app-primary-contrast: #173039;
-  --app-on-primary: #14313b;
-  --app-accent-focus: #a3e2f1;
-  --app-accent-glow: rgba(123, 204, 227, .24);
-}
-
 .app-theme-dark > .workspace-main {
   min-width: 0;
   color: var(--app-text);
@@ -108,11 +65,11 @@ body:has(.app-theme-dark) { background: #0a0f1d; }
   background: var(--app-surface-hover);
 }
 .app-theme-dark .workspace-nav-link[aria-current="page"] {
-  color: var(--app-on-primary);
+  color: #fff;
   background: linear-gradient(112deg, var(--app-primary), var(--app-primary-hover));
   box-shadow: 0 4px 16px rgba(99,102,241,.21);
 }
-.app-theme-dark .workspace-nav-link[aria-current="page"] svg { color: var(--app-on-primary); }
+.app-theme-dark .workspace-nav-link[aria-current="page"] svg { color: #fff; }
 .app-theme-dark > .workspace-mobile-header .icon-btn { color: var(--app-text); }
 .app-theme-dark > .workspace-mobile-header .icon-btn:hover { background: #262f46; }
 
@@ -141,7 +98,7 @@ body:has(.app-theme-dark) { background: #0a0f1d; }
 }
 .sidebar-profile-identity:hover { background: rgba(126,129,244,.12); }
 .sidebar-profile-identity:focus-visible {
-  outline: 2px solid var(--app-accent-focus, #818cf8);
+  outline: 2px solid #818cf8;
   outline-offset: 2px;
 }
 .sidebar-profile-identity .avatar {
@@ -211,7 +168,7 @@ body:has(.app-theme-dark) { background: #0a0f1d; }
   color: var(--app-text);
 }
 .app-theme-dark .btn-primary {
-  color: var(--app-on-primary);
+  color: #fff;
   background: var(--app-primary);
 }
 .app-theme-dark .btn-primary:hover { background: var(--app-primary-hover); }

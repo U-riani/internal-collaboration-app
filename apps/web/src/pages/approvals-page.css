@@ -611,8 +611,8 @@
   padding: 8px 13px;
   border: 1px solid transparent;
   border-radius: 9px;
-  background: linear-gradient(110deg, var(--app-primary-gradient-start, #867afa) 0%, var(--app-primary-gradient-end, #6465ef) 100%);
-  color: var(--app-on-primary, #fff);
+  background: linear-gradient(110deg, #867afa 0%, #6465ef 100%);
+  color: #fff;
   box-shadow: none;
   white-space: nowrap;
   font-size: 11px;
@@ -621,7 +621,7 @@
 }
 
 .approval-types-create.btn-primary:hover {
-  background: linear-gradient(110deg, var(--app-primary-gradient-start, #867afa), var(--app-primary-gradient-end, #6465ef));
+  background: linear-gradient(110deg, #867afa, #6465ef);
   color: #fff;
   filter: brightness(1.08);
   box-shadow: 0 4px 14px #6660ef29;

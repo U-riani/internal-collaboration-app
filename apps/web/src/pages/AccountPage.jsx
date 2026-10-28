@@ -25,7 +25,6 @@ import {
 import { api } from "../lib/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { Avatar, ErrorBox, Field } from "../components/UI.jsx";
-import AccountAppearance from "../components/AccountAppearance.jsx";
 import {
   pushSupported,
   isIosHomeScreenRequired,
@@ -646,7 +645,17 @@ export default function AccountPage() {
       {activeTab === "profile" && (
         <AccountProfile user={user} displayName={displayName} photoUrl={photoUrl} />
       )}
-      {activeTab === "appearance" && <AccountAppearance />}
+      {activeTab === "appearance" && (
+        <section className="account-settings-card account-pending-card">
+          <div className="account-card-heading">
+            <span className="account-card-icon account-card-icon--violet"><MonitorCog size={20} /></span>
+            <div><h2>Appearance &amp; Theme</h2><p>Workspace display preferences</p></div>
+          </div>
+          <p className="account-settings-description">
+            Appearance settings will be designed in the next phase. Your existing application theme remains unchanged.
+          </p>
+        </section>
+      )}
     </div>
   );
 }

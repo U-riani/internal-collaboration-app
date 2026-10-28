@@ -31,8 +31,8 @@ dialog.modal:has(.drive-upload-modal)[open] { display: flex; }
   --upload-border: rgba(180, 195, 239, .10);
   --upload-text: #eff0ff;
   --upload-muted: #9ca6bd;
-  --upload-primary: var(--app-primary, #7569f7);
-  --upload-primary-bright: var(--app-accent-focus, #9187ff);
+  --upload-primary: #7569f7;
+  --upload-primary-bright: #9187ff;
   --upload-track: #0e1422;
   --upload-pill: #2c3246;
   --upload-shadow: rgba(2, 5, 17, .75);
@@ -54,7 +54,7 @@ dialog.modal:has(.drive-upload-modal) .modal-head-leading {
   flex: 0 0 42px;
   height: 42px;
   border-radius: 12px;
-  background: linear-gradient(135deg, var(--app-primary-gradient-start, #9288ff), var(--app-primary-gradient-end, #6658ed));
+  background: linear-gradient(135deg, #9288ff, #6658ed);
   color: #28235e;
   box-shadow: 0 3px 14px rgba(115, 107, 252, .30);
 }
@@ -200,7 +200,7 @@ dialog.modal:has(.drive-upload-modal) .modal-body {
 .drive-upload-browse.btn-primary,
 .drive-upload-submit.btn-primary,
 .drive-upload-use-folder.btn-primary {
-  background: linear-gradient(120deg, var(--app-primary-gradient-start, #8b7bff), var(--app-primary-gradient-end, #5755e9));
+  background: linear-gradient(120deg, #8b7bff, #5755e9);
   box-shadow: 0 5px 18px rgba(103, 96, 233, .27);
   border: 1px solid rgba(200, 196, 255, .15);
   color: #fff;
@@ -209,7 +209,7 @@ dialog.modal:has(.drive-upload-modal) .modal-body {
 .drive-upload-browse.btn-primary:hover:not(:disabled),
 .drive-upload-submit.btn-primary:hover:not(:disabled),
 .drive-upload-use-folder.btn-primary:hover:not(:disabled) {
-  background: linear-gradient(120deg, var(--app-primary-gradient-start, #8b7bff), var(--app-primary-gradient-end, #5755e9));
+  background: linear-gradient(120deg, #8b7bff, #5755e9);
   filter: brightness(1.12);
   box-shadow: 0 7px 21px rgba(103, 96, 233, .34);
 }

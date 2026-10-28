@@ -9,7 +9,7 @@
   --account-muted: #77839b;
   --account-border: rgba(89, 106, 145, .12);
   --account-shadow: rgba(29, 40, 68, .05);
-  --account-accent: var(--app-accent-focus, #736cf7);
+  --account-accent: #736cf7;
   min-height: calc(100dvh - 28px);
   margin: 0 -34px -28px;
   padding: clamp(26px, 3vw, 48px) clamp(15px, 2.7vw, 34px) 40px;
@@ -190,11 +190,11 @@
 }
 .account-tab:hover:not(.is-active) { background: var(--account-button); color: var(--account-text); }
 .account-tab.is-active {
-  background: linear-gradient(112deg, var(--app-primary-gradient-start, #8981ff), var(--app-primary-gradient-end, #6c69ed));
-  color: var(--app-primary-contrast, #131b42);
-  box-shadow: 0 4px 15px var(--app-accent-glow, rgba(96, 87, 239, .22));
+  background: linear-gradient(112deg, #8981ff, #6c69ed);
+  color: #131b42;
+  box-shadow: 0 4px 15px rgba(96, 87, 239, .22);
 }
-.app-theme-dark .account-tab.is-active { color: var(--app-primary-contrast, #191845); }
+.app-theme-dark .account-tab.is-active { color: #191845; }
 
 .account-notifications-grid {
   display: grid;
@@ -547,8 +547,8 @@
   white-space: nowrap;
 }
 .account-profile-photo-actions .account-profile-upload.btn-primary {
-  background: linear-gradient(110deg, var(--app-primary-gradient-start, #8880ff), var(--app-primary-gradient-end, #7973f9));
-  color: var(--app-primary-contrast, #1c1947);
+  background: linear-gradient(110deg, #8880ff, #7973f9);
+  color: #1c1947;
   box-shadow: none;
 }
 .account-profile-photo-actions .account-profile-remove.btn-secondary {
@@ -793,15 +793,15 @@
   padding: 9px 18px;
   border: 0;
   border-radius: 9px;
-  background: linear-gradient(115deg, var(--app-primary-gradient-start, #8e83ff), var(--app-primary-gradient-end, #706af0));
-  color: var(--app-primary-contrast, #1c1844);
+  background: linear-gradient(115deg, #8e83ff, #706af0);
+  color: #1c1844;
   font-size: 12px;
   font-weight: 750;
   box-shadow: none;
   transition: filter .15s ease;
 }
 .account-security-card .account-save-password.btn-primary:hover:not(:disabled) {
-  background: linear-gradient(115deg, var(--app-primary-gradient-start, #8e83ff), var(--app-primary-gradient-end, #706af0));
+  background: linear-gradient(115deg, #8e83ff, #706af0);
   filter: brightness(1.09);
 }
 .account-security-grid .account-password-policy {
@@ -860,220 +860,4 @@
   .account-security-card .account-password-field .account-password-input.input,
   .account-security-card .account-save-password.btn-primary,
   .account-password-field .account-password-eye { transition: none; }
-}
-
-/* Appearance settings — phase 1: working account-scoped accent palette. */
-.account-appearance-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr);
-  align-items: stretch;
-  gap: 17px;
-  margin-top: 23px;
-}
-.account-appearance-grid .account-settings-card {
-  min-width: 0;
-  min-height: 359px;
-  padding: 20px 18px;
-}
-.account-appearance-theme-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  margin-top: 17px;
-}
-.account-appearance-theme-card {
-  min-width: 0;
-  padding: 11px;
-  border-radius: 11px;
-  border: 1px solid transparent;
-  background: var(--account-button);
-  color: var(--account-text);
-}
-.account-appearance-theme-card.is-active {
-  border-color: var(--app-accent-focus, #8c81ff);
-  box-shadow: 0 0 0 1px var(--app-accent-glow, rgba(135, 123, 250, .2));
-}
-.account-appearance-theme-card.is-upcoming { opacity: .67; }
-.account-appearance-theme-title {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 5px;
-  min-width: 0;
-  font-size: 11px;
-  font-weight: 710;
-}
-.account-appearance-theme-title strong {
-  overflow: hidden;
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-.account-appearance-theme-title svg { color: var(--app-accent-focus, #8c81ff); flex: 0 0 auto; }
-.account-appearance-theme-radio {
-  width: 13px;
-  height: 13px;
-  border: 2px solid var(--account-muted);
-  border-radius: 50%;
-  flex: 0 0 auto;
-}
-.account-appearance-theme-preview {
-  --preview-bg: #0c1221;
-  --preview-panel: #151d31;
-  --preview-accent: var(--app-primary-gradient-start, #8c81ff);
-  --preview-line: #353c55;
-  height: 62px;
-  margin-top: 10px;
-  padding: 9px;
-  border-radius: 8px;
-  background: var(--preview-bg);
-}
-.account-appearance-theme-preview.preview-oled {
-  --preview-bg: #000;
-  --preview-panel: #0a0a0a;
-  --preview-accent: #39cce1;
-  --preview-line: #303030;
-}
-.account-appearance-theme-preview.preview-slate {
-  --preview-bg: #191d27;
-  --preview-panel: #262a35;
-  --preview-accent: #c7a1e9;
-  --preview-line: #414653;
-}
-.account-appearance-theme-preview.preview-system {
-  --preview-bg: linear-gradient(110deg, #f5f7fb 0 49%, #1b2030 49%);
-  --preview-panel: #939eaf;
-  --preview-accent: #7380cc;
-  --preview-line: #737c8f;
-}
-.account-appearance-theme-preview.preview-system { background: var(--preview-bg); }
-.account-theme-preview-row {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-}
-.account-theme-preview-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex: 0 0 auto;
-  background: var(--preview-accent);
-}
-.account-theme-preview-line {
-  width: 30%;
-  height: 5px;
-  border-radius: 8px;
-  background: var(--preview-line);
-}
-.account-theme-preview-footer {
-  display: flex;
-  gap: 5px;
-  margin-top: 17px;
-}
-.account-theme-preview-primary {
-  width: 17px;
-  height: 10px;
-  border-radius: 3px;
-  background: var(--preview-accent);
-}
-.account-theme-preview-secondary {
-  width: 40px;
-  height: 10px;
-  border-radius: 3px;
-  background: var(--preview-panel);
-}
-.account-appearance-theme-card > p {
-  margin-top: 8px;
-  font-size: 9px;
-  color: var(--account-muted);
-  line-height: 1.4;
-  font-weight: 540;
-}
-.account-theme-coming-soon {
-  display: inline-block;
-  margin-top: 7px;
-  padding: 3px 6px;
-  border-radius: 5px;
-  background: var(--account-deep);
-  color: var(--account-muted);
-  font-size: 9px;
-  font-weight: 650;
-}
-.account-appearance-note {
-  margin: 16px 0 0;
-  color: var(--account-muted);
-  font-size: 10px;
-  line-height: 1.5;
-}
-.account-appearance-accent-heading h2 {
-  color: var(--account-text);
-  font-weight: 760;
-  font-size: 16px;
-  line-height: 1.25;
-}
-.account-appearance-accent-heading > p {
-  color: var(--account-muted);
-  font-size: 11px;
-  line-height: 1.5;
-  margin: 5px 0 0;
-}
-.account-accent-options {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 17px;
-}
-.account-accent-option {
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 37px;
-  padding: 8px 10px;
-  border: 1px solid transparent;
-  border-radius: 9px;
-  background: var(--account-button);
-  color: var(--account-text);
-  text-align: left;
-  font-size: 11px;
-  font-weight: 650;
-  transition: background-color .15s ease, border-color .15s ease;
-}
-.account-accent-option > span:nth-child(2) {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-.account-accent-option:hover:not(.is-selected) { background: var(--account-deep); }
-.account-accent-option.is-selected { border-color: var(--app-accent-focus, #8981ff); }
-.account-accent-option:focus-within {
-  outline: 2px solid var(--app-accent-focus, #8981ff);
-  outline-offset: 2px;
-}
-.account-accent-swatch {
-  width: 16px;
-  height: 16px;
-  flex: 0 0 auto;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, .26);
-}
-.account-accent-active-label {
-  color: var(--account-muted);
-  font-size: 9px;
-  font-weight: 660;
-}
-.account-accent-option > svg { color: var(--app-accent-focus, #8981ff); }
-@media (max-width: 1050px) {
-  .account-appearance-grid { gap: 12px; }
-  .account-appearance-grid .account-settings-card { padding: 17px 14px; }
-}
-@media (max-width: 720px) {
-  .account-appearance-grid { grid-template-columns: 1fr; gap: 13px; }
-  .account-appearance-grid .account-settings-card { min-height: 0; }
-}
-@media (max-width: 420px) {
-  .account-appearance-theme-grid { gap: 7px; }
-  .account-appearance-theme-card { padding: 8px; }
-  .account-appearance-theme-title { font-size: 10px; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .account-accent-option { transition: none; }
 }
