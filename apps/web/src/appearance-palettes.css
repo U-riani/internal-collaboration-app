@@ -22,7 +22,7 @@
   --palette-panel: #101114;
   --palette-raised: #17191e;
   --palette-input: #1b1d23;
-  --palette-selection: #222630;
+  --palette-selection: color-mix(in srgb, var(--app-accent) 19%, #17191e);
   --palette-panel-gradient: linear-gradient(135deg, #141519, #0c0d10);
   --palette-chat-gradient: linear-gradient(135deg, #0e0f12, #15161a);
   --palette-border: #343741;
@@ -44,7 +44,7 @@
   --palette-panel: #242b36;
   --palette-raised: #2a3240;
   --palette-input: #303848;
-  --palette-selection: #394354;
+  --palette-selection: color-mix(in srgb, var(--app-accent) 19%, #2a3240);
   --palette-panel-gradient: linear-gradient(135deg, #2d3542, #222833);
   --palette-chat-gradient: linear-gradient(145deg, #242b36, #2d3441);
   --palette-border: #495366;
