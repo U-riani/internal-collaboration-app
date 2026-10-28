@@ -176,7 +176,7 @@ function TaskForm({ existing, parentTask, defaultGroupId = "", onClose }) {
     participantIds:
       existing?.participants.map((participant) => participant.userId) || [],
   });
-  const { files, addFiles, removeFile, clearFiles, selectionError } = useSelectedFiles();
+  const { files, addFiles, removeFile, selectionError } = useSelectedFiles();
   const attachmentUploads = useRef(new Map());
   const users = useQuery({
     queryKey: ["users"],
