@@ -99,6 +99,47 @@ export async function uploadFile(file) {
 
 // Opt-in upload transport for interfaces that need real byte progress and cancellation.
 // The existing uploadFile() API stays intact for Messages, Tasks and Approvals.
+// Upload several attachments with bounded concurrency. Keep successful IDs
+// in a per-composer cache so a failed batch can retry without re-uploading
+// the files that were already accepted by the server.
+export async function uploadFiles(files, uploadedCache = new Map()) {
+  const selected = Array.from(files || []);
+  if (!selected.length) return [];
+
+  const ids = new Array(selected.length);
+  const failed = [];
+  let nextIndex = 0;
+
+  async function worker() {
+    while (nextIndex < selected.length) {
+      const index = nextIndex++;
+      const file = selected[index];
+      try {
+        let id = uploadedCache.get(file);
+        if (!id) {
+          id = (await uploadFile(file)).id;
+          uploadedCache.set(file, id);
+        }
+        ids[index] = id;
+      } catch (error) {
+        failed.push({ name: file.name, message: error.message });
+      }
+    }
+  }
+
+  await Promise.all(
+    Array.from({ length: Math.min(3, selected.length) }, () => worker()),
+  );
+
+  if (failed.length) {
+    const details = failed.map((entry) => `${entry.name}: ${entry.message}`).join("; ");
+    throw new Error(
+      `${failed.length} of ${selected.length} attachments could not be uploaded. Nothing was submitted. ${details}`,
+    );
+  }
+  return ids;
+}
+
 export async function uploadFileWithProgress(file, { onProgress, signal } = {}) {
   async function send() {
     return new Promise((resolve, reject) => {
