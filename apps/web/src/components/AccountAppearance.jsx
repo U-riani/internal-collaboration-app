@@ -1,4 +1,4 @@
-import { Check, CheckCircle2, Moon, Palette } from "lucide-react";
+import { Check, CheckCircle2, Moon } from "lucide-react";
 import { ACCENT_OPTIONS, useAppearance } from "../context/AppearanceContext.jsx";
 
 const themeOptions = [
@@ -82,18 +82,22 @@ export default function AccountAppearance() {
           {ACCENT_OPTIONS.map((option) => {
             const selected = accent === option.id;
             return (
-              <button
+              <label
                 key={option.id}
-                type="button"
-                role="radio"
-                aria-checked={selected}
                 className={`account-accent-option ${selected ? "is-selected" : ""}`}
-                onClick={() => setAccent(option.id)}
               >
+                <input
+                  type="radio"
+                  className="sr-only"
+                  name="account-accent-color"
+                  value={option.id}
+                  checked={selected}
+                  onChange={() => setAccent(option.id)}
+                />
                 <span className="account-accent-swatch" style={{ backgroundColor: option.swatch }} aria-hidden="true" />
                 <span>{option.label}</span>
                 {selected && <><span className="account-accent-active-label">Active</span><Check size={17} aria-hidden="true" /></>}
-              </button>
+              </label>
             );
           })}
         </div>
