@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
@@ -22,7 +22,8 @@ import {
   CalendarDays,
   Ban,
 } from "lucide-react";
-import { api, uploadFile } from "../lib/api.js";
+import { api, uploadFiles } from "../lib/api.js";
+import { SelectedFiles, useSelectedFiles } from "../components/SelectedFiles.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import PageHeader from "../components/PageHeader.jsx";
 import FilterMultiSelect from "../components/FilterMultiSelect.jsx";
@@ -874,7 +875,8 @@ function RequestForm({ existing, onClose }) {
   const [typeId, setTypeId] = useState(existing?.approvalTypeId || "");
   const [title, setTitle] = useState(existing?.title || "");
   const [values, setValues] = useState(existing?.data || {});
-  const [file, setFile] = useState(null);
+  const { files, addFiles, removeFile, selectionError } = useSelectedFiles(10);
+  const attachmentUploads = useRef(new Map());
   const types = useQuery({
     queryKey: ["approval-types"],
     queryFn: () => api("/approval-types").then((r) => r.data),
@@ -907,7 +909,7 @@ function RequestForm({ existing, onClose }) {
             title,
             data: values,
             submit,
-            attachmentIds: file ? [(await uploadFile(file)).id] : [],
+            attachmentIds: await uploadFiles(files, attachmentUploads.current),
           }),
         });
     },
@@ -965,13 +967,23 @@ function RequestForm({ existing, onClose }) {
         />
         <FormFields schema={schema} values={values} setValues={setValues} />
         {!existing && (
-          <Field
-            label="Attachment (optional)"
-            type="file"
-            onChange={(e) => setFile(e.target.files[0])}
-          />
+          <>
+            <Field
+              label="Attachments (optional)"
+              type="file"
+              multiple
+              disabled={save.isPending}
+              onChange={addFiles}
+            />
+            <SelectedFiles
+              files={files}
+              onRemove={removeFile}
+              disabled={save.isPending}
+              className="mt-2"
+            />
+          </>
         )}
-        <ErrorBox error={save.error} />
+        <ErrorBox error={selectionError || save.error} />
         <div className="form-actions">
           <button
             className="btn-secondary"
