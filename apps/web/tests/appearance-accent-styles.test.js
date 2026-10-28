@@ -36,4 +36,26 @@ describe("Incremental shared accent styling", () => {
     expect(tasks).toContain("var(--app-ui-accent-label, #fff)");
     expect(tasks).toContain("var(--app-ui-focus-ring, #918bff)");
   });
+  it("uses the selected accent for native dropdowns and their checkmarks", () => {
+    expect(theme).toContain("--app-ui-accent-selected: var(--app-accent);");
+    expect(theme).toContain("--app-ui-accent-selected-text: var(--app-on-accent);");
+    expect(theme).toContain("background: var(--app-ui-accent-selected, #655ff1);");
+    expect(theme).toContain("color: var(--app-ui-accent-selected-text, #f4f1ff);");
+    expect(theme).toContain("color: var(--app-ui-accent-selected-text, #fff);");
+  });
+
+  it("recolors Tasks search, filter checkboxes, and form dropdown focus without changing Indigo", () => {
+    expect(tasks).toContain("border-color: var(--app-ui-focus-ring, #817cf0)");
+    expect(tasks).toContain("box-shadow: 0 0 0 2px var(--app-ui-accent-tint, #8077f621)");
+    expect(tasks).toContain("background: var(--app-ui-accent-selected, #746dff)");
+    expect(tasks).toContain("border-color: var(--app-ui-accent-selected, #746dff)");
+    expect(tasks).toContain("border-bottom: 2px solid var(--app-ui-accent-selected-text, #fff)");
+    expect(tasks).toContain("background: var(--app-ui-accent-tint, rgba(118, 109, 245, .13))");
+    expect(tasks).toContain("border: 1px solid var(--app-ui-focus-ring, #7873ca) !important");
+  });
+
+  it("connects the Account notification toggle to the accent palette", () => {
+    expect(account).toContain("accent-color: var(--app-ui-accent-selected, #827aff)");
+  });
+
 });
