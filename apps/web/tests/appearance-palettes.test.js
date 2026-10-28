@@ -5,6 +5,7 @@ const palette = readFileSync(new URL("../src/appearance-palettes.css", import.me
 const theme = readFileSync(new URL("../src/theme.css", import.meta.url), "utf8");
 const layout = readFileSync(new URL("../src/components/Layout.jsx", import.meta.url), "utf8");
 const account = readFileSync(new URL("../src/pages/AccountPage.jsx", import.meta.url), "utf8");
+const spreadsheet = readFileSync(new URL("../src/pages/SpreadsheetPage.jsx", import.meta.url), "utf8");
 
 describe("Dark workspace appearance palettes", () => {
   it("has two scoped palettes and leaves Midnight CSS untouched", () => {
@@ -48,6 +49,49 @@ describe("Dark workspace appearance palettes", () => {
     expect(palette).not.toContain('status-approved {');
     expect(palette).not.toContain('notification-unread-dot {');
     expect(palette).not.toContain('drive-item-icon--pdf {');
+  });
+
+  it("covers deep Messages/Drive/Task/Approval/Account surfaces, not only page backgrounds", () => {
+    for (const selector of [
+      ".chat-composer-form",
+      ".chat-message-row:not(.chat-message-own) .chat-message-bubble",
+      ".chat-messages-scroll .btn-secondary",
+      ".conversation-members-current-list",
+      ".drive-directory-list .drive-table-head",
+      ".drive-directory-summary",
+      ".drive-space-nav",
+      ".drive-member-person",
+      ".drive-permission-mode-select",
+      ".drive-upload-float-icon",
+      ".task-form .task-form-footer",
+      ".task-detail",
+      ".approval-type-row",
+      ".approval-config-field-card",
+      ".approval-config-step-row",
+      ".approval-bases-page",
+      ".account-password-field",
+      ".overview-task-row",
+      ".overview-focus-count",
+    ]) {
+      expect(palette).toContain(selector);
+    }
+  });
+
+  it("theming respects semantic states and also reaches Admin and Audit", () => {
+    expect(palette).toContain(".app-modern-select::picker(select)");
+    expect(palette).toContain("pre.bg-slate-50");
+    expect(palette).toContain(".badge.bg-slate-100");
+    expect(palette).not.toContain(".notification-card--urgent");
+    expect(palette).not.toContain(".drive-item-icon--pdf");
+    expect(palette).not.toContain(".task-group-state--attention");
+    expect(palette).not.toContain('.app-theme-dark[data-appearance="midnight"]');
+  });
+
+  it("uses Univer native dark mode on desktop but keeps mobile WebView unchanged", () => {
+    expect(spreadsheet).toContain('darkMode: !mobile && getThemePreference(user.id) !== "midnight"');
+    expect(spreadsheet).toContain('workspace-spreadsheet flex');
+    expect(palette).toContain(".workspace-spreadsheet");
+    expect(spreadsheet).toContain('mobile');
   });
 
   it("offers three working dark radios and keeps System Sync disabled", () => {
