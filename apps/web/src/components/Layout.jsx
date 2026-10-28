@@ -18,6 +18,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useSocket } from "../hooks/useSocket.js";
 import { api } from "../lib/api.js";
+import { handleNotificationCreated, installNotificationAudioUnlock } from "../lib/notificationSounds.js";
+import { syncExistingBrowserPush } from "../lib/pushNotifications.js";
 import { Avatar } from "./UI.jsx";
 import "../theme.css";
 const links = [
@@ -40,6 +42,20 @@ export default function Layout() {
   const isOverview = useLocation().pathname === "/dashboard";
   const [open, setOpen] = useState(false);
   const qc = useQueryClient();
+
+  // The existing global listener plays each realtime notification once.
+  useEffect(() => installNotificationAudioUnlock(), []);
+
+  useEffect(() => {
+    void syncExistingBrowserPush(user.id);
+    if (!("serviceWorker" in navigator)) return undefined;
+    const onSubscriptionChanged = (event) => {
+      if (event.data?.type === "collab:push-subscription-changed")
+        void syncExistingBrowserPush(user.id);
+    };
+    navigator.serviceWorker.addEventListener("message", onSubscriptionChanged);
+    return () => navigator.serviceWorker.removeEventListener("message", onSubscriptionChanged);
+  }, [user.id]);
 
   useEffect(() => {
     const onKeyDown = (event) => {
@@ -75,6 +91,7 @@ export default function Layout() {
       acknowledgeDelivery({ allPending: true });
     },
     "notification:created": (notification) => {
+      handleNotificationCreated(notification, user.id);
       invalidate("notifications");
       if (notification?.type === "MESSAGE_REACTION")
         invalidate("conversations");
