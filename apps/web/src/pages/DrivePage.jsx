@@ -24,7 +24,8 @@ import {
   ShieldCheck,
   LockKeyhole,
 } from "lucide-react";
-import { api, uploadFile, downloadFile } from "../lib/api.js";
+import { api, downloadFile } from "../lib/api.js";
+import DriveUploadModal from "../components/DriveUploadModal.jsx";
 import { importExcelToUniverSnapshot } from "../lib/xlsx.js";
 import PageHeader from "../components/PageHeader.jsx";
 import "./drive-personal.css";
@@ -808,37 +809,20 @@ export default function DrivePage() {
                 <FolderPlus size={17} />
                 New folder
               </button>
-              <label
-                className={`btn-primary text-nowrap ${busy ? "pointer-events-none opacity-50" : ""}`}
+              <button
+                type="button"
+                className="btn-primary text-nowrap"
+                disabled={busy}
+                onClick={() => setModal({
+                  kind: "upload",
+                  parentId: parent,
+                  spaceId,
+                  name: query.data?.meta?.folder?.name || selectedSpace?.name || "Drive",
+                })}
               >
                 <Upload size={17} />
                 {busy ? "Working…" : "Upload files"}
-                <input
-                  type="file"
-                  multiple
-                  className="sr-only"
-                  aria-label="Upload files"
-                  disabled={busy}
-                  onChange={(e) => {
-                    const files = [...e.target.files];
-                    e.target.value = "";
-                    act(async () => {
-                      for (const file of files) {
-                        const uploaded = await uploadFile(file);
-                        await api("/drive", {
-                          method: "POST",
-                          body: JSON.stringify({
-                            name: file.name,
-                            fileId: uploaded.id,
-                            parentId: parent,
-                            spaceId,
-                          }),
-                        });
-                      }
-                    });
-                  }}
-                />
-              </label>
+              </button>
             </div>
           )
         }
@@ -1206,6 +1190,16 @@ export default function DrivePage() {
         </main>
       </div>
       </div>
+
+      {modal?.kind === "upload" && (
+        <DriveUploadModal
+          spaceId={modal.spaceId}
+          initialParentId={modal.parentId}
+          initialName={modal.name}
+          onUploaded={reload}
+          onClose={() => setModal(null)}
+        />
+      )}
 
       {modal && ["create", "rename"].includes(modal.kind) && (
         <Modal
