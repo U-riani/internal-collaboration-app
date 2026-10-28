@@ -4,14 +4,17 @@ import {
   BellRing,
   BadgeCheck,
   CheckCircle2,
+  Circle,
   CircleAlert,
   ClipboardList,
+  Eye,
+  EyeOff,
   KeyRound,
   Mail,
   MonitorCog,
   Play,
   Phone,
-  ShieldCheck,
+  RotateCcw,
   Trash2,
   Upload,
   UserRound,
@@ -79,11 +82,66 @@ function PushStatusRow({ name, value, positive, loading }) {
   );
 }
 
+function PasswordInput({ label, value, onChange, autoComplete, placeholder, visible, onToggle, minLength, maxLength, disabled }) {
+  return (
+    <div className="account-password-field">
+      <Field label={label}>
+        <input
+          className="input account-password-input"
+          type={visible ? "text" : "password"}
+          autoComplete={autoComplete}
+          required
+          minLength={minLength}
+          maxLength={maxLength}
+          placeholder={placeholder}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          disabled={disabled}
+        />
+      </Field>
+      <button
+        type="button"
+        className="account-password-eye"
+        aria-label={visible ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`}
+        aria-pressed={visible}
+        title={visible ? "Hide password" : "Show password"}
+        onClick={onToggle}
+        disabled={disabled}
+      >
+        {visible ? <EyeOff size={17} aria-hidden="true" /> : <Eye size={17} aria-hidden="true" />}
+      </button>
+    </div>
+  );
+}
+
 function AccountSecurity() {
   const { logout } = useAuth();
   const [currentPassword, setCurrent] = useState("");
   const [newPassword, setNew] = useState("");
   const [confirmation, setConfirmation] = useState("");
+  const [revealed, setRevealed] = useState({
+    current: false,
+    next: false,
+    confirm: false,
+  });
+  function toggleVisibility(key) {
+    setRevealed((previous) => ({ ...previous, [key]: !previous[key] }));
+  }
+
+  // Match the authenticated POST /auth/password schema (12–200 characters;
+  // different from current). Confirmation is a frontend safeguard.
+  const rules = [
+    { id: "minimum", label: "At least 12 characters", met: newPassword.length >= 12 },
+    { id: "maximum", label: "No more than 200 characters", met: newPassword.length > 0 && newPassword.length <= 200 },
+    { id: "different", label: "Different from current password", met: currentPassword.length > 0 && newPassword.length > 0 && newPassword !== currentPassword },
+    { id: "matching", label: "Confirmation matches new password", met: confirmation.length > 0 && newPassword === confirmation },
+  ];
+  const canSave =
+    !save.isPending &&
+    currentPassword.length >= 1 &&
+    currentPassword.length <= 200 &&
+    rules.every((rule) => rule.met);
+
   const save = useMutation({
     mutationFn: () =>
       api("/auth/password", {
@@ -92,60 +150,88 @@ function AccountSecurity() {
       }),
     onSuccess: () => logout(),
   });
+
   return (
-    <section className="account-settings-card account-security-card">
-      <div className="account-card-heading">
-        <span className="account-card-icon account-card-icon--violet"><ShieldCheck size={20} /></span>
-        <div>
-          <h2>Change password</h2>
-          <p>Manage the security of your account</p>
+    <div className="account-security-grid">
+      <section className="account-settings-card account-security-card" aria-labelledby="account-security-title">
+        <div className="account-card-heading">
+          <span className="account-card-icon account-card-icon--violet" aria-hidden="true">
+            <RotateCcw size={20} />
+          </span>
+          <div>
+            <h2 id="account-security-title">Change password</h2>
+            <p>Credential encryption &amp; renewal</p>
+          </div>
         </div>
-      </div>
-      <p className="account-settings-description">
-        Use at least 12 characters. After saving, sign in again with your new password on each device.
-      </p>
-      <form
-        className="account-password-form"
-        onSubmit={(event) => {
-          event.preventDefault();
-          if (!save.isPending && newPassword === confirmation) save.mutate();
-        }}
-      >
-        <Field
-          label="Current password"
-          type="password"
-          autoComplete="current-password"
-          required
-          value={currentPassword}
-          onChange={(event) => setCurrent(event.target.value)}
-        />
-        <Field
-          label="New password"
-          type="password"
-          autoComplete="new-password"
-          required
-          minLength={12}
-          maxLength={200}
-          value={newPassword}
-          onChange={(event) => setNew(event.target.value)}
-        />
-        <Field
-          label="Confirm new password"
-          type="password"
-          autoComplete="new-password"
-          required
-          value={confirmation}
-          onChange={(event) => setConfirmation(event.target.value)}
-        />
-        {confirmation && newPassword !== confirmation && (
-          <p className="account-validation-error">Passwords do not match.</p>
-        )}
-        <ErrorBox error={save.error} />
-        <button className="btn-primary account-save-password" disabled={save.isPending || newPassword !== confirmation}>
-          {save.isPending ? "Saving…" : "Save password"}
-        </button>
-      </form>
-    </section>
+        <p className="account-settings-description">
+          Use at least 12 characters. After saving, sign in again with your new password on each device.
+        </p>
+        <form
+          className="account-password-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (canSave) save.mutate();
+          }}
+        >
+          <PasswordInput
+            label="Current password"
+            placeholder="Enter current password"
+            autoComplete="current-password"
+            value={currentPassword}
+            onChange={setCurrent}
+            maxLength={200}
+            visible={revealed.current}
+            onToggle={() => toggleVisibility("current")}
+            disabled={save.isPending}
+          />
+          <PasswordInput
+            label="New password"
+            placeholder="At least 12 characters"
+            autoComplete="new-password"
+            value={newPassword}
+            onChange={setNew}
+            minLength={12}
+            maxLength={200}
+            visible={revealed.next}
+            onToggle={() => toggleVisibility("next")}
+            disabled={save.isPending}
+          />
+          <PasswordInput
+            label="Confirm new password"
+            placeholder="Confirm new password"
+            autoComplete="new-password"
+            value={confirmation}
+            onChange={setConfirmation}
+            maxLength={200}
+            visible={revealed.confirm}
+            onToggle={() => toggleVisibility("confirm")}
+            disabled={save.isPending}
+          />
+          {confirmation && newPassword !== confirmation && (
+            <p className="account-validation-error" role="alert">Passwords do not match.</p>
+          )}
+          <ErrorBox error={save.error} />
+          <button className="btn-primary account-save-password" disabled={!canSave}>
+            {save.isPending ? "Saving…" : "Save password"}
+          </button>
+        </form>
+      </section>
+
+      <section className="account-settings-card account-password-policy" aria-labelledby="account-password-policy-title">
+        <h2 id="account-password-policy-title">Password Policy Requirements</h2>
+        <p>Requirements enforced by the current workspace authentication system.</p>
+        <ul className="account-password-rules" aria-label="Password requirements">
+          {rules.map((rule) => (
+            <li key={rule.id} className={rule.met ? "is-met" : "is-pending"}>
+              {rule.met
+                ? <CheckCircle2 size={16} aria-hidden="true" />
+                : <Circle size={16} aria-hidden="true" />}
+              <span>{rule.label}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </div>
   );
 }
 
