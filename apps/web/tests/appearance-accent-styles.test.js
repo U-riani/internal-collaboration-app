@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 const theme = readFileSync(new URL("../src/theme.css", import.meta.url), "utf8");
 const account = readFileSync(new URL("../src/pages/account-page.css", import.meta.url), "utf8");
 const tasks = readFileSync(new URL("../src/pages/tasks-page.css", import.meta.url), "utf8");
+const messages = readFileSync(new URL("../src/pages/messages-theme.css", import.meta.url), "utf8");
 
 describe("Incremental shared accent styling", () => {
   it("only defines legacy gradient overrides for non-default accents", () => {
@@ -70,5 +71,33 @@ describe("Incremental shared accent styling", () => {
   it("connects the Account notification toggle to the accent palette", () => {
     expect(account).toContain("accent-color: var(--app-ui-accent-selected, #827aff)");
   });
+
+  it("reuses accents across Messages without changing outgoing bubble defaults", () => {
+    expect(messages).toContain("var(--app-ui-accent-start, #8077ff)");
+    expect(messages).toContain("var(--app-ui-accent-end, #5755e8)");
+    expect(messages).toContain("var(--app-ui-focus-ring, #7670dd)");
+    expect(messages).toContain("var(--app-ui-accent-tint, #7670dd22)");
+    expect(messages).toContain("var(--app-ui-focus-ring, #8279ff)");
+    expect(messages).toContain("var(--app-ui-accent-start, #8279ff)");
+    expect(messages).toContain("var(--app-ui-accent-end, #6e63ee)");
+    expect(messages).toContain("var(--app-ui-accent-label, #fff)");
+  });
+
+  it("styles New Conversation inputs, selection, checkmarks and submit action with the shared palette", () => {
+    expect(theme).toContain("--app-ui-selection-start: color-mix(");
+    expect(theme).toContain("--app-ui-selection-hover: color-mix(");
+    expect(messages).toContain("var(--app-ui-selection-start, #282b60)");
+    expect(messages).toContain("var(--app-ui-selection-end, #222653)");
+    expect(messages).toContain("var(--app-ui-selection-hover, #313574)");
+    expect(messages).toContain("var(--app-ui-accent-selected, #6760eb)");
+    expect(messages).toContain("var(--app-ui-focus-ring, #6663d9)");
+    expect(messages).toContain("var(--app-ui-accent-start, #716cf6)");
+    expect(messages).toContain("var(--app-ui-accent-end, #4b46d7)");
+    expect(messages).toContain("var(--app-ui-accent-selected-hover, #7771ff)");
+    // Unread and online-state colors must not be overwritten by account accents.
+    expect(messages).toContain("background:#50c7de;");
+    expect(messages).toContain("background: #204e65;");
+  });
+
 
 });
