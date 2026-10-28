@@ -53,13 +53,20 @@
   color: #c4cae2;
   background: #1d2334;
 }
-.drive-page .drive-header-actions .btn-secondary:hover { background: #293148; }
+.drive-page .drive-header-actions .btn-secondary:hover:not(:disabled) {
+  background: var(--app-interactive-hover);
+  color: var(--app-interactive-hover-text);
+}
 .drive-page .drive-header-actions .btn-primary {
   color: var(--app-ui-accent-label, #fff);
   background: linear-gradient(118deg, var(--app-ui-accent-start, #7a6dfe) 0%, var(--app-ui-accent-end, #6059ed) 63%, var(--app-ui-accent-end, #08a8e1) 130%);
   box-shadow: 0 4px 17px var(--app-ui-accent-shadow, rgba(99,102,241,.19));
 }
-.drive-page .drive-header-actions .btn-primary:hover { filter: brightness(1.13); }
+.drive-page .drive-header-actions .btn-primary:hover:not(:disabled) {
+  background: linear-gradient(118deg, var(--app-ui-accent-start, #7a6dfe) 0%, var(--app-ui-accent-end, #6059ed) 63%, var(--app-ui-accent-end, #08a8e1) 130%);
+  color: var(--app-ui-accent-label, #fff);
+  filter: brightness(1.06);
+}
 .drive-page .drive-toolbar {
   position: relative;
   top: auto;
@@ -97,7 +104,15 @@
   flex-shrink: 0;
   white-space: nowrap;
 }
-.drive-page .drive-toolbar .tabs button:hover { color: #e8e8ff; background: #22283c; }
+.drive-page .drive-toolbar .tabs button:not(.active):hover {
+  color: var(--app-interactive-hover-text);
+  background: var(--app-interactive-hover);
+}
+.drive-page .drive-toolbar .tabs button.active:hover {
+  background: linear-gradient(110deg, var(--app-ui-accent-start, #7570fd), var(--app-ui-accent-end, #5d5deb));
+  color: var(--app-ui-accent-label, #fff);
+  filter: brightness(1.055);
+}
 .drive-page .drive-toolbar .tabs button.active {
   color: var(--app-ui-accent-label, #fff);
   background: linear-gradient(110deg, var(--app-ui-accent-start, #7570fd), var(--app-ui-accent-end, #5d5deb));
