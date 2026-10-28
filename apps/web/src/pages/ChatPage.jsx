@@ -40,7 +40,8 @@ import {
   Check,
   UserRound,
 } from "lucide-react";
-import { api, uploadFile } from "../lib/api.js";
+import { api, uploadFiles } from "../lib/api.js";
+import { SelectedFiles, useSelectedFiles } from "../components/SelectedFiles.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useSocket } from "../hooks/useSocket.js";
 import PageHeader from "../components/PageHeader.jsx";
@@ -984,7 +985,8 @@ export default function ChatPage() {
   );
   const [focusMessageId, setFocusMessageId] = useState(linkedMessageId);
   const [text, setText] = useState("");
-  const [file, setFile] = useState(null);
+  const { files, addFiles, removeFile, clearFiles, selectionError } = useSelectedFiles(10);
+  const attachmentUploads = useRef(new Map());
   const [reply, setReply] = useState(null);
   const [newChat, setNewChat] = useState(false);
   const [members, setMembers] = useState(false);
@@ -1408,19 +1410,20 @@ export default function ChatPage() {
     },
   });
   const send = useMutation({
-    mutationFn: async ({ id, content, attachment, replyId }) =>
+    mutationFn: async ({ id, content, attachments, replyId }) =>
       api(`/conversations/${id}/messages`, {
         method: "POST",
         body: JSON.stringify({
           content,
-          attachmentIds: attachment ? [(await uploadFile(attachment)).id] : [],
+          attachmentIds: await uploadFiles(attachments, attachmentUploads.current),
           replyToMessageId: replyId,
         }),
       }),
     onSuccess: (_, vars) => {
       if (vars.id === selectedId) {
         setText("");
-        setFile(null);
+        clearFiles();
+        attachmentUploads.current.clear();
         setReply(null);
       }
       qc.invalidateQueries({ queryKey: ["messages", vars.id] });
@@ -1462,11 +1465,11 @@ export default function ChatPage() {
     },
   });
   const submit = () => {
-    if (selectedId && (text.trim() || file) && !send.isPending)
+    if (selectedId && (text.trim() || files.length) && !send.isPending)
       send.mutate({
         id: selectedId,
         content: text,
-        attachment: file,
+        attachments: files,
         replyId: reply?.id || null,
       });
   };
@@ -2167,18 +2170,12 @@ export default function ChatPage() {
                     </button>
                   </div>
                 )}
-                {file && (
-                  <div className="chat-file-preview flex gap-2 text-xs text-slate-500 mb-2">
-                    <Paperclip size={13} />
-                    {file.name}
-                    <button
-                      aria-label="Remove attachment"
-                      onClick={() => setFile(null)}
-                    >
-                      <X size={13} />
-                    </button>
-                  </div>
-                )}
+                <SelectedFiles
+                  files={files}
+                  onRemove={removeFile}
+                  disabled={send.isPending}
+                  className="chat-file-preview mb-2"
+                />
                 <form
                   className="chat-composer-form flex gap-2 items-end"
                   onSubmit={(e) => {
@@ -2193,9 +2190,11 @@ export default function ChatPage() {
                     <Paperclip size={20} />
                     <input
                       type="file"
+                      multiple
                       className="sr-only"
-                      aria-label="Message attachment"
-                      onChange={(e) => setFile(e.target.files[0])}
+                      aria-label="Message attachments"
+                      disabled={send.isPending}
+                      onChange={addFiles}
                     />
                   </label>
                   <div className="chat-compose-emoji relative mb-1">
@@ -2239,12 +2238,12 @@ export default function ChatPage() {
                   <button
                     className="chat-send-btn btn-primary px-3"
                     aria-label="Send message"
-                    disabled={send.isPending || (!text.trim() && !file)}
+                    disabled={send.isPending || (!text.trim() && !files.length)}
                   >
                     <Send size={18} />
                   </button>
                 </form>
-                <ErrorBox error={send.error} />
+                <ErrorBox error={selectionError || send.error} />
                 <p className="chat-compose-hint hidden sm:block text-[10px] text-slate-400 mt-2 ml-11">
                   Enter to send · Shift + Enter for a new line
                 </p>
