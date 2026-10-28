@@ -8,7 +8,7 @@ import AccountPage from "../src/pages/AccountPage.jsx";
 import { previewNotificationSound, setNotificationSoundsEnabled } from "../src/lib/notificationSounds.js";
 import { sendTestPush } from "../src/lib/pushNotifications.js";
 import { api } from "../src/lib/api.js";
-import { ACCENT_EVENT, accentStorageKey } from "../src/lib/appearance.js";
+import { ACCENT_EVENT, accentStorageKey, THEME_EVENT, themeStorageKey } from "../src/lib/appearance.js";
 
 const mockLogout = vi.hoisted(() => vi.fn());
 
@@ -66,7 +66,7 @@ describe("My Account notification design", () => {
       await user.click(screen.getByRole("button", { name: "Appearance & Theme" }));
       expect(screen.getByText("Workspace Appearance")).not.toBeNull();
       expect(screen.getByText("OLED Pure Black")).not.toBeNull();
-      expect(screen.getAllByText("Coming soon")).toHaveLength(3);
+      expect(screen.getAllByText("Coming soon")).toHaveLength(1);
 
       const cyan = screen.getByRole("radio", { name: "Cyan Glaze" });
       expect(cyan.checked).toBe(false);
@@ -85,6 +85,44 @@ describe("My Account notification design", () => {
     }
   });
 
+
+  it("switches, saves and restores OLED and Slate without changing the accent", async () => {
+    const user = userEvent.setup();
+    window.localStorage.removeItem(themeStorageKey("profile-1"));
+    window.localStorage.setItem(accentStorageKey("profile-1"), "cyan");
+    const onTheme = vi.fn();
+    window.addEventListener(THEME_EVENT, onTheme);
+    try {
+      const mounted = mountAccount();
+      await user.click(screen.getByRole("button", { name: "Appearance & Theme" }));
+      const midnight = screen.getByRole("radio", { name: /Dark Midnight/ });
+      const oled = screen.getByRole("radio", { name: /OLED Pure Black/ });
+      const slate = screen.getByRole("radio", { name: /Deep Slate/ });
+      const system = screen.getByRole("radio", { name: /System Sync/ });
+      expect(midnight.checked).toBe(true);
+      expect(system.disabled).toBe(true);
+
+      await user.click(oled);
+      expect(oled.checked).toBe(true);
+      expect(window.localStorage.getItem(themeStorageKey("profile-1"))).toBe("oled");
+      expect(onTheme.mock.calls[0][0].detail).toEqual({ userId: "profile-1", theme: "oled" });
+      expect(screen.getByRole("radio", { name: "Cyan Glaze" }).checked).toBe(true);
+      await user.click(slate);
+      expect(slate.checked).toBe(true);
+      expect(window.localStorage.getItem(themeStorageKey("profile-1"))).toBe("slate");
+      mounted.unmount();
+
+      mountAccount();
+      await user.click(screen.getByRole("button", { name: "Appearance & Theme" }));
+      expect(screen.getByRole("radio", { name: /Deep Slate/ }).checked).toBe(true);
+      await user.click(screen.getByRole("radio", { name: /Dark Midnight/ }));
+      expect(window.localStorage.getItem(themeStorageKey("profile-1"))).toBe("midnight");
+    } finally {
+      window.removeEventListener(THEME_EVENT, onTheme);
+      window.localStorage.removeItem(themeStorageKey("profile-1"));
+      window.localStorage.removeItem(accentStorageKey("profile-1"));
+    }
+  });
 
   it("shows Sign out in the account header and uses the existing logout action", async () => {
     const user = userEvent.setup();
