@@ -54,6 +54,19 @@ describe("Incremental shared accent styling", () => {
     expect(tasks).toContain("border: 1px solid var(--app-ui-focus-ring, #7873ca) !important");
   });
 
+  it("keeps Tasks Created from/to date focus to a single accent-colored border", () => {
+    expect(tasks).toContain('.tasks-page .task-filter-dates input[type="date"].input:focus-visible');
+    expect(tasks).toContain('border-color: var(--app-ui-focus-ring, #817cf0) !important');
+    expect(tasks).toContain("outline: none !important;");
+    expect(tasks).toContain("box-shadow: none !important;");
+    expect(tasks).toContain("--tw-ring-shadow: 0 0 #0000 !important;");
+    expect(tasks).toContain('input[type="date"]::-webkit-datetime-edit-month-field:focus');
+    expect(tasks).toContain('input[type="date"]::-webkit-datetime-edit-day-field:focus');
+    expect(tasks).toContain('input[type="date"]::-webkit-datetime-edit-year-field:focus');
+    expect(tasks).toContain("background: var(--app-ui-accent-selected, #746dff);");
+    expect(tasks).toContain("color: var(--app-ui-accent-selected-text, #fff);");
+  });
+
   it("connects the Account notification toggle to the accent palette", () => {
     expect(account).toContain("accent-color: var(--app-ui-accent-selected, #827aff)");
   });
