@@ -8,7 +8,7 @@ import {
 } from "react";
 import { X, File, Download, LoaderCircle } from "lucide-react";
 import { downloadFile } from "../lib/api.js";
-export function Modal({ title, children, onClose, wide = false }) {
+export function Modal({ title, children, onClose, wide = false, headerIcon = null, subtitle = null, badge = null }) {
   const ref = useRef(null);
   const id = useId();
   useEffect(() => {
@@ -27,7 +27,14 @@ export function Modal({ title, children, onClose, wide = false }) {
       className={`modal ${wide ? "modal-wide" : ""}`}
     >
       <div className="modal-head">
-        <h2 id={id}>{title}</h2>
+        {headerIcon && <span className="modal-head-leading" aria-hidden="true">{headerIcon}</span>}
+        <div className="modal-head-copy">
+          <div className="modal-head-title-row">
+            <h2 id={id}>{title}</h2>
+            {badge && <span className="modal-head-badge" title={badge}>{badge}</span>}
+          </div>
+          {subtitle && <p className="modal-head-subtitle">{subtitle}</p>}
+        </div>
         <button
           type="button"
           className="icon-btn"
