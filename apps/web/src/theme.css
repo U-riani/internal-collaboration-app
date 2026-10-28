@@ -99,6 +99,10 @@ body:has(.app-theme-dark) { background: #0a0f1d; }
   --app-ui-accent-selected-hover: var(--app-accent-hover);
   --app-ui-accent-selected-text: var(--app-on-accent);
   --app-ui-accent-tint: color-mix(in srgb, var(--app-accent) 13%, transparent);
+  --app-ui-accent-outline: color-mix(in srgb, var(--app-accent) 46%, transparent);
+  --app-ui-selection-start: color-mix(in srgb, var(--app-accent) 29%, #151a2a);
+  --app-ui-selection-end: color-mix(in srgb, var(--app-accent) 20%, #151a2a);
+  --app-ui-selection-hover: color-mix(in srgb, var(--app-accent) 36%, #151a2a);
 }
 
 .app-theme-dark > .workspace-main {
