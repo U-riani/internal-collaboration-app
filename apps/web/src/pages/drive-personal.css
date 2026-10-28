@@ -55,7 +55,7 @@
 }
 .drive-page .drive-header-actions .btn-secondary:hover { background: #293148; }
 .drive-page .drive-header-actions .btn-primary {
-  color: #fff;
+  color: var(--app-on-primary, #fff);
   background: linear-gradient(118deg, var(--app-primary-gradient-start, #7a6dfe), var(--app-primary-gradient-end, #6059ed));
   box-shadow: 0 4px 17px rgba(99,102,241,.19);
 }
@@ -788,7 +788,7 @@
   min-height: 38px;
   padding: 9px 16px;
   border-radius: 10px;
-  color: #fff;
+  color: var(--app-on-primary, #fff);
   background: linear-gradient(120deg, var(--app-primary-gradient-start, #756ef9), var(--app-primary-gradient-end, #5854e9));
   box-shadow: 0 5px 17px rgba(99, 102, 241, .23);
   font-size: 12px;
