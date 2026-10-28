@@ -1868,7 +1868,7 @@ export default function TasksPage() {
                         group.canUse !== false && (
                           <button
                             type="button"
-                            className="task-group-add inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-slate-500 hover:bg-white hover:text-slate-800"
+                            className="btn-primary task-group-add"
                             onClick={(event) =>
                               openCreateForGroup(event, group.id)
                             }
