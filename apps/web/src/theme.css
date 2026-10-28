@@ -94,6 +94,7 @@ body:has(.app-theme-dark) { background: #0a0f1d; }
   --app-ui-accent-end: var(--app-accent-gradient-end);
   --app-ui-accent-label: var(--app-on-accent);
   --app-ui-accent-shadow: var(--app-accent-shadow);
+  --app-ui-focus-ring: var(--app-focus-ring);
 }
 
 .app-theme-dark > .workspace-main {
