@@ -2141,6 +2141,32 @@
   font-size: var(--app-text-base, 12px);
   font-weight: 700;
 }
+/* Save draft is a secondary action: a disabled button must not adopt the
+   legacy light hover, and its label must remain readable on all dark palettes. */
+.app-theme-dark .approval-request-actions .btn-secondary {
+  border-color: var(--app-border-strong);
+  background: var(--app-surface-raised);
+  color: var(--app-text);
+  transition: background-color .15s ease, border-color .15s ease, color .15s ease;
+}
+.app-theme-dark .approval-request-actions .btn-secondary:hover:not(:disabled) {
+  border-color: var(--app-ui-accent-outline, var(--app-border-strong));
+  background: var(--app-interactive-hover);
+  color: var(--app-interactive-hover-text);
+}
+.app-theme-dark .approval-request-actions .btn-secondary:disabled,
+.app-theme-dark .approval-request-actions .btn-secondary:disabled:hover {
+  opacity: 1;
+  cursor: not-allowed;
+  border-color: var(--app-border);
+  background: var(--app-surface-raised);
+  color: var(--app-muted);
+  box-shadow: none;
+  filter: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-theme-dark .approval-request-actions .btn-secondary { transition: none; }
+}
 .app-theme-dark .approval-request-actions .btn-primary,
 .app-theme-dark .approval-request-actions .btn-primary:hover:not(:disabled) {
   background: linear-gradient(110deg, var(--app-ui-accent-start, #867afa), var(--app-ui-accent-end, #6465ef));
