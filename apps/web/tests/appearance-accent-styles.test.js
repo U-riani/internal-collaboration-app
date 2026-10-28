@@ -8,6 +8,7 @@ const account = readFileSync(new URL("../src/pages/account-page.css", import.met
 const tasks = readFileSync(new URL("../src/pages/tasks-page.css", import.meta.url), "utf8");
 const messages = readFileSync(new URL("../src/pages/messages-theme.css", import.meta.url), "utf8");
 const approvals = readFileSync(new URL("../src/pages/approvals-page.css", import.meta.url), "utf8");
+const notifications = readFileSync(new URL("../src/pages/notifications-page.css", import.meta.url), "utf8");
 const drive = readFileSync(new URL("../src/pages/drive-personal.css", import.meta.url), "utf8");
 const driveUpload = readFileSync(new URL("../src/components/DriveUploadModal.css", import.meta.url), "utf8");
 
@@ -162,6 +163,32 @@ describe("Incremental shared accent styling", () => {
     expect(drive).toContain("color: #f4c06f;"); // Folder icon
     expect(driveUpload).toContain("color: #24bcac;"); // Success status
     expect(driveUpload).toContain("color: #f389a6;"); // Error status
+  });
+
+
+  it("connects Notifications tab, sort, priority and action highlights to the selected accent", () => {
+    expect(notifications).toContain("var(--app-ui-accent-start, #8580fc)");
+    expect(notifications).toContain("var(--app-ui-accent-end, #6a62e9)");
+    expect(notifications).toContain("var(--app-ui-accent-label, #fff)");
+    expect(notifications).toContain("var(--app-ui-accent-shadow, #6e68f52a)");
+    expect(notifications).toContain("var(--app-ui-focus-ring, #817bf0)");
+    expect(notifications).toContain("var(--app-ui-accent-tint, #8077f621)");
+    expect(notifications).toContain("var(--app-ui-focus-ring, #847bf0)");
+    expect(notifications).toContain("var(--app-ui-accent-outline, #827cf37a)");
+    expect(notifications).toContain("var(--app-ui-accent-outline, #817bf288)");
+    expect(notifications).toContain("var(--app-ui-accent-outline, #817bf270)");
+    expect(notifications).toContain("var(--app-ui-accent-outline, #817bf25e)");
+    expect(notifications).toContain("var(--app-ui-accent-outline, #817bf27a)");
+  });
+
+  it("preserves Notifications priority colors and unread/real-time indicators", () => {
+    expect(notifications).toContain("--notice-accent: #cbd5e1;");
+    expect(notifications).toContain("--notice-accent: #7dd3fc;");
+    expect(notifications).toContain("--notice-accent: #fde68a;");
+    expect(notifications).toContain("--notice-accent: #fb7185;");
+    expect(notifications).toContain("border-left-color: var(--notice-accent);");
+    expect(notifications).toContain("background: var(--notice-accent);");
+    expect(notifications).toContain("background: #10b996;");
   });
 
 
