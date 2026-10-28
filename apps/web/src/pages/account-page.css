@@ -598,14 +598,21 @@
   bottom: auto;
   top: 37px;
 }
-.account-profile-department {
-  width: min(100%, 235px);
+/* Reuse the available card width instead of creating a fourth full row. */
+.account-profile-contact-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr);
+  gap: 15px;
+  align-items: start;
+  min-width: 0;
+}
+.account-profile-department,
+.account-profile-phone {
+  width: 100%;
+  min-width: 0;
 }
 .account-profile-department .account-profile-readonly.input {
   padding-right: 13px;
-}
-.account-profile-phone {
-  width: min(100%, 235px);
 }
 
 @media (max-width: 1120px) {
@@ -623,4 +630,5 @@
 @media (max-width: 480px) {
   .account-profile-grid .account-settings-card { padding: 17px 14px; }
   .account-profile-photo-actions { grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr); }
+  .account-profile-contact-row { grid-template-columns: minmax(0, 1fr); gap: 15px; }
 }
