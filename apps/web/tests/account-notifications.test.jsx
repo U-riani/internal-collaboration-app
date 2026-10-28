@@ -8,6 +8,7 @@ import AccountPage from "../src/pages/AccountPage.jsx";
 import { previewNotificationSound, setNotificationSoundsEnabled } from "../src/lib/notificationSounds.js";
 import { sendTestPush } from "../src/lib/pushNotifications.js";
 import { api } from "../src/lib/api.js";
+import { ACCENT_EVENT, accentStorageKey } from "../src/lib/appearance.js";
 
 const mockLogout = vi.hoisted(() => vi.fn());
 
@@ -55,6 +56,36 @@ beforeEach(() => {
 });
 
 describe("My Account notification design", () => {
+  it("keeps the account usable and saves accent selection without reloading", async () => {
+    const user = userEvent.setup();
+    window.localStorage.removeItem(accentStorageKey("profile-1"));
+    const onAccent = vi.fn();
+    window.addEventListener(ACCENT_EVENT, onAccent);
+    try {
+      mountAccount();
+      await user.click(screen.getByRole("button", { name: "Appearance & Theme" }));
+      expect(screen.getByText("Workspace Appearance")).not.toBeNull();
+      expect(screen.getByText("OLED Pure Black")).not.toBeNull();
+      expect(screen.getAllByText("Coming soon")).toHaveLength(3);
+
+      const cyan = screen.getByRole("radio", { name: "Cyan Glaze" });
+      expect(cyan.checked).toBe(false);
+      await user.click(cyan);
+      expect(cyan.checked).toBe(true);
+      expect(window.localStorage.getItem(accentStorageKey("profile-1"))).toBe("cyan");
+      expect(onAccent).toHaveBeenCalledTimes(1);
+      expect(onAccent.mock.calls[0][0].detail).toEqual({ userId: "profile-1", accent: "cyan" });
+
+      await user.click(screen.getByRole("button", { name: "Notifications" }));
+      expect(screen.getByText("Notification sounds")).not.toBeNull();
+      await user.click(screen.getByRole("button", { name: "Appearance & Theme" }));
+      expect(screen.getByRole("radio", { name: "Cyan Glaze" }).checked).toBe(true);
+    } finally {
+      window.removeEventListener(ACCENT_EVENT, onAccent);
+    }
+  });
+
+
   it("shows Sign out in the account header and uses the existing logout action", async () => {
     const user = userEvent.setup();
     mountAccount();
