@@ -15,6 +15,7 @@ import {
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../context/AuthContext.jsx";
+import { useAppearance } from "../context/AppearanceContext.jsx";
 import { useSocket } from "../hooks/useSocket.js";
 import { api } from "../lib/api.js";
 import { handleNotificationCreated, installNotificationAudioUnlock } from "../lib/notificationSounds.js";
@@ -38,6 +39,7 @@ function badgeLabel(count) {
 
 export default function Layout() {
   const { user, hasPermission } = useAuth();
+  const { accent } = useAppearance();
   const isOverview = useLocation().pathname === "/dashboard";
   const [open, setOpen] = useState(false);
   const qc = useQueryClient();
@@ -150,7 +152,9 @@ export default function Layout() {
 
   return (
     <div className={isOverview ? "app-theme-dark overview-layout" : "app-theme-dark max-h-screen"}
-      data-theme="dark">
+      data-theme="dark"
+      data-appearance="midnight"
+      data-accent={accent}>
       <div className="workspace-mobile-header sticky top-0 z-40 flex h-16 items-center justify-between border-b border-slate-200 bg-white px-4 min-[901px]:hidden">
         <strong>Workspace</strong>
         <button
