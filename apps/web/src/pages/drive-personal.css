@@ -56,7 +56,7 @@
 .drive-page .drive-header-actions .btn-secondary:hover { background: #293148; }
 .drive-page .drive-header-actions .btn-primary {
   color: #fff;
-  background: linear-gradient(118deg, #7a6dfe 0%, #6059ed 63%, #08a8e1 130%);
+  background: linear-gradient(118deg, var(--app-primary-gradient-start, #7a6dfe), var(--app-primary-gradient-end, #6059ed));
   box-shadow: 0 4px 17px rgba(99,102,241,.19);
 }
 .drive-page .drive-header-actions .btn-primary:hover { filter: brightness(1.13); }
@@ -789,7 +789,7 @@
   padding: 9px 16px;
   border-radius: 10px;
   color: #fff;
-  background: linear-gradient(120deg, #756ef9, #5854e9);
+  background: linear-gradient(120deg, var(--app-primary-gradient-start, #756ef9), var(--app-primary-gradient-end, #5854e9));
   box-shadow: 0 5px 17px rgba(99, 102, 241, .23);
   font-size: 12px;
   filter: brightness(1);
@@ -798,7 +798,7 @@
 }
 .app-theme-dark :is(.drive-new-group-actions, .drive-new-folder-actions) .btn-primary:hover {
   /* Keep the gradient even when the button becomes disabled while hovered. */
-  background: linear-gradient(120deg, #756ef9, #5854e9);
+  background: linear-gradient(120deg, var(--app-primary-gradient-start, #756ef9), var(--app-primary-gradient-end, #5854e9));
 }
 .app-theme-dark :is(.drive-new-group-actions, .drive-new-folder-actions) .btn-primary:hover:not(:disabled) {
   filter: brightness(1.08);
