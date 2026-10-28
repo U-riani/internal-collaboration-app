@@ -822,6 +822,49 @@
   }
 }
 
+/* Permission guidance follows the same neutral, high-contrast card styling
+   as the rest of Drive rather than legacy blue/amber utility callouts. */
+.drive-permission-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  margin-bottom: 19px;
+  padding: 12px 14px;
+  border: 1px solid var(--app-border, rgba(195, 204, 246, .10));
+  border-radius: 11px;
+  color: var(--app-muted, #969cb5);
+  background: var(--app-surface-raised, #1b2234);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.6;
+}
+.drive-permission-note > svg {
+  flex: 0 0 18px;
+  margin-top: 1px;
+  color: var(--app-ui-focus-ring, #a5a0ff);
+}
+.drive-permission-note > p { min-width: 0; margin: 0; }
+.drive-permission-note--restricted { margin: 16px 0 0; }
+.drive-permission-note--restricted > svg { color: #e9bb78; }
+.drive-permission-note--restricted strong { color: #e7c996; }
+.drive-permission-note-detail {
+  display: block;
+  margin-top: 6px;
+  color: var(--app-muted, #969cb5);
+}
+/* The Permissions search is the same reusable SearchBar as Drive Members.
+   Keep its 39px input, inline icon and single accent-colored focus ring. */
+.drive-permission-toolbar .drive-permission-search {
+  flex: 1 1 250px;
+  min-width: min(220px, 100%);
+  margin: 0;
+}
+@media (max-width: 560px) {
+  .drive-permission-toolbar .drive-permission-search {
+    flex-basis: 100%;
+  }
+}
+
 /* Drive Permissions uses the same select popup as Drive Members. */
 .app-theme-dark .drive-permission-mode-select,
 .app-theme-dark .drive-permission-access-select {
