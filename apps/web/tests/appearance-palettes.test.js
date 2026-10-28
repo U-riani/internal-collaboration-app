@@ -6,6 +6,11 @@ const theme = readFileSync(new URL("../src/theme.css", import.meta.url), "utf8")
 const layout = readFileSync(new URL("../src/components/Layout.jsx", import.meta.url), "utf8");
 const account = readFileSync(new URL("../src/pages/AccountPage.jsx", import.meta.url), "utf8");
 const spreadsheet = readFileSync(new URL("../src/pages/SpreadsheetPage.jsx", import.meta.url), "utf8");
+const tasksCss = readFileSync(new URL("../src/pages/tasks-page.css", import.meta.url), "utf8");
+const driveCss = readFileSync(new URL("../src/pages/drive-personal.css", import.meta.url), "utf8");
+const messagesCss = readFileSync(new URL("../src/pages/messages-theme.css", import.meta.url), "utf8");
+const dashboardCss = readFileSync(new URL("../src/pages/dashboard.css", import.meta.url), "utf8");
+const accountCss = readFileSync(new URL("../src/pages/account-page.css", import.meta.url), "utf8");
 
 describe("Dark workspace appearance palettes", () => {
   it("has two scoped palettes and leaves Midnight CSS untouched", () => {
@@ -92,6 +97,65 @@ describe("Dark workspace appearance palettes", () => {
     expect(spreadsheet).toContain('workspace-spreadsheet flex');
     expect(palette).toContain(".workspace-spreadsheet");
     expect(spreadsheet).toContain('mobile');
+  });
+
+  it("does not replace an active navigation gradient with a dark hover background", () => {
+    expect(theme).toContain('.workspace-nav-link:not([aria-current="page"]):hover');
+    expect(theme).toContain('.workspace-nav-link[aria-current="page"]:hover');
+    expect(theme).toContain('color: var(--app-interactive-selected-text);');
+    expect(palette).toContain('.workspace-nav-link:not([aria-current="page"]):hover');
+    expect(palette).toContain('.workspace-nav-link[aria-current="page"]:hover');
+    expect(theme).toContain('background: linear-gradient(112deg, var(--app-accent-gradient-start), var(--app-accent-gradient-end))');
+  });
+
+  it("keeps primary button labels legible before and after hover", () => {
+    expect(theme).toContain('--app-interactive-selected-text: var(--app-on-accent);');
+    expect(theme).toContain('.btn-primary:hover:not(:disabled)');
+    expect(theme).toContain('color: var(--app-interactive-selected-text);');
+    expect(tasksCss).toContain('.task-header-actions .btn-primary:hover:not(:disabled)');
+    expect(tasksCss).toContain('background: linear-gradient(110deg, var(--app-ui-accent-start, #867afa)');
+    expect(tasksCss).toContain('color: var(--app-ui-accent-label, #fff);');
+    expect(driveCss).toContain('.drive-header-actions .btn-primary:hover:not(:disabled)');
+    expect(driveCss).toContain('.drive-toolbar .tabs button.active:hover');
+    expect(theme).toContain('.btn-secondary:hover:not(:disabled)');
+  });
+
+  it("does not leave Task Description and Participants on Midnight in OLED/Slate", () => {
+    expect(palette).toContain(' .task-form {');
+    for (const token of [
+      '--task-control: var(--app-surface-input);',
+      '--task-surface: var(--app-surface);',
+      '--task-surface-raised: var(--app-surface-raised);',
+      '--task-border: var(--app-border-strong);',
+    ]) {
+      expect(palette).toContain(token);
+    }
+    expect(palette).toContain('.task-form .filter-multiselect-panel');
+    expect(palette).toContain('.task-form .filter-multiselect-search');
+  });
+
+  it("uses a shared font family and type scale without flattening component hierarchy", () => {
+    for (const token of [
+      '--app-font-family:',
+      '--app-text-xs: 10px;',
+      '--app-text-sm: 11px;',
+      '--app-text-base: 12px;',
+      '--app-text-md: 13px;',
+      '--app-text-lg: 14px;',
+      '--app-text-section: 16px;',
+      '--app-text-heading:',
+      '--app-text-heading-compact:',
+      '--app-text-modal-title: 18px;',
+    ]) {
+      expect(theme).toContain(token);
+    }
+    expect(theme).toContain('font-family: var(--app-font-family);');
+    expect(tasksCss).toContain('font-size: var(--app-text-heading,');
+    expect(messagesCss).toContain('font-size: var(--app-text-heading,');
+    expect(driveCss).toContain('font-size: var(--app-text-heading,');
+    expect(dashboardCss).toContain('font-family: var(--app-font-family,');
+    expect(dashboardCss).toContain('font-size: var(--app-text-heading-compact,');
+    expect(accountCss).toContain('font-size: var(--app-text-section, 16px);');
   });
 
   it("offers three working dark radios and keeps System Sync disabled", () => {
