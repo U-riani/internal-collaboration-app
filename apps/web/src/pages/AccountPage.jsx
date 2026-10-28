@@ -24,7 +24,14 @@ import {
 } from "lucide-react";
 import { api } from "../lib/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
-import { ACCENT_OPTIONS, getAccentPreference, saveAccentPreference } from "../lib/appearance.js";
+import {
+  ACCENT_OPTIONS,
+  THEME_OPTIONS,
+  getAccentPreference,
+  saveAccentPreference,
+  getThemePreference,
+  saveThemePreference,
+} from "../lib/appearance.js";
 import { Avatar, ErrorBox, Field } from "../components/UI.jsx";
 import {
   pushSupported,
@@ -591,13 +598,18 @@ function AccountProfile({ user, displayName, photoUrl }) {
 
 function AccountAppearance({ userId }) {
   const [accent, setAccent] = useState(() => getAccentPreference(userId));
+  const [theme, setTheme] = useState(() => getThemePreference(userId));
 
   useEffect(() => {
     setAccent(getAccentPreference(userId));
+    setTheme(getThemePreference(userId));
   }, [userId]);
 
   function selectAccent(nextAccent) {
     if (saveAccentPreference(userId, nextAccent)) setAccent(nextAccent);
+  }
+  function selectTheme(nextTheme) {
+    if (saveThemePreference(userId, nextTheme)) setTheme(nextTheme);
   }
 
   return (
@@ -612,30 +624,36 @@ function AccountAppearance({ userId }) {
             <p>Choose your workspace display style</p>
           </div>
         </div>
-        <div className="account-appearance-themes" aria-label="Available workspace themes">
-          <div className="account-appearance-theme is-active">
-            <div className="account-appearance-theme-preview preview-midnight" aria-hidden="true">
-              <span /><span /><span />
-            </div>
-            <strong>Dark Midnight</strong>
-            <span className="account-appearance-theme-state">Active</span>
-          </div>
-          {[
-            ["OLED Pure Black", "oled"],
-            ["Deep Slate", "slate"],
-            ["System Sync", "system"],
-          ].map(([name, id]) => (
-            <div className="account-appearance-theme is-unavailable" key={id}>
-              <div className={`account-appearance-theme-preview preview-${id}`} aria-hidden="true">
-                <span /><span /><span />
-              </div>
-              <strong>{name}</strong>
-              <span className="account-appearance-theme-state">Coming soon</span>
-            </div>
-          ))}
+        <div className="account-appearance-themes" role="radiogroup" aria-label="Workspace theme">
+          {[...THEME_OPTIONS, { id: "system", label: "System Sync" }].map(({ id, label }) => {
+            const available = id !== "system";
+            const selected = theme === id;
+            return (
+              <label
+                key={id}
+                className={`account-appearance-theme ${selected ? "is-active" : ""} ${!available ? "is-unavailable" : ""}`}
+              >
+                <input
+                  type="radio"
+                  className="sr-only"
+                  name="account-workspace-theme"
+                  value={id}
+                  checked={selected}
+                  disabled={!available}
+                  onChange={() => selectTheme(id)}
+                />
+                <div className={`account-appearance-theme-preview preview-${id}`} aria-hidden="true">
+                  <span /><span /><span />
+                </div>
+                <strong>{label}</strong>
+                <span className="account-appearance-theme-state">{selected ? "Active" : available ? "Select theme" : "Coming soon"}</span>
+              </label>
+            );
+          })}
         </div>
         <p className="account-appearance-hint">
-          Dark Midnight is the current workspace theme. Additional themes will become available after visual testing across modules.
+          Switch between Dark Midnight, OLED Pure Black, and Deep Slate. Your selection is saved for this account in this browser.
+          System Sync will follow in a later phase.
         </p>
       </section>
 
