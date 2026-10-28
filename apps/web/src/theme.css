@@ -60,6 +60,8 @@ body:has(.app-theme-dark) { background: #0a0f1d; }
   --app-text-lg: 14px;
   --app-text-section: 16px;
   --app-text-heading: clamp(26px, 2.1vw, 34px);
+  --app-text-heading-compact: clamp(22px, 2.2vw, 32px);
+  --app-text-modal-title: 18px;
   --app-leading-body: 1.5;
 
   --app-secondary: #06b6d4;
@@ -242,6 +244,23 @@ body:has(.app-theme-dark) { background: #0a0f1d; }
 }
 .app-theme-dark .page-header h1 { color: var(--app-text-strong); }
 .app-theme-dark .page-header p { color: var(--app-muted); }
+/* Shared typography: controls inherit one font, while each module still owns
+   its intentional layout, sizing and responsive wrapping. */
+.app-theme-dark :is(button, input, select, textarea) {
+  font-family: var(--app-font-family);
+}
+.app-theme-dark .field {
+  font-size: var(--app-text-md);
+}
+.app-theme-dark .modal-head h2 {
+  font-size: var(--app-text-modal-title);
+}
+.app-theme-dark :is(.btn-primary, .btn-secondary, .btn-danger) {
+  font-family: var(--app-font-family);
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-theme-dark .workspace-nav-link { transition: none; }
+}
 .app-theme-dark .card {
   color: var(--app-text);
   border-color: var(--app-border);
