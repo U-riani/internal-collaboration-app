@@ -43,11 +43,52 @@
 .app-theme-dark .account-hero {
   background: linear-gradient(110deg, #1b2234 4%, #1e2437 77%, #202538 100%);
 }
+.account-hero-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  min-width: 0;
+}
 .account-identity {
   display: flex;
+  flex: 1 1 auto;
   align-items: center;
   gap: 16px;
   min-width: 0;
+}
+.account-hero-signout.btn-secondary {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 39px;
+  margin: 0;
+  padding: 9px 16px;
+  border: 1px solid rgba(235, 157, 164, .14);
+  border-radius: 11px;
+  background: rgba(185, 108, 122, .12);
+  color: #d67d88;
+  box-shadow: none;
+  font-size: 12px;
+  font-weight: 730;
+  white-space: nowrap;
+  transition: background-color .15s ease, color .15s ease;
+}
+.app-theme-dark .account-hero-signout.btn-secondary {
+  border-color: rgba(245, 173, 181, .11);
+  background: #37313f;
+  color: #ee999f;
+}
+.account-hero-signout.btn-secondary:hover:not(:disabled) {
+  border-color: rgba(235, 157, 164, .24);
+  background: rgba(185, 108, 122, .2);
+  color: #c66477;
+}
+.app-theme-dark .account-hero-signout.btn-secondary:hover:not(:disabled) {
+  background: #473847;
+  color: #ffafb5;
 }
 .account-hero-avatar {
   position: relative;
@@ -394,8 +435,10 @@
   .account-tab { padding: 9px 11px; }
 }
 @media (max-width: 480px) {
+  .account-hero-top { flex-wrap: wrap; gap: 12px; }
+  .account-hero-signout.btn-secondary { margin-left: auto; }
   .account-hero-avatar { width: 52px; height: 52px; }
-  .account-identity { gap: 12px; }
+  .account-identity { flex-basis: 100%; gap: 12px; }
   .account-identity-title { gap: 6px; }
   .account-email { font-size: 11px; }
   .account-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -405,7 +448,8 @@
   .account-push-action.btn-secondary { width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .account-tab, .account-sound-preview.btn-secondary, .account-push-action.btn-secondary { transition: none; }
+  .account-tab, .account-sound-preview.btn-secondary, .account-push-action.btn-secondary,
+  .account-hero-signout.btn-secondary { transition: none; }
 }
 
 /* Profile tab — Avatar & Badge + read-only Personal Information */
