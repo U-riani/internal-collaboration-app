@@ -107,7 +107,7 @@
 }
 
 .approvals-page .approval-list-row:focus-visible {
-  outline: 2px solid #827af8;
+  outline: 2px solid var(--app-ui-focus-ring, #827af8);
   outline-offset: -2px;
   background: var(--task-hover);
 }
@@ -213,9 +213,9 @@
 }
 
 .approval-group-form .approval-group-name-input:focus {
-  border-color: #817cf0 !important;
+  border-color: var(--app-ui-focus-ring, #817cf0) !important;
   outline: none !important;
-  box-shadow: 0 0 0 2px #8077f621 !important;
+  box-shadow: 0 0 0 2px var(--app-ui-accent-tint, #8077f621) !important;
 }
 
 .app-theme-dark .approval-group-form .approval-group-name-input {
@@ -229,13 +229,14 @@
 
 .approval-group-form .approval-group-form-actions .btn-primary {
   border-radius: 10px;
-  background: #716bf4;
+  background: var(--app-ui-accent-selected, #716bf4);
+  color: var(--app-ui-accent-selected-text, #fff);
   font-size: 12px;
   font-weight: 700;
 }
 
 .approval-group-form .approval-group-form-actions .btn-primary:hover {
-  background: #817afa;
+  background: var(--app-ui-accent-selected-hover, #817afa);
 }
 
 @media (max-width: 1180px) {
@@ -379,12 +380,12 @@
 }
 
 :is(.approvals-page, .approval-bases-page) .approval-date-control:hover {
-  border-color: #817cf088;
+  border-color: var(--app-ui-accent-outline, #817cf088);
 }
 
 :is(.approvals-page, .approval-bases-page) .approval-date-control:focus-within {
-  border-color: #817cf0;
-  box-shadow: 0 0 0 2px #8077f621;
+  border-color: var(--app-ui-focus-ring, #817cf0);
+  box-shadow: 0 0 0 2px var(--app-ui-accent-tint, #8077f621);
 }
 
 :is(.approvals-page, .approval-bases-page) .approval-date-preview {
@@ -560,8 +561,8 @@
 }
 
 .approval-types-status-control:focus-within {
-  border-color: #817cf0;
-  box-shadow: 0 0 0 2px #8077f621;
+  border-color: var(--app-ui-focus-ring, #817cf0);
+  box-shadow: 0 0 0 2px var(--app-ui-accent-tint, #8077f621);
 }
 
 /* Use the exact Tasks select primitive: app-modern-select supplies the
@@ -611,8 +612,8 @@
   padding: 8px 13px;
   border: 1px solid transparent;
   border-radius: 9px;
-  background: linear-gradient(110deg, #867afa 0%, #6465ef 100%);
-  color: #fff;
+  background: linear-gradient(110deg, var(--app-ui-accent-start, #867afa) 0%, var(--app-ui-accent-end, #6465ef) 100%);
+  color: var(--app-ui-accent-label, #fff);
   box-shadow: none;
   white-space: nowrap;
   font-size: 11px;
@@ -621,8 +622,8 @@
 }
 
 .approval-types-create.btn-primary:hover {
-  background: linear-gradient(110deg, #867afa, #6465ef);
-  color: #fff;
+  background: linear-gradient(110deg, var(--app-ui-accent-start, #867afa), var(--app-ui-accent-end, #6465ef));
+  color: var(--app-ui-accent-label, #fff);
   filter: brightness(1.08);
   box-shadow: 0 4px 14px #6660ef29;
 }
@@ -647,7 +648,7 @@
 }
 
 .approval-type-row:hover {
-  border-color: #a6a3f288;
+  border-color: var(--app-ui-accent-outline, #a6a3f288);
   background: #f8f9ff;
 }
 
@@ -814,7 +815,7 @@
 }
 
 .app-theme-dark .approval-type-row:hover {
-  border-color: #6c67b87a;
+  border-color: var(--app-ui-accent-outline, #6c67b87a);
   background: #20273d;
 }
 
@@ -1255,13 +1256,13 @@
 }
 
 .approval-config-secondary.btn-secondary:hover {
-  border-color: #817cf055;
+  border-color: var(--app-ui-accent-outline, #817cf055);
   color: var(--task-text);
   background: var(--task-hover);
 }
 
 .approval-config-secondary.btn-secondary:focus-visible {
-  outline: 2px solid #918bff;
+  outline: 2px solid var(--app-ui-focus-ring, #918bff);
   outline-offset: 2px;
 }
 
@@ -1857,8 +1858,8 @@
 .approval-detail-comment-input.input:focus,
 .app-theme-dark .approval-detail-comment-input.input:focus {
   outline: none;
-  border-color: #8078ed;
-  box-shadow: 0 0 0 1px #8077f621;
+  border-color: var(--app-ui-focus-ring, #8078ed);
+  box-shadow: 0 0 0 1px var(--app-ui-accent-tint, #8077f621);
   --tw-ring-shadow: 0 0 #0000;
 }
 
