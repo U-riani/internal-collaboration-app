@@ -8,6 +8,8 @@ const account = readFileSync(new URL("../src/pages/account-page.css", import.met
 const tasks = readFileSync(new URL("../src/pages/tasks-page.css", import.meta.url), "utf8");
 const messages = readFileSync(new URL("../src/pages/messages-theme.css", import.meta.url), "utf8");
 const approvals = readFileSync(new URL("../src/pages/approvals-page.css", import.meta.url), "utf8");
+const drive = readFileSync(new URL("../src/pages/drive-personal.css", import.meta.url), "utf8");
+const driveUpload = readFileSync(new URL("../src/components/DriveUploadModal.css", import.meta.url), "utf8");
 
 describe("Incremental shared accent styling", () => {
   it("only defines legacy gradient overrides for non-default accents", () => {
@@ -120,6 +122,46 @@ describe("Incremental shared accent styling", () => {
     expect(approvals).toContain("color: #6ad5ca;");
     expect(approvals).toContain("color: #ff9aa8;");
     expect(approvals).toContain("color: #96a0b8;");
+  });
+
+
+  it("connects Drive navigation, search and Shared group selection to the accent", () => {
+    expect(drive).toContain("var(--app-ui-accent-start, #7a6dfe)");
+    expect(drive).toContain("var(--app-ui-accent-end, #6059ed)");
+    expect(drive).toContain("var(--app-ui-accent-end, #08a8e1)");
+    expect(drive).toContain("var(--app-ui-accent-start, #7570fd)");
+    expect(drive).toContain("var(--app-ui-accent-end, #5d5deb)");
+    expect(drive).toContain("border-color: var(--app-ui-focus-ring, #7670dd)");
+    expect(drive).toContain("var(--app-ui-selection-start, #292d48)");
+    expect(drive).toContain("color: var(--app-ui-focus-ring, #c6bbff)");
+  });
+
+  it("uses shared accents for Drive folder creation, Members and Permissions controls", () => {
+    expect(drive).toContain("background: var(--app-ui-accent-selected, #6366f1)");
+    expect(drive).toContain("var(--app-ui-accent-start, #756ef9)");
+    expect(drive).toContain("var(--app-ui-accent-end, #5854e9)");
+    expect(drive).toContain("var(--app-ui-accent-tint, rgba(118, 112, 221, .14))");
+    expect(drive).toContain('dialog.modal:has(.drive-permission-access-select) input[type="checkbox"]');
+    expect(drive).toContain("accent-color: var(--app-ui-accent-selected);");
+    expect(drive).toContain("border-color: var(--app-ui-focus-ring);");
+    expect(drive).toContain("outline-color: var(--app-ui-focus-ring);");
+  });
+
+  it("recolors Drive Upload tabs, progress, primary actions and folder navigation", () => {
+    expect(driveUpload).toContain("--upload-primary: var(--app-ui-accent-selected, #7569f7)");
+    expect(driveUpload).toContain("--upload-primary-bright: var(--app-ui-focus-ring, #9187ff)");
+    expect(driveUpload).toContain("var(--app-ui-accent-start, #8b7bff)");
+    expect(driveUpload).toContain("var(--app-ui-accent-end, #5755e9)");
+    expect(driveUpload).toContain("var(--app-ui-accent-selected, #9d97ff)");
+    expect(driveUpload).toContain("var(--app-ui-accent-tint, rgba(116, 102, 248, .13))");
+    expect(driveUpload).toContain("var(--app-ui-accent-start, #8d7bff)");
+    expect(driveUpload).toContain("var(--app-ui-accent-end, #c9c6ff)");
+    expect(driveUpload).toContain("var(--app-ui-accent-label, #fff)");
+    // File types and transfer outcomes are semantic, never arbitrary preferences.
+    expect(drive).toContain("color: #ffb2b6;"); // PDF icon
+    expect(drive).toContain("color: #f4c06f;"); // Folder icon
+    expect(driveUpload).toContain("color: #24bcac;"); // Success status
+    expect(driveUpload).toContain("color: #f389a6;"); // Error status
   });
 
 
