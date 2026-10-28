@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import AccountPage from "../src/pages/AccountPage.jsx";
 import { previewNotificationSound, setNotificationSoundsEnabled } from "../src/lib/notificationSounds.js";
 import { sendTestPush } from "../src/lib/pushNotifications.js";
+import { api } from "../src/lib/api.js";
 
 vi.mock("../src/context/AuthContext.jsx", () => ({
   useAuth: () => ({
@@ -100,6 +101,78 @@ describe("My Account notification design", () => {
     expect(screen.getByRole("button", { name: "Remove" }).disabled).toBe(true);
     expect(screen.queryByRole("button", { name: "Save profile" })).toBeNull();
     expect(screen.queryByLabelText("Upload profile photo")).toBeNull();
+  });
+
+  it("shows the actual server password policy and toggles password visibility", async () => {
+    const user = userEvent.setup();
+    mountAccount();
+    await user.click(screen.getByRole("button", { name: "Security" }));
+
+    expect(screen.getByText("Password Policy Requirements")).not.toBeNull();
+    expect(screen.getByText("At least 12 characters")).not.toBeNull();
+    expect(screen.getByText("No more than 200 characters")).not.toBeNull();
+    expect(screen.getByText("Different from current password")).not.toBeNull();
+    expect(screen.getByText("Confirmation matches new password")).not.toBeNull();
+    expect(screen.queryByText("Uppercase & lowercase Latin glyphs")).toBeNull();
+
+    const current = screen.getByLabelText("Current password");
+    const next = screen.getByLabelText("New password");
+    const confirmation = screen.getByLabelText("Confirm new password");
+    expect(current.type).toBe("password");
+    expect(next.type).toBe("password");
+    expect(confirmation.type).toBe("password");
+
+    await user.click(screen.getByRole("button", { name: "Show current password" }));
+    expect(current.type).toBe("text");
+    await user.click(screen.getByRole("button", { name: "Hide current password" }));
+    expect(current.type).toBe("password");
+
+    await user.click(screen.getByRole("button", { name: "Show new password" }));
+    expect(next.type).toBe("text");
+    await user.click(screen.getByRole("button", { name: "Hide new password" }));
+    expect(next.type).toBe("password");
+
+    await user.click(screen.getByRole("button", { name: "Show confirm new password" }));
+    expect(confirmation.type).toBe("text");
+    await user.click(screen.getByRole("button", { name: "Hide confirm new password" }));
+    expect(confirmation.type).toBe("password");
+  });
+
+  it("prevents invalid password submissions and keeps the existing API contract", async () => {
+    const user = userEvent.setup();
+    vi.mocked(api).mockResolvedValue({ success: true, data: null });
+    mountAccount();
+    await user.click(screen.getByRole("button", { name: "Security" }));
+
+    const current = screen.getByLabelText("Current password");
+    const next = screen.getByLabelText("New password");
+    const confirmation = screen.getByLabelText("Confirm new password");
+    const saveButton = screen.getByRole("button", { name: "Save password" });
+    expect(saveButton.disabled).toBe(true);
+
+    await user.type(current, "PreviousPassword1");
+    await user.type(next, "PreviousPassword1");
+    await user.type(confirmation, "PreviousPassword1");
+    expect(saveButton.disabled).toBe(true);
+
+    await user.clear(next);
+    await user.type(next, "New password with sufficient length");
+    expect(saveButton.disabled).toBe(true);
+    expect(screen.getByText("Passwords do not match.")).not.toBeNull();
+
+    await user.clear(confirmation);
+    await user.type(confirmation, "New password with sufficient length");
+    expect(saveButton.disabled).toBe(false);
+    await user.click(saveButton);
+    await waitFor(() =>
+      expect(api).toHaveBeenCalledWith("/auth/password", {
+        method: "POST",
+        body: JSON.stringify({
+          currentPassword: "PreviousPassword1",
+          newPassword: "New password with sufficient length",
+        }),
+      }),
+    );
   });
 
   it("keeps the existing password-change form on the Security tab", async () => {
