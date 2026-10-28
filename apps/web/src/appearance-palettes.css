@@ -704,3 +704,30 @@ body:has(.app-theme-dark[data-appearance="slate"]) { background: #171b23; }
   border-color: var(--app-border-strong);
   color: var(--app-text);
 }
+
+/* Task Form previously kept Midnight variables even when its parent used
+   OLED/Slate; rebind the complete form, including its participant picker. */
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .task-form {
+  --task-text: var(--app-text);
+  --task-muted: var(--app-muted);
+  --task-subtle: var(--app-subtle);
+  --task-border: var(--app-border-strong);
+  --task-control: var(--app-surface-input);
+  --task-hover: var(--app-surface-hover);
+  --task-surface: var(--app-surface);
+  --task-surface-raised: var(--app-surface-raised);
+  color: var(--task-text);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"])
+  .task-form :is(.task-form-description, .filter-multiselect-panel, .filter-multiselect-search, .filter-multiselect-options) {
+  color: var(--app-text);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"])
+  .task-form .filter-multiselect-panel {
+  background: var(--app-surface-raised);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"])
+  .task-form .filter-multiselect-search {
+  background: var(--app-surface-input);
+}
