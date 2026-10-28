@@ -31,8 +31,8 @@ dialog.modal:has(.drive-upload-modal)[open] { display: flex; }
   --upload-border: rgba(180, 195, 239, .10);
   --upload-text: #eff0ff;
   --upload-muted: #9ca6bd;
-  --upload-primary: #7569f7;
-  --upload-primary-bright: #9187ff;
+  --upload-primary: var(--app-ui-accent-selected, #7569f7);
+  --upload-primary-bright: var(--app-ui-focus-ring, #9187ff);
   --upload-track: #0e1422;
   --upload-pill: #2c3246;
   --upload-shadow: rgba(2, 5, 17, .75);
@@ -54,9 +54,9 @@ dialog.modal:has(.drive-upload-modal) .modal-head-leading {
   flex: 0 0 42px;
   height: 42px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #9288ff, #6658ed);
-  color: #28235e;
-  box-shadow: 0 3px 14px rgba(115, 107, 252, .30);
+  background: linear-gradient(135deg, var(--app-ui-accent-start, #9288ff), var(--app-ui-accent-end, #6658ed));
+  color: var(--app-ui-accent-label, #28235e);
+  box-shadow: 0 3px 14px var(--app-ui-accent-shadow, rgba(115, 107, 252, .30));
 }
 dialog.modal:has(.drive-upload-modal) .modal-head-copy {
   flex: 1;
@@ -146,8 +146,8 @@ dialog.modal:has(.drive-upload-modal) .modal-body {
   bottom: -1px;
   height: 2px;
   border-radius: 2px;
-  background: #9d97ff;
-  box-shadow: 0 0 10px #958aff88;
+  background: var(--app-ui-accent-selected, #9d97ff);
+  box-shadow: 0 0 10px var(--app-ui-accent-shadow, #958aff88);
 }
 .drive-upload-secure {
   display: inline-flex;
@@ -174,7 +174,7 @@ dialog.modal:has(.drive-upload-modal) .modal-body {
 }
 .drive-upload-dropzone.is-dragging {
   border-color: var(--upload-primary-bright);
-  background: rgba(116, 102, 248, .13);
+  background: var(--app-ui-accent-tint, rgba(116, 102, 248, .13));
 }
 .drive-upload-drop-icon {
   height: 70px;
@@ -183,8 +183,8 @@ dialog.modal:has(.drive-upload-modal) .modal-body {
   align-items: center;
   justify-content: center;
   position: relative;
-  color: #c6c3ff;
-  filter: drop-shadow(0 4px 10px #7b6cff35);
+  color: var(--app-ui-focus-ring, #c6c3ff);
+  filter: drop-shadow(0 4px 10px var(--app-ui-accent-shadow, #7b6cff35));
 }
 .drive-upload-float-icon {
   position: absolute;
@@ -200,18 +200,18 @@ dialog.modal:has(.drive-upload-modal) .modal-body {
 .drive-upload-browse.btn-primary,
 .drive-upload-submit.btn-primary,
 .drive-upload-use-folder.btn-primary {
-  background: linear-gradient(120deg, #8b7bff, #5755e9);
-  box-shadow: 0 5px 18px rgba(103, 96, 233, .27);
-  border: 1px solid rgba(200, 196, 255, .15);
-  color: #fff;
+  background: linear-gradient(120deg, var(--app-ui-accent-start, #8b7bff), var(--app-ui-accent-end, #5755e9));
+  box-shadow: 0 5px 18px var(--app-ui-accent-shadow, rgba(103, 96, 233, .27));
+  border: 1px solid var(--app-ui-accent-outline, rgba(200, 196, 255, .15));
+  color: var(--app-ui-accent-label, #fff);
   transition: filter .15s ease, box-shadow .15s ease;
 }
 .drive-upload-browse.btn-primary:hover:not(:disabled),
 .drive-upload-submit.btn-primary:hover:not(:disabled),
 .drive-upload-use-folder.btn-primary:hover:not(:disabled) {
-  background: linear-gradient(120deg, #8b7bff, #5755e9);
+  background: linear-gradient(120deg, var(--app-ui-accent-start, #8b7bff), var(--app-ui-accent-end, #5755e9));
   filter: brightness(1.12);
-  box-shadow: 0 7px 21px rgba(103, 96, 233, .34);
+  box-shadow: 0 7px 21px var(--app-ui-accent-shadow, rgba(103, 96, 233, .34));
 }
 .drive-upload-browse { min-height: 34px; margin-top: 12px; font-size: 12px; border-radius: 9px; }
 .drive-upload-format-hints { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; margin-top: 9px; }
@@ -239,8 +239,8 @@ dialog.modal:has(.drive-upload-modal) .modal-body {
   font-size: 10px;
   padding: 3px 7px;
   border-radius: 6px;
-  color: #a8a1ff;
-  background: rgba(130, 120, 245, .17);
+  color: var(--app-ui-focus-ring, #a8a1ff);
+  background: var(--app-ui-accent-tint, rgba(130, 120, 245, .17));
 }
 .drive-upload-file-heading > button {
   display: inline-flex;
@@ -268,7 +268,7 @@ dialog.modal:has(.drive-upload-modal) .modal-body {
 .drive-upload-summary-text > span:last-child { color: #21badb; white-space: nowrap; }
 .drive-upload-dot { display: inline-block; width: 6px; height: 6px; margin-right: 6px; border-radius: 50%; background: #24c2d9; vertical-align: middle; }
 .drive-upload-track { overflow: hidden; height: 5px; background: var(--upload-track); border-radius: 10px; margin-top: 8px; }
-.drive-upload-track > div { height: 100%; border-radius: inherit; background: linear-gradient(90deg, #8d7bff, #c9c6ff); transition: width .12s linear; }
+.drive-upload-track > div { height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--app-ui-accent-start, #8d7bff), var(--app-ui-accent-end, #c9c6ff)); transition: width .12s linear; }
 .drive-upload-file-list {
   display: flex;
   flex-direction: column;
@@ -358,7 +358,7 @@ dialog.modal:has(.drive-upload-modal) .modal-body {
 .drive-upload-folder-list { display: flex; flex-direction: column; gap: 5px; overflow-y: auto; min-height: 0; }
 .drive-upload-folder-list > button { display: flex; align-items: center; gap: 11px; width: 100%; padding: 12px; border-radius: 10px; background: var(--upload-panel); color: var(--upload-text); font-size: 12px; text-align: left; }
 .drive-upload-folder-list > button:hover { background: var(--upload-pill); }
-.drive-upload-folder-list > button svg:first-child { color: #a69fff; }
+.drive-upload-folder-list > button svg:first-child { color: var(--app-ui-focus-ring, #a69fff); }
 .drive-upload-folder-list > button span { flex: 1; overflow: hidden; text-overflow: ellipsis; }
 .drive-upload-browser-state { flex: 1; display: flex; justify-content: center; align-items: center; gap: 9px; color: var(--upload-muted); font-size: 12px; }
 .drive-upload-browser-error { color: #f389a6 !important; font-size: 12px; }
