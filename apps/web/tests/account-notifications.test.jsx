@@ -71,9 +71,9 @@ describe("My Account notification design", () => {
     expect(screen.getAllByText("Coming soon")).toHaveLength(3);
 
     const cyan = screen.getByRole("radio", { name: /Cyan Glaze/ });
-    expect(cyan.getAttribute("aria-checked")).toBe("false");
+    expect(cyan.checked).toBe(false);
     await user.click(cyan);
-    expect(cyan.getAttribute("aria-checked")).toBe("true");
+    expect(cyan.checked).toBe(true);
     expect(JSON.parse(window.localStorage.getItem(appearanceStorageKey("profile-1")))).toEqual({
       accent: "cyan",
     });
@@ -81,7 +81,7 @@ describe("My Account notification design", () => {
     mounted.unmount();
     mountAccount();
     await user.click(screen.getByRole("button", { name: "Appearance & Theme" }));
-    expect(screen.getByRole("radio", { name: /Cyan Glaze/ }).getAttribute("aria-checked")).toBe("true");
+    expect(screen.getByRole("radio", { name: /Cyan Glaze/ }).checked).toBe(true);
   });
 
   it("shows Sign out in the account header and uses the existing logout action", async () => {
