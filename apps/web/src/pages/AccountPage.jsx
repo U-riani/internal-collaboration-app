@@ -470,29 +470,31 @@ function AccountProfile({ user, displayName, photoUrl }) {
             </p>
           </div>
 
-          <div className="account-profile-input-wrap account-profile-department">
-            <Field label="Department">
-              <input
-                className="input account-profile-readonly"
-                type="text"
-                value={departmentName}
-                readOnly
-                aria-readonly="true"
-              />
-            </Field>
-          </div>
+          <div className="account-profile-contact-row">
+            <div className="account-profile-input-wrap account-profile-department">
+              <Field label="Department">
+                <input
+                  className="input account-profile-readonly"
+                  type="text"
+                  value={departmentName}
+                  readOnly
+                  aria-readonly="true"
+                />
+              </Field>
+            </div>
 
-          <div className="account-profile-input-wrap account-profile-phone">
-            <Field label="Mobile phone number">
-              <input
-                className="input account-profile-readonly"
-                type="tel"
-                value={user.phone || "Not provided"}
-                readOnly
-                aria-readonly="true"
-              />
-            </Field>
-            <Phone className="account-profile-input-icon" size={16} aria-hidden="true" />
+            <div className="account-profile-input-wrap account-profile-phone">
+              <Field label="Mobile phone number">
+                <input
+                  className="input account-profile-readonly"
+                  type="tel"
+                  value={user.phone || "Not provided"}
+                  readOnly
+                  aria-readonly="true"
+                />
+              </Field>
+              <Phone className="account-profile-input-icon" size={16} aria-hidden="true" />
+            </div>
           </div>
         </div>
       </section>
