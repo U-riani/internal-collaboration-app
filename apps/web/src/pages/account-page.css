@@ -237,7 +237,7 @@
 .account-card-heading h2 {
   margin: 1px 0 0;
   color: var(--account-text);
-  font-size: 16px;
+  font-size: var(--app-text-section, 16px);
   font-weight: 760;
   letter-spacing: -.03em;
   line-height: 1.35;
@@ -251,7 +251,7 @@
 .account-settings-description {
   margin: 16px 0 0;
   color: var(--account-muted);
-  font-size: 12px;
+  font-size: var(--app-text-base, 12px);
   font-weight: 500;
   line-height: 1.65;
 }
