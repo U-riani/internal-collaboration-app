@@ -244,3 +244,71 @@ body:has(.app-theme-dark[data-appearance="slate"]) { background: #171b23; }
 .app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .btn-secondary {
   color-scheme: dark;
 }
+
+/* Nested editing/details surfaces keep the same palette when opened. */
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .task-detail,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .approval-detail {
+  --detail-bg: var(--app-surface);
+  --detail-panel: var(--app-surface-raised);
+  --detail-control: var(--app-surface-input);
+  --detail-text: var(--app-text);
+  --detail-muted: var(--app-muted);
+  --detail-border: var(--app-border-strong);
+  --detail-hover: var(--app-surface-hover);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .task-form .task-form-scroll,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .task-form .task-form-footer {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .task-form .input,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .approval-config-form .input {
+  background: var(--app-surface-input);
+  color: var(--app-text);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) :is(.drive-new-group-form, .drive-new-folder-form) :is(.drive-new-group-input, .drive-new-folder-input) {
+  background: var(--app-surface-input);
+  color: var(--app-text);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-space-members-modal .drive-member-search {
+  background: var(--app-surface-input);
+}
+
+/* The Messages New Conversation dialog isn't the shared Modal component. */
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .new-conversation-dialog {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+  color: var(--app-text);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .new-conversation-header,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .new-conversation-footer {
+  background: var(--palette-panel-gradient);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .new-conversation-close,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .new-conversation-type-switch {
+  background: var(--app-surface-raised);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .new-conversation-close:hover,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .new-conversation-type-switch button:hover:not(.is-active) {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .new-conversation-name-field,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .new-conversation-search,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .new-conversation-people-list {
+  background: var(--app-surface-input);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .new-conversation-search:focus-within {
+  background: var(--app-surface-input);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .new-conversation-person {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .new-conversation-person:hover {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .new-conversation-person.is-selected {
+  background: var(--palette-selection);
+}
