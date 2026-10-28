@@ -381,10 +381,9 @@ export default function AccountPage() {
       <header className="account-hero">
         <div className="account-identity">
           <div className="account-hero-avatar">
-            {photoUrl ? (
+            <Avatar name={displayName} />
+            {photoUrl && (
               <img src={photoUrl} alt="" onError={(event) => { event.currentTarget.style.display = "none"; }} />
-            ) : (
-              <Avatar name={displayName} />
             )}
           </div>
           <div className="account-identity-copy">
