@@ -136,12 +136,6 @@ function AccountSecurity() {
     { id: "different", label: "Different from current password", met: currentPassword.length > 0 && newPassword.length > 0 && newPassword !== currentPassword },
     { id: "matching", label: "Confirmation matches new password", met: confirmation.length > 0 && newPassword === confirmation },
   ];
-  const canSave =
-    !save.isPending &&
-    currentPassword.length >= 1 &&
-    currentPassword.length <= 200 &&
-    rules.every((rule) => rule.met);
-
   const save = useMutation({
     mutationFn: () =>
       api("/auth/password", {
@@ -150,6 +144,11 @@ function AccountSecurity() {
       }),
     onSuccess: () => logout(),
   });
+  const canSave =
+    !save.isPending &&
+    currentPassword.length >= 1 &&
+    currentPassword.length <= 200 &&
+    rules.every((rule) => rule.met);
 
   return (
     <div className="account-security-grid">
