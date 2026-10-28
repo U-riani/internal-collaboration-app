@@ -26,6 +26,22 @@ body:has(.app-theme-dark) { background: #0a0f1d; }
   --app-primary: #6366f1;
   --app-primary-hover: #7772f7;
   --app-primary-soft: #272a50;
+
+  /*
+   * Theme Foundation / phase 1.
+   * Semantic accent aliases retain the *exact* existing Midnight values.
+   * Future accent palettes can override these in one place, without
+   * changing the base surfaces or touching application state.
+   */
+  --app-accent: var(--app-primary);
+  --app-accent-hover: var(--app-primary-hover);
+  --app-accent-soft: var(--app-primary-soft);
+  --app-accent-gradient-start: var(--app-primary);
+  --app-accent-gradient-end: var(--app-primary-hover);
+  --app-on-accent: #fff;
+  --app-accent-shadow: rgba(99,102,241,.21);
+  --app-focus-ring: #818cf8;
+
   --app-secondary: #06b6d4;
   --app-tertiary: #a855f7;
   --app-success: #53d7b5;
@@ -65,11 +81,11 @@ body:has(.app-theme-dark) { background: #0a0f1d; }
   background: var(--app-surface-hover);
 }
 .app-theme-dark .workspace-nav-link[aria-current="page"] {
-  color: #fff;
-  background: linear-gradient(112deg, var(--app-primary), var(--app-primary-hover));
-  box-shadow: 0 4px 16px rgba(99,102,241,.21);
+  color: var(--app-on-accent);
+  background: linear-gradient(112deg, var(--app-accent-gradient-start), var(--app-accent-gradient-end));
+  box-shadow: 0 4px 16px var(--app-accent-shadow);
 }
-.app-theme-dark .workspace-nav-link[aria-current="page"] svg { color: #fff; }
+.app-theme-dark .workspace-nav-link[aria-current="page"] svg { color: var(--app-on-accent); }
 .app-theme-dark > .workspace-mobile-header .icon-btn { color: var(--app-text); }
 .app-theme-dark > .workspace-mobile-header .icon-btn:hover { background: #262f46; }
 
@@ -98,7 +114,7 @@ body:has(.app-theme-dark) { background: #0a0f1d; }
 }
 .sidebar-profile-identity:hover { background: rgba(126,129,244,.12); }
 .sidebar-profile-identity:focus-visible {
-  outline: 2px solid #818cf8;
+  outline: 2px solid var(--app-focus-ring);
   outline-offset: 2px;
 }
 .sidebar-profile-identity .avatar {
@@ -168,10 +184,10 @@ body:has(.app-theme-dark) { background: #0a0f1d; }
   color: var(--app-text);
 }
 .app-theme-dark .btn-primary {
-  color: #fff;
-  background: var(--app-primary);
+  color: var(--app-on-accent);
+  background: var(--app-accent);
 }
-.app-theme-dark .btn-primary:hover { background: var(--app-primary-hover); }
+.app-theme-dark .btn-primary:hover { background: var(--app-accent-hover); }
 .app-theme-dark .btn-secondary {
   border-color: var(--app-border-strong);
   background: var(--app-surface-raised);
