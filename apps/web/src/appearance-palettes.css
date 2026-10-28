@@ -532,3 +532,74 @@ body:has(.app-theme-dark[data-appearance="slate"]) { background: #171b23; }
 .app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .approval-bases-page .approval-bases-back:hover {
   background: var(--app-surface-hover);
 }
+
+/* Overview cards and list content, beyond the outer dashboard panels. */
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) :is(.overview-focus-count, .overview-task-check, .overview-panel-action) {
+  background: var(--app-surface-input);
+  color: var(--app-text);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) :is(.overview-task-row, .overview-shortcut-row, .overview-update-row) {
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) :is(.overview-task-info strong, .overview-shortcut-copy strong, .overview-update-info strong, .overview-update-info > span) {
+  color: var(--app-text);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) :is(.overview-task-info > span, .overview-shortcut-copy small, .overview-updates-heading p, .overview-update-date) {
+  color: var(--app-muted);
+}
+
+/* Account: keep security and push status cues, recolor neutral surfaces. */
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) :is(.account-hero, .account-settings-card) {
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) :is(.account-tab:not(.is-active):hover, .account-sound-preview.btn-secondary:hover, .account-appearance-theme:not(.is-unavailable):hover) {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) :is(.account-password-field, .account-profile-input-wrap) .input {
+  background: var(--app-surface-input);
+  color: var(--app-text);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) :is(.account-appearance-theme, .account-appearance-accent-option, .account-sounds-toggle) {
+  background: var(--app-surface-input);
+  border-color: var(--app-border);
+}
+
+/* Common native picker: theme the OPTION popover, not just the closed select. */
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .app-modern-select {
+  background: var(--app-surface-input);
+  border-color: var(--app-border-strong);
+  color: var(--app-text);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .app-modern-select option:not(:checked) {
+  background: var(--app-surface-raised);
+  color: var(--app-text);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .app-modern-select option:hover:not(:checked),
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .app-modern-select option:focus:not(:checked) {
+  background: var(--app-surface-hover);
+  color: var(--app-text-strong);
+}
+@supports (appearance: base-select) {
+  .app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .app-modern-select::picker(select) {
+    background: var(--app-surface-raised);
+    border-color: var(--app-border-strong);
+    color: var(--app-text);
+  }
+  .app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .app-modern-select option:not(:checked) {
+    background: transparent;
+  }
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) table tbody tr:hover {
+  background-color: var(--app-surface-hover);
+}
+
+/* Retain type/status icons: only neutral page chrome follows the surface. */
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .sidebar-profile-card {
+  color: var(--app-text);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .sidebar-profile-identity:hover {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) :is(.page-header, .modal-head, .form-actions) {
+  border-color: var(--app-border);
+}
