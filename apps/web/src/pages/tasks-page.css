@@ -50,7 +50,7 @@
 }
 .tasks-page .page-header h1 {
   color: var(--task-text);
-  font-size: clamp(26px, 2.1vw, 34px);
+  font-size: var(--app-text-heading, clamp(26px, 2.1vw, 34px));
   line-height: 1.15;
   letter-spacing: -.045em;
   font-weight: 800;
@@ -58,8 +58,8 @@
 .tasks-page .page-header p {
   margin-top: 4px;
   color: var(--task-muted);
-  font-size: 12px;
-  line-height: 1.5;
+  font-size: var(--app-text-base, 12px);
+  line-height: var(--app-leading-body, 1.5);
 }
 .tasks-page .page-header-action { min-width: 0; flex: 0 1 auto; overflow: visible; }
 .tasks-page .task-header-actions { flex-wrap: wrap; }
@@ -866,7 +866,7 @@
   min-width: 0;
   gap: 8px;
   color: var(--task-muted);
-  font-size: 12px;
+  font-size: var(--app-text-base, 12px);
   font-weight: 700;
   line-height: 1.35;
 }
