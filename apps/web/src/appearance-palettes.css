@@ -60,9 +60,16 @@ body:has(.app-theme-dark[data-appearance="slate"]) { background: #171b23; }
   background: var(--palette-panel-gradient);
   border-color: var(--app-border);
 }
+/* Never overwrite the active gradient on hover: its text uses the
+   on-accent contrast color, which becomes unreadable on a dark surface. */
 .app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) > .workspace-mobile-header .icon-btn:hover,
-.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .workspace-nav-link:hover {
-  background: var(--app-surface-hover);
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .workspace-nav-link:not([aria-current="page"]):hover {
+  background: var(--app-interactive-hover);
+  color: var(--app-interactive-hover-text);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .workspace-nav-link[aria-current="page"]:hover {
+  background: linear-gradient(112deg, var(--app-accent-gradient-start), var(--app-accent-gradient-end));
+  color: var(--app-interactive-selected-text);
 }
 /* Shared surfaces, dropdowns and modals stay in their existing layout. */
 .app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .modal,
@@ -598,7 +605,7 @@ body:has(.app-theme-dark[data-appearance="slate"]) { background: #171b23; }
   color: var(--app-text);
 }
 .app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .sidebar-profile-identity:hover {
-  background: var(--app-surface-hover);
+  background: var(--app-interactive-hover);
 }
 .app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) :is(.page-header, .modal-head, .form-actions) {
   border-color: var(--app-border);
