@@ -1288,7 +1288,8 @@ export default function ChatPage() {
 
   useEffect(() => {
     setText("");
-    setFile(null);
+    clearFiles();
+    attachmentUploads.current.clear();
     setReply(null);
     setMessageSearch("");
     setSearchType("messages");
