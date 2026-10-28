@@ -95,6 +95,10 @@ body:has(.app-theme-dark) { background: #0a0f1d; }
   --app-ui-accent-label: var(--app-on-accent);
   --app-ui-accent-shadow: var(--app-accent-shadow);
   --app-ui-focus-ring: var(--app-focus-ring);
+  --app-ui-accent-selected: var(--app-accent);
+  --app-ui-accent-selected-hover: var(--app-accent-hover);
+  --app-ui-accent-selected-text: var(--app-on-accent);
+  --app-ui-accent-tint: color-mix(in srgb, var(--app-accent) 13%, transparent);
 }
 
 .app-theme-dark > .workspace-main {
@@ -418,7 +422,7 @@ body:has(.app-theme-dark) { background: #0a0f1d; }
   cursor: pointer;
 }
 .app-modern-select:focus-visible {
-  outline: 2px solid #9b91ff;
+  outline: 2px solid var(--app-ui-focus-ring, #9b91ff);
   outline-offset: 2px;
 }
 .app-modern-select:disabled {
@@ -473,11 +477,11 @@ body:has(.app-theme-dark) { background: #0a0f1d; }
     background: #edf0ff;
   }
   .app-modern-select option:checked {
-    color: #fff;
-    background: #655ff1;
+    color: var(--app-ui-accent-selected-text, #fff);
+    background: var(--app-ui-accent-selected, #655ff1);
   }
   .app-modern-select option::checkmark {
-    color: #fff;
+    color: var(--app-ui-accent-selected-text, #fff);
   }
   .app-theme-dark .app-modern-select::picker(select) {
     border-color: #3a4059;
@@ -495,7 +499,7 @@ body:has(.app-theme-dark) { background: #0a0f1d; }
     background: #3a405c;
   }
   .app-theme-dark .app-modern-select option:checked {
-    color: #f4f1ff;
-    background: #655ff1;
+    color: var(--app-ui-accent-selected-text, #f4f1ff);
+    background: var(--app-ui-accent-selected, #655ff1);
   }
 }
