@@ -680,3 +680,20 @@ body:has(.app-theme-dark[data-appearance="slate"]) { background: #171b23; }
   border-color: var(--app-border);
   color: var(--app-text);
 }
+
+/* Inbox and People inherit Tasks' layout but use their own controls. */
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .notifications-page {
+  --notice-surface: var(--app-surface);
+  --notice-raised: var(--app-surface-raised);
+  --notice-control: var(--app-surface-input);
+  --notice-border: var(--app-border-strong);
+  --notice-hover: var(--app-surface-hover);
+  --notice-text: var(--app-text);
+  --notice-muted: var(--app-muted);
+  --notice-subtle: var(--app-subtle);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .directory-page :is(.directory-filter-select, .directory-search-bar) {
+  background: var(--app-surface-input);
+  border-color: var(--app-border-strong);
+  color: var(--app-text);
+}
