@@ -598,6 +598,26 @@
   border: 1px solid var(--task-border);
   background: var(--task-control);
 }
+/* Native date fields have their own editing focus. Keep one accent-colored
+   border instead of the Tailwind ring + the generic Tasks outline. */
+.tasks-page .task-filter-dates input[type="date"].input:focus,
+.tasks-page .task-filter-dates input[type="date"].input:focus-visible,
+.app-theme-dark .tasks-page .task-filter-dates input[type="date"].input:focus,
+.app-theme-dark .tasks-page .task-filter-dates input[type="date"].input:focus-visible {
+  border-color: var(--app-ui-focus-ring, #817cf0) !important;
+  outline: none !important;
+  box-shadow: none !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+}
+/* Chromium/WebKit segment editing (mm / dd / yyyy) uses a native highlight.
+   Match the selected accent; other browser engines keep their native editing UI. */
+.tasks-page .task-filter-dates input[type="date"]::-webkit-datetime-edit-month-field:focus,
+.tasks-page .task-filter-dates input[type="date"]::-webkit-datetime-edit-day-field:focus,
+.tasks-page .task-filter-dates input[type="date"]::-webkit-datetime-edit-year-field:focus {
+  background: var(--app-ui-accent-selected, #746dff);
+  color: var(--app-ui-accent-selected-text, #fff);
+  border-radius: 2px;
+}
 .tasks-page .task-filter-footer {
   z-index: 2;
   gap: 12px;
