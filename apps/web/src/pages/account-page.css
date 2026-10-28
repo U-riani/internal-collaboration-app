@@ -273,7 +273,7 @@
   margin: 0;
   width: 15px;
   height: 15px;
-  accent-color: #827aff;
+  accent-color: var(--app-ui-accent-selected, #827aff);
   cursor: pointer;
 }
 .account-soundboard {
@@ -547,8 +547,8 @@
   white-space: nowrap;
 }
 .account-profile-photo-actions .account-profile-upload.btn-primary {
-  background: linear-gradient(110deg, #8880ff, #7973f9);
-  color: #1c1947;
+  background: linear-gradient(110deg, var(--app-ui-accent-start, #8880ff), var(--app-ui-accent-end, #7973f9));
+  color: var(--app-ui-accent-label, #1c1947);
   box-shadow: none;
 }
 .account-profile-photo-actions .account-profile-remove.btn-secondary {
