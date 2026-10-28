@@ -476,8 +476,8 @@
   width: 38px;
   height: 38px;
   border-radius: 12px;
-  color: #a7baff;
-  background: #283967;
+  color: var(--app-ui-focus-ring, #a7baff);
+  background: var(--app-ui-selection-start, #283967);
 }
 .new-conversation-heading {
   flex: 1;
@@ -563,10 +563,10 @@
   justify-content: center;
   min-height: 24px;
   padding: 4px 11px;
-  border: 1px solid #30325c;
+  border: 1px solid var(--app-ui-accent-outline, #30325c);
   border-radius: 999px;
-  color: #aeb0ff;
-  background: #1d2142;
+  color: var(--app-ui-focus-ring, #aeb0ff);
+  background: var(--app-ui-selection-end, #1d2142);
   font-size: 10px;
   font-weight: 680;
   white-space: nowrap;
@@ -580,7 +580,7 @@
   font-size: 11px;
   font-weight: 700;
 }
-.new-conversation-required { color: #aaa1ff; }
+.new-conversation-required { color: var(--app-ui-focus-ring, #aaa1ff); }
 .new-conversation-name-field {
   display: flex;
   align-items: center;
@@ -810,7 +810,7 @@
   border-radius: 10px;
   color: var(--app-ui-accent-label, #fff);
   background: linear-gradient(115deg, var(--app-ui-accent-start, #716cf6), var(--app-ui-accent-end, #4b46d7));
-  box-shadow: 0 5px 20px rgba(95, 85, 230, .28);
+  box-shadow: 0 5px 20px var(--app-ui-accent-shadow, rgba(95, 85, 230, .28));
   font-size: 11px;
   font-weight: 730;
   white-space: nowrap;
