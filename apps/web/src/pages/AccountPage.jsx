@@ -14,7 +14,6 @@ import {
   Trash2,
   Upload,
   UserRound,
-  UserSquare2,
   Volume2,
   VolumeX,
 } from "lucide-react";
@@ -381,7 +380,7 @@ function AccountProfile({ user, displayName, photoUrl }) {
       <section className="account-settings-card account-profile-photo-card" aria-labelledby="account-photo-title">
         <div className="account-card-heading">
           <span className="account-card-icon account-card-icon--violet" aria-hidden="true">
-            <UserSquare2 size={20} />
+            <UserRound size={20} />
           </span>
           <div>
             <h2 id="account-photo-title">Avatar &amp; Badge</h2>
