@@ -40,6 +40,18 @@ describe("Group Add Task and New Request design-system regression", () => {
     expect(approvalsPage).toContain('<FormFields schema={schema} values={values} setValues={setValues} />');
   });
 
+  it("keeps Save draft readable and prevents hover changes while disabled", () => {
+    expect(approvalsPage).toContain('disabled={save.isPending || !typeId || title.trim().length < 2}');
+    expect(approvalsPage).toContain('onClick={() => save.mutate(false)}');
+    expect(approvalStyles).toContain('.app-theme-dark .approval-request-actions .btn-secondary:hover:not(:disabled)');
+    expect(approvalStyles).toContain('.app-theme-dark .approval-request-actions .btn-secondary:disabled:hover');
+    expect(approvalStyles).toContain('opacity: 1;');
+    expect(approvalStyles).toContain('color: var(--app-muted);');
+    expect(approvalStyles).toContain('background: var(--app-interactive-hover);');
+    expect(approvalStyles).toContain('color: var(--app-interactive-hover-text);');
+    expect(approvalStyles).toContain('background: var(--app-surface-raised);');
+  });
+
   it("keeps the request dialog themed, scrollable and readable in all dark themes", () => {
     expect(approvalStyles).toContain('.modal[open]:has(> .modal-body > .approval-request-form)');
     expect(approvalStyles).toContain('background: var(--app-surface);');
