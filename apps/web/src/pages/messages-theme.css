@@ -128,7 +128,10 @@
   font-weight: 650;
   transition: background .16s,color .16s;
 }
-.messages-page .chat-sidebar-tab:hover { background:#2a3049; color: #f0f0ff; }
+.messages-page .chat-sidebar-tab:not([aria-pressed="true"]):hover {
+  background: var(--app-interactive-hover);
+  color: var(--app-interactive-hover-text);
+}
 .messages-page .chat-sidebar-tab[aria-pressed="true"] {
   color: var(--app-ui-accent-label, #fff);
   background: linear-gradient(130deg, var(--app-ui-accent-start, #7a71fd), var(--app-ui-accent-end, #5c5ce5));
@@ -383,7 +386,10 @@
 .messages-page .chat-file-preview { color: #b8c3db; }
 .messages-page .chat-messages-scroll .text-slate-400 { color: #95a0b9; }
 .messages-page .chat-messages-scroll .btn-secondary { color: #ccd1ec; background:#2c3248; border-color:#40465f; }
-.messages-page .chat-messages-scroll .btn-secondary:hover { background:#373e57; }
+.messages-page .chat-messages-scroll .btn-secondary:hover:not(:disabled) {
+  background: var(--app-interactive-hover);
+  color: var(--app-interactive-hover-text);
+}
 .messages-page .chat-messages-scroll .bg-blue-50 { background: #303656; color:#c9c7ff; }
 .messages-page .chat-messages-scroll .border-slate-200 { border-color:#3d435c; }
 .messages-page .chat-messages-scroll .bg-white { background: #2b3147; color:#cfd5f1; }
