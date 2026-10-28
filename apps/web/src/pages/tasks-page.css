@@ -82,7 +82,12 @@
   background: linear-gradient(110deg, var(--app-ui-accent-start, #867afa) 0%, var(--app-ui-accent-end, #6465ef) 100%);
   color: var(--app-ui-accent-label, #fff);
 }
-.tasks-page .task-header-actions .btn-primary:hover { filter: brightness(1.08); }
+.tasks-page .task-header-actions .btn-primary:hover:not(:disabled) {
+  /* Never replace the gradient with the generic flat .btn-primary hover. */
+  background: linear-gradient(110deg, var(--app-ui-accent-start, #867afa) 0%, var(--app-ui-accent-end, #6465ef) 100%);
+  color: var(--app-ui-accent-label, #fff);
+  filter: brightness(1.055);
+}
 
 .tasks-page .task-summary {
   display: grid;
@@ -1026,7 +1031,10 @@
   font-size: 12px;
   font-weight: 700;
 }
-.task-form .task-form-footer .btn-primary:hover { background: var(--app-ui-accent-selected-hover, #817afa); }
+.task-form .task-form-footer .btn-primary:hover:not(:disabled) {
+  background: var(--app-ui-accent-selected-hover, #817afa);
+  color: var(--app-ui-accent-selected-text, #fff);
+}
 .modal:has(> .modal-body > .task-form) .modal-head h2 {
   font-weight: 750;
   letter-spacing: -.015em;
@@ -1361,13 +1369,16 @@
   min-height: 37px;
   padding: 8px 16px;
   border-radius: 9px;
-  background: #716bf4;
-  color: white;
-  font-size: 12px;
+  background: var(--app-ui-accent-selected, #716bf4);
+  color: var(--app-ui-accent-selected-text, #fff);
+  font-size: var(--app-text-base, 12px);
   font-weight: 700;
 }
-.task-detail .task-detail-comment-submit:hover,
-.app-theme-dark .task-detail .task-detail-comment-submit:hover { background: #817afa; }
+.task-detail .task-detail-comment-submit:hover:not(:disabled),
+.app-theme-dark .task-detail .task-detail-comment-submit:hover:not(:disabled) {
+  background: var(--app-ui-accent-selected-hover, #817afa);
+  color: var(--app-ui-accent-selected-text, #fff);
+}
 .task-detail .task-detail-history {
   margin-top: 22px;
   padding: 12px 14px;
