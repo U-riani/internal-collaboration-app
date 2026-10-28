@@ -2120,6 +2120,8 @@
   color: var(--app-text);
 }
 .app-theme-dark .approval-request-form .approval-request-actions {
+  position: static;
+  bottom: auto;
   display: flex;
   flex: 0 0 auto;
   align-items: center;
@@ -2127,6 +2129,7 @@
   flex-wrap: wrap;
   gap: 10px;
   min-height: 70px;
+  margin: 0;
   padding: 14px 24px 16px;
   border-top: 1px solid var(--app-border);
   background: var(--app-surface);
