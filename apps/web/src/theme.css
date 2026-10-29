@@ -240,22 +240,15 @@ body:has(.app-theme-dark) { background: #0a0f1d; }
   background: linear-gradient(135deg, #343a6b, #535baa);
 }
 
-/* Shared building blocks (used by all feature modules). */
+/* Shared PageHeader sits directly on the workspace canvas in every module
+   and every appearance. Each module retains its own layout and action buttons. */
 .app-theme-dark .page-header {
-  border-color: var(--app-border);
-  background: var(--app-sidebar);
+  border: 0;
+  background: transparent;
+  box-shadow: none;
 }
 .app-theme-dark .page-header h1 { color: var(--app-text-strong); }
 .app-theme-dark .page-header p { color: var(--app-muted); }
-
-/* Full-width workspace headers in Messages and Drive share the page canvas.
-   This intentionally outranks generic and Light PageHeader backgrounds without
-   changing the reusable PageHeader component or any other module. */
-.app-theme-dark :is(.messages-page, .drive-page) > .page-header:first-child {
-  background: transparent;
-  border: 0;
-  box-shadow: none;
-}
 /* Shared typography: controls inherit one font, while each module still owns
    its intentional layout, sizing and responsive wrapping. */
 .app-theme-dark :is(button, input, select, textarea) {
@@ -467,10 +460,6 @@ body:has(.app-theme-dark) { background: #0a0f1d; }
   border: 0;
   background: transparent;
   box-shadow: none;
-}
-.app-theme-dark .messages-page .page-header {
-  background: transparent;
-  border: 0;
 }
 .app-theme-dark table { color: var(--app-text); }
 .app-theme-dark table th {
