@@ -66,7 +66,7 @@ describe("My Account notification design", () => {
       await user.click(screen.getByRole("button", { name: "Appearance & Theme" }));
       expect(screen.getByText("Workspace Appearance")).not.toBeNull();
       expect(screen.getByText("OLED Pure Black")).not.toBeNull();
-      expect(screen.getAllByText("Coming soon")).toHaveLength(1);
+      expect(screen.getByRole("radio", { name: /Light Theme/ }).disabled).toBe(false);
 
       const cyan = screen.getByRole("radio", { name: /Cyan Glaze/ });
       expect(cyan.checked).toBe(false);
