@@ -2214,6 +2214,12 @@
 .app-theme-dark .approval-detail .approval-detail-fields.task-detail-section {
   background: var(--detail-bg);
 }
+/* The schema field wrapper is layout-only: only its actual value control
+   gets a surface. This avoids a rectangular gray patch behind REASON
+   and works for arbitrary request fields in every appearance. */
+.app-theme-dark .approval-detail .approval-detail-fields-grid > .approval-detail-field {
+  background: transparent;
+}
 .app-theme-dark .approval-detail .approval-detail-step-info,
 .app-theme-dark .approval-detail .approval-detail-timeline-item {
   background: transparent;
