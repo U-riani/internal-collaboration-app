@@ -40,10 +40,10 @@
   flex: 0 0 44px;
   width: 44px;
   height: 44px;
-  border: 1px solid #807af54a;
+  border: 1px solid var(--app-ui-accent-outline, var(--base-border));
   border-radius: 12px;
-  color: #a7a3ff;
-  background: #37386d;
+  color: var(--app-focus-ring);
+  background: var(--app-accent-soft);
 }
 .approval-bases-page .page-header-action .approval-bases-back {
   min-height: 38px;
@@ -56,21 +56,18 @@
   font-weight: 700;
   transition: background-color .16s ease, border-color .16s ease, color .16s ease, box-shadow .16s ease;
 }
-.approval-bases-page .page-header-action .approval-bases-back:hover {
-  background: #7772f522;
-  color: #756ef0;
-  border-color: #8d83fa99;
-  box-shadow: 0 0 0 1px #7772f513;
+.approval-bases-page .page-header-action .approval-bases-back:hover:not(:disabled) {
+  background: var(--app-interactive-hover);
+  color: var(--app-interactive-hover-text);
+  border-color: var(--app-ui-accent-outline, var(--base-border));
+  box-shadow: 0 0 0 1px var(--app-ui-accent-tint);
 }
 .approval-bases-page .page-header-action .approval-bases-back:focus-visible {
-  outline: 2px solid #817cf0;
+  outline: 2px solid var(--app-focus-ring);
   outline-offset: 2px;
 }
-.app-theme-dark .approval-bases-page .page-header-action .approval-bases-back:hover {
-  background: #383455;
-  color: #c4baff;
-  border-color: #817cf0;
-  box-shadow: 0 0 0 1px #817cf022;
+.approval-bases-page .page-header-action .approval-bases-back > svg {
+  color: currentColor;
 }
 .approval-bases-layout {
   display: grid;
@@ -397,11 +394,12 @@
   background: var(--base-control);
   border-color: var(--base-border);
 }
-.approval-bases-page .approval-bases-filter-dates .approval-date-control:hover {
-  border-color: #817cf088;
+.approval-bases-page .approval-bases-filter-dates .approval-date-control:hover:not(:focus-within) {
+  border-color: var(--app-border-strong);
 }
 .approval-bases-page .approval-bases-filter-dates .approval-date-control:focus-within {
-  border-color: #817cf0;
+  border-color: var(--app-focus-ring);
+  box-shadow: 0 0 0 2px var(--app-ui-accent-tint);
 }
 
 .approval-base-table-section {
