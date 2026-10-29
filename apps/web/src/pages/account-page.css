@@ -949,9 +949,12 @@
 .account-appearance-theme-preview.preview-slate { background: #222834; }
 .account-appearance-theme-preview.preview-slate span { background: #424855; }
 .account-appearance-theme-preview.preview-slate span:first-child { background: #b29ae5; }
-.account-appearance-theme-preview.preview-system { background: linear-gradient(110deg, #e6eaf4 50%, #19202d 50%); }
-.account-appearance-theme-preview.preview-system span { background: #8e9bb1; }
-.account-appearance-theme-preview.preview-system span:first-child { background: #8181d7; }
+.account-appearance-theme-preview.preview-light {
+  background: #f5f7fc;
+  border: 1px solid #dce3ee;
+}
+.account-appearance-theme-preview.preview-light span { background: #d1d9e8; }
+.account-appearance-theme-preview.preview-light span:first-child { background: #6f69ec; }
 .account-appearance-accent-list {
   display: flex;
   flex-direction: column;
