@@ -163,8 +163,8 @@ describe("Dark workspace appearance palettes", () => {
     expect(accountCss).toContain('font-size: var(--app-text-section, 16px);');
   });
 
-  it("offers three working dark radios and keeps System Sync disabled", () => {
-    expect(account).toContain('...THEME_OPTIONS, { id: "system", label: "System Sync" }');
+  it("offers three working dark radios and keeps Light Theme disabled until ready", () => {
+    expect(account).toContain('...THEME_OPTIONS, { id: "light", label: "Light Theme" }');
     expect(account).toContain('disabled={!available}');
     expect(account).toContain('saveThemePreference(userId, nextTheme)');
   });
