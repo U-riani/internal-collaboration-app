@@ -1419,12 +1419,16 @@ body:has(.app-theme-dark[data-appearance="light"]) {
   border-color: var(--app-border-strong);
   box-shadow: 0 22px 65px rgba(24, 35, 53, .16);
 }
-.app-theme-dark[data-appearance="light"] .modal:has(.drive-space-members-modal) :is(.modal-head, .modal-body),
+.app-theme-dark[data-appearance="light"] .modal:has(.drive-space-members-modal) .modal-head,
 .app-theme-dark[data-appearance="light"] .modal:has(:is(.drive-new-group-form, .drive-new-folder-form)) .modal-head,
 .app-theme-dark[data-appearance="light"] .modal:has(.drive-permission-note) .modal-head {
   background: var(--palette-panel-gradient);
   color: var(--app-text);
   border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] .modal:has(.drive-space-members-modal) .modal-body {
+  background: var(--app-surface);
+  color: var(--app-text);
 }
 .app-theme-dark[data-appearance="light"] .modal:has(.drive-space-members-modal) .modal-head h2,
 .app-theme-dark[data-appearance="light"] .modal:has(:is(.drive-new-group-form, .drive-new-folder-form)) .modal-head h2 {
@@ -1551,6 +1555,22 @@ body:has(.app-theme-dark[data-appearance="light"]) {
   background: var(--upload-track);
 }
 
+
+
+/* Light-readable Upload status messages without changing operation state. */
+.app-theme-dark[data-appearance="light"] dialog.modal:has(.drive-upload-modal) .modal-head-badge,
+.app-theme-dark[data-appearance="light"] dialog.modal:has(.drive-upload-modal) .drive-upload-summary-text > span:last-child {
+  color: #086a82;
+}
+.app-theme-dark[data-appearance="light"] dialog.modal:has(.drive-upload-modal) :is(.drive-upload-status.status-done, .drive-upload-complete) {
+  color: #13765c;
+}
+.app-theme-dark[data-appearance="light"] dialog.modal:has(.drive-upload-modal) :is(.drive-upload-status.status-error, .drive-upload-status.status-cancelled) {
+  color: #bd3650;
+}
+.app-theme-dark[data-appearance="light"] dialog.modal:has(.drive-upload-modal) :is(.drive-upload-status.status-uploading, .drive-upload-status.status-saving) {
+  color: var(--app-focus-ring);
+}
 
 /* Phase 4B — Notifications: neutral chrome follows Light while the
  * LOW/NORMAL/HIGH/URGENT priority stripes and unread state remain semantic. */
