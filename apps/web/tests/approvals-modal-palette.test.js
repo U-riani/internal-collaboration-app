@@ -45,6 +45,25 @@ describe("Approvals and Approval Bases shared filters", () => {
     },
   );
 
+  it.each(THEME_OPTIONS.map(({ id }) => [id]))(
+    "keeps the Reason/schema field wrapper unpainted while retaining a themed value (%s)",
+    () => {
+      expect(approvals).toContain('className="approval-detail-fields-grid"');
+      expect(approvals).toContain('className="approval-detail-field"');
+      expect(approvals).toContain('className="approval-detail-field-value"');
+      expect(css).toContain(
+        ".app-theme-dark .approval-detail .approval-detail-fields-grid > .approval-detail-field {\n  background: transparent;",
+      );
+      expect(css).toContain(
+        ".app-theme-dark .approval-detail .approval-detail-field-value {\n  background: var(--detail-control);",
+      );
+      expect(css).toContain("--detail-control: var(--app-surface-input)");
+      expect(light).not.toContain(
+        ".approval-detail :is(.approval-detail-field, .approval-detail-comment",
+      );
+    },
+  );
+
   it.each(ACCENT_OPTIONS.map(({ id }) => [id]))(
     "uses the selected accent for focus and semantic action states (%s)",
     () => {
