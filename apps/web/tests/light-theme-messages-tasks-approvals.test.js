@@ -11,9 +11,9 @@ const tasks = readFileSync(new URL("../src/pages/tasks-page.css", import.meta.ur
 const approvals = readFileSync(new URL("../src/pages/approvals-page.css", import.meta.url), "utf8");
 
 describe("Light Theme — phase 3: Messages, Tasks and Approvals", () => {
-  it("remains opt-in while preserving the three stable dark themes", () => {
-    expect(preferences).not.toContain('{ id: "light"');
-    expect(account).toContain('const available = id !== "light"');
+  it("supports Light preference while preserving three stable dark themes", () => {
+    expect(preferences).toContain('{ id: "light", label: "Light Theme" }');
+    expect(account).toContain("THEME_OPTIONS.map(({ id, label }) => {");
     expect(layout).toContain('data-appearance={appearance}');
     expect(dark).toContain('--app-bg: #0a0f1d;');
     for (const theme of ["midnight", "oled", "slate"]) {
