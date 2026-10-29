@@ -41,6 +41,11 @@ body:has(.app-theme-dark) { background: #0a0f1d; }
   --app-on-accent: #fff;
   --app-accent-shadow: rgba(99,102,241,.21);
   --app-focus-ring: #818cf8;
+  /* Shared non-semantic icon palette: controls use currentColor, decorative
+     selections use accent tokens, and warning/error/status icons stay semantic. */
+  --app-icon-muted: var(--app-muted);
+  --app-icon-accent: var(--app-focus-ring);
+  --app-icon-soft-bg: var(--app-accent-soft);
 
   /*
    * Shared interaction and typography system. Status/danger colors are not
