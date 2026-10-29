@@ -546,3 +546,233 @@ body:has(.app-theme-dark[data-appearance="light"]) {
     scrollbar-color: #b6c1d2 transparent;
   }
 }
+
+
+/* Phase 3A — Messages: conversation list, chat canvas, composer and replies.
+ * Keep unread state, online indicators and outgoing bubbles semantically intact. */
+.app-theme-dark[data-appearance="light"] .messages-page {
+  --message-bg: var(--app-bg);
+  --message-text: var(--app-text);
+  --message-muted: var(--app-muted);
+  background: var(--app-bg);
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] .messages-page :is(.page-header h1, .chat-conversation-header-identity h2, .chat-conversation-title) {
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] .messages-page :is(.page-header p, .chat-conversation-preview, .chat-conversation-time, .chat-conversation-header-identity p, .chat-message-meta, .chat-compose-hint, .chat-sidebar-empty, .chat-file-preview) {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .messages-page .chat-shell {
+  background: var(--app-surface);
+  border-color: var(--app-border-strong);
+  box-shadow: 0 8px 30px rgba(24, 35, 53, .055);
+}
+.app-theme-dark[data-appearance="light"] .messages-page :is(.chat-sidebar, .chat-conversation > header, .chat-composer) {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] .messages-page .chat-conversation {
+  background: var(--palette-chat-gradient);
+}
+.app-theme-dark[data-appearance="light"] .messages-page :is(.chat-sidebar-search .input, .chat-message-search .input, .chat-composer-form) {
+  background: var(--app-surface-input);
+  border-color: var(--app-border-strong);
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] .messages-page .input::placeholder,
+.app-theme-dark[data-appearance="light"] .messages-page .chat-compose-textarea::placeholder {
+  color: var(--app-subtle);
+}
+.app-theme-dark[data-appearance="light"] .messages-page .chat-compose-textarea {
+  background: transparent;
+  color: var(--app-text);
+  color-scheme: light;
+}
+.app-theme-dark[data-appearance="light"] .messages-page .chat-sidebar-tab {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .messages-page .chat-sidebar-tab:not([aria-pressed="true"]):hover {
+  color: var(--app-text-strong);
+  background: var(--app-surface-hover);
+}
+.app-theme-dark[data-appearance="light"] .messages-page .chat-sidebar-tab[aria-pressed="true"] {
+  color: var(--app-ui-accent-label);
+  background: linear-gradient(130deg, var(--app-ui-accent-start), var(--app-ui-accent-end));
+}
+.app-theme-dark[data-appearance="light"] .messages-page .chat-conversation-item {
+  color: var(--app-text);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] .messages-page .chat-conversation-item:hover {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark[data-appearance="light"] .messages-page .chat-conversation-item.is-selected {
+  background: var(--palette-selection);
+}
+.app-theme-dark[data-appearance="light"] .messages-page :is(.chat-conversation-avatar .avatar, .chat-conversation-header-avatar .avatar, .chat-message-row .avatar-small) {
+  color: var(--app-focus-ring);
+  background: var(--app-accent-soft);
+}
+.app-theme-dark[data-appearance="light"] .messages-page .chat-conversation .icon-btn {
+  color: var(--app-muted);
+  background: transparent;
+}
+.app-theme-dark[data-appearance="light"] .messages-page .chat-conversation .icon-btn:hover {
+  color: var(--app-text-strong);
+  background: var(--app-surface-hover);
+}
+.app-theme-dark[data-appearance="light"] .messages-page :is(.chat-conversation > header .absolute.z-40, .chat-conversation .chat-message-search .absolute.z-40) {
+  background: var(--app-surface);
+  color: var(--app-text);
+  border-color: var(--app-border-strong);
+  box-shadow: 0 12px 25px rgba(24, 35, 53, .11);
+}
+.app-theme-dark[data-appearance="light"] .messages-page .chat-conversation > header .absolute.z-40 :is(.text-slate-400, .text-slate-600, .text-slate-700) {
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] .messages-page .chat-conversation > header .absolute.z-40 button:hover {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark[data-appearance="light"] .messages-page .chat-date-divider {
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] .messages-page .chat-date-divider > span {
+  background: var(--app-surface-raised);
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .messages-page .chat-message-bubble {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+  color: var(--app-text-strong);
+  box-shadow: 0 2px 8px rgba(24, 35, 53, .04);
+}
+.app-theme-dark[data-appearance="light"] .messages-page .chat-message-own .chat-message-bubble {
+  background: linear-gradient(115deg, var(--app-ui-accent-start), var(--app-ui-accent-end));
+  color: var(--app-ui-accent-label);
+  border-color: transparent;
+}
+.app-theme-dark[data-appearance="light"] .messages-page .chat-message-row .attachment {
+  background: var(--app-surface-raised);
+  border-color: var(--app-border-strong);
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] .messages-page :is(.chat-reply-preview, .chat-messages-scroll .bg-white) {
+  color: var(--app-text);
+  background: var(--app-surface-raised);
+}
+.app-theme-dark[data-appearance="light"] .messages-page :is(.chat-messages-scroll .bg-blue-50, .chat-messages-scroll .btn-secondary) {
+  color: var(--app-text);
+  background: var(--palette-selection);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] .messages-page .chat-messages-scroll .btn-secondary:hover:not(:disabled) {
+  color: var(--app-text-strong);
+  background: var(--app-surface-hover);
+}
+.app-theme-dark[data-appearance="light"] .messages-page .chat-messages-scroll :is(.text-slate-400, .text-slate-500) {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .messages-page .chat-composer-form .chat-send-btn {
+  color: var(--app-ui-accent-label);
+  background: linear-gradient(130deg, var(--app-ui-accent-start), var(--app-ui-accent-end));
+}
+.app-theme-dark[data-appearance="light"] .messages-page .chat-composer-form:focus-within {
+  border-color: var(--app-focus-ring);
+  box-shadow: 0 0 0 2px var(--app-ui-accent-tint);
+}
+
+/* New Conversation uses a dedicated dialog rather than the shared Modal. */
+.app-theme-dark[data-appearance="light"] .new-conversation-dialog,
+.app-theme-dark[data-appearance="light"] .modal:has(.conversation-members-modal) {
+  background: var(--app-surface);
+  color: var(--app-text);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark[data-appearance="light"] .new-conversation-dialog::backdrop {
+  background: rgba(24, 35, 53, .34);
+}
+.app-theme-dark[data-appearance="light"] :is(.new-conversation-header, .new-conversation-footer),
+.app-theme-dark[data-appearance="light"] .modal:has(.conversation-members-modal) .modal-head {
+  background: var(--palette-panel-gradient);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] :is(.new-conversation-heading h2, .new-conversation-person-name),
+.app-theme-dark[data-appearance="light"] .modal:has(.conversation-members-modal) .modal-head h2 {
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] :is(.new-conversation-heading p, .new-conversation-members-heading, .new-conversation-person-subtitle, .new-conversation-list-state, .new-conversation-helper, .new-conversation-hint, .new-conversation-available) {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] :is(.new-conversation-close, .new-conversation-type-switch) {
+  background: var(--app-surface-raised);
+  color: var(--app-text);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] .new-conversation-close:hover,
+.app-theme-dark[data-appearance="light"] .new-conversation-type-switch button:hover:not(.is-active) {
+  background: var(--app-surface-hover);
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] .new-conversation-type-switch button:not(.is-active) {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .new-conversation-type-switch button.is-active {
+  background: linear-gradient(130deg, var(--app-ui-accent-start), var(--app-ui-accent-end));
+  color: var(--app-ui-accent-label);
+}
+.app-theme-dark[data-appearance="light"] :is(.new-conversation-name-field, .new-conversation-search) {
+  background: var(--app-surface-input);
+  border-color: var(--app-border-strong);
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] .new-conversation-search:focus-within,
+.app-theme-dark[data-appearance="light"] .new-conversation-name-field:focus-within {
+  background: var(--app-surface-input);
+  border-color: var(--app-focus-ring);
+  box-shadow: 0 0 0 2px var(--app-ui-accent-tint);
+}
+.app-theme-dark[data-appearance="light"] :is(.new-conversation-name-field input, .new-conversation-search input) {
+  background: transparent;
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] :is(.new-conversation-name-field input, .new-conversation-search input)::placeholder {
+  color: var(--app-subtle);
+}
+.app-theme-dark[data-appearance="light"] :is(.new-conversation-people-list, .conversation-members-current-list) {
+  background: var(--app-surface-raised);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] .new-conversation-person {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] .new-conversation-person:hover {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark[data-appearance="light"] .new-conversation-person.is-selected,
+.app-theme-dark[data-appearance="light"] .new-conversation-person.is-selected:hover {
+  background: var(--palette-selection);
+}
+.app-theme-dark[data-appearance="light"] .new-conversation-person-avatar {
+  color: var(--app-focus-ring);
+  background: var(--app-accent-soft);
+}
+.app-theme-dark[data-appearance="light"] .new-conversation-check:not(.is-selected) {
+  background: var(--app-surface);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark[data-appearance="light"] .new-conversation-check.is-selected {
+  color: var(--app-ui-accent-selected-text);
+  background: var(--app-ui-accent-selected);
+}
+.app-theme-dark[data-appearance="light"] .new-conversation-submit,
+.app-theme-dark[data-appearance="light"] .new-conversation-submit:hover:not(:disabled) {
+  color: var(--app-ui-accent-label);
+  background: linear-gradient(115deg, var(--app-ui-accent-start), var(--app-ui-accent-end));
+}
+.app-theme-dark[data-appearance="light"] .new-conversation-submit:hover:not(:disabled) {
+  filter: brightness(1.045);
+}
