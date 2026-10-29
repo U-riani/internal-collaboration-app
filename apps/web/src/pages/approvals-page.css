@@ -849,26 +849,26 @@
 }
 
 .app-theme-dark .approval-type-actions .approval-type-edit:hover {
-  background: var(--task-hover);
-  color: var(--task-text);
+  background: var(--app-surface-hover);
+  color: var(--app-text-strong);
 }
 
 .app-theme-dark .approval-type-actions .btn-secondary.approval-type-deactivate {
-  background: #3a2233;
-  color: #ff9aa8;
+  background: color-mix(in srgb, var(--app-danger) 13%, var(--app-surface));
+  color: var(--app-danger);
 }
 
 .app-theme-dark .approval-type-actions .btn-secondary.approval-type-deactivate:hover {
-  background: #4b2c41;
+  background: color-mix(in srgb, var(--app-danger) 19%, var(--app-surface));
 }
 
 .app-theme-dark .approval-type-actions .btn-secondary.approval-type-activate {
-  background: #173c43;
-  color: #6ad5ca;
+  background: color-mix(in srgb, var(--app-success) 13%, var(--app-surface));
+  color: var(--app-success);
 }
 
 .app-theme-dark .approval-type-actions .btn-secondary.approval-type-activate:hover {
-  background: #205157;
+  background: color-mix(in srgb, var(--app-success) 19%, var(--app-surface));
 }
 
 @media (max-width: 767px) {
