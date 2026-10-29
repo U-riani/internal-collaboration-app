@@ -31,7 +31,7 @@ describe("Light Theme foundation / phase 1", () => {
     expect(layout).toContain('data-appearance={appearance}');
     expect(preferences).toContain('const DEFAULT_THEME = "midnight";');
     expect(preferences).not.toContain('{ id: "light"');
-    expect(account).toContain('{ id: "system", label: "System Sync" }');
+    expect(account).toContain('{ id: "light", label: "Light Theme" }');
     expect(account).toContain("disabled={!available}");
     expect(palettes).toContain('.app-theme-dark[data-appearance="oled"]');
     expect(palettes).toContain('.app-theme-dark[data-appearance="slate"]');
