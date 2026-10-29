@@ -23,9 +23,9 @@ const contrast = (a, b) => {
 };
 
 describe("Light Theme — phase 2: Sidebar, Dashboard and shared components", () => {
-  it("does not activate Light or alter any existing dark palette selectors", () => {
-    expect(preferences).not.toContain('{ id: "light"');
-    expect(account).toContain('const available = id !== "light"');
+  it("supports Light selection without altering existing dark palette selectors", () => {
+    expect(preferences).toContain('{ id: "light", label: "Light Theme" }');
+    expect(account).toContain("THEME_OPTIONS.map(({ id, label }) => {");
     expect(layout).toContain('data-appearance={appearance}');
     expect(palettes).toContain('.app-theme-dark[data-appearance="oled"]');
     expect(palettes).toContain('.app-theme-dark[data-appearance="slate"]');
