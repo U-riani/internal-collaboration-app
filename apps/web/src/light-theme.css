@@ -1209,7 +1209,7 @@ body:has(.app-theme-dark[data-appearance="light"]) {
   color: var(--app-text);
   border-color: var(--app-border);
 }
-.app-theme-dark[data-appearance="light"] .approval-detail :is(.approval-detail-field, .approval-detail-comment, .approval-detail-review-body, .approval-detail-round) {
+.app-theme-dark[data-appearance="light"] .approval-detail :is(.approval-detail-comment, .approval-detail-review-body, .approval-detail-round) {
   background: var(--app-surface-raised);
   color: var(--app-text);
   border-color: var(--app-border);
