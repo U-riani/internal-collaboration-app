@@ -182,3 +182,218 @@ body:has(.app-theme-dark[data-appearance="light"]) {
     background: var(--app-surface-hover);
   }
 }
+
+
+/* Phase 2 — workspace navigation and shared primitives.
+ * Only [data-appearance="light"] can match these rules: the three approved
+ * dark palettes retain their exact defaults and their existing overrides. */
+.app-theme-dark[data-appearance="light"] > .workspace-sidebar,
+.app-theme-dark[data-appearance="light"] > .workspace-mobile-header,
+.app-theme-dark[data-appearance="light"] > .workspace-sidebar > .workspace-sidebar-top {
+  background: var(--app-sidebar);
+  color: var(--app-text);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] > .workspace-sidebar {
+  box-shadow: 2px 0 20px rgba(24, 35, 53, .035);
+}
+.app-theme-dark[data-appearance="light"] .workspace-logo {
+  color: var(--app-on-accent);
+  background: linear-gradient(140deg, var(--app-accent-gradient-start), var(--app-accent-gradient-end));
+  box-shadow: 0 4px 14px var(--app-accent-shadow);
+}
+.app-theme-dark[data-appearance="light"] :is(.workspace-brand-name, .sidebar-profile-name) {
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] :is(.workspace-brand-caption, .workspace-section-label, .sidebar-profile-department) {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .sidebar-profile {
+  background: var(--app-sidebar);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] .sidebar-profile-card {
+  background: var(--app-surface-raised);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] .sidebar-profile-identity .avatar {
+  background: var(--app-accent-soft);
+  color: var(--app-focus-ring);
+}
+.app-theme-dark[data-appearance="light"] .sidebar-profile-identity:hover {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark[data-appearance="light"] .workspace-nav-link:not([aria-current="page"]) {
+  background: transparent;
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .workspace-nav-link:not([aria-current="page"]):hover {
+  background: var(--app-interactive-hover);
+  color: var(--app-interactive-hover-text);
+}
+.app-theme-dark[data-appearance="light"] .workspace-nav-link[aria-current="page"],
+.app-theme-dark[data-appearance="light"] .workspace-nav-link[aria-current="page"]:hover,
+.app-theme-dark[data-appearance="light"] .workspace-nav-link[aria-current="page"]:focus-visible {
+  background: linear-gradient(112deg, var(--app-accent-gradient-start), var(--app-accent-gradient-end));
+  color: var(--app-on-accent);
+  box-shadow: 0 4px 12px var(--app-accent-shadow);
+}
+.app-theme-dark[data-appearance="light"] .workspace-nav-link[aria-current="page"]:hover {
+  filter: brightness(1.04);
+}
+.app-theme-dark[data-appearance="light"] .workspace-nav-link[aria-current="page"] > svg,
+.app-theme-dark[data-appearance="light"] .workspace-nav-link[aria-current="page"] > span:first-of-type,
+.app-theme-dark[data-appearance="light"] .workspace-nav-link[aria-current="page"]:hover > svg,
+.app-theme-dark[data-appearance="light"] .workspace-nav-link[aria-current="page"]:hover > span:first-of-type {
+  color: var(--app-on-accent);
+}
+.app-theme-dark[data-appearance="light"] .workspace-nav-link:focus-visible,
+.app-theme-dark[data-appearance="light"] .sidebar-profile-identity:focus-visible {
+  outline: 2px solid var(--app-focus-ring);
+  outline-offset: 2px;
+}
+.app-theme-dark[data-appearance="light"] > .workspace-mobile-header .icon-btn {
+  color: var(--app-text);
+  background: transparent;
+}
+.app-theme-dark[data-appearance="light"] > .workspace-mobile-header .icon-btn:hover {
+  background: var(--app-surface-hover);
+  color: var(--app-text-strong);
+}
+
+/* Reusable cards, form fields, status badges, action buttons and menus. */
+.app-theme-dark[data-appearance="light"] :is(.page-header h1, .modal-head h2, .empty h3) {
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] :is(.page-header p, .field, .empty p, .empty) {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .card {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+  color: var(--app-text);
+  box-shadow: 0 3px 16px rgba(24, 35, 53, .035);
+}
+.app-theme-dark[data-appearance="light"] .modal {
+  background: var(--app-surface);
+  border-color: var(--app-border-strong);
+  color: var(--app-text);
+  box-shadow: 0 22px 70px rgba(24, 35, 53, .20);
+}
+.app-theme-dark[data-appearance="light"] :is(.modal-head, .form-actions) {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] :is(.input, select, textarea:not(.chat-compose-textarea)) {
+  background: var(--app-surface-input);
+  border-color: var(--app-border-strong);
+  color: var(--app-text);
+  color-scheme: light;
+}
+.app-theme-dark[data-appearance="light"] :is(.input, select, textarea:not(.chat-compose-textarea)):focus {
+  border-color: var(--app-interactive-focus);
+  outline-color: var(--app-interactive-focus);
+  --tw-ring-color: color-mix(in srgb, var(--app-focus-ring) 20%, transparent);
+}
+.app-theme-dark[data-appearance="light"] .app-modern-select option:not(:checked) {
+  background: var(--app-surface);
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] .app-modern-select option:not(:checked):hover {
+  background: var(--app-surface-hover);
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] .btn-primary,
+.app-theme-dark[data-appearance="light"] .btn-primary:hover:not(:disabled) {
+  color: var(--app-on-accent);
+}
+.app-theme-dark[data-appearance="light"] .btn-secondary {
+  background: var(--app-surface-raised);
+  border-color: var(--app-border-strong);
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] .btn-secondary:hover:not(:disabled) {
+  background: var(--app-surface-hover);
+  border-color: var(--app-ui-accent-outline);
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] .btn-danger {
+  color: #a52a43;
+  background: #fff0f2;
+  border-color: #f4c4cd;
+}
+.app-theme-dark[data-appearance="light"] .btn-danger:hover:not(:disabled) {
+  background: #ffe2e8;
+  color: #91233b;
+}
+.app-theme-dark[data-appearance="light"] .icon-btn {
+  background: transparent;
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .icon-btn:hover:not(:disabled) {
+  background: var(--app-surface-hover);
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] .attachment {
+  background: var(--app-surface-raised);
+  border-color: var(--app-border-strong);
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] .attachment small {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .empty-symbol {
+  color: var(--app-focus-ring);
+}
+.app-theme-dark[data-appearance="light"] :is(.tabs, .tabs button) {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .tabs button.active,
+.app-theme-dark[data-appearance="light"] .tabs button.active:hover {
+  color: var(--app-text-strong);
+  background: var(--app-accent-soft);
+}
+.app-theme-dark[data-appearance="light"] .tabs button:not(.active):hover {
+  background: var(--app-surface-hover);
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] :is(.avatar, .badge.bg-slate-100) {
+  background: var(--app-accent-soft);
+  color: var(--app-focus-ring);
+}
+.app-theme-dark[data-appearance="light"] .status {
+  background: var(--app-surface-raised);
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] :is(.status-completed, .status-approved, .status-active) {
+  color: #13765c;
+  background: #dcf6eb;
+}
+.app-theme-dark[data-appearance="light"] :is(.status-in_progress, .status-pending, .status-editor) {
+  color: #4548a4;
+  background: #e9eaff;
+}
+.app-theme-dark[data-appearance="light"] :is(.status-waiting_review, .status-changes_requested, .status-high) {
+  color: #8b5217;
+  background: #fff1db;
+}
+.app-theme-dark[data-appearance="light"] :is(.status-rejected, .status-blocked, .status-urgent) {
+  color: #ae334c;
+  background: #ffe7ec;
+}
+.app-theme-dark[data-appearance="light"] table {
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] table th {
+  color: var(--app-muted);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] table td {
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] table tbody tr:hover {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark[data-appearance="light"] :is(.modal, .card, .workspace-main) {
+  scrollbar-color: #b6c1d2 transparent;
+}
