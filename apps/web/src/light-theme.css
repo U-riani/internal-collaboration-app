@@ -1550,3 +1550,174 @@ body:has(.app-theme-dark[data-appearance="light"]) {
 .app-theme-dark[data-appearance="light"] dialog.modal:has(.drive-upload-modal) .drive-upload-track {
   background: var(--upload-track);
 }
+
+
+/* Phase 4B — Notifications: neutral chrome follows Light while the
+ * LOW/NORMAL/HIGH/URGENT priority stripes and unread state remain semantic. */
+.app-theme-dark[data-appearance="light"] .notifications-page {
+  --notice-surface: var(--app-surface);
+  --notice-raised: var(--app-surface-raised);
+  --notice-control: var(--app-surface-input);
+  --notice-border: var(--app-border-strong);
+  --notice-text: var(--app-text-strong);
+  --notice-muted: var(--app-muted);
+  --notice-subtle: var(--app-subtle);
+  --notice-hover: var(--app-surface-hover);
+  background: var(--app-bg);
+  color: var(--notice-text);
+}
+.app-theme-dark[data-appearance="light"] .notifications-page :is(.notifications-shell, .notifications-toolbar, .notifications-content, .notifications-footer) {
+  background: var(--notice-surface);
+  color: var(--notice-text);
+  border-color: var(--notice-border);
+}
+.app-theme-dark[data-appearance="light"] .notifications-page :is(.notifications-read-all.btn-secondary, .notifications-header-sort.task-sort-control, .notification-action.btn-secondary, .notification-priority-control.task-sort-control, .notifications-pagination .btn-secondary) {
+  background: var(--notice-control);
+  color: var(--notice-text);
+  border-color: var(--notice-border);
+}
+.app-theme-dark[data-appearance="light"] .notifications-page :is(.notifications-read-all.btn-secondary, .notifications-header-sort.task-sort-control, .notification-action.btn-secondary, .notification-priority-control.task-sort-control, .notifications-pagination .btn-secondary):hover:not(:disabled) {
+  background: var(--notice-hover);
+  color: var(--notice-text);
+  border-color: var(--app-ui-accent-outline);
+}
+.app-theme-dark[data-appearance="light"] .notifications-page :is(.notifications-header-sort, .notification-priority-control):focus-within {
+  border-color: var(--app-focus-ring);
+  box-shadow: 0 0 0 2px var(--app-ui-accent-tint);
+}
+.app-theme-dark[data-appearance="light"] .notifications-page :is(.notifications-header-sort select.task-sort-select, .notification-priority-control select.app-modern-select) {
+  background: transparent !important;
+  color: var(--notice-text);
+  color-scheme: light;
+}
+.app-theme-dark[data-appearance="light"] .notifications-page .notifications-tabs button:not(.active) {
+  color: var(--notice-muted);
+  background: transparent;
+}
+.app-theme-dark[data-appearance="light"] .notifications-page .notifications-tabs button:not(.active):hover {
+  color: var(--notice-text);
+  background: var(--notice-hover);
+}
+.app-theme-dark[data-appearance="light"] .notifications-page .notifications-tabs button.active,
+.app-theme-dark[data-appearance="light"] .notifications-page .notifications-tabs button.active:hover {
+  color: var(--app-ui-accent-label);
+  background: linear-gradient(115deg, var(--app-ui-accent-start), var(--app-ui-accent-end));
+}
+.app-theme-dark[data-appearance="light"] .notifications-page .notifications-tab-count {
+  color: var(--notice-muted);
+  background: var(--notice-raised);
+}
+.app-theme-dark[data-appearance="light"] .notifications-page .notifications-tabs button.active .notifications-tab-count {
+  color: var(--app-ui-accent-label);
+  background: rgba(255, 255, 255, .19);
+}
+.app-theme-dark[data-appearance="light"] .notifications-page .notification-card {
+  color: var(--notice-text);
+  background: var(--notice-surface);
+  border-color: var(--notice-border);
+  border-left-color: var(--notice-accent);
+}
+.app-theme-dark[data-appearance="light"] .notifications-page .notification-card--unread {
+  background: linear-gradient(95deg, var(--notice-tint), transparent 78%), var(--notice-surface);
+  border-left-color: var(--notice-accent);
+}
+.app-theme-dark[data-appearance="light"] .notifications-page .notification-card:hover {
+  background: linear-gradient(95deg, var(--notice-tint), transparent 88%), var(--notice-hover);
+  border-color: var(--app-ui-accent-outline);
+  border-left-color: var(--notice-accent);
+}
+.app-theme-dark[data-appearance="light"] .notifications-page .notification-card :is(.notification-card-title-line h3, .notification-card-content) {
+  color: var(--notice-text);
+}
+.app-theme-dark[data-appearance="light"] .notifications-page :is(.notification-card-body, .notification-card-time, .notification-priority-caption, .notifications-sync-hint, .notifications-footer, .notification-card-content > [aria-label$="approval steps completed"] > span:last-child) {
+  color: var(--notice-muted);
+}
+.app-theme-dark[data-appearance="light"] .notifications-page .notification-card-icon {
+  color: var(--notice-muted);
+  background: var(--notice-raised);
+}
+.app-theme-dark[data-appearance="light"] .notifications-page .notification-card--unread .notification-card-icon {
+  color: var(--notice-accent);
+  background: var(--notice-tint);
+}
+.app-theme-dark[data-appearance="light"] .notifications-page :is(.notifications-empty, .notifications-empty p) {
+  color: var(--notice-muted);
+}
+.app-theme-dark[data-appearance="light"] .notifications-page :is(.notification-action.btn-secondary:disabled, .notifications-pagination .btn-secondary:disabled) {
+  color: var(--notice-subtle);
+  background: var(--notice-raised);
+}
+
+/* Phase 4C — People: its search and dropdowns inherit the Tasks design system;
+ * employee cards, contact links and metadata stay legible on white surfaces. */
+.app-theme-dark[data-appearance="light"] .directory-page {
+  background: var(--app-bg);
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] .directory-page .directory-filters {
+  color: var(--app-text);
+  background: var(--app-surface);
+  border-color: var(--app-border);
+  box-shadow: 0 4px 20px rgba(24, 35, 53, .04);
+}
+.app-theme-dark[data-appearance="light"] .directory-page .directory-search-bar.task-search-bar {
+  color: var(--app-muted);
+  background: var(--app-surface-input);
+  border: 1px solid var(--app-border-strong);
+}
+.app-theme-dark[data-appearance="light"] .directory-page .directory-search-bar.task-search-bar:focus-within {
+  border-color: var(--app-focus-ring);
+  box-shadow: 0 0 0 2px var(--app-ui-accent-tint);
+}
+.app-theme-dark[data-appearance="light"] .directory-page .directory-search-bar.task-search-bar > input {
+  background: transparent !important;
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] .directory-page .directory-search-bar.task-search-bar > input::placeholder {
+  color: var(--app-subtle);
+}
+.app-theme-dark[data-appearance="light"] .directory-page .directory-filters select.directory-filter-select {
+  color: var(--app-text);
+  background: var(--app-surface-input);
+  border-color: var(--app-border-strong);
+  color-scheme: light;
+}
+.app-theme-dark[data-appearance="light"] .directory-page .directory-filters select.directory-filter-select:hover {
+  color: var(--app-text-strong);
+  background: var(--app-surface-hover);
+  border-color: var(--app-ui-accent-outline);
+}
+.app-theme-dark[data-appearance="light"] .directory-page .directory-filters select.directory-filter-select:focus-visible {
+  border-color: var(--app-focus-ring);
+  box-shadow: 0 0 0 2px var(--app-ui-accent-tint);
+}
+.app-theme-dark[data-appearance="light"] .directory-page article.card {
+  color: var(--app-text);
+  background: var(--app-surface);
+  border-color: var(--app-border);
+  box-shadow: 0 4px 18px rgba(24, 35, 53, .045);
+}
+.app-theme-dark[data-appearance="light"] .directory-page article.card h2 {
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] .directory-page article.card :is(.text-slate-500, .text-slate-400) {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .directory-page article.card .bg-blue-100 {
+  color: var(--app-focus-ring);
+  background: var(--app-accent-soft);
+}
+.app-theme-dark[data-appearance="light"] .directory-page article.card .badge.bg-slate-100 {
+  color: var(--app-muted);
+  background: var(--app-surface-raised);
+}
+.app-theme-dark[data-appearance="light"] .directory-page article.card :is(a[href^="tel:"], a[href^="mailto:"]) {
+  color: var(--app-focus-ring);
+}
+.app-theme-dark[data-appearance="light"] .directory-page article.card :is(a[href^="tel:"], a[href^="mailto:"]):hover {
+  color: var(--app-accent-hover);
+}
+.app-theme-dark[data-appearance="light"] .directory-page article.card :is(a[href^="tel:"], a[href^="mailto:"]):focus-visible {
+  outline: 2px solid var(--app-focus-ring);
+  outline-offset: 3px;
+}
