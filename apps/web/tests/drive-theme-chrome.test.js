@@ -45,7 +45,7 @@ describe("Drive header and directory footer across all workspace themes", () => 
     "keeps the Drive header on the page canvas without a rectangular background (%s)",
     () => {
       const sharedHeader = theme.slice(
-        theme.indexOf(".app-theme-dark :is(.messages-page, .drive-page) > .page-header:first-child {"),
+        theme.indexOf(".app-theme-dark .page-header {"),
       );
       expect(sharedHeader).toContain("background: transparent;");
       expect(sharedHeader).toContain("border: 0;");
@@ -53,7 +53,7 @@ describe("Drive header and directory footer across all workspace themes", () => 
       expect(driveCss).not.toContain(".app-theme-dark .drive-page > .page-header:first-child");
       expect(drivePage).toContain('<PageHeader\n        title="Drive"');
       expect(theme).toContain(".app-theme-dark .page-header {");
-      expect(light).toContain('.app-theme-dark[data-appearance="light"] .page-header {');
+      expect(light).not.toContain('.app-theme-dark[data-appearance="light"] .page-header {');
       expect(palettes).toContain(':is(.page-header, .modal-head, .form-actions)');
     },
   );
@@ -62,14 +62,14 @@ describe("Drive header and directory footer across all workspace themes", () => 
     "also renders the Messages header directly on the page background (%s)",
     () => {
       const sharedHeader = theme.slice(
-        theme.indexOf(".app-theme-dark :is(.messages-page, .drive-page) > .page-header:first-child {"),
+        theme.indexOf(".app-theme-dark .page-header {"),
       );
       expect(sharedHeader).toContain("background: transparent;");
       expect(sharedHeader).toContain("border: 0;");
       expect(sharedHeader).toContain("box-shadow: none;");
       expect(messagesPage).toContain('<PageHeader\n        title="Messages"');
       expect(messagesPage).toContain("onClick={() => setNewChat(true)}");
-      expect(light).toContain('.app-theme-dark[data-appearance="light"] .page-header {');
+      expect(light).not.toContain('.app-theme-dark[data-appearance="light"] .page-header {');
       expect(palettes).toContain(':is(.page-header, .modal-head, .form-actions)');
     },
   );
