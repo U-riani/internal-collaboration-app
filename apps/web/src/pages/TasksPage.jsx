@@ -239,9 +239,9 @@ function TaskForm({ existing, parentTask, defaultGroupId = "", onClose }) {
       >
         <div className="task-form-scroll">
         {(parentTask || existing?.parentTask) && (
-          <div className="mb-4 rounded-xl bg-slate-50 px-4 py-3 text-xs text-slate-500">
+          <div className="task-form-parent mb-4 rounded-xl px-4 py-3 text-xs">
             Subtask of{" "}
-            <span className="font-semibold text-slate-700">
+            <span className="task-form-parent-title font-semibold">
               {parentTask?.title || existing.parentTask.title}
             </span>
           </div>
@@ -1497,26 +1497,12 @@ export default function TasksPage() {
             </button>
 
             {filtersOpen && (
-              <div className="task-filter-panel fixed top-2 left-1/2 -translate-x-1/2 w-[760px] max-w-[calc(100vw-32px)] max-h-[calc(100dvh-1rem)] overflow-y-auto rounded-2xl border border-slate-200 bg-white px-5 shadow-xl z-50">
-                <div className="sticky top-0 z-10  bg-white pt-5 pb-3 flex items-center justify-between gap-4 border-b border-slate-200">
-                  <div>
-                    <h3 className="text-sm font-bold text-slate-800 sticky">
-                      Filter tasks
-                    </h3>
-                    <p className="mt-1 text-xs text-slate-400">
-                      These filters refine the selected quick filter.
-                    </p>
-                  </div>
-                  <div>
-                    <button
-                      className="btn-secondary btn-sm"
-                      onClick={() => setFiltersOpen((current) => !current)}
-                    >
-                      <X size={16} aria-hidden="true" />
-                      <span className="sr-only">Close filters</span>
-                    </button>
-                  </div>
-                </div>
+              <Modal
+                title="Filter tasks"
+                subtitle="These filters refine the selected quick filter."
+                onClose={() => setFiltersOpen(false)}
+                className="task-filter-panel"
+              >
                 <div className="task-filter-utilities">
                   <span className="task-filter-count">
                     {advancedFilterCount > 0
@@ -1715,7 +1701,7 @@ export default function TasksPage() {
                     Done
                   </button>
                 </div>
-              </div>
+              </Modal>
             )}
           </div>
 
