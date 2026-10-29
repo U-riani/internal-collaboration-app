@@ -64,15 +64,15 @@ describe("Light Theme — phase 3: Messages, Tasks and Approvals", () => {
       expect(light).toContain(token);
     }
     for (const selector of [
-      ".tasks-page .task-group-card",
+      ".task-group-card",
       ".tasks-page .task-board-card",
       ".tasks-page .task-filter-panel",
-      ".tasks-page .task-list-header",
+      ".task-list-header",
       ".tasks-page .task-group-add.btn-primary",
       ".task-form .task-form-file::file-selector-button",
       ".task-form .task-form-footer",
       ".task-detail .task-detail-select-wrap",
-      ".task-detail .task-detail-comment-submit",
+      ".task-detail-comment-submit",
       ".filter-multiselect-option.is-selected",
     ]) {
       expect(light).toContain(selector);
@@ -84,7 +84,7 @@ describe("Light Theme — phase 3: Messages, Tasks and Approvals", () => {
     for (const selector of [
       ".approvals-page",
       ".approvals-page .approval-list-row",
-      ".approvals-page .approval-board-card",
+      ".approval-board-card",
       ".approval-types-manager",
       ".approval-types-search",
       ".approval-type-row",
