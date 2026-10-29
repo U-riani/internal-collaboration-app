@@ -11,9 +11,9 @@ const preferences = readFileSync(new URL("../src/lib/appearance.js", import.meta
 const dark = readFileSync(new URL("../src/theme.css", import.meta.url), "utf8");
 
 describe("Light Theme — phase 5: account, administration, audit and spreadsheet", () => {
-  it("keeps Light gated and Midnight/OLED/Slate untouched", () => {
-    expect(preferences).not.toContain('{ id: "light"');
-    expect(accountPage).toContain('const available = id !== "light"');
+  it("makes Light selectable while keeping Midnight/OLED/Slate untouched", () => {
+    expect(preferences).toContain('{ id: "light", label: "Light Theme" }');
+    expect(accountPage).toContain("THEME_OPTIONS.map(({ id, label }) => {");
     expect(dark).toContain("--app-bg: #0a0f1d;");
     expect(light).not.toContain('[data-appearance="midnight"]');
     expect(light).not.toContain('[data-appearance="oled"]');
