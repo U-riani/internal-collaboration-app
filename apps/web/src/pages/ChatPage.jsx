@@ -1651,13 +1651,14 @@ export default function ChatPage() {
                   </div>
                   {searchOpen && (
                     <div className="absolute right-0 top-[calc(100%+0.5rem)] z-40 w-[420px] max-w-[80vw] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
-                      <div className="flex border-b border-slate-100 p-1.5">
+                      <div className="chat-search-tabs flex border-b border-slate-100 p-1.5">
                         {CHAT_SEARCH_TABS.map(
                           ({ id, label, icon: SearchTypeIcon }) => (
                             <button
                               key={id}
                               type="button"
-                              className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs font-semibold transition ${
+                              aria-pressed={searchType === id}
+                              className={`chat-search-tab flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs font-semibold transition ${
                                 searchType === id
                                   ? "bg-blue-50 text-blue-700"
                                   : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
