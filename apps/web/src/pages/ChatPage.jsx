@@ -1658,11 +1658,7 @@ export default function ChatPage() {
                               key={id}
                               type="button"
                               aria-pressed={searchType === id}
-                              className={`chat-search-tab flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs font-semibold transition ${
-                                searchType === id
-                                  ? "bg-blue-50 text-blue-700"
-                                  : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
-                              }`}
+                              className="chat-search-tab flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs font-semibold transition"
                               onClick={() => setSearchType(id)}
                             >
                               <SearchTypeIcon size={14} />
