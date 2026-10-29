@@ -54,9 +54,10 @@ describe("appearance preferences", () => {
     expect(getThemePreference("user-1")).toBe("slate");
   });
 
-  it("rejects System Sync and invalid theme values until light support is ready", () => {
+  it("rejects unsupported Light and System Sync until rollout is complete", () => {
     expect(saveThemePreference("user-1", "oled")).toBe(true);
     expect(saveThemePreference("user-1", "system")).toBe(false);
+    expect(saveThemePreference("user-1", "light")).toBe(false);
     expect(saveThemePreference("user-1", "invalid")).toBe(false);
     expect(getThemePreference("user-1")).toBe("oled");
     window.localStorage.setItem(themeStorageKey("user-2"), "invalid");
