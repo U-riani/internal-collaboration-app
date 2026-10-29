@@ -331,7 +331,7 @@ body:has(.app-theme-dark) { background: #0a0f1d; }
 }
 /* The shared Modal owns its X action across all modules/appearances.
    Legacy feature selectors must not repaint its hover/focus state. */
-.app-theme-dark .modal .modal-head > .modal-close-btn {
+.app-theme-dark :is(.modal .modal-head, .new-conversation-dialog .new-conversation-header) > .modal-close-btn {
   display: grid;
   place-items: center;
   flex: 0 0 36px !important;
@@ -344,12 +344,12 @@ body:has(.app-theme-dark) { background: #0a0f1d; }
   background: transparent !important;
   transition: background-color .16s ease, color .16s ease;
 }
-.app-theme-dark .modal .modal-head > .modal-close-btn:hover:not(:disabled),
-.app-theme-dark .modal .modal-head > .modal-close-btn:focus-visible {
+.app-theme-dark :is(.modal .modal-head, .new-conversation-dialog .new-conversation-header) > .modal-close-btn:hover:not(:disabled),
+.app-theme-dark :is(.modal .modal-head, .new-conversation-dialog .new-conversation-header) > .modal-close-btn:focus-visible {
   color: var(--app-text-strong) !important;
   background: var(--app-surface-hover) !important;
 }
-.app-theme-dark .modal .modal-head > .modal-close-btn:focus-visible {
+.app-theme-dark :is(.modal .modal-head, .new-conversation-dialog .new-conversation-header) > .modal-close-btn:focus-visible {
   outline: 2px solid var(--app-focus-ring);
   outline-offset: 2px;
 }
