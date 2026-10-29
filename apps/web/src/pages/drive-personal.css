@@ -29,12 +29,6 @@
   letter-spacing: -.04em;
   line-height: 1.16;
 }
-/* Drive header shares the page canvas in every appearance. The scoped
-   selector takes precedence over the global PageHeader theme background. */
-.app-theme-dark .drive-page > .page-header:first-child {
-  background: transparent;
-  box-shadow: none;
-}
 .drive-page .page-header p:empty { display: none; }
 .drive-page .page-header-action { flex: 0 1 auto; overflow: visible; min-width: 0; }
 .drive-page .drive-header-actions {
