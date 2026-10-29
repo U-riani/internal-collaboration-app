@@ -625,8 +625,8 @@ function AccountAppearance({ userId }) {
           </div>
         </div>
         <div className="account-appearance-themes" role="radiogroup" aria-label="Workspace theme">
-          {[...THEME_OPTIONS, { id: "system", label: "System Sync" }].map(({ id, label }) => {
-            const available = id !== "system";
+          {[...THEME_OPTIONS, { id: "light", label: "Light Theme" }].map(({ id, label }) => {
+            const available = id !== "light";
             const selected = theme === id;
             return (
               <label
@@ -653,7 +653,7 @@ function AccountAppearance({ userId }) {
         </div>
         <p className="account-appearance-hint">
           Switch between Dark Midnight, OLED Pure Black, and Deep Slate. Your selection is saved for this account in this browser.
-          System Sync will follow in a later phase.
+          Light Theme will become available after its components have been checked throughout the workspace.
         </p>
       </section>
 
