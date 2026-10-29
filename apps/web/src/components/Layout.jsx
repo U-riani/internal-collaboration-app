@@ -23,6 +23,7 @@ import { syncExistingBrowserPush } from "../lib/pushNotifications.js";
 import { Avatar } from "./UI.jsx";
 import "../theme.css";
 import "../appearance-palettes.css";
+import "../light-theme.css";
 const links = [
   ["/dashboard", "Overview", LayoutDashboard],
   ["/chat", "Messages", MessageSquare],
