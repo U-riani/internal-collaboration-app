@@ -98,9 +98,9 @@ describe("My Account notification design", () => {
       const midnight = screen.getByRole("radio", { name: /Dark Midnight/ });
       const oled = screen.getByRole("radio", { name: /OLED Pure Black/ });
       const slate = screen.getByRole("radio", { name: /Deep Slate/ });
-      const system = screen.getByRole("radio", { name: /System Sync/ });
+      const light = screen.getByRole("radio", { name: /Light Theme/ });
       expect(midnight.checked).toBe(true);
-      expect(system.disabled).toBe(true);
+      expect(light.disabled).toBe(true);
 
       await user.click(oled);
       expect(oled.checked).toBe(true);
