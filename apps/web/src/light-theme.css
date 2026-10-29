@@ -102,10 +102,6 @@ body:has(.app-theme-dark[data-appearance="light"]) {
 .app-theme-dark[data-appearance="light"] .sidebar-profile-identity:hover {
   background: var(--app-surface-hover);
 }
-.app-theme-dark[data-appearance="light"] .page-header {
-  background: var(--app-sidebar);
-  border-color: var(--app-border);
-}
 .app-theme-dark[data-appearance="light"] :is(.card, .modal, .modal-head, .form-actions) {
   background: var(--app-surface);
   border-color: var(--app-border);
