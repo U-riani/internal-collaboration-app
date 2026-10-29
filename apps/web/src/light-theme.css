@@ -1,9 +1,9 @@
 /*
  * Light Theme — phase 1 foundation.
  *
- * IMPORTANT: "light" is deliberately NOT registered as a selectable theme yet.
- * This stylesheet has no effect on Midnight, OLED or Slate. It prepares the
- * shared tokens and common controls for the later module-by-module migration.
+ * Light is the fourth selectable workspace theme.
+ * This stylesheet has no effect on Midnight, OLED or Slate. All module
+ * integrations remain scoped to data-appearance="light".
  * Keep the existing .app-theme-dark class while legacy module styles migrate;
  * the data-appearance attribute gates every override.
  */
