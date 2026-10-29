@@ -636,26 +636,10 @@ body:has(.app-theme-dark[data-appearance="light"]) {
   background: var(--app-surface-hover);
 }
 
-/* Light-only search categories: leave Midnight, OLED and Slate untouched. */
+/* Only the hover surface varies; active, hover, focus and spacing behavior
+   are defined once in messages-theme.css for every appearance. */
 .app-theme-dark[data-appearance="light"] .messages-page .chat-search-tabs {
-  gap: 6px;
-}
-.app-theme-dark[data-appearance="light"] .messages-page .chat-search-tab {
-  background: transparent;
-  color: var(--app-muted);
-}
-.app-theme-dark[data-appearance="light"] .messages-page .chat-search-tab[aria-pressed="true"],
-.app-theme-dark[data-appearance="light"] .messages-page .chat-search-tab[aria-pressed="true"]:hover {
-  background: var(--app-ui-selection-start);
-  color: var(--app-focus-ring);
-}
-.app-theme-dark[data-appearance="light"] .messages-page .chat-search-tab[aria-pressed="false"]:hover {
-  background: var(--app-surface-raised);
-  color: var(--app-text-strong);
-}
-.app-theme-dark[data-appearance="light"] .messages-page .chat-search-tab:focus-visible {
-  outline: 2px solid var(--app-focus-ring);
-  outline-offset: -2px;
+  --chat-search-hover-bg: var(--app-surface-raised);
 }
 .app-theme-dark[data-appearance="light"] .messages-page .chat-date-divider {
   border-color: var(--app-border);
