@@ -397,3 +397,152 @@ body:has(.app-theme-dark[data-appearance="light"]) {
 .app-theme-dark[data-appearance="light"] :is(.modal, .card, .workspace-main) {
   scrollbar-color: #b6c1d2 transparent;
 }
+
+
+/* Phase 2 — Dashboard. Preserve existing structure, statistics categories,
+ * notification unread markers, routing, responsive layout and transitions. */
+.app-theme-dark[data-appearance="light"].overview-layout > .workspace-main {
+  background: radial-gradient(ellipse at 78% 30%, #eef2ff 0%, var(--app-bg) 60%);
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] .overview-dashboard {
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] .overview-hero {
+  border-color: var(--app-border);
+  background:
+    radial-gradient(ellipse at 58% -150%, color-mix(in srgb, var(--app-accent) 10%, transparent), transparent 80%),
+    linear-gradient(145deg, #ffffff, #f1f4fc);
+  box-shadow: 0 8px 25px rgba(24, 35, 53, .05);
+}
+.app-theme-dark[data-appearance="light"] .overview-hero h1 {
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] .overview-hero p {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .overview-hero-date {
+  color: var(--app-text);
+  background: var(--app-surface-raised);
+  border: 1px solid var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] :is(.overview-stat, .overview-panel) {
+  border-color: var(--app-border);
+  background: var(--app-surface);
+  box-shadow: 0 4px 20px rgba(24, 35, 53, .045);
+}
+.app-theme-dark[data-appearance="light"] .overview-stat:hover {
+  background: var(--app-surface-raised);
+  border-color: var(--app-ui-accent-outline);
+}
+.app-theme-dark[data-appearance="light"] :is(.overview-stat-number, .overview-panel-heading h2) {
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] :is(.overview-stat-label, .overview-stat-arrow) {
+  color: var(--app-muted);
+}
+/* Category identities stay cyan/coral/indigo/violet, but invert to a pale
+ * badge surface and dark, accessible foreground for a white theme. */
+.app-theme-dark[data-appearance="light"] :is(.overview-stat--cyan .overview-stat-icon, .overview-shortcut-icon--cyan) {
+  color: #075d76;
+  background: #dbf5fb;
+}
+.app-theme-dark[data-appearance="light"] .overview-stat--cyan .overview-stat-chip {
+  color: #075d76;
+  background: #dbf5fb;
+}
+.app-theme-dark[data-appearance="light"] .overview-stat--coral .overview-stat-icon {
+  color: #a42c43;
+  background: #fff0f2;
+}
+.app-theme-dark[data-appearance="light"] .overview-stat--coral .overview-stat-chip {
+  color: #a42c43;
+  background: #fff0f2;
+}
+.app-theme-dark[data-appearance="light"] :is(.overview-stat--indigo .overview-stat-icon, .overview-shortcut-icon--indigo) {
+  color: #4d43a9;
+  background: #efedff;
+}
+.app-theme-dark[data-appearance="light"] .overview-stat--indigo .overview-stat-chip {
+  color: #4d43a9;
+  background: #efedff;
+}
+.app-theme-dark[data-appearance="light"] :is(.overview-stat--violet .overview-stat-icon, .overview-shortcut-icon--violet) {
+  color: #7a3ba6;
+  background: #f6ebfd;
+}
+.app-theme-dark[data-appearance="light"] .overview-stat--violet .overview-stat-chip {
+  color: #7a3ba6;
+  background: #f6ebfd;
+}
+.app-theme-dark[data-appearance="light"] :is(.overview-focus-count, .overview-task-check) {
+  background: var(--app-surface-raised);
+  color: var(--app-muted);
+  border: 1px solid var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] .overview-panel-action {
+  color: var(--app-focus-ring);
+  background: var(--app-accent-soft);
+}
+.app-theme-dark[data-appearance="light"] .overview-panel-action:hover {
+  color: var(--app-focus-ring);
+  background: var(--app-ui-accent-tint);
+}
+.app-theme-dark[data-appearance="light"] :is(.overview-task-row:hover, .overview-shortcut-row:hover, .overview-update-row:hover) {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark[data-appearance="light"] :is(.overview-task-info strong, .overview-shortcut-copy strong, .overview-update-info strong) {
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] :is(.overview-task-info > span, .overview-shortcut-copy small, .overview-shortcuts-intro, .overview-updates-heading p, .overview-update-info > span, .overview-update-date, .overview-task-arrow, .overview-shortcut-arrow) {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .overview-separator {
+  color: var(--app-subtle);
+}
+.app-theme-dark[data-appearance="light"] .overview-task-date {
+  color: #0a708a;
+}
+.app-theme-dark[data-appearance="light"] .overview-task-status {
+  color: #0b6780;
+  background: #e2f6fa;
+}
+.app-theme-dark[data-appearance="light"] .overview-empty {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .overview-empty strong {
+  color: var(--app-text-strong);
+}
+/* These indicators still represent unread vs read, not theme preference. */
+.app-theme-dark[data-appearance="light"] .overview-update-dot {
+  background: #0eafc5;
+  box-shadow: 0 0 0 2px #daf6fb;
+}
+.app-theme-dark[data-appearance="light"] .overview-update-dot--read {
+  background: #a4aebf;
+  box-shadow: none;
+}
+.app-theme-dark[data-appearance="light"] .overview-update-icon {
+  color: #086781;
+  background: #def4fa;
+}
+.app-theme-dark[data-appearance="light"] .overview-update-icon--1 {
+  color: #4d43a9;
+  background: #efedff;
+}
+.app-theme-dark[data-appearance="light"] .overview-update-icon--2 {
+  color: #7a3ba6;
+  background: #f6ebfd;
+}
+.app-theme-dark[data-appearance="light"] .overview-update-link {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .overview-update-link:hover {
+  color: var(--app-focus-ring);
+  background: var(--app-accent-soft);
+}
+@media (max-width: 700px) {
+  .app-theme-dark[data-appearance="light"] .overview-stats {
+    scrollbar-color: #b6c1d2 transparent;
+  }
+}
