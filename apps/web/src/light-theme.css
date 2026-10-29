@@ -154,7 +154,7 @@ body:has(.app-theme-dark[data-appearance="light"]) {
   background: var(--app-surface-raised);
   border-color: var(--app-border-strong);
 }
-.app-theme-dark[data-appearance="light"] :is(.tabs, .app-modern-select::picker(select)) {
+.app-theme-dark[data-appearance="light"] .tabs {
   color: var(--app-text);
   background: var(--app-surface-raised);
   border-color: var(--app-border-strong);
