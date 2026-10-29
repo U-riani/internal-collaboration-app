@@ -1099,7 +1099,7 @@ body:has(.app-theme-dark[data-appearance="light"]) {
 }
 .app-theme-dark[data-appearance="light"] .approval-type-row:hover {
   background: var(--app-surface-hover);
-  border-color: var(--app-ui-accent-outline);
+  border-color: var(--app-border-strong);
 }
 .app-theme-dark[data-appearance="light"] :is(.approval-type-name, .approval-config-heading-title, .approval-config-section-heading h3, .approval-detail .task-detail-title) {
   color: var(--app-text-strong);
@@ -1209,7 +1209,7 @@ body:has(.app-theme-dark[data-appearance="light"]) {
   color: var(--app-text);
   border-color: var(--app-border);
 }
-.app-theme-dark[data-appearance="light"] .approval-detail :is(.approval-detail-field, .approval-detail-comment, .approval-detail-review-body, .approval-detail-round, .approval-detail-step-info) {
+.app-theme-dark[data-appearance="light"] .approval-detail :is(.approval-detail-field, .approval-detail-comment, .approval-detail-review-body, .approval-detail-round) {
   background: var(--app-surface-raised);
   color: var(--app-text);
   border-color: var(--app-border);
