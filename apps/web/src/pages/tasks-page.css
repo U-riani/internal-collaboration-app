@@ -322,6 +322,49 @@
   background: var(--task-surface);
   box-shadow: 0 24px 80px #080d1d80;
 }
+/* The Filter Tasks panel is now a native modal in the browser's top layer.
+   It keeps its own scroll, while the shared Modal supplies backdrop and X/Escape. */
+.tasks-page .modal[open].task-filter-panel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  bottom: auto;
+  display: flex;
+  flex-direction: column;
+  width: min(760px, calc(100vw - 32px));
+  height: min(760px, calc(100dvh - 24px));
+  max-height: calc(100dvh - 24px);
+  padding: 0;
+  overflow: hidden;
+  transform: translate(-50%, -50%);
+}
+.tasks-page .modal.task-filter-panel .modal-head {
+  flex: 0 0 auto;
+  padding: 18px 20px;
+  background: var(--task-surface);
+  border-color: var(--task-border);
+}
+.tasks-page .modal.task-filter-panel .modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+  overflow-y: auto;
+  padding: 0 20px;
+  background: var(--task-surface);
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+@media (max-width: 640px) {
+  .tasks-page .modal[open].task-filter-panel {
+    width: min(100vw, 760px);
+    height: min(94dvh, 760px);
+    max-height: 94dvh;
+    top: auto;
+    bottom: 0;
+    transform: translateX(-50%);
+    border-radius: 20px 20px 0 0;
+  }
+}
 .tasks-page .task-filter-panel > div:first-child,
 .tasks-page .task-filter-panel > div:last-child { background: var(--task-surface); border-color: var(--task-border); }
 .tasks-page .task-filter-panel h3 { color: var(--task-text); }
@@ -737,8 +780,11 @@
   width: 28px;
   height: 28px;
   border-radius: 8px;
-  background: #233b57;
-  color: #8baefe;
+  background: var(--app-icon-soft-bg, var(--app-accent-soft, #e6eaff));
+  color: var(--app-icon-accent, var(--app-focus-ring, #817cf0));
+}
+:is(.tasks-page, .task-form) .filter-multiselect-search > svg {
+  color: var(--app-icon-muted, var(--task-muted));
 }
 :is(.tasks-page, .task-form) .filter-multiselect-name {
   flex: 1;
@@ -861,15 +907,26 @@
   color: var(--task-text);
   font-size: 12px;
 }
+/* Task and subtask forms inherit the actual workspace palette (all four
+   appearances and every accent), instead of defining a second dark palette. */
 .app-theme-dark .task-form {
-  --task-text: #e8eafa;
-  --task-muted: #a9b1ca;
-  --task-subtle: #8995af;
-  --task-border: #31394e;
-  --task-control: #252b3d;
-  --task-hover: #293249;
-  --task-surface: #151b2c;
-  --task-surface-raised: #191f31;
+  --task-text: var(--app-text-strong);
+  --task-muted: var(--app-muted);
+  --task-subtle: var(--app-subtle);
+  --task-border: var(--app-border-strong);
+  --task-control: var(--app-surface-input);
+  --task-hover: var(--app-surface-hover);
+  --task-surface: var(--app-surface);
+  --task-surface-raised: var(--app-surface-raised);
+}
+.task-form .task-form-parent {
+  color: var(--task-muted);
+  background: var(--task-surface-raised);
+  border: 1px solid var(--task-border);
+  overflow-wrap: anywhere;
+}
+.task-form .task-form-parent-title {
+  color: var(--task-text);
 }
 .task-form .field {
   display: flex;
@@ -961,6 +1018,7 @@
 }
 .task-form .task-form-date { color-scheme: light; }
 .app-theme-dark .task-form .task-form-date { color-scheme: dark; }
+.app-theme-dark[data-appearance="light"] .task-form .task-form-date { color-scheme: light; }
 .task-form .task-form-file {
   height: auto;
   min-height: 43px;
@@ -1012,7 +1070,8 @@
   overscroll-behavior: contain;
   padding: 22px 24px 24px;
   scrollbar-width: thin;
-  scrollbar-color: #535d78 transparent;
+  scrollbar-color: var(--app-border-strong, #535d78) transparent;
+  background: var(--task-surface);
 }
 .task-form .task-form-footer {
   display: flex;
