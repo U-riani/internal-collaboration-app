@@ -329,6 +329,30 @@ body:has(.app-theme-dark) { background: #0a0f1d; }
   color: var(--app-text-strong);
   background: var(--app-surface-hover);
 }
+/* The shared Modal owns its X action across all modules/appearances.
+   Legacy feature selectors must not repaint its hover/focus state. */
+.app-theme-dark .modal .modal-head > .modal-close-btn {
+  display: grid;
+  place-items: center;
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  padding: 8px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: var(--app-muted) !important;
+  background: transparent !important;
+  transition: background-color .16s ease, color .16s ease;
+}
+.app-theme-dark .modal .modal-head > .modal-close-btn:hover:not(:disabled),
+.app-theme-dark .modal .modal-head > .modal-close-btn:focus-visible {
+  color: var(--app-text-strong) !important;
+  background: var(--app-surface-hover) !important;
+}
+.app-theme-dark .modal .modal-head > .modal-close-btn:focus-visible {
+  outline: 2px solid var(--app-focus-ring);
+  outline-offset: 2px;
+}
 .app-theme-dark .modal {
   color: var(--app-text);
   border: 1px solid var(--app-border-strong);
