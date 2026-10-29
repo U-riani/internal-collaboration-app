@@ -809,7 +809,7 @@ function Members({ conversation, onClose }) {
         <SearchBar
           className="conversation-members-search"
           ariaLabel="Search conversation members"
-          placeholder="Search group members..."
+          placeholder="Search members..."
           value={memberSearch}
           onChange={(event) => setMemberSearch(event.target.value)}
           iconSize={18}
