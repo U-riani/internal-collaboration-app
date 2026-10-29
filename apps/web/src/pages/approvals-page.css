@@ -515,12 +515,12 @@
 }
 
 .app-theme-dark .approval-types-manager {
-  --task-control: #252b3d;
-  --task-text: #e8eafa;
-  --task-muted: #a9b1ca;
-  --task-subtle: #808ca8;
-  --task-border: #293147;
-  --task-hover: #222b40;
+  --task-control: var(--app-surface-input);
+  --task-text: var(--app-text-strong);
+  --task-muted: var(--app-muted);
+  --task-subtle: var(--app-subtle);
+  --task-border: var(--app-border-strong);
+  --task-hover: var(--app-surface-hover);
 }
 
 .approval-types-toolbar {
@@ -769,18 +769,18 @@
 }
 
 .app-theme-dark .modal:has(> .modal-body > .approval-types-manager) {
-  border-color: #293147;
-  background: #111728;
+  border-color: var(--app-border-strong);
+  background: var(--app-surface);
   box-shadow: 0 26px 85px #03061199;
 }
 
 .app-theme-dark .modal:has(> .modal-body > .approval-types-manager) .modal-head {
-  border-color: #293147;
-  background: linear-gradient(120deg, #1b2135, #141a2b);
+  border-color: var(--app-border);
+  background: var(--app-surface);
 }
 
 .app-theme-dark .modal:has(> .modal-body > .approval-types-manager) .modal-head h2 {
-  color: #f2f0ff;
+  color: var(--app-text-strong);
 }
 
 .app-theme-dark .modal:has(> .modal-body > .approval-types-manager) .modal-head .icon-btn:hover {
@@ -789,8 +789,8 @@
 }
 
 .app-theme-dark .approval-types-title-icon {
-  color: var(--app-ui-focus-ring, #b9b4ff);
-  background: #34345c;
+  color: var(--app-focus-ring);
+  background: var(--app-accent-soft);
 }
 
 .app-theme-dark .approval-types-search,
@@ -802,44 +802,44 @@
 
 .app-theme-dark .approval-types-search > input,
 .app-theme-dark .approval-types-status-control > select.app-modern-select {
-  color: #e8eafa;
+  color: var(--app-text);
 }
 
 .app-theme-dark .approval-types-search input::placeholder {
-  color: #8792ad;
+  color: var(--app-subtle);
 }
 
 .app-theme-dark .approval-type-row {
-  border-color: #293147;
-  background: #151b2c;
+  border-color: var(--app-border);
+  background: var(--app-surface);
 }
 
 .app-theme-dark .approval-type-row:hover {
-  border-color: var(--app-ui-accent-outline, #6c67b87a);
-  background: #20273d;
+  border-color: var(--app-border-strong);
+  background: var(--app-surface-hover);
 }
 
 .app-theme-dark .approval-type-row-icon {
-  background: #2b2d4f;
-  color: #b2aaff;
+  background: var(--app-accent-soft);
+  color: var(--app-focus-ring);
 }
 
 .app-theme-dark .approval-type-row-icon--inactive {
-  background: #2b3042;
-  color: #96a0b8;
+  background: var(--app-surface-raised);
+  color: var(--app-muted);
 }
 
 .app-theme-dark .approval-type-row-icon--draft {
-  background: #223c50;
-  color: #80c4e5;
+  background: var(--app-surface-raised);
+  color: var(--app-secondary);
 }
 
 .app-theme-dark .approval-type-name {
-  color: #e8eafa;
+  color: var(--app-text-strong);
 }
 
 .app-theme-dark .approval-type-meta {
-  color: #9aa4be;
+  color: var(--app-muted);
 }
 
 .app-theme-dark .approval-type-actions .btn-secondary.task-style-secondary {
@@ -1918,17 +1918,17 @@
 }
 
 .app-theme-dark .modal[open]:has(> .modal-body > .approval-detail) {
-  border-color: #293147;
-  background: #151b2c;
+  border-color: var(--app-border-strong);
+  background: var(--app-surface);
 }
 
 .app-theme-dark .modal:has(> .modal-body > .approval-detail) .modal-head {
-  border-color: #293147;
-  background: linear-gradient(120deg, #1b2135, #141a2b);
+  border-color: var(--app-border);
+  background: var(--app-surface);
 }
 
 .app-theme-dark .modal:has(> .modal-body > .approval-detail) .modal-head h2 {
-  color: #f2f0ff;
+  color: var(--app-text-strong);
 }
 
 .app-theme-dark .modal:has(> .modal-body > .approval-detail) .modal-head .icon-btn:hover {
@@ -1937,8 +1937,8 @@
 }
 
 .app-theme-dark .approval-detail-request-icon {
-  background: #303157;
-  color: #b5adff;
+  background: var(--app-accent-soft);
+  color: var(--app-focus-ring);
 }
 
 .app-theme-dark .approval-detail-cancel {
@@ -2197,4 +2197,35 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .approval-request-form .input { transition: none; }
+}
+
+/* Approvals share semantic surfaces with Tasks instead of fixed Midnight tints.
+   Progress state colors remain semantic; neutral rows have no forced fill. */
+.app-theme-dark .approval-detail {
+  --detail-bg: var(--app-surface);
+  --detail-panel: var(--app-surface-raised);
+  --detail-control: var(--app-surface-input);
+  --detail-text: var(--app-text-strong);
+  --detail-muted: var(--app-muted);
+  --detail-border: var(--app-border-strong);
+  --detail-hover: var(--app-surface-hover);
+  --detail-accent: var(--app-focus-ring);
+}
+.app-theme-dark .approval-detail .approval-detail-fields.task-detail-section {
+  background: var(--detail-bg);
+}
+.app-theme-dark .approval-detail .approval-detail-step-info,
+.app-theme-dark .approval-detail .approval-detail-timeline-item {
+  background: transparent;
+}
+.app-theme-dark .approval-detail .approval-detail-field-value {
+  background: var(--detail-control);
+}
+/* Both filter dialogs inherit the Tasks modal's shared scroll/close system. */
+.approvals-page .modal.approval-filter-panel .modal-body,
+.approval-bases-page .modal.approval-filter-panel .modal-body {
+  color: var(--task-text);
+}
+.approval-bases-page .modal[open].approval-bases-filter-panel {
+  width: min(720px, calc(100vw - 32px));
 }
