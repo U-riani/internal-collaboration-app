@@ -651,7 +651,7 @@ function NewChat({ onClose, onCreated }) {
             <h2 id="new-conversation-title">New conversation</h2>
             <p id="new-conversation-description">Reach out to a team colleague or form a group channel</p>
           </div>
-          <button type="button" className="new-conversation-close" aria-label="Close new conversation" onClick={onClose}>
+          <button type="button" className="new-conversation-close modal-close-btn" aria-label="Close new conversation" onClick={onClose}>
             <X size={18} />
           </button>
         </header>
