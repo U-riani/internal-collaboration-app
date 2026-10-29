@@ -1275,3 +1275,278 @@ body:has(.app-theme-dark[data-appearance="light"]) {
 .app-theme-dark[data-appearance="light"] .approval-bases-page .approval-base-table tr.approval-base-record-row:hover td {
   background: var(--base-hover);
 }
+
+
+/* Phase 4A — Drive: Personal, Shared, Shared with me and Trash surfaces.
+ * Recolor legacy hardcoded dark backgrounds without altering file type
+ * indicators, data, permissions, action handlers or responsive dimensions. */
+.app-theme-dark[data-appearance="light"] .drive-page {
+  color: var(--app-text);
+  background: radial-gradient(ellipse at 60% 85%, #edf2fb, var(--app-bg) 65%);
+}
+.app-theme-dark[data-appearance="light"] .drive-page :is(.page-header h1, .drive-item-name, .drive-directory-list .drive-item-name, .drive-shared-list .drive-item-name) {
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] .drive-page :is(.drive-directory-list .drive-owner-name, .drive-directory-list .drive-updated-cell, .drive-directory-list .drive-size-cell, .drive-directory-summary, .drive-group-heading, .drive-group-member-count, .drive-shared-space-heading p:last-child) {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .drive-page :is(.drive-toolbar, .drive-directory-list, .drive-space-nav) {
+  background: var(--app-surface);
+  border-color: var(--app-border-strong);
+  color: var(--app-text);
+  scrollbar-color: #b6c1d2 transparent;
+}
+.app-theme-dark[data-appearance="light"] .drive-page .drive-toolbar .tabs {
+  background: var(--app-surface-raised);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] .drive-page .drive-toolbar .tabs button:not(.active) {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .drive-page .drive-toolbar .tabs button:not(.active):hover {
+  color: var(--app-text-strong);
+  background: var(--app-surface-hover);
+}
+.app-theme-dark[data-appearance="light"] .drive-page .drive-toolbar .tabs button.active,
+.app-theme-dark[data-appearance="light"] .drive-page .drive-toolbar .tabs button.active:hover {
+  color: var(--app-ui-accent-label);
+  background: linear-gradient(110deg, var(--app-ui-accent-start), var(--app-ui-accent-end));
+}
+.app-theme-dark[data-appearance="light"] .drive-page .drive-search-bar {
+  background: var(--app-surface-input);
+  color: var(--app-muted);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark[data-appearance="light"] .drive-page .drive-search-bar :is(input, svg) {
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] .drive-page .drive-search-bar input::placeholder {
+  color: var(--app-subtle);
+}
+.app-theme-dark[data-appearance="light"] .drive-page .drive-search-bar:focus-within {
+  border-color: var(--app-focus-ring);
+  box-shadow: 0 0 0 2px var(--app-ui-accent-tint);
+}
+.app-theme-dark[data-appearance="light"] .drive-page .drive-header-actions .btn-secondary {
+  color: var(--app-text);
+  background: var(--app-surface-raised);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark[data-appearance="light"] .drive-page .drive-header-actions .btn-secondary:hover:not(:disabled) {
+  color: var(--app-text-strong);
+  background: var(--app-surface-hover);
+}
+.app-theme-dark[data-appearance="light"] .drive-page .drive-directory-list :is(.drive-table-head, .drive-directory-summary) {
+  background: var(--app-surface-raised);
+  color: var(--app-muted);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] .drive-page .drive-directory-list :is(.drive-directory-row, .drive-shared-row),
+.app-theme-dark[data-appearance="light"] .drive-page .drive-shared-list .drive-shared-row {
+  background: var(--app-surface);
+  color: var(--app-text);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] .drive-page .drive-directory-list .drive-directory-row:hover,
+.app-theme-dark[data-appearance="light"] .drive-page .drive-shared-list .drive-shared-row:hover {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark[data-appearance="light"] .drive-page .drive-directory-list :is(.drive-file-type, .drive-owner-cell .avatar) {
+  color: var(--app-muted);
+  background: var(--app-surface-raised);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] .drive-page .drive-directory-list .drive-row-actions .icon-btn {
+  color: var(--app-muted);
+  background: transparent;
+}
+.app-theme-dark[data-appearance="light"] .drive-page .drive-directory-list .drive-row-actions .icon-btn:hover {
+  color: var(--app-text-strong);
+  background: var(--app-surface-hover);
+}
+.app-theme-dark[data-appearance="light"] .drive-page :is(.drive-space-global, .drive-group-link) {
+  color: var(--app-text);
+  background: transparent;
+}
+.app-theme-dark[data-appearance="light"] .drive-page :is(.drive-space-global:hover, .drive-group-link:hover) {
+  color: var(--app-text-strong);
+  background: var(--app-surface-hover);
+}
+.app-theme-dark[data-appearance="light"] .drive-page :is(.drive-space-global.is-selected, .drive-group-link.is-selected) {
+  background: var(--palette-selection);
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] .drive-page .drive-group-heading .icon-btn {
+  color: var(--app-muted);
+  background: var(--app-surface-raised);
+}
+.app-theme-dark[data-appearance="light"] .drive-page .drive-group-heading .icon-btn:hover {
+  color: var(--app-text-strong);
+  background: var(--app-surface-hover);
+}
+.app-theme-dark[data-appearance="light"] .drive-page .drive-shared-members-button {
+  color: var(--app-text);
+  background: var(--app-surface-raised);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark[data-appearance="light"] .drive-page .drive-shared-members-button:hover {
+  color: var(--app-text-strong);
+  background: var(--app-surface-hover);
+}
+.app-theme-dark[data-appearance="light"] .drive-page .drive-shared-space-heading {
+  color: var(--app-text);
+  background: var(--palette-panel-gradient);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] .drive-page .drive-shared-space-heading p:first-child {
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] .drive-page .drive-shared-space-heading > svg {
+  background: var(--app-accent-soft);
+  color: var(--app-focus-ring);
+}
+.app-theme-dark[data-appearance="light"] .drive-page .drive-shared-space-heading .status {
+  background: var(--app-accent-soft);
+  color: var(--app-focus-ring);
+}
+
+/* Members and Permissions are shared Modal portals, not Drive page descendants. */
+.app-theme-dark[data-appearance="light"] .modal:has(.drive-space-members-modal),
+.app-theme-dark[data-appearance="light"] .modal:has(:is(.drive-new-group-form, .drive-new-folder-form)),
+.app-theme-dark[data-appearance="light"] .modal:has(.drive-permission-note) {
+  color: var(--app-text);
+  background: var(--app-surface);
+  border-color: var(--app-border-strong);
+  box-shadow: 0 22px 65px rgba(24, 35, 53, .16);
+}
+.app-theme-dark[data-appearance="light"] .modal:has(.drive-space-members-modal) :is(.modal-head, .modal-body),
+.app-theme-dark[data-appearance="light"] .modal:has(:is(.drive-new-group-form, .drive-new-folder-form)) .modal-head,
+.app-theme-dark[data-appearance="light"] .modal:has(.drive-permission-note) .modal-head {
+  background: var(--palette-panel-gradient);
+  color: var(--app-text);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] .modal:has(.drive-space-members-modal) .modal-head h2,
+.app-theme-dark[data-appearance="light"] .modal:has(:is(.drive-new-group-form, .drive-new-folder-form)) .modal-head h2 {
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] :is(.drive-member-search, .drive-member-admin-manager, .drive-member-list) {
+  background: var(--app-surface-input);
+  color: var(--app-text);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark[data-appearance="light"] .drive-member-search > input {
+  color: var(--app-text);
+  background: transparent !important;
+}
+.app-theme-dark[data-appearance="light"] .drive-member-search input::placeholder {
+  color: var(--app-subtle);
+}
+.app-theme-dark[data-appearance="light"] .drive-member-person {
+  color: var(--app-text);
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] .drive-member-person:hover,
+.app-theme-dark[data-appearance="light"] .drive-member-person--admin:hover {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark[data-appearance="light"] .drive-member-person--admin {
+  background: var(--palette-panel-gradient);
+  border-color: var(--app-border) !important;
+}
+.app-theme-dark[data-appearance="light"] :is(.drive-member-display-name, .drive-member-person .drive-member-avatar) {
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] :is(.drive-member-person .drive-member-avatar, .drive-member-person .drive-member-avatar--admin) {
+  background: var(--app-accent-soft);
+  color: var(--app-focus-ring);
+}
+.app-theme-dark[data-appearance="light"] :is(.drive-member-person .drive-member-subtitle, .drive-member-admin-subtitle, .drive-member-person .text-slate-400, .drive-member-person--admin .drive-member-admin-manager) {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] :is(.drive-permission-mode-select, .drive-permission-access-select, .drive-member-role-select) {
+  background: var(--app-surface-input);
+  color: var(--app-text);
+  border-color: var(--app-border-strong);
+  color-scheme: light;
+}
+.app-theme-dark[data-appearance="light"] .drive-member-form-actions {
+  background: transparent !important;
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] :is(.drive-new-group-form, .drive-new-folder-form) .field {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] :is(.drive-new-group-form, .drive-new-folder-form) :is(.drive-new-group-input, .drive-new-folder-input) {
+  color: var(--app-text);
+  background: var(--app-surface-input);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark[data-appearance="light"] :is(.drive-new-group-form, .drive-new-folder-form) :is(.drive-new-group-input, .drive-new-folder-input)::placeholder {
+  color: var(--app-subtle);
+}
+.app-theme-dark[data-appearance="light"] :is(.drive-new-group-actions, .drive-new-folder-actions) {
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] .drive-permission-note {
+  color: var(--app-muted);
+  background: var(--app-surface-raised);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] .drive-permission-note--restricted > svg,
+.app-theme-dark[data-appearance="light"] .drive-permission-note--restricted strong {
+  color: #905c24;
+}
+.app-theme-dark[data-appearance="light"] .drive-permission-note-detail {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .modal:has(.drive-permission-note) :is(.border-slate-100, .border-slate-200) {
+  border-color: var(--app-border);
+}
+
+/* Drive Upload has its own dialog-wide --upload-* tokens. The upload progress
+ * bar and success/error file states keep their semantic meaning. */
+.app-theme-dark[data-appearance="light"] dialog.modal:has(.drive-upload-modal) {
+  --upload-bg: var(--app-surface);
+  --upload-panel: var(--app-surface-raised);
+  --upload-panel-soft: var(--app-surface-input);
+  --upload-border: var(--app-border-strong);
+  --upload-text: var(--app-text-strong);
+  --upload-muted: var(--app-muted);
+  --upload-primary: var(--app-accent);
+  --upload-primary-bright: var(--app-focus-ring);
+  --upload-track: #dfe5f0;
+  --upload-pill: #e9edf5;
+  --upload-shadow: rgba(24, 35, 53, .17);
+  background: var(--palette-panel-gradient);
+  color: var(--upload-text);
+  border-color: var(--upload-border);
+  color-scheme: light;
+}
+.app-theme-dark[data-appearance="light"] dialog.modal:has(.drive-upload-modal) :is(.modal-head, .drive-upload-footer) {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] dialog.modal:has(.drive-upload-modal) :is(.drive-upload-dropzone, .drive-upload-file-list, .drive-upload-folder-list, .drive-upload-summary) {
+  color: var(--upload-text);
+  background: var(--app-surface-raised);
+  border-color: var(--upload-border);
+}
+.app-theme-dark[data-appearance="light"] dialog.modal:has(.drive-upload-modal) :is(.drive-upload-file, .drive-upload-format-hints > span, .drive-upload-float-icon) {
+  background: var(--app-surface-input);
+  border-color: var(--upload-border);
+}
+.app-theme-dark[data-appearance="light"] dialog.modal:has(.drive-upload-modal) .drive-upload-file-icon {
+  background: var(--app-accent-soft);
+  color: var(--app-focus-ring);
+}
+.app-theme-dark[data-appearance="light"] dialog.modal:has(.drive-upload-modal) :is(.drive-upload-file-details, .drive-upload-file-name, .drive-upload-file-heading h3) {
+  color: var(--upload-text);
+}
+.app-theme-dark[data-appearance="light"] dialog.modal:has(.drive-upload-modal) :is(.drive-upload-file-meta, .drive-upload-format-hints > span, .drive-upload-empty, .drive-upload-dropzone > span) {
+  color: var(--upload-muted);
+}
+.app-theme-dark[data-appearance="light"] dialog.modal:has(.drive-upload-modal) .drive-upload-track {
+  background: var(--upload-track);
+}
