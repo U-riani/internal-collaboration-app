@@ -48,9 +48,11 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { useSocket } from "../hooks/useSocket.js";
 import PageHeader from "../components/PageHeader.jsx";
 import "./messages-theme.css";
+import { filterConversationMembers } from "../lib/conversation-member-search.js";
 import {
   Modal,
   Field,
+  SearchBar,
   ErrorBox,
   Empty,
   Loading,
@@ -794,23 +796,48 @@ function NewChat({ onClose, onCreated }) {
   );
 }
 function Members({ conversation, onClose }) {
+  const [memberSearch, setMemberSearch] = useState("");
+  const filteredMembers = useMemo(
+    () => filterConversationMembers(conversation.members, memberSearch),
+    [conversation.members, memberSearch],
+  );
+  const searching = Boolean(memberSearch.trim());
+
   return (
     <Modal title="Conversation Members" onClose={onClose}>
       <div className="conversation-members-modal">
+        <SearchBar
+          className="conversation-members-search"
+          ariaLabel="Search conversation members"
+          placeholder="Search group members..."
+          value={memberSearch}
+          onChange={(event) => setMemberSearch(event.target.value)}
+          iconSize={18}
+        />
         <div className="conversation-members-current-heading">
           <span>Current members</span>
-          <span className="new-conversation-count">
-            {conversation.members.length} {conversation.members.length === 1 ? "member" : "members"}
+          <span className="new-conversation-count" aria-live="polite">
+            {searching
+              ? `${filteredMembers.length} of ${conversation.members.length}`
+              : `${conversation.members.length} ${conversation.members.length === 1 ? "member" : "members"}`}
           </span>
         </div>
-        <div className="conversation-members-current-list">
-          {conversation.members.map((member) => (
-            <div key={member.userId} className="conversation-members-current-row">
-              <Avatar small name={member.user.displayName} />
-              <span className="conversation-members-current-name">{member.user.displayName}</span>
-              <span className="conversation-members-current-role">{member.role.toLowerCase()}</span>
-            </div>
-          ))}
+        <div className="conversation-members-current-list" role="list" aria-label="Conversation members">
+          {filteredMembers.length ? (
+            filteredMembers.map((member) => (
+              <div key={member.userId} className="conversation-members-current-row" role="listitem">
+                <Avatar small name={member.user.displayName} />
+                <span className="conversation-members-current-name" title={member.user.displayName}>
+                  {member.user.displayName}
+                </span>
+                <span className="conversation-members-current-role">{member.role.toLowerCase()}</span>
+              </div>
+            ))
+          ) : (
+            <p className="conversation-members-empty" role="status">
+              {searching ? "No members found." : "No members in this conversation."}
+            </p>
+          )}
         </div>
       </div>
     </Modal>
