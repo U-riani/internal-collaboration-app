@@ -776,3 +776,225 @@ body:has(.app-theme-dark[data-appearance="light"]) {
 .app-theme-dark[data-appearance="light"] .new-conversation-submit:hover:not(:disabled) {
   filter: brightness(1.045);
 }
+
+
+/* Phase 3B — Tasks: local tokens, filters, groups, board and detail dialogs.
+ * Tasks' dark class overrides the page variables, so the Light rules must
+ * rebind them at the same descendants without changing their layouts. */
+.app-theme-dark[data-appearance="light"] .tasks-page {
+  --task-bg: var(--app-bg);
+  --task-surface: var(--app-surface);
+  --task-surface-raised: var(--app-surface-raised);
+  --task-control: var(--app-surface-input);
+  --task-text: var(--app-text-strong);
+  --task-muted: var(--app-muted);
+  --task-subtle: var(--app-subtle);
+  --task-border: var(--app-border-strong);
+  --task-hover: var(--app-surface-hover);
+  --task-primary: var(--app-accent);
+  --task-primary-text: var(--app-on-accent);
+  color: var(--task-text);
+  background: radial-gradient(ellipse at 50% 95%, #eef2fc, var(--app-bg) 62%);
+}
+.app-theme-dark[data-appearance="light"] .tasks-page :is(.task-toolbar--refresh, .task-group-card, .task-summary-card, .task-filter-panel, .task-board-card) {
+  background: var(--task-surface);
+  border-color: var(--task-border);
+  color: var(--task-text);
+}
+.app-theme-dark[data-appearance="light"] .tasks-page :is(.task-toolbar .task-filter-trigger, .task-toolbar .task-sort-control, .task-toolbar .task-view-toggle, .task-search-bar, .task-filter-panel .input) {
+  background: var(--task-control);
+  color: var(--task-text);
+  border-color: var(--task-border);
+}
+.app-theme-dark[data-appearance="light"] .tasks-page :is(.task-summary-card, .task-list-row, .task-board-card):hover {
+  background: var(--task-hover);
+}
+.app-theme-dark[data-appearance="light"] .tasks-page :is(.task-list-header, .task-board-column) {
+  background: var(--task-surface-raised);
+  color: var(--task-muted);
+  border-color: var(--task-border);
+}
+.app-theme-dark[data-appearance="light"] .tasks-page .task-list-row--subtask {
+  background: var(--task-surface-raised);
+}
+.app-theme-dark[data-appearance="light"] .tasks-page .task-list-row:focus-visible,
+.app-theme-dark[data-appearance="light"] .tasks-page .task-board-card:focus-visible {
+  outline-color: var(--app-focus-ring);
+}
+.app-theme-dark[data-appearance="light"] .tasks-page :is(.task-summary-number, .task-list-row p.font-semibold, .task-board-card p.font-semibold) {
+  color: var(--task-text);
+}
+.app-theme-dark[data-appearance="light"] .tasks-page :is(.task-summary-label, .task-list-row .text-slate-500, .task-list-row .text-slate-600, .task-filter-panel .text-slate-500, .task-filter-panel .text-slate-600) {
+  color: var(--task-muted);
+}
+.app-theme-dark[data-appearance="light"] .tasks-page .task-summary-card--attention .task-summary-icon {
+  color: #ab354c;
+  background: #ffe7ec;
+}
+.app-theme-dark[data-appearance="light"] .tasks-page .task-summary-card--attention .task-summary-number {
+  color: #a63248;
+}
+.app-theme-dark[data-appearance="light"] .tasks-page .task-summary-card--completed .task-summary-icon {
+  color: #4d43a9;
+  background: #efedff;
+}
+.app-theme-dark[data-appearance="light"] .tasks-page .task-toolbar .task-quick-tabs button.active,
+.app-theme-dark[data-appearance="light"] .tasks-page .task-view-button--active,
+.app-theme-dark[data-appearance="light"] .tasks-page .task-view-button--active:hover,
+.app-theme-dark[data-appearance="light"] .tasks-page .task-group-add.btn-primary,
+.app-theme-dark[data-appearance="light"] .tasks-page .task-group-add.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(110deg, var(--app-ui-accent-start), var(--app-ui-accent-end));
+  color: var(--app-ui-accent-label);
+}
+.app-theme-dark[data-appearance="light"] .tasks-page .task-group-add.btn-primary:hover:not(:disabled) {
+  filter: brightness(1.045);
+}
+.app-theme-dark[data-appearance="light"] .tasks-page .task-toolbar .task-quick-tabs button:not(.active):hover,
+.app-theme-dark[data-appearance="light"] .tasks-page .task-view-button:not(.task-view-button--active):hover {
+  background: var(--task-hover);
+  color: var(--task-text);
+}
+.app-theme-dark[data-appearance="light"] .tasks-page .task-filter-panel :is(.task-filter-footer, .task-filter-panel > div:first-child) {
+  background: var(--task-surface);
+  border-color: var(--task-border);
+}
+.app-theme-dark[data-appearance="light"] .tasks-page .task-filter-panel :is(select.app-modern-select, .task-filter-dates .input) {
+  background: var(--task-control) !important;
+  color: var(--task-text);
+  border-color: var(--task-border) !important;
+  color-scheme: light;
+}
+.app-theme-dark[data-appearance="light"] .tasks-page :is(.task-search-bar, .task-filter-dates .input):focus-within {
+  border-color: var(--app-focus-ring);
+  box-shadow: 0 0 0 2px var(--app-ui-accent-tint);
+}
+.app-theme-dark[data-appearance="light"] .tasks-page .task-filter-choice input[type="checkbox"] {
+  accent-color: var(--app-accent);
+}
+.app-theme-dark[data-appearance="light"] .tasks-page .task-group-header .icon-btn:not(:disabled):hover {
+  color: var(--task-text);
+  background: var(--task-hover);
+}
+
+/* Task Group creation and the dynamic filter/participant multiselect. */
+.app-theme-dark[data-appearance="light"] :is(.task-group-form, .approval-group-form) {
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] :is(.task-group-form, .approval-group-form) :is(.task-group-name-input, .approval-group-name-input) {
+  background: var(--app-surface-input) !important;
+  color: var(--app-text);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark[data-appearance="light"] :is(.tasks-page, .task-form) :is(.filter-multiselect-panel, .filter-multiselect-options) {
+  background: var(--app-surface);
+  color: var(--app-text);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark[data-appearance="light"] :is(.tasks-page, .task-form) :is(.filter-multiselect-search, .filter-multiselect-option) {
+  background: var(--app-surface-input);
+  color: var(--app-text);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] :is(.tasks-page, .task-form) .filter-multiselect-option:hover {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark[data-appearance="light"] :is(.tasks-page, .task-form) .filter-multiselect-option.is-selected {
+  background: var(--palette-selection);
+}
+.app-theme-dark[data-appearance="light"] :is(.tasks-page, .task-form) .filter-multiselect-option :is(.text-slate-500, .text-slate-600) {
+  color: var(--app-muted);
+}
+
+/* The task form and details have their own dark token scope. */
+.app-theme-dark[data-appearance="light"] .task-form {
+  --task-text: var(--app-text-strong);
+  --task-muted: var(--app-muted);
+  --task-subtle: var(--app-subtle);
+  --task-border: var(--app-border-strong);
+  --task-control: var(--app-surface-input);
+  --task-hover: var(--app-surface-hover);
+  --task-surface: var(--app-surface);
+  --task-surface-raised: var(--app-surface-raised);
+  color: var(--task-text);
+  background: var(--app-surface);
+}
+.app-theme-dark[data-appearance="light"] .modal[open]:has(> .modal-body > :is(.task-form, .task-detail)) {
+  background: var(--app-surface);
+  color: var(--app-text);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark[data-appearance="light"] .modal:has(> .modal-body > :is(.task-form, .task-detail)) :is(.modal-head, .modal-body) {
+  background: var(--app-surface);
+  color: var(--app-text);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] .task-form :is(.task-form-scroll, .task-form-footer) {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] .task-form :is(.input, .task-form-description, .task-form-date, select.app-modern-select) {
+  background: var(--app-surface-input) !important;
+  color: var(--app-text);
+  border-color: var(--app-border-strong);
+  color-scheme: light;
+}
+.app-theme-dark[data-appearance="light"] .task-form select.app-modern-select:hover:not(:disabled) {
+  background: var(--app-surface-hover) !important;
+}
+.app-theme-dark[data-appearance="light"] .task-form :is(.input, select.app-modern-select):focus-visible {
+  border-color: var(--app-focus-ring) !important;
+  box-shadow: 0 0 0 2px var(--app-ui-accent-tint);
+}
+.app-theme-dark[data-appearance="light"] .task-form .task-form-file::file-selector-button {
+  color: var(--app-text);
+  background: var(--app-surface-raised);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark[data-appearance="light"] .task-form .task-form-file:hover::file-selector-button {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark[data-appearance="light"] .task-form .task-form-footer .btn-primary,
+.app-theme-dark[data-appearance="light"] .task-form .task-form-footer .btn-primary:hover:not(:disabled) {
+  background: var(--app-ui-accent-selected);
+  color: var(--app-ui-accent-selected-text);
+}
+.app-theme-dark[data-appearance="light"] .task-detail {
+  --detail-bg: var(--app-surface);
+  --detail-panel: var(--app-surface-raised);
+  --detail-control: var(--app-surface-input);
+  --detail-text: var(--app-text-strong);
+  --detail-muted: var(--app-muted);
+  --detail-border: var(--app-border-strong);
+  --detail-hover: var(--app-surface-hover);
+  --detail-accent: var(--app-focus-ring);
+  background: var(--app-surface);
+  color: var(--detail-text);
+}
+.app-theme-dark[data-appearance="light"] .task-detail :is(.task-detail-section, .task-detail-comment-form, .task-detail-subtask-row) {
+  background: var(--detail-bg);
+  border-color: var(--detail-border);
+}
+.app-theme-dark[data-appearance="light"] .task-detail :is(.task-detail-meta, .task-detail-section-header, .task-detail-person, .task-detail-comment, .task-detail-history) {
+  background: var(--detail-panel);
+  color: var(--detail-text);
+  border-color: var(--detail-border);
+}
+.app-theme-dark[data-appearance="light"] .task-detail :is(.task-detail-edit, .task-detail-add-subtask, .task-detail-select-preview, .task-detail-comment-input, select.task-detail-select) {
+  background: var(--detail-control) !important;
+  color: var(--detail-text);
+  border-color: var(--detail-border);
+}
+.app-theme-dark[data-appearance="light"] .task-detail .task-detail-select-wrap > select.task-detail-select {
+  color-scheme: light;
+}
+.app-theme-dark[data-appearance="light"] .task-detail :is(.task-detail-person-icon, .task-detail-group-label) {
+  background: var(--app-accent-soft);
+  color: var(--app-focus-ring);
+}
+.app-theme-dark[data-appearance="light"] .task-detail :is(.task-detail-subtask-row:hover, .task-detail-edit:hover, .task-detail-add-subtask:hover) {
+  background: var(--detail-hover);
+}
+.app-theme-dark[data-appearance="light"] .task-detail :is(.task-detail-comment-submit, .task-detail-comment-submit:hover:not(:disabled)) {
+  background: var(--app-ui-accent-selected);
+  color: var(--app-ui-accent-selected-text);
+}
