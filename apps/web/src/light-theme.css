@@ -1886,3 +1886,98 @@ body:has(.app-theme-dark[data-appearance="light"]) {
   background: linear-gradient(115deg, var(--app-ui-accent-start), var(--app-ui-accent-end));
   filter: brightness(1.045);
 }
+
+
+/* Phase 5B — Administration and Audit. These pages use native Tailwind utility
+ * classes rather than dedicated page styles; a small root wrapper prevents
+ * neutral color overrides from leaking into Tasks/Drive/other modules. */
+.app-theme-dark[data-appearance="light"] :is(.administration-page, .audit-page) {
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] :is(.administration-page, .audit-page) .card {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+  color: var(--app-text);
+  box-shadow: 0 4px 18px rgba(24, 35, 53, .04);
+}
+.app-theme-dark[data-appearance="light"] :is(.administration-page, .audit-page) :is(h2, h3, .font-bold, .font-semibold, strong) {
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] :is(.administration-page, .audit-page) :is(.bg-white, .bg-slate-50, .bg-gray-50) {
+  background: var(--app-surface);
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] :is(.administration-page, .audit-page) :is(.text-slate-400, .text-slate-500, .text-slate-600, .text-gray-500) {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] :is(.administration-page, .audit-page) :is(.border-slate-100, .border-slate-200, .divide-slate-100, .divide-slate-200) {
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] :is(.administration-page, .audit-page) :is(.input, select, textarea) {
+  background: var(--app-surface-input);
+  border-color: var(--app-border-strong);
+  color: var(--app-text);
+  color-scheme: light;
+}
+.app-theme-dark[data-appearance="light"] :is(.administration-page, .audit-page) :is(.input, select, textarea):focus-visible {
+  border-color: var(--app-focus-ring);
+  outline-color: var(--app-focus-ring);
+}
+.app-theme-dark[data-appearance="light"] .administration-page :is(.bg-blue-50, .bg-slate-100) {
+  color: var(--app-text);
+  background: var(--app-surface-raised);
+}
+.app-theme-dark[data-appearance="light"] .administration-page :is(.text-blue-600, .text-blue-700, .text-blue-800) {
+  color: var(--app-focus-ring);
+}
+.app-theme-dark[data-appearance="light"] .administration-page :is(.bg-emerald-100, .text-emerald-700) {
+  color: #13765c;
+}
+.app-theme-dark[data-appearance="light"] .administration-page .bg-emerald-100 {
+  background: #dcf6eb;
+}
+.app-theme-dark[data-appearance="light"] .administration-page :is(.text-red-700, .text-rose-700) {
+  color: #a52a43;
+}
+.app-theme-dark[data-appearance="light"] .administration-page :is(.bg-red-50, .bg-rose-50) {
+  background: #fff0f2;
+}
+.app-theme-dark[data-appearance="light"] .administration-page .form-actions {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] .administration-page :is(.btn-secondary:hover:not(:disabled), .icon-btn:hover:not(:disabled)) {
+  background: var(--app-surface-hover);
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] .administration-page .btn-primary,
+.app-theme-dark[data-appearance="light"] .administration-page .btn-primary:hover:not(:disabled) {
+  color: var(--app-on-accent);
+}
+.app-theme-dark[data-appearance="light"] .administration-page .btn-primary:hover:not(:disabled) {
+  background: var(--app-accent-hover);
+}
+
+/* Audit <details> rows and JSON payload are independently scrollable;
+ * preserve the action/entity labels and the underlying audit data. */
+.app-theme-dark[data-appearance="light"] .audit-page details {
+  background: var(--app-surface);
+  color: var(--app-text);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] .audit-page details:hover,
+.app-theme-dark[data-appearance="light"] .audit-page details[open] {
+  background: var(--app-surface-raised);
+}
+.app-theme-dark[data-appearance="light"] .audit-page details summary {
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] .audit-page details :is(.text-slate-400, .text-slate-500) {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .audit-page details pre {
+  background: var(--app-surface-input);
+  color: var(--app-text);
+  border: 1px solid var(--app-border);
+  scrollbar-color: #b6c1d2 transparent;
+}
