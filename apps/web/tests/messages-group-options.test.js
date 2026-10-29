@@ -29,6 +29,14 @@ describe("Messages group actions", () => {
     expect(members).not.toContain("conversation-members-leave");
     expect(members).not.toContain("conversation-members-add-form");
     expect(members).not.toContain("<button");
+    expect(members).toContain("<SearchBar");
+    expect(members).toContain('ariaLabel="Search conversation members"');
+    expect(members).toContain("filterConversationMembers");
+    expect(members).toContain('role="list"');
+    expect(members).toContain("No members found.");
+    expect(styles).toContain(".conversation-members-search");
+    expect(styles).toContain(".conversation-members-current-list");
+    expect(styles).toContain("var(--app-interactive-focus)");
     expect(styles).toContain(".chat-group-options-menu");
     expect(styles).toContain(".modal.group-action-modal");
     expect(styles).toContain("var(--app-surface-raised)");
