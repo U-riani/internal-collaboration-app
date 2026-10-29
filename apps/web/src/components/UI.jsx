@@ -37,7 +37,7 @@ export function Modal({ title, children, onClose, wide = false, headerIcon = nul
         </div>
         <button
           type="button"
-          className="icon-btn"
+          className="icon-btn modal-close-btn"
           aria-label="Close dialog"
           onClick={onClose}
         >
