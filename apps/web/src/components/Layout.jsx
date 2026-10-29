@@ -175,7 +175,7 @@ export default function Layout() {
 
   return (
     <div className={isOverview ? "app-theme-dark overview-layout" : "app-theme-dark max-h-screen"}
-      data-theme="dark"
+      data-theme={appearance === "light" ? "light" : "dark"}
       data-appearance={appearance}
       data-accent={accent}>
       <div className="workspace-mobile-header sticky top-0 z-40 flex h-16 items-center justify-between border-b border-slate-200 bg-white px-4 min-[901px]:hidden">
