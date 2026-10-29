@@ -379,8 +379,8 @@
   transition: border-color .16s ease, box-shadow .16s ease;
 }
 
-:is(.approvals-page, .approval-bases-page) .approval-date-control:hover {
-  border-color: var(--app-ui-accent-outline, #817cf088);
+:is(.approvals-page, .approval-bases-page) .approval-date-control:hover:not(:focus-within) {
+  border-color: var(--app-border-strong);
 }
 
 :is(.approvals-page, .approval-bases-page) .approval-date-control:focus-within {
