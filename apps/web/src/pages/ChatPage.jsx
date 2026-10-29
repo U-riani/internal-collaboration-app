@@ -19,6 +19,8 @@ import {
   Send,
   Paperclip,
   Users,
+  EllipsisVertical,
+  LogOut,
   Reply,
   Pencil,
   Trash2,
@@ -792,49 +794,6 @@ function NewChat({ onClose, onCreated }) {
   );
 }
 function Members({ conversation, onClose }) {
-  const { user } = useAuth();
-  const qc = useQueryClient();
-  const [id, setId] = useState("");
-  const [memberSearch, setMemberSearch] = useState("");
-  const users = useQuery({
-    queryKey: ["users"],
-    queryFn: () => api("/users").then((r) => r.data),
-  });
-  const availableColleagues = useMemo(
-    () =>
-      (users.data || []).filter(
-        (colleague) =>
-          colleague.status === "ACTIVE" &&
-          !conversation.members.some((member) => member.userId === colleague.id),
-      ),
-    [users.data, conversation.members],
-  );
-  const filteredColleagues = useMemo(() => {
-    const query = memberSearch.trim().toLocaleLowerCase();
-    if (!query) return availableColleagues;
-    return availableColleagues.filter((colleague) =>
-      [colleague.displayName, colleague.jobTitle, colleague.department?.name, colleague.email]
-        .some((value) => value?.toLocaleLowerCase().includes(query)),
-    );
-  }, [availableColleagues, memberSearch]);
-
-  const save = useMutation({
-    mutationFn: (remove) =>
-      remove
-        ? api(`/conversations/${conversation.id}/members/${remove}`, {
-            method: "DELETE",
-          })
-        : api(`/conversations/${conversation.id}/members`, {
-            method: "POST",
-            body: JSON.stringify({ userId: id }),
-          }),
-    onSuccess: () => {
-      setId("");
-      qc.invalidateQueries({ queryKey: ["conversations"] });
-    },
-  });
-  const owner = conversation.ownerId === user.id;
-
   return (
     <Modal title="Conversation Members" onClose={onClose}>
       <div className="conversation-members-modal">
@@ -850,126 +809,60 @@ function Members({ conversation, onClose }) {
               <Avatar small name={member.user.displayName} />
               <span className="conversation-members-current-name">{member.user.displayName}</span>
               <span className="conversation-members-current-role">{member.role.toLowerCase()}</span>
-              {owner && member.userId !== user.id && conversation.type !== "DIRECT" && (
-                <button
-                  type="button"
-                  className="conversation-members-remove icon-btn"
-                  aria-label={`Remove ${member.user.displayName}`}
-                  title={`Remove ${member.user.displayName}`}
-                  disabled={save.isPending}
-                  onClick={() => save.mutate(member.userId)}
-                >
-                  <X size={16} />
-                </button>
-              )}
             </div>
           ))}
         </div>
-
-        {owner && conversation.type !== "DIRECT" && (
-          <form
-            className="conversation-members-add-form"
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (id && !save.isPending) save.mutate(null);
-            }}
-          >
-            <div className="conversation-members-select-heading">
-              <span>Select a colleague</span>
-            </div>
-            <div className="new-conversation-people-panel">
-              <label className="new-conversation-search">
-                <Search size={19} aria-hidden="true" />
-                <input
-                  type="search"
-                  aria-label="Search colleagues to add"
-                  placeholder="Type name or branch to filter..."
-                  value={memberSearch}
-                  onChange={(event) => setMemberSearch(event.target.value)}
-                  autoComplete="off"
-                />
-              </label>
-              <div className="new-conversation-people-list" role="radiogroup" aria-label="Select a colleague">
-                {users.isLoading ? (
-                  <p className="new-conversation-list-state">Loading colleagues…</p>
-                ) : users.error ? (
-                  <ErrorBox error={users.error} />
-                ) : !filteredColleagues.length ? (
-                  <p className="new-conversation-list-state">
-                    {memberSearch.trim() ? "No matching colleagues found." : "No colleagues available."}
-                  </p>
-                ) : (
-                  filteredColleagues.map((colleague, index) => {
-                    const selected = id === colleague.id;
-                    const initials = (colleague.displayName || "Colleague")
-                      .trim()
-                      .split(/\s+/)
-                      .slice(0, 2)
-                      .map((part) => part[0] || "")
-                      .join("")
-                      .toUpperCase();
-                    return (
-                      <button
-                        key={colleague.id}
-                        type="button"
-                        role="radio"
-                        aria-checked={selected}
-                        className={"new-conversation-person" + (selected ? " is-selected" : "")}
-                        onClick={() => setId(colleague.id)}
-                      >
-                        <span
-                          className={"new-conversation-person-avatar avatar-tone-" + (index % 4)}
-                          aria-hidden="true"
-                        >
-                          {initials}
-                        </span>
-                        <span className="new-conversation-person-details">
-                          <span className="new-conversation-person-name">{colleague.displayName}</span>
-                          <span className="new-conversation-person-subtitle">
-                            {[colleague.jobTitle, colleague.department?.name].filter(Boolean).join(" · ") || "Colleague"}
-                          </span>
-                        </span>
-                        <span
-                          className={"new-conversation-check" + (selected ? " is-selected" : "")}
-                          aria-hidden="true"
-                        >
-                          {selected && <Check size={13} strokeWidth={3} />}
-                        </span>
-                      </button>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-            <div className="conversation-members-add-footer">
-              <span className="new-conversation-available">
-                {availableColleagues.length} colleagues available
-              </span>
-              <button
-                type="submit"
-                className="new-conversation-submit"
-                disabled={!id || save.isPending}
-              >
-                Add <Plus size={16} />
-              </button>
-            </div>
-          </form>
-        )}
-
-        {!owner && conversation.type !== "DIRECT" && (
-          <button
-            className="btn-danger conversation-members-leave"
-            disabled={save.isPending}
-            onClick={async () => {
-              await save.mutateAsync(user.id);
-              onClose();
-            }}
-          >
-            Leave group
-          </button>
-        )}
-        <ErrorBox error={save.error} />
       </div>
+    </Modal>
+  );
+}
+
+function GroupRenameModal({ conversation, onClose }) {
+  const qc = useQueryClient();
+  const [name, setName] = useState(conversation.name || "");
+  const rename = useMutation({
+    mutationFn: () =>
+      api(`/conversations/${conversation.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ name: name.trim() }),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["conversations"] });
+      onClose();
+    },
+  });
+  const cleanName = name.trim();
+  const canSave = cleanName.length >= 2 && cleanName.length <= 200 &&
+    cleanName !== conversation.name && !rename.isPending;
+
+  return (
+    <Modal title="Rename Group" onClose={onClose} className="group-action-modal">
+      <form
+        className="conversation-rename-modal"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (canSave) rename.mutate();
+        }}
+      >
+        <label className="conversation-group-field">
+          <span>Group name</span>
+          <input
+            className="input"
+            autoFocus
+            value={name}
+            maxLength={200}
+            onChange={(event) => setName(event.target.value)}
+            placeholder="Enter group name"
+            aria-label="Group name"
+          />
+        </label>
+        <ErrorBox error={rename.error} />
+        <div className="conversation-group-modal-actions">
+          <button type="submit" className="btn-primary" disabled={!canSave}>
+            {rename.isPending ? "Saving…" : "Save changes"}
+          </button>
+        </div>
+      </form>
     </Modal>
   );
 }
@@ -990,6 +883,9 @@ export default function ChatPage() {
   const [reply, setReply] = useState(null);
   const [newChat, setNewChat] = useState(false);
   const [members, setMembers] = useState(false);
+  const [groupMenuOpen, setGroupMenuOpen] = useState(false);
+  const [renameGroup, setRenameGroup] = useState(false);
+  const [leaveGroupConfirm, setLeaveGroupConfirm] = useState(false);
   const [search, setSearch] = useState("");
   const [conversationFilter, setConversationFilter] = useState("all");
   const [messageSearch, setMessageSearch] = useState("");
@@ -1010,6 +906,7 @@ export default function ChatPage() {
   const bottom = useRef(null);
   const composer = useRef(null);
   const scrollArea = useRef(null);
+  const groupMenuRef = useRef(null);
   const positionedConversation = useRef(null);
   const previousTail = useRef({ conversationId: null, messageId: null });
   const submittedReads = useRef(new Set());
@@ -1033,6 +930,22 @@ export default function ChatPage() {
       document.removeEventListener("visibilitychange", syncWindowAttention);
     };
   }, []);
+
+  useEffect(() => {
+    if (!groupMenuOpen) return;
+    const onPointerDown = (event) => {
+      if (!groupMenuRef.current?.contains(event.target)) setGroupMenuOpen(false);
+    };
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") setGroupMenuOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [groupMenuOpen]);
 
   const conversations = useQuery({
     queryKey: ["conversations"],
@@ -1297,6 +1210,10 @@ export default function ChatPage() {
     setComposerEmojiOpen(false);
     setReactionFor(null);
     setPinsOpen(false);
+    setGroupMenuOpen(false);
+    setRenameGroup(false);
+    setLeaveGroupConfirm(false);
+    setMembers(false);
     setNearBottom(true);
     atBottom.current = true;
     conversationReadTarget.current = null;
@@ -1463,6 +1380,25 @@ export default function ChatPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["messages", selectedId] });
       qc.invalidateQueries({ queryKey: ["message-pins", selectedId] });
+    },
+  });
+  const leaveGroup = useMutation({
+    mutationFn: (conversationId) =>
+      api(`/conversations/${conversationId}/members/${user.id}`, {
+        method: "DELETE",
+      }),
+    onSuccess: (_, conversationId) => {
+      setLeaveGroupConfirm(false);
+      setGroupMenuOpen(false);
+      setMembers(false);
+      if (selectedId === conversationId) {
+        selectConversation(null);
+        sessionStorage.removeItem(lastChatKey);
+      }
+      qc.setQueryData(["conversations"], (items = []) =>
+        items.filter((item) => item.id !== conversationId),
+      );
+      qc.invalidateQueries({ queryKey: ["conversations"] });
     },
   });
   const submit = () => {
@@ -1875,6 +1811,58 @@ export default function ChatPage() {
                 >
                   <Users size={18} />
                 </button>
+                {selected.type === "GROUP" && (
+                  <div className="chat-group-options" ref={groupMenuRef}>
+                    <button
+                      type="button"
+                      className="icon-btn chat-group-options-trigger"
+                      aria-label="Group options"
+                      aria-haspopup="menu"
+                      aria-expanded={groupMenuOpen}
+                      title="Group options"
+                      onClick={() => {
+                        setPinsOpen(false);
+                        setGroupMenuOpen((open) => !open);
+                      }}
+                    >
+                      <EllipsisVertical size={19} />
+                    </button>
+                    {groupMenuOpen && (
+                      <div className="chat-group-options-menu" role="menu" aria-label="Group options">
+                        <button
+                          type="button"
+                          role="menuitem"
+                          className="chat-group-options-item"
+                          onClick={() => {
+                            setGroupMenuOpen(false);
+                            setRenameGroup(true);
+                          }}
+                        >
+                          <Pencil size={16} />
+                          <span>Rename group</span>
+                        </button>
+                        <div className="chat-group-options-divider" />
+                        <button
+                          type="button"
+                          role="menuitem"
+                          className="chat-group-options-item is-danger"
+                          disabled={selected.ownerId === user.id}
+                          title={selected.ownerId === user.id ? "Group owners cannot leave until ownership is transferred." : "Leave this group"}
+                          onClick={() => {
+                            setGroupMenuOpen(false);
+                            setLeaveGroupConfirm(true);
+                          }}
+                        >
+                          <LogOut size={16} />
+                          <span>Leave group</span>
+                        </button>
+                        {selected.ownerId === user.id && (
+                          <p className="chat-group-options-note">Owners cannot leave their group.</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </header>
               <div
                 ref={scrollArea}
@@ -2276,6 +2264,38 @@ export default function ChatPage() {
       {members && selected && (
         <Members conversation={selected} onClose={() => setMembers(false)} />
       )}{" "}
+      {renameGroup && selected?.type === "GROUP" && (
+        <GroupRenameModal
+          key={selected.id}
+          conversation={selected}
+          onClose={() => setRenameGroup(false)}
+        />
+      )}
+      {leaveGroupConfirm && selected?.type === "GROUP" && (
+        <Modal
+          title="Leave Group"
+          onClose={() => {
+            if (!leaveGroup.isPending) setLeaveGroupConfirm(false);
+          }}
+          className="group-action-modal"
+        >
+          <div className="conversation-leave-modal">
+            <p>Are you sure you want to leave <strong>{selected.name}</strong>?</p>
+            <p className="conversation-leave-hint">You will no longer see its messages unless you are added to the group again.</p>
+            <ErrorBox error={leaveGroup.error} />
+            <div className="conversation-group-modal-actions">
+              <button
+                type="button"
+                className="btn-danger"
+                disabled={leaveGroup.isPending}
+                onClick={() => leaveGroup.mutate(selected.id)}
+              >
+                {leaveGroup.isPending ? "Leaving…" : "Leave group"}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
       {editing && (
         <Modal title="Edit message" onClose={() => setEditing(null)}>
           <textarea
