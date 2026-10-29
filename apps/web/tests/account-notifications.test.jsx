@@ -86,7 +86,7 @@ describe("My Account notification design", () => {
   });
 
 
-  it("switches, saves and restores OLED and Slate without changing the accent", async () => {
+  it("switches, saves and restores four themes without changing the accent", async () => {
     const user = userEvent.setup();
     window.localStorage.removeItem(themeStorageKey("profile-1"));
     window.localStorage.setItem(accentStorageKey("profile-1"), "cyan");
@@ -100,7 +100,7 @@ describe("My Account notification design", () => {
       const slate = screen.getByRole("radio", { name: /Deep Slate/ });
       const light = screen.getByRole("radio", { name: /Light Theme/ });
       expect(midnight.checked).toBe(true);
-      expect(light.disabled).toBe(true);
+      expect(light.disabled).toBe(false);
 
       await user.click(oled);
       expect(oled.checked).toBe(true);
@@ -110,11 +110,15 @@ describe("My Account notification design", () => {
       await user.click(slate);
       expect(slate.checked).toBe(true);
       expect(window.localStorage.getItem(themeStorageKey("profile-1"))).toBe("slate");
+      await user.click(light);
+      expect(light.checked).toBe(true);
+      expect(window.localStorage.getItem(themeStorageKey("profile-1"))).toBe("light");
+      expect(screen.getByRole("radio", { name: /Cyan Glaze/ }).checked).toBe(true);
       mounted.unmount();
 
       mountAccount();
       await user.click(screen.getByRole("button", { name: "Appearance & Theme" }));
-      expect(screen.getByRole("radio", { name: /Deep Slate/ }).checked).toBe(true);
+      expect(screen.getByRole("radio", { name: /Light Theme/ }).checked).toBe(true);
       await user.click(screen.getByRole("radio", { name: /Dark Midnight/ }));
       expect(window.localStorage.getItem(themeStorageKey("profile-1"))).toBe("midnight");
     } finally {
