@@ -272,7 +272,32 @@
 .messages-page .chat-conversation > header .absolute.z-40 .text-slate-400 { color:#9faac7; }
 .messages-page .chat-conversation > header .absolute.z-40 .text-slate-600,
 .messages-page .chat-conversation > header .absolute.z-40 .text-slate-700 { color:#dde0f5; }
-.messages-page .chat-conversation > header .absolute.z-40 button:hover { background:#30364d; }
+/* Search-category interaction is shared by all four workspace themes.
+   Surface/accent values come from the active palette, not hardcoded tab colors. */
+.app-theme-dark .messages-page .chat-search-tabs {
+  gap: 6px;
+}
+.app-theme-dark .messages-page .chat-search-tab {
+  background: transparent;
+  color: var(--app-muted);
+}
+.app-theme-dark .messages-page .chat-search-tab[aria-pressed="true"],
+.app-theme-dark .messages-page .chat-search-tab[aria-pressed="true"]:hover {
+  background: var(--app-ui-selection-start, var(--palette-selection, var(--app-accent-soft)));
+  color: var(--app-focus-ring);
+}
+.app-theme-dark .messages-page .chat-search-tab[aria-pressed="false"]:hover {
+  background: var(--chat-search-hover-bg, var(--app-surface-hover));
+  color: var(--app-text-strong);
+}
+.app-theme-dark .messages-page .chat-search-tab:focus-visible {
+  outline: 2px solid var(--app-focus-ring);
+  outline-offset: -2px;
+}
+/* Other buttons inside the popup retain their existing hover treatment. */
+.messages-page .chat-conversation > header .absolute.z-40 button:not(.chat-search-tab):hover {
+  background: #30364d;
+}
 .messages-page .chat-messages-scroll {
   min-height: 0;
   padding: 18px 17px 22px;
