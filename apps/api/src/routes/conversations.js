@@ -13,6 +13,10 @@ const createSchema = z.object({
   memberIds: z.array(z.uuid()).default([]),
 });
 
+const renameGroupSchema = z.object({
+  name: z.string().trim().min(2).max(200),
+});
+
 const messageSchema = z
   .object({
     content: z.string().trim().max(20000),
@@ -462,6 +466,35 @@ export default async function conversationRoutes(app) {
       .emit("conversation:updated", { id: conversation.id });
     reply.status(201);
     return { success: true, data: conversation };
+  });
+
+  // A group member can change a GROUP name; direct messages and system channels stay untouched.
+  app.patch("/conversations/:id", async (request) => {
+    await requireMembership(app, request.params.id, request.authUser.id);
+    const input = parse(renameGroupSchema, request.body);
+    const conversation = await app.prisma.conversation.findUnique({
+      where: { id: request.params.id },
+      select: { id: true, type: true, name: true },
+    });
+    if (!conversation || conversation.type !== "GROUP")
+      throw new HttpError(
+        400,
+        "GROUP_RENAME_NOT_ALLOWED",
+        "Only group conversations can be renamed",
+      );
+
+    if (conversation.name === input.name)
+      return { success: true, data: conversation };
+
+    const updated = await app.prisma.conversation.update({
+      where: { id: conversation.id },
+      data: { name: input.name },
+      select: { id: true, type: true, name: true },
+    });
+    app.io
+      ?.to(`conversation:${conversation.id}`)
+      .emit("conversation:updated", { id: conversation.id });
+    return { success: true, data: updated };
   });
 
   app.get("/conversations/:id/messages", async (request) => {
