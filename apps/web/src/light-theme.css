@@ -1741,3 +1741,148 @@ body:has(.app-theme-dark[data-appearance="light"]) {
   outline: 2px solid var(--app-focus-ring);
   outline-offset: 3px;
 }
+
+
+/* Phase 5A — My Account. Rebind its page-local design tokens rather than
+ * replacing the typography, settings logic or theme thumbnail previews. */
+.app-theme-dark[data-appearance="light"] .account-page {
+  --account-page: var(--app-bg);
+  --account-hero: var(--app-surface-raised);
+  --account-panel: var(--app-surface);
+  --account-deep: var(--app-surface-input);
+  --account-button: var(--app-surface-raised);
+  --account-text: var(--app-text-strong);
+  --account-muted: var(--app-muted);
+  --account-border: var(--app-border-strong);
+  --account-shadow: rgba(24, 35, 53, .055);
+  --account-accent: var(--app-focus-ring);
+  background: radial-gradient(ellipse at 45% 100%, #eef2fc, var(--app-bg) 65%);
+  color: var(--account-text);
+}
+.app-theme-dark[data-appearance="light"] .account-hero {
+  background: var(--palette-panel-gradient);
+  border-color: var(--app-border);
+  box-shadow: 0 8px 28px var(--account-shadow);
+}
+.app-theme-dark[data-appearance="light"] :is(.account-settings-card, .account-push-status, .account-profile-dropzone, .account-profile-info-card) {
+  background: var(--account-panel);
+  border-color: var(--account-border);
+  color: var(--account-text);
+}
+.app-theme-dark[data-appearance="light"] :is(.account-settings-card, .account-hero, .account-sounds-toggle, .account-sound-preview, .account-push-status) {
+  color: var(--account-text);
+}
+.app-theme-dark[data-appearance="light"] :is(.account-identity-title h1, .account-card-heading h2, .account-profile-info-header h2, .account-password-policy h2) {
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] :is(.account-email, .account-workspace-name, .account-card-heading p, .account-settings-description, .account-profile-field-hint, .account-appearance-hint, .account-appearance-theme-state) {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .account-role-badge {
+  color: #086a82;
+  background: #e0f5f9;
+}
+.app-theme-dark[data-appearance="light"] .account-workspace-name span {
+  color: var(--app-focus-ring);
+}
+.app-theme-dark[data-appearance="light"] .account-tab {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .account-tab:hover:not(.is-active) {
+  background: var(--app-surface-hover);
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] .account-tab.is-active,
+.app-theme-dark[data-appearance="light"] .account-tab.is-active:hover {
+  background: linear-gradient(112deg, var(--app-ui-accent-start), var(--app-ui-accent-end));
+  color: var(--app-ui-accent-label);
+}
+.app-theme-dark[data-appearance="light"] .account-card-icon--violet {
+  color: #71429f;
+  background: #f3eafb;
+}
+.app-theme-dark[data-appearance="light"] .account-card-icon--cyan {
+  color: #086a82;
+  background: #e0f5f9;
+}
+.app-theme-dark[data-appearance="light"] :is(.account-sounds-toggle, .account-sound-preview.btn-secondary, .account-push-action.btn-secondary, .account-appearance-theme, .account-appearance-accent-option) {
+  background: var(--app-surface-raised);
+  border-color: var(--app-border-strong);
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] :is(.account-sound-preview.btn-secondary:hover:not(:disabled), .account-push-action.btn-secondary:hover:not(:disabled), .account-appearance-theme:not(.is-unavailable):hover, .account-appearance-accent-option:hover) {
+  background: var(--app-surface-hover);
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] :is(.account-appearance-theme.is-active, .account-appearance-accent-option.is-selected) {
+  border-color: var(--app-focus-ring);
+  background: var(--app-accent-soft);
+}
+.app-theme-dark[data-appearance="light"] :is(.account-appearance-theme.is-active .account-appearance-theme-state, .account-appearance-selected) {
+  color: var(--app-focus-ring);
+}
+/* Thumbnail previews intentionally depict their specific named appearance;
+ * they must not be recolored by the theme currently in use. */
+.app-theme-dark[data-appearance="light"] .account-profile-portrait {
+  background: linear-gradient(140deg, #6575c4, #38488b);
+}
+.app-theme-dark[data-appearance="light"] :is(.account-profile-input-wrap .account-profile-readonly.input, .account-security-card .account-password-field .account-password-input.input, .account-password-form .field input) {
+  background: var(--app-surface-input);
+  border-color: var(--app-border-strong);
+  color: var(--app-text);
+  color-scheme: light;
+}
+.app-theme-dark[data-appearance="light"] .account-profile-input-wrap .account-profile-readonly.input:is(:hover, :active, :focus, :focus-visible) {
+  background: var(--app-surface-input);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark[data-appearance="light"] .account-security-card .account-password-field .account-password-input.input:focus {
+  border-color: var(--app-focus-ring);
+}
+.app-theme-dark[data-appearance="light"] :is(.account-password-field .account-password-eye, .account-profile-input-icon) {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .account-password-field .account-password-eye:hover:not(:disabled) {
+  background: var(--app-surface-hover);
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] :is(.account-security-card .account-validation-error, .account-push-error) {
+  color: #a52a43;
+}
+.app-theme-dark[data-appearance="light"] .account-push-error {
+  background: #fff0f2;
+}
+.app-theme-dark[data-appearance="light"] .account-push-warning {
+  color: #8b5217;
+  background: #fff1db;
+}
+.app-theme-dark[data-appearance="light"] .account-push-result {
+  color: #13765c;
+  background: #dcf6eb;
+}
+.app-theme-dark[data-appearance="light"] :is(.account-push-status-row .account-push-ok, .account-password-rules > li.is-met, .account-password-rules > li.is-met svg) {
+  color: #13765c;
+}
+.app-theme-dark[data-appearance="light"] .account-push-status-row .account-push-neutral {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .account-hero-signout.btn-secondary,
+.app-theme-dark[data-appearance="light"] .account-push-disable.btn-secondary {
+  color: #a52a43;
+  border-color: #f4c4cd;
+  background: #fff0f2;
+}
+.app-theme-dark[data-appearance="light"] .account-hero-signout.btn-secondary:hover:not(:disabled),
+.app-theme-dark[data-appearance="light"] .account-push-disable.btn-secondary:hover:not(:disabled) {
+  color: #91233b;
+  background: #ffe2e8;
+}
+.app-theme-dark[data-appearance="light"] :is(.account-security-card .account-save-password.btn-primary, .account-profile-upload.btn-primary) {
+  color: var(--app-ui-accent-label);
+  background: linear-gradient(115deg, var(--app-ui-accent-start), var(--app-ui-accent-end));
+}
+.app-theme-dark[data-appearance="light"] :is(.account-security-card .account-save-password.btn-primary:hover:not(:disabled), .account-profile-upload.btn-primary:hover:not(:disabled)) {
+  color: var(--app-ui-accent-label);
+  background: linear-gradient(115deg, var(--app-ui-accent-start), var(--app-ui-accent-end));
+  filter: brightness(1.045);
+}
