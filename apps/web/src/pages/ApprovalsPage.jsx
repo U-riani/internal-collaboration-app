@@ -1836,25 +1836,12 @@ export default function ApprovalsPage() {
               </button>
 
               {filtersOpen && (
-                <div className="approval-filter-panel task-filter-panel fixed left-1/2 top-2 z-50 w-[760px] max-w-[calc(100vw-32px)] -translate-x-1/2 overflow-y-auto rounded-2xl border border-slate-200 bg-white px-5 shadow-xl max-h-[calc(100dvh-1rem)]">
-                  <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-slate-200 bg-white pb-3 pt-5">
-                    <div>
-                      <h3 className="text-sm font-bold text-slate-800">
-                        Filter approvals
-                      </h3>
-                      <p className="mt-1 text-xs text-slate-400">
-                        These filters refine the selected quick filter.
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      className="btn-secondary btn-sm"
-                      onClick={() => setFiltersOpen(false)}
-                    >
-                      <X size={16} aria-hidden="true" />
-                      <span className="sr-only">Close filters</span>
-                    </button>
-                  </div>
+                <Modal
+                  className="task-filter-panel approval-filter-panel"
+                  title="Filter approvals"
+                  subtitle="These filters refine the selected quick filter."
+                  onClose={() => setFiltersOpen(false)}
+                >
 
                   <div className="task-filter-utilities">
                     <span className="task-filter-count">
@@ -1959,7 +1946,7 @@ export default function ApprovalsPage() {
                       Done
                     </button>
                   </div>
-                </div>
+                </Modal>
               )}
             </div>
 
