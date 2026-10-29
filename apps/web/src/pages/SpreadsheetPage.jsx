@@ -627,9 +627,11 @@ function SheetEditor({ id, mobile = false }) {
         hostRef.current.appendChild(container);
 
         const runtime = createUniver({
-          // Univer renders its own toolbar/canvas; use its supported dark mode
-          // for OLED/Slate without changing spreadsheet data or permissions.
-          darkMode: !mobile && getThemePreference(user.id) !== "midnight",
+          // Univer owns its toolbar and canvas. Use dark rendering only for
+          // OLED / Slate; Midnight and Light retain Univer's native light UI.
+          // This is read on editor mount, avoiding an unsafe workbook remount
+          // while the user has unsaved local changes.
+          darkMode: !mobile && ["oled", "slate"].includes(getThemePreference(user.id)),
           locale: LocaleType.EN_US,
           locales: {
             [LocaleType.EN_US]: mergeLocales(
