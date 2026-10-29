@@ -54,14 +54,31 @@ describe("appearance preferences", () => {
     expect(getThemePreference("user-1")).toBe("slate");
   });
 
-  it("rejects unsupported Light and System Sync until rollout is complete", () => {
+  it("persists Light for the selected account while rejecting System Sync", () => {
     expect(saveThemePreference("user-1", "oled")).toBe(true);
+    expect(saveThemePreference("user-1", "light")).toBe(true);
+    expect(window.localStorage.getItem(themeStorageKey("user-1"))).toBe("light");
+    expect(getThemePreference("user-1")).toBe("light");
+    expect(getThemePreference("user-2")).toBe("midnight");
     expect(saveThemePreference("user-1", "system")).toBe(false);
-    expect(saveThemePreference("user-1", "light")).toBe(false);
     expect(saveThemePreference("user-1", "invalid")).toBe(false);
-    expect(getThemePreference("user-1")).toBe("oled");
+    expect(getThemePreference("user-1")).toBe("light");
     window.localStorage.setItem(themeStorageKey("user-2"), "invalid");
     expect(getThemePreference("user-2")).toBe("midnight");
+  });
+
+  it("broadcasts Light selection and can switch back to Midnight", () => {
+    const listener = vi.fn();
+    window.addEventListener(THEME_EVENT, listener);
+    try {
+      expect(saveThemePreference("user-1", "light")).toBe(true);
+      expect(listener.mock.calls[0][0].detail).toEqual({ userId: "user-1", theme: "light" });
+      expect(saveThemePreference("user-1", "midnight")).toBe(true);
+      expect(getThemePreference("user-1")).toBe("midnight");
+      expect(listener).toHaveBeenCalledTimes(2);
+    } finally {
+      window.removeEventListener(THEME_EVENT, listener);
+    }
   });
 
   it("broadcasts theme changes independently of the accent event", () => {
