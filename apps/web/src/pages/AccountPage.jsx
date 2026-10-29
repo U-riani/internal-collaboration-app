@@ -625,13 +625,12 @@ function AccountAppearance({ userId }) {
           </div>
         </div>
         <div className="account-appearance-themes" role="radiogroup" aria-label="Workspace theme">
-          {[...THEME_OPTIONS, { id: "light", label: "Light Theme" }].map(({ id, label }) => {
-            const available = id !== "light";
+          {THEME_OPTIONS.map(({ id, label }) => {
             const selected = theme === id;
             return (
               <label
                 key={id}
-                className={`account-appearance-theme ${selected ? "is-active" : ""} ${!available ? "is-unavailable" : ""}`}
+                className={`account-appearance-theme ${selected ? "is-active" : ""}`}
               >
                 <input
                   type="radio"
@@ -639,21 +638,19 @@ function AccountAppearance({ userId }) {
                   name="account-workspace-theme"
                   value={id}
                   checked={selected}
-                  disabled={!available}
                   onChange={() => selectTheme(id)}
                 />
                 <div className={`account-appearance-theme-preview preview-${id}`} aria-hidden="true">
                   <span /><span /><span />
                 </div>
                 <strong>{label}</strong>
-                <span className="account-appearance-theme-state">{selected ? "Active" : available ? "Select theme" : "Coming soon"}</span>
+                <span className="account-appearance-theme-state">{selected ? "Active" : "Select theme"}</span>
               </label>
             );
           })}
         </div>
         <p className="account-appearance-hint">
-          Switch between Dark Midnight, OLED Pure Black, and Deep Slate. Your selection is saved for this account in this browser.
-          Light Theme will become available after its components have been checked throughout the workspace.
+          Choose between Dark Midnight, OLED Pure Black, Deep Slate, and Light Theme. Your selection is saved for this account in this browser.
         </p>
       </section>
 
