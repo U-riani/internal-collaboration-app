@@ -23,9 +23,9 @@ function contrast(foreground, background) {
 }
 
 describe("Light Theme phase 4 — Drive, Notifications and People", () => {
-  it("remains unselectable until the remaining modules are integrated", () => {
-    expect(preferences).not.toContain('{ id: "light"');
-    expect(account).toContain('const available = id !== "light"');
+  it("supports the selectable Light palette without changing old dark palettes", () => {
+    expect(preferences).toContain('{ id: "light", label: "Light Theme" }');
+    expect(account).toContain("THEME_OPTIONS.map(({ id, label }) => {");
     expect(dark).toContain("--app-bg: #0a0f1d;");
     expect(palettes).toContain('.app-theme-dark[data-appearance="oled"]');
     expect(palettes).toContain('.app-theme-dark[data-appearance="slate"]');
