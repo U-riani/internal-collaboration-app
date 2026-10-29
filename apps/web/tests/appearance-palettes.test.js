@@ -6,6 +6,7 @@ const theme = readFileSync(new URL("../src/theme.css", import.meta.url), "utf8")
 const layout = readFileSync(new URL("../src/components/Layout.jsx", import.meta.url), "utf8");
 const account = readFileSync(new URL("../src/pages/AccountPage.jsx", import.meta.url), "utf8");
 const spreadsheet = readFileSync(new URL("../src/pages/SpreadsheetPage.jsx", import.meta.url), "utf8");
+const appearance = readFileSync(new URL("../src/lib/appearance.js", import.meta.url), "utf8");
 const tasksCss = readFileSync(new URL("../src/pages/tasks-page.css", import.meta.url), "utf8");
 const driveCss = readFileSync(new URL("../src/pages/drive-personal.css", import.meta.url), "utf8");
 const messagesCss = readFileSync(new URL("../src/pages/messages-theme.css", import.meta.url), "utf8");
@@ -93,7 +94,7 @@ describe("Dark workspace appearance palettes", () => {
   });
 
   it("uses Univer native dark mode on desktop but keeps mobile WebView unchanged", () => {
-    expect(spreadsheet).toContain('darkMode: !mobile && getThemePreference(user.id) !== "midnight"');
+    expect(spreadsheet).toContain('darkMode: !mobile && ["oled", "slate"].includes(getThemePreference(user.id))');
     expect(spreadsheet).toContain('workspace-spreadsheet flex');
     expect(palette).toContain(".workspace-spreadsheet");
     expect(spreadsheet).toContain('mobile');
@@ -163,9 +164,10 @@ describe("Dark workspace appearance palettes", () => {
     expect(accountCss).toContain('font-size: var(--app-text-section, 16px);');
   });
 
-  it("offers three working dark radios and keeps Light Theme disabled until ready", () => {
-    expect(account).toContain('...THEME_OPTIONS, { id: "light", label: "Light Theme" }');
-    expect(account).toContain('disabled={!available}');
+  it("offers all four selectable themes in the account", () => {
+    expect(account).toContain("THEME_OPTIONS.map(({ id, label }) => {");
+    expect(appearance).toContain('{ id: "light", label: "Light Theme" }');
+    expect(account).not.toContain('disabled={!available}');
     expect(account).toContain('saveThemePreference(userId, nextTheme)');
   });
 });
