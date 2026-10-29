@@ -7,7 +7,6 @@ import {
   ListFilter,
   Search,
   Layers3,
-  X,
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import PageHeader from "../components/PageHeader.jsx";
