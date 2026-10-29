@@ -29,6 +29,12 @@
   letter-spacing: -.04em;
   line-height: 1.16;
 }
+/* Drive header shares the page canvas in every appearance. The scoped
+   selector takes precedence over the global PageHeader theme background. */
+.app-theme-dark .drive-page > .page-header:first-child {
+  background: transparent;
+  box-shadow: none;
+}
 .drive-page .page-header p:empty { display: none; }
 .drive-page .page-header-action { flex: 0 1 auto; overflow: visible; min-width: 0; }
 .drive-page .drive-header-actions {
@@ -321,11 +327,11 @@
   align-items: center;
   margin: 0 !important;
   padding: 8px 13px;
-  border: 1px solid rgba(185,195,240,.07);
+  border: 1px solid var(--app-border, rgba(195, 204, 246, .10));
   border-top: 0;
   border-radius: 0 0 13px 13px;
-  color: #99a7c4;
-  background: #101624;
+  color: var(--app-muted, #969cb5);
+  background: var(--app-surface-raised, #1b2234);
   font-size: 10px;
 }
 .drive-page .drive-directory-summary::before {
