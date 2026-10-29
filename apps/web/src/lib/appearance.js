@@ -11,6 +11,7 @@ export const THEME_OPTIONS = Object.freeze([
   { id: "midnight", label: "Dark Midnight" },
   { id: "oled", label: "OLED Pure Black" },
   { id: "slate", label: "Deep Slate" },
+  { id: "light", label: "Light Theme" },
 ]);
 export const THEME_EVENT = "collab:theme-preference-changed";
 const themeIds = new Set(THEME_OPTIONS.map(({ id }) => id));
