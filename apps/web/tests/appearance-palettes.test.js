@@ -28,7 +28,7 @@ describe("Dark workspace appearance palettes", () => {
   it("applies theme without replacing Layout or adding a new global Provider", () => {
     expect(layout).toContain('data-appearance={appearance}');
     expect(layout).toContain('data-accent={accent}');
-    expect(layout).toContain('data-theme="dark"');
+    expect(layout).toContain('data-theme={appearance === "light" ? "light" : "dark"}');
     expect(layout).toContain('window.addEventListener(THEME_EVENT, onThemeChange)');
     expect(layout).not.toContain('AppearanceProvider');
   });
