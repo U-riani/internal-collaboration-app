@@ -153,7 +153,7 @@ function SheetCreate() {
   }
 
   return (
-    <div className="mx-auto max-w-xl py-8">
+    <div className="workspace-spreadsheet-create mx-auto max-w-xl py-8">
       <div className="mb-5 flex items-center gap-3">
         <Link to="/drive" className="icon-btn" title="Back to Drive">
           <ArrowLeft size={18} />
@@ -939,7 +939,7 @@ function SheetEditor({ id, mobile = false }) {
 
       {resizeOpen && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/40 p-4"
+          className="spreadsheet-resize-backdrop fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/40 p-4"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) setResizeOpen(false);
           }}
