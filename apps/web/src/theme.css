@@ -247,6 +247,15 @@ body:has(.app-theme-dark) { background: #0a0f1d; }
 }
 .app-theme-dark .page-header h1 { color: var(--app-text-strong); }
 .app-theme-dark .page-header p { color: var(--app-muted); }
+
+/* Full-width workspace headers in Messages and Drive share the page canvas.
+   This intentionally outranks generic and Light PageHeader backgrounds without
+   changing the reusable PageHeader component or any other module. */
+.app-theme-dark :is(.messages-page, .drive-page) > .page-header:first-child {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
 /* Shared typography: controls inherit one font, while each module still owns
    its intentional layout, sizing and responsive wrapping. */
 .app-theme-dark :is(button, input, select, textarea) {
