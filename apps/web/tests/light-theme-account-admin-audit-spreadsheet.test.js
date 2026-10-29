@@ -48,7 +48,10 @@ describe("Light Theme — phase 5: account, administration, audit and spreadshee
     ]) {
       expect(light).toContain(selector);
     }
-    for (const preview of ["preview-midnight", "preview-oled", "preview-slate", "preview-light"]) {
+    // Midnight uses the default preview styling; the other palettes
+    // explicitly override that preview to depict their own appearance.
+    expect(accountCss).toContain(".account-appearance-theme-preview {");
+    for (const preview of ["preview-oled", "preview-slate", "preview-light"]) {
       expect(accountCss).toContain(preview);
     }
     expect(light).not.toContain(".account-appearance-theme-preview.preview-midnight");
