@@ -1981,3 +1981,84 @@ body:has(.app-theme-dark[data-appearance="light"]) {
   border: 1px solid var(--app-border);
   scrollbar-color: #b6c1d2 transparent;
 }
+
+
+/* Phase 5C — Spreadsheet desktop wrapper. Univer controls its own
+ * toolbar, cells and canvas via createUniver({ darkMode: false }); these
+ * selectors are intentionally limited to our React-owned chrome. */
+.app-theme-dark[data-appearance="light"] :is(.workspace-spreadsheet-create, .workspace-spreadsheet) {
+  color: var(--app-text);
+  color-scheme: light;
+}
+.app-theme-dark[data-appearance="light"] .workspace-spreadsheet-create .card,
+.app-theme-dark[data-appearance="light"] .workspace-spreadsheet {
+  background: var(--app-surface);
+  color: var(--app-text);
+  border-color: var(--app-border-strong);
+  box-shadow: 0 5px 22px rgba(24, 35, 53, .045);
+}
+.app-theme-dark[data-appearance="light"] :is(.workspace-spreadsheet-create, .workspace-spreadsheet) :is(.border-slate-200, .border-slate-100) {
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] :is(.workspace-spreadsheet-create, .workspace-spreadsheet) :is(.text-slate-900, .text-slate-700, .text-slate-600) {
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] :is(.workspace-spreadsheet-create, .workspace-spreadsheet) :is(.text-slate-400, .text-slate-500) {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .workspace-spreadsheet :is(.bg-white, .bg-slate-50),
+.app-theme-dark[data-appearance="light"] .workspace-spreadsheet-create .bg-slate-50 {
+  background: var(--app-surface-raised);
+}
+.app-theme-dark[data-appearance="light"] .workspace-spreadsheet .bg-emerald-100 {
+  color: #13765c;
+  background: #dcf6eb;
+}
+.app-theme-dark[data-appearance="light"] .workspace-spreadsheet .text-emerald-700 {
+  color: #13765c;
+}
+.app-theme-dark[data-appearance="light"] :is(.workspace-spreadsheet-create, .workspace-spreadsheet) :is(.btn-secondary, .icon-btn) {
+  color: var(--app-text);
+  background: var(--app-surface-raised);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark[data-appearance="light"] :is(.workspace-spreadsheet-create, .workspace-spreadsheet) :is(.btn-secondary, .icon-btn):hover:not(:disabled) {
+  color: var(--app-text-strong);
+  background: var(--app-surface-hover);
+}
+.app-theme-dark[data-appearance="light"] .workspace-spreadsheet :is(.text-red-700, .border-red-300),
+.app-theme-dark[data-appearance="light"] .workspace-spreadsheet-create .text-red-700 {
+  color: #a52a43;
+}
+.app-theme-dark[data-appearance="light"] :is(.workspace-spreadsheet-create, .workspace-spreadsheet) .bg-red-50 {
+  background: #fff0f2;
+}
+.app-theme-dark[data-appearance="light"] .spreadsheet-resize-backdrop {
+  background: rgba(24, 35, 53, .38);
+}
+.app-theme-dark[data-appearance="light"] .spreadsheet-resize-backdrop form {
+  color: var(--app-text);
+  background: var(--app-surface);
+  border-color: var(--app-border-strong);
+  box-shadow: 0 24px 70px rgba(24, 35, 53, .18);
+}
+.app-theme-dark[data-appearance="light"] .spreadsheet-resize-backdrop form :is(.text-slate-900, .text-slate-700) {
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] .spreadsheet-resize-backdrop form :is(.text-slate-400, .text-slate-500) {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .spreadsheet-resize-backdrop form .input {
+  color: var(--app-text);
+  background: var(--app-surface-input);
+  border-color: var(--app-border-strong);
+  color-scheme: light;
+}
+.app-theme-dark[data-appearance="light"] .spreadsheet-resize-backdrop form .input:focus-visible {
+  border-color: var(--app-focus-ring);
+}
+.app-theme-dark[data-appearance="light"] .spreadsheet-resize-backdrop form .btn-secondary:hover:not(:disabled) {
+  color: var(--app-text-strong);
+  background: var(--app-surface-hover);
+}
+/* Univer's own UI must not be re-themed with broad .bg-white/.input rules. */
