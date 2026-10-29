@@ -13,6 +13,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import PageHeader from "../components/PageHeader.jsx";
 import FilterMultiSelect from "../components/FilterMultiSelect.jsx";
 import {
+  Modal,
   Badge,
   Empty,
   ErrorBox,
@@ -533,25 +534,12 @@ export default function ApprovalBasesPage() {
                     </button>
 
                     {filtersOpen && (
-                      <div className="approval-filter-panel task-filter-panel approval-bases-filter-panel fixed left-1/2 top-2 z-50 w-[720px] max-w-[calc(100vw-32px)] -translate-x-1/2 overflow-y-auto rounded-2xl border border-slate-200 bg-white px-5 shadow-xl max-h-[calc(100dvh-1rem)]">
-                        <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-slate-200 bg-white pb-3 pt-5">
-                          <div>
-                            <h3 className="text-sm font-bold text-slate-800">
-                              Filter approval base
-                            </h3>
-                            <p className="mt-1 text-xs text-slate-400">
-                              Refine records in this request type.
-                            </p>
-                          </div>
-                          <button
-                            type="button"
-                            className="btn-secondary btn-sm"
-                            onClick={() => setFiltersOpen(false)}
-                          >
-                            <X size={16} aria-hidden="true" />
-                            <span className="sr-only">Close filters</span>
-                          </button>
-                        </div>
+                      <Modal
+                        className="task-filter-panel approval-filter-panel approval-bases-filter-panel"
+                        title="Filter approval base"
+                        subtitle="Refine records in this request type."
+                        onClose={() => setFiltersOpen(false)}
+                      >
 
                         <div className="task-filter-utilities">
                           <span className="task-filter-count">
@@ -668,7 +656,7 @@ export default function ApprovalBasesPage() {
                             Done
                           </button>
                         </div>
-                      </div>
+                      </Modal>
                     )}
                   </div>
 
