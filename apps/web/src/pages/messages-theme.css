@@ -888,11 +888,11 @@
 .app-theme-dark .modal:has(.conversation-members-modal) {
   border: 1px solid rgba(145, 156, 221, .14);
   color: var(--app-text);
-  background: #101525;
+  background: var(--app-surface);
 }
 .app-theme-dark .modal:has(.conversation-members-modal) .modal-head {
   border-bottom: 1px solid var(--app-border);
-  background: linear-gradient(110deg, #191e34, #111625 75%);
+  background: var(--app-surface-raised);
 }
 .app-theme-dark .modal:has(.conversation-members-modal) .modal-head h2 {
   color: var(--app-text-strong);
@@ -910,7 +910,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  color: #c9cddd;
+  color: var(--app-muted);
   font-size: 12px;
   font-weight: 700;
 }
@@ -920,10 +920,10 @@
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  border: 1px solid #252b40;
+  border: 1px solid var(--app-border);
   border-radius: 12px;
-  background: #151a2a;
-  scrollbar-color: #404561 transparent;
+  background: var(--app-surface-raised);
+  scrollbar-color: var(--app-border-strong) transparent;
   scrollbar-width: thin;
 }
 .conversation-members-current-row {
@@ -932,8 +932,8 @@
   min-width: 0;
   gap: 10px;
   padding: 9px 12px;
-  border-bottom: 1px solid rgba(163,175,219,.065);
-  color: #eef0ff;
+  border-bottom: 1px solid var(--app-border);
+  color: var(--app-text-strong);
   font-size: 12px;
 }
 .conversation-members-current-row:last-child { border-bottom: 0; }
@@ -941,8 +941,8 @@
   width: 31px;
   height: 31px;
   border-radius: 9px;
-  background: #343d7b;
-  color: #c5c4ff;
+  background: var(--app-accent-soft);
+  color: var(--app-focus-ring);
   font-size: 10px;
 }
 .conversation-members-current-name {
@@ -954,7 +954,7 @@
   white-space: nowrap;
 }
 .conversation-members-current-role {
-  color: #929bb8;
+  color: var(--app-muted);
   font-size: 10px;
   text-transform: capitalize;
 }
@@ -1005,4 +1005,134 @@
   .conversation-members-modal .new-conversation-people-list { max-height: 190px; }
   .conversation-members-current-row { padding: 8px 10px; gap: 8px; }
   .conversation-members-add-footer { margin-top: 10px; }
+}
+
+/* Group actions: the header menu and confirmation forms follow the active
+   workspace surface/accent tokens (Midnight, OLED, Slate, Light). */
+.messages-page .chat-group-options {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: none;
+}
+.app-theme-dark .messages-page .chat-group-options-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 90;
+  width: 222px;
+  max-width: min(82vw, 260px);
+  padding: 6px;
+  border: 1px solid var(--app-border-strong);
+  border-radius: 12px;
+  background: var(--app-surface-raised);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, .22);
+  color: var(--app-text);
+}
+.app-theme-dark .messages-page .chat-group-options-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 39px;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--app-text);
+  font-size: var(--app-text-base, 12px);
+  font-weight: 650;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color .13s ease, color .13s ease;
+}
+.app-theme-dark .messages-page .chat-group-options-item svg { flex-shrink: 0; }
+.app-theme-dark .messages-page .chat-group-options-item:hover:not(:disabled),
+.app-theme-dark .messages-page .chat-group-options-item:focus-visible {
+  outline: none;
+  background: var(--app-interactive-hover);
+  color: var(--app-interactive-hover-text);
+}
+.app-theme-dark .messages-page .chat-group-options-item:focus-visible {
+  box-shadow: inset 0 0 0 1px var(--app-interactive-focus);
+}
+.app-theme-dark .messages-page .chat-group-options-item.is-danger { color: var(--app-danger); }
+.app-theme-dark .messages-page .chat-group-options-item.is-danger:hover:not(:disabled) {
+  background: var(--app-interactive-hover);
+  color: var(--app-danger);
+}
+.app-theme-dark .messages-page .chat-group-options-item:disabled {
+  opacity: .48;
+  cursor: not-allowed;
+}
+.app-theme-dark .messages-page .chat-group-options-divider {
+  height: 1px;
+  margin: 4px 5px;
+  background: var(--app-border);
+}
+.app-theme-dark .messages-page .chat-group-options-note {
+  margin: 4px 7px 6px;
+  color: var(--app-muted);
+  font-size: 10px;
+  line-height: 1.4;
+}
+.app-theme-dark .messages-page .chat-group-options-trigger[aria-expanded="true"] {
+  background: var(--app-accent-soft);
+  color: var(--app-focus-ring);
+}
+.app-theme-dark .modal.group-action-modal {
+  width: min(420px, calc(100vw - 24px));
+  background: var(--app-surface);
+  color: var(--app-text);
+  border: 1px solid var(--app-border-strong);
+}
+.app-theme-dark .modal.group-action-modal .modal-head {
+  background: var(--app-surface-raised);
+  border-bottom: 1px solid var(--app-border);
+}
+.app-theme-dark .modal.group-action-modal .modal-head h2 { color: var(--app-text-strong); }
+.conversation-rename-modal,
+.conversation-leave-modal { display: flex; flex-direction: column; gap: 12px; }
+.app-theme-dark .conversation-group-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--app-text);
+  font-size: 12px;
+  font-weight: 650;
+}
+.app-theme-dark .conversation-group-field .input {
+  width: 100%;
+  min-height: 41px;
+  border: 1px solid var(--app-border-strong);
+  background: var(--app-surface-input);
+  color: var(--app-text-strong);
+  border-radius: 10px;
+  padding: 9px 12px;
+  outline: none;
+  box-shadow: none;
+}
+.app-theme-dark .conversation-group-field .input:focus {
+  border-color: var(--app-interactive-focus);
+  box-shadow: 0 0 0 2px var(--app-accent-soft);
+}
+.app-theme-dark .conversation-group-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 4px;
+}
+.app-theme-dark .conversation-group-modal-actions .btn-primary {
+  background: var(--app-interactive-selected);
+  color: var(--app-interactive-selected-text);
+  border-radius: 9px;
+}
+.app-theme-dark .conversation-group-modal-actions .btn-primary:hover:not(:disabled) {
+  background: var(--app-interactive-selected-hover);
+}
+.app-theme-dark .conversation-leave-modal p { color: var(--app-text); font-size: 13px; }
+.app-theme-dark .conversation-leave-modal strong { color: var(--app-text-strong); }
+.app-theme-dark .conversation-leave-modal .conversation-leave-hint { color: var(--app-muted); font-size: 12px; }
+.app-theme-dark .conversation-group-modal-actions .btn-danger { border-radius: 9px; }
+@media (prefers-reduced-motion: reduce) {
+  .messages-page .chat-group-options-item { transition: none; }
 }
