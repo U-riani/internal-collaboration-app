@@ -48,6 +48,7 @@ import {
 import { api, uploadFiles } from "../lib/api.js";
 import { SelectedFiles, useSelectedFiles } from "../components/SelectedFiles.jsx";
 import MessageAttachments from "../components/MessageAttachments.jsx";
+import { isImageOnlyMessage } from "../lib/image-preview.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useSocket } from "../hooks/useSocket.js";
 import PageHeader from "../components/PageHeader.jsx";
@@ -2144,6 +2145,7 @@ export default function ChatPage() {
                     )}
                     {allMessages.map((m, index) => {
                       const own = m.senderId === user.id;
+                      const imageOnly = isImageOnlyMessage(m);
                       const showDateDivider = index === 0 ||
                         chatDateKey(allMessages[index - 1].createdAt) !== chatDateKey(m.createdAt);
                       const reactionGroups = groupedReactions(
@@ -2198,7 +2200,7 @@ export default function ChatPage() {
                                 {m.pin ? " · 📌 Pinned" : ""}
                               </div>
                               <div
-                                className={`chat-message-bubble px-2.5 py-2 rounded-2xl ${own ? "bg-blue-600 text-white rounded-tr-md" : "bg-white border border-slate-200 rounded-tl-md"}`}
+                                className={`chat-message-bubble px-2.5 py-2 rounded-2xl ${own ? "bg-blue-600 text-white rounded-tr-md" : "bg-white border border-slate-200 rounded-tl-md"} ${imageOnly ? "chat-image-only-bubble" : ""}`}
                               >
                                 {m.replyToMessage && (
                                   <div className="border-l-2 pl-2 mb-3 opacity-60 text-xs truncate">
@@ -2206,17 +2208,19 @@ export default function ChatPage() {
                                     {m.replyToMessage.content || "Message"}
                                   </div>
                                 )}
-                                <p className="text-sm leading-6 whitespace-pre-wrap break-words">
-                                  {m.deletedAt ? (
-                                    <em className="opacity-60">
-                                      Message deleted
-                                    </em>
-                                  ) : (
-                                    m.content
-                                  )}
-                                </p>
+                                {!imageOnly && (
+                                  <p className="text-sm leading-6 whitespace-pre-wrap break-words">
+                                    {m.deletedAt ? (
+                                      <em className="opacity-60">
+                                        Message deleted
+                                      </em>
+                                    ) : (
+                                      m.content
+                                    )}
+                                  </p>
+                                )}
                                 {!m.deletedAt && m.attachments.length > 0 && (
-                                  <div className="mt-2">
+                                  <div className={imageOnly ? "" : "mt-2"}>
                                     <MessageAttachments items={m.attachments} />
                                   </div>
                                 )}
