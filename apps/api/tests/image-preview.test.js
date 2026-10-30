@@ -79,3 +79,60 @@ test("non-raster images and arbitrary files cannot be rendered inline", async ()
     await h.close();
   }
 });
+
+test("gallery ZIP includes only images from the requested message and enforces membership", async () => {
+  const h = await harness();
+  try {
+    const { employee, manager, admin } = h.users;
+    const first = await h.upload(employee, "one.png", "first-image-contents");
+    const second = await h.upload(employee, "two.png", "second-image-contents");
+    const unrelated = await h.upload(employee, "other.png", "not-in-this-archive");
+    for (const result of [first, second, unrelated])
+      assert.equal(result.statusCode, 201, result.body);
+    const ids = [first, second, unrelated].map((r) => r.json().data.id);
+    await h.prisma.fileObject.updateMany({ where: { id: { in: ids } }, data: { mimeType: "image/png" } });
+
+    const conversation = await h.call(employee, "POST", "/conversations", {
+      type: "GROUP", name: "ZIP membership check", memberIds: [manager.user.id],
+    });
+    assert.equal(conversation.statusCode, 201, conversation.body);
+    const conversationId = conversation.json().data.id;
+    const sent = await h.call(employee, "POST", "/conversations/" + conversationId + "/messages", {
+      content: "", attachmentIds: ids.slice(0, 2),
+    });
+    assert.equal(sent.statusCode, 201, sent.body);
+    const messageId = sent.json().data.id;
+    const archivePath = "/conversations/" + conversationId + "/messages/" + messageId + "/images/archive";
+    assert.equal((await h.call(null, "GET", archivePath)).statusCode, 401);
+    assert.equal((await h.call(admin, "GET", archivePath)).statusCode, 403);
+    const archive = await h.call(manager, "GET", archivePath);
+    assert.equal(archive.statusCode, 200, archive.body);
+    assert.match(archive.headers["content-type"], /application\/zip/);
+    assert.match(archive.headers["content-disposition"], /^attachment;/);
+    assert.equal(archive.headers["cache-control"], "private, no-store");
+    const bytes = archive.rawPayload;
+    assert.equal(bytes.readUInt32LE(0), 0x04034b50);
+    assert.ok(bytes.includes(Buffer.from("first-image-contents")));
+    assert.ok(bytes.includes(Buffer.from("second-image-contents")));
+    assert.ok(!bytes.includes(Buffer.from("not-in-this-archive")));
+    assert.ok(bytes.includes(Buffer.from("one.png")));
+    assert.ok(bytes.includes(Buffer.from("two.png")));
+
+    const otherMessage = await h.call(employee, "POST", "/conversations/" + conversationId + "/messages", {
+      content: "", attachmentIds: [ids[2]],
+    });
+    assert.equal(otherMessage.statusCode, 201, otherMessage.body);
+    const isolated = await h.call(manager, "GET", archivePath);
+    assert.equal(isolated.statusCode, 200, isolated.body);
+    assert.ok(!isolated.rawPayload.includes(Buffer.from("not-in-this-archive")));
+
+    const removed = await h.call(employee, "DELETE", "/conversations/" + conversationId + "/members/" + manager.user.id);
+    assert.equal(removed.statusCode, 200, removed.body);
+    assert.equal((await h.call(manager, "GET", archivePath)).statusCode, 403);
+    const wrongConversation = await h.call(employee, "GET",
+      "/conversations/" + ids[0] + "/messages/" + messageId + "/images/archive");
+    assert.notEqual(wrongConversation.statusCode, 200);
+  } finally {
+    await h.close();
+  }
+});
