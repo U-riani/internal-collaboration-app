@@ -1,4 +1,5 @@
 import { requireOwnUploads } from "../lib/file-access.js";
+import { createImageZipStream } from "../lib/image-zip.js";
 import { z } from "zod";
 import { parse } from "../lib/validation.js";
 import { hasPermission, hasRole } from "../lib/authz.js";
@@ -520,6 +521,51 @@ export default async function conversationRoutes(app) {
     });
     const nextCursor = data.length === query.limit ? data.at(-1)?.id : null;
     return { success: true, data: data.reverse(), meta: { nextCursor } };
+  });
+
+  // A ZIP contains only the images attached to this ONE existing message.
+  // Resolve attachments on the server; clients cannot pass arbitrary file IDs.
+  app.get("/conversations/:id/messages/:messageId/images/archive", async (request, reply) => {
+    const { id, messageId } = parse(z.object({
+      id: z.uuid(),
+      messageId: z.uuid(),
+    }), request.params);
+    await requireMembership(app, id, request.authUser.id);
+    const message = await app.prisma.message.findFirst({
+      where: {
+        id: messageId,
+        conversationId: id,
+        deletedAt: null,
+        type: { not: "SYSTEM" },
+      },
+      include: { attachments: { include: { file: true } } },
+    });
+    if (!message)
+      throw new HttpError(404, "MESSAGE_NOT_FOUND", "Message was not found");
+    const safeImageTypes = new Set([
+      "image/jpeg", "image/png", "image/gif", "image/webp", "image/avif",
+    ]);
+    const images = message.attachments
+      .map(({ file }) => file)
+      .filter((file) =>
+        !file.deletedAt &&
+        file.scanStatus !== "INFECTED" &&
+        safeImageTypes.has(file.mimeType?.split(";")[0].trim().toLowerCase()),
+      );
+    if (!images.length)
+      throw new HttpError(404, "MESSAGE_IMAGES_NOT_FOUND", "This message has no downloadable images");
+
+    const archive = createImageZipStream(images.map((file) => ({
+      originalName: file.originalName,
+      sizeBytes: file.sizeBytes,
+      open: () => app.minio.getObject(file.bucket, file.objectKey),
+    })));
+    return reply
+      .header("cache-control", "private, no-store")
+      .header("x-content-type-options", "nosniff")
+      .header("content-disposition", `attachment; filename="message-images-${messageId}.zip"`)
+      .type("application/zip")
+      .send(archive);
   });
 
   app.post("/conversations/:id/messages", async (request, reply) => {
