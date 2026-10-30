@@ -33,3 +33,11 @@ export function isImageOnlyMessage(message) {
       message.attachments.every((item) => isInlineImage(item?.file || item)),
   );
 }
+
+/** Gallery navigation stops at the first/last photo (no hidden wraparound). */
+export function stepGalleryIndex(index, direction, count) {
+  if (!Number.isInteger(count) || count <= 0) return 0;
+  if (!Number.isInteger(index)) return 0;
+  const next = index + direction;
+  return Math.max(0, Math.min(count - 1, next));
+}
