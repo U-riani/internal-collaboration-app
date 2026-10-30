@@ -154,6 +154,62 @@ describe("main workspace flows", () => {
     );
   });
 
+  it("renames a group from its options menu and updates the header and list", async () => {
+    const group = {
+      id: "team",
+      type: "GROUP",
+      name: "Original group",
+      ownerId: "me",
+      members: [
+        { userId: "me", role: "OWNER", user: people[0] },
+        { userId: "colleague", role: "MEMBER", user: people[1] },
+      ],
+      messages: [],
+      unreadCount: 0,
+      updatedAt: "2026-10-30T08:00:00.000Z",
+    };
+    api.mockImplementation(async (path, options = {}) => {
+      if (path === "/conversations") return { data: [{ ...group }] };
+      if (path === "/conversations/team" && options.method === "PATCH") {
+        const { name } = JSON.parse(options.body);
+        group.name = name;
+        return { data: { id: group.id, type: group.type, name } };
+      }
+      if (path.endsWith("/messages"))
+        return { data: [], meta: { nextCursor: null } };
+      if (path === "/users") return { data: people };
+      return { data: [] };
+    });
+
+    const user = mount(ChatPage);
+    await user.click(await screen.findByRole("button", { name: /Original group/ }));
+    await screen.findByRole("heading", { name: "Original group" });
+    await user.click(screen.getByRole("button", { name: "Group options" }));
+    await user.click(screen.getByRole("menuitem", { name: "Rename group" }));
+
+    const nameField = screen.getByRole("textbox", { name: "Group name" });
+    const save = screen.getByRole("button", { name: "Save changes" });
+    expect(nameField.value).toBe("Original group");
+    expect(save.disabled).toBe(true);
+
+    await user.clear(nameField);
+    await user.type(nameField, "A");
+    expect(save.disabled).toBe(true);
+    await user.clear(nameField);
+    await user.type(nameField, "  New team name  ");
+    await user.click(save);
+
+    await waitFor(() =>
+      expect(api).toHaveBeenCalledWith("/conversations/team", {
+        method: "PATCH",
+        body: JSON.stringify({ name: "New team name" }),
+      }),
+    );
+    await screen.findByRole("heading", { name: "New team name" });
+    expect(screen.getByRole("button", { name: /New team name/ })).toBeTruthy();
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
   it("allows an employee to assign their own new task without offering other assignees", async () => {
     api.mockImplementation(async (path, options = {}) =>
       path === "/users"
