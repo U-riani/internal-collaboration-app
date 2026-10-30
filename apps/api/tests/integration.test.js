@@ -398,12 +398,12 @@ test("reaction notifications work in every role direction", async () => {
   });
   assert.ok(employeeToAdmin, "employee reaction should notify admin");
 
-  const managerEmployeeConversation = ok(
-    await h.call(manager, "POST", "/conversations", {
-      type: "DIRECT",
-      memberIds: [employee.user.id],
-    }),
-  );
+  const managerEmployeeResponse = await h.call(manager, "POST", "/conversations", {
+    type: "DIRECT",
+    memberIds: [employee.user.id],
+  });
+  assert.ok([200, 201].includes(managerEmployeeResponse.statusCode), managerEmployeeResponse.body);
+  const managerEmployeeConversation = managerEmployeeResponse.json().data;
   const employeeMessage = ok(
     await h.call(employee, "POST", `/conversations/${managerEmployeeConversation.id}/messages`, {
       content: "Manager should notify employee",
@@ -609,19 +609,22 @@ test("Drive spaces keep personal shares explicit and shared workspaces inherited
     "selected group members can receive access while other members are excluded",
   );
 
+  // Ordinary members lose space access; System Administrators retain
+  // platform-level manager access independently of Group membership.
   ok(
     await h.call(manager, "PUT", `/drive/spaces/${group.id}/members`, {
-      members: [
-        { userId: manager.user.id, role: "MANAGER" },
-        { userId: employee.user.id, role: "EDITOR" },
-      ],
+      members: [{ userId: manager.user.id, role: "MANAGER" }],
     }),
   );
   assert.equal(
-    (await h.call(admin, "GET", `/drive?parentId=${teamFolder.id}`))
-      .statusCode,
+    (await h.call(employee, "GET", `/drive?spaceId=${group.id}`)).statusCode,
     403,
-    "removing a Group member also removes access granted on Group items",
+    "removing an ordinary Group member revokes workspace access",
+  );
+  assert.equal(
+    (await h.call(admin, "GET", `/drive?parentId=${teamFolder.id}`)).statusCode,
+    200,
+    "System Administrators retain platform-level Group manager access",
   );
 
   const employeeSpaces = ok(await h.call(employee, "GET", "/drive/spaces"));

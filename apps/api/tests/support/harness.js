@@ -99,10 +99,15 @@ export async function harness() {
   const { buildApp } = await import("../../src/app.js");
   const app = await buildApp({ prisma, minio: storage, redis });
 
+  // Individual test actors are independent simulated clients, not ten
+  // people behind one artificial IP. Keep production login rate limits intact.
+  let loginClientNumber = 0;
   async function login(email, password) {
+    loginClientNumber += 1;
     const result = await app.inject({
       method: "POST",
       url: "/api/v1/auth/login",
+      remoteAddress: `192.0.2.${(loginClientNumber % 249) + 1}`,
       payload: { email, password },
     });
     if (result.statusCode !== 200) throw new Error(result.body);
