@@ -1,0 +1,65 @@
+name: Backend isolated regression suites
+on:
+  push:
+    branches: [collab-production]
+    paths: ['apps/api/**', '.github/workflows/backend-regression.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  regression:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        include:
+          - name: Core and authentication
+            files: 'tests/core.test.js tests/drive-access.test.js tests/group-rename.test.js tests/mobile-auth.test.js tests/personal-task-groups.test.js'
+          - name: Workflows and realtime
+            files: 'tests/integration.test.js tests/realtime.test.js tests/task-status-comments.test.js'
+          - name: Push and uploads
+            files: 'tests/push-delivery.test.js tests/upload.test.js tests/web-push.test.js'
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: collaboration
+          POSTGRES_PASSWORD: test-password
+          POSTGRES_DB: collaboration_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U collaboration -d collaboration_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://collaboration:test-password@127.0.0.1:5432/collaboration_test
+      JWT_ACCESS_SECRET: collab-backend-regression-test-secret-at-least-32-characters
+      STORAGE_DRIVER: local
+      STORAGE_LOCAL_PATH: ./data/test-files
+      MINIO_ROOT_USER: integration
+      MINIO_ROOT_PASSWORD: integration-test-password
+      APP_ORIGIN: http://localhost:5173
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: apps/api/package-lock.json
+      - name: Install backend dependencies
+        run: npm ci --prefix apps/api
+      - name: Validate backend schema and syntax
+        run: npm --prefix apps/api run check
+      - name: Generate Prisma client
+        run: npm --prefix apps/api run db:generate
+      - name: Verify migrations on isolated database
+        run: npm --prefix apps/api run db:deploy
+      - name: Run test group with bounded concurrency and timeout
+        working-directory: apps/api
+        run: |
+          timeout --signal=TERM --kill-after=15s 840s node --test --test-concurrency=1 ${{ matrix.files }}

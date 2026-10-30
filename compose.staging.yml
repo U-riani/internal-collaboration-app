@@ -1,0 +1,61 @@
+# Isolated local-only staging. Does not use prod DB, volumes or tunnel.
+name: collab-staging
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?set_staging_database_name}
+      POSTGRES_USER: ${POSTGRES_USER:?set_staging_database_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set_staging_database_password}
+    volumes: [staging_postgres_data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [staging]
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    env_file: [.env.staging]
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      STORAGE_DRIVER: local
+      STORAGE_LOCAL_PATH: /app/data/files
+      APP_ORIGIN: http://localhost:${STAGING_WEB_PORT:-18080}
+      COOKIE_SECURE: "false"
+    volumes: [staging_file_data:/app/data/files]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks: [staging]
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
+    ports: ["127.0.0.1:${STAGING_WEB_PORT:-18080}:80"]
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1/healthz || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks: [staging]
+volumes:
+  staging_postgres_data:
+  staging_file_data:
+networks:
+  staging:
