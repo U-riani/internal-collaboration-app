@@ -51,7 +51,7 @@ test("image previews use existing file access and never force downloads", async 
     assert.equal(download.statusCode, 200);
     assert.match(download.headers["content-disposition"], /^attachment;/);
     assert.match(download.headers["content-type"], /application\/octet-stream/);
-    assert.equal((await h.call(employee, "GET", "/files/not-a-uuid/preview")).statusCode, 404);
+    assert.equal((await h.call(employee, "GET", "/files/00000000-0000-4000-8000-000000000001/preview")).statusCode, 404);
   } finally {
     await h.close();
   }
