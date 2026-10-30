@@ -10,6 +10,13 @@ export default function ProtectedRoute({ children }) {
         Loading application…
       </div>
     );
+  if (!user && window.location.pathname.startsWith("/mobile/sheets/")) {
+    return (
+      <div className="grid min-h-screen place-items-center px-6 text-center text-slate-600">
+        Session unavailable. Return to the app and sign in again.
+      </div>
+    );
+  }
   if (!user) return (
     <Navigate to="/login" replace state={{
       from: location.pathname + location.search + location.hash,

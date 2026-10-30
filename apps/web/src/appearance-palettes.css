@@ -1,0 +1,733 @@
+/*
+ * Workspace surface palettes (phase 2). Dark Midnight is intentionally absent:
+ * choosing Midnight removes all overrides and restores the approved UI.
+ *
+ * These selectors apply ONLY below the authenticated Layout. Accent selection,
+ * priority/status colors and unread indicators retain their existing behavior.
+ */
+.app-theme-dark[data-appearance="oled"] {
+  --app-bg: #000000;
+  --app-sidebar: #070809;
+  --app-surface: #101114;
+  --app-surface-raised: #17191e;
+  --app-surface-hover: #20232a;
+  --app-surface-input: #1b1d23;
+  --app-border: rgba(231, 236, 246, .11);
+  --app-border-strong: #353842;
+  --app-text: #e8eaf0;
+  --app-text-strong: #fafbff;
+  --app-muted: #a5acb9;
+  --app-subtle: #818a9a;
+  --palette-page: #000;
+  --palette-panel: #101114;
+  --palette-raised: #17191e;
+  --palette-input: #1b1d23;
+  --palette-selection: color-mix(in srgb, var(--app-accent) 19%, #17191e);
+  --palette-panel-gradient: linear-gradient(135deg, #141519, #0c0d10);
+  --palette-chat-gradient: linear-gradient(135deg, #0e0f12, #15161a);
+  --palette-border: #343741;
+}
+.app-theme-dark[data-appearance="slate"] {
+  --app-bg: #171b23;
+  --app-sidebar: #1c222c;
+  --app-surface: #242b36;
+  --app-surface-raised: #2a3240;
+  --app-surface-hover: #353e4d;
+  --app-surface-input: #303848;
+  --app-border: rgba(213, 224, 239, .10);
+  --app-border-strong: #495366;
+  --app-text: #e4e8f0;
+  --app-text-strong: #f7f8fc;
+  --app-muted: #aab4c5;
+  --app-subtle: #8b97aa;
+  --palette-page: #191e27;
+  --palette-panel: #242b36;
+  --palette-raised: #2a3240;
+  --palette-input: #303848;
+  --palette-selection: color-mix(in srgb, var(--app-accent) 19%, #2a3240);
+  --palette-panel-gradient: linear-gradient(135deg, #2d3542, #222833);
+  --palette-chat-gradient: linear-gradient(145deg, #242b36, #2d3441);
+  --palette-border: #495366;
+}
+body:has(.app-theme-dark[data-appearance="oled"]) { background: #000; }
+body:has(.app-theme-dark[data-appearance="slate"]) { background: #171b23; }
+
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) > .workspace-main,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]).overview-layout .workspace-main {
+  background: var(--palette-page);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .sidebar-profile-card {
+  background: var(--palette-panel-gradient);
+  border-color: var(--app-border);
+}
+/* Never overwrite the active gradient on hover: its text uses the
+   on-accent contrast color, which becomes unreadable on a dark surface. */
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) > .workspace-mobile-header .icon-btn:hover,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .workspace-nav-link:not([aria-current="page"]):hover {
+  background: var(--app-interactive-hover);
+  color: var(--app-interactive-hover-text);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .workspace-nav-link[aria-current="page"]:hover {
+  background: linear-gradient(112deg, var(--app-accent-gradient-start), var(--app-accent-gradient-end));
+  color: var(--app-interactive-selected-text);
+}
+/* Shared surfaces, dropdowns and modals stay in their existing layout. */
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .modal,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .modal-head,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .form-actions {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) :is(.bg-slate-50, .bg-gray-50) { background-color: var(--app-surface-raised); }
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) :is(.bg-slate-100, .bg-gray-100) { background-color: var(--app-surface-hover); }
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .bg-slate-200 { background-color: var(--app-surface-input); }
+
+/* Tasks, Approvals, Notifications and People share the same task tokens. */
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .tasks-page {
+  --task-bg: var(--palette-page);
+  --task-surface: var(--app-surface);
+  --task-surface-raised: var(--app-surface-raised);
+  --task-control: var(--app-surface-input);
+  --task-text: var(--app-text);
+  --task-muted: var(--app-muted);
+  --task-subtle: var(--app-subtle);
+  --task-border: var(--app-border-strong);
+  --task-hover: var(--app-surface-hover);
+  background: var(--palette-page);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) :is(.task-group-form, .approval-group-form) .input,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .task-filter-panel .input {
+  background: var(--app-surface-input);
+  color: var(--app-text);
+}
+/* The workspace's three dark themes share the same status colors. */
+
+/* My Account uses a dedicated palette but the same semantic surface hierarchy. */
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .account-page {
+  --account-page: var(--palette-page);
+  --account-hero: var(--app-surface-raised);
+  --account-panel: var(--app-surface);
+  --account-deep: var(--app-bg);
+  --account-button: var(--app-surface-input);
+  --account-text: var(--app-text-strong);
+  --account-muted: var(--app-muted);
+  --account-border: var(--app-border);
+  --account-shadow: rgba(0, 0, 0, .18);
+  background: var(--palette-page);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .account-hero {
+  background: var(--palette-panel-gradient);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .account-settings-card {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .account-appearance-theme-preview.preview-midnight {
+  background: #101624; /* Previews depict their named palette, never the selected one. */
+}
+
+/* Messages: replace dark-navy surfaces, keep outgoing accent bubbles untouched. */
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .messages-page {
+  --message-bg: var(--app-bg);
+  --message-panel: var(--app-surface);
+  --message-raised: var(--app-surface-raised);
+  --message-line: var(--app-border);
+  --message-muted: var(--app-muted);
+  --message-text: var(--app-text);
+  background: var(--palette-page);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .messages-page .chat-shell {
+  background: var(--app-bg);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .messages-page .chat-sidebar,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .messages-page .chat-conversation > header {
+  background: var(--app-surface);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .messages-page .chat-conversation {
+  background: var(--palette-chat-gradient);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .messages-page :is(.chat-sidebar-search .input, .chat-message-search .input) {
+  background: var(--app-surface-input);
+  color: var(--app-text);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .messages-page .chat-conversation-item:hover {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .messages-page .chat-conversation-item.is-selected {
+  background: var(--palette-selection);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .messages-page .chat-conversation .chat-message-search .absolute.z-40,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .messages-page .chat-conversation > header .absolute.z-40 {
+  background: var(--app-surface-raised);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .messages-page .chat-conversation > header .absolute.z-40 button:not(.chat-search-tab):hover {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .messages-page .chat-conversation .icon-btn:hover {
+  background: var(--app-surface-hover);
+}
+
+/* Drive: folder/file type colors remain semantic. */
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-page {
+  background: var(--palette-page);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-page .drive-toolbar,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-page .drive-directory-list,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-page .drive-shared-list .drive-shared-row {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-page .drive-toolbar .tabs {
+  background: var(--app-bg);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-page .drive-search-bar,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-member-search {
+  background: var(--app-surface-input);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-page .drive-header-actions .btn-secondary {
+  background: var(--app-surface-raised);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-page .drive-directory-list .drive-directory-row:hover,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-page .drive-shared-list .drive-shared-row:hover,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-page .drive-group-link:hover {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-page :is(.drive-space-global.is-selected, .drive-group-link.is-selected) {
+  background: var(--palette-selection);
+}
+
+/* Upload, permissions and approval modals use the selected palette too. */
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) dialog.modal:has(.drive-upload-modal) {
+  --upload-bg: var(--app-surface);
+  --upload-panel: var(--app-surface-raised);
+  --upload-panel-soft: var(--app-surface-input);
+  --upload-border: var(--app-border);
+  --upload-track: var(--app-bg);
+  --upload-pill: var(--app-surface-hover);
+  background: var(--palette-panel-gradient);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .modal:has(.drive-space-members-modal),
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .modal:has(:is(.drive-new-group-form, .drive-new-folder-form)),
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .modal:has(> .modal-body > .approval-types-manager),
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .modal:has(> .modal-body > .approval-config-form),
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .modal:has(> .modal-body > .approval-detail) {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .modal:has(.drive-space-members-modal) .modal-head,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .modal:has(:is(.drive-new-group-form, .drive-new-folder-form)) .modal-head,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .modal:has(> .modal-body > .approval-types-manager) .modal-head,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .modal:has(> .modal-body > .approval-config-form) .modal-head,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .modal:has(> .modal-body > .approval-detail) .modal-head {
+  background: var(--palette-panel-gradient);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-permission-note {
+  background: var(--app-surface-raised);
+  border-color: var(--app-border);
+}
+
+/* Dashboard has special handcrafted, formerly navy-only surfaces. */
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .overview-hero,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .overview-stat,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .overview-panel {
+  background: var(--palette-panel-gradient);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .overview-stat:hover {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .overview-task-row:hover,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .overview-shortcut-row:hover,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .overview-update-row:hover {
+  background: var(--app-surface-hover);
+}
+
+/* Explicitly keep small controls legible when the palette changes. */
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .app-modern-select option,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .input,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .btn-secondary {
+  color-scheme: dark;
+}
+
+/* Nested editing/details surfaces keep the same palette when opened. */
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .task-detail,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .approval-detail {
+  --detail-bg: var(--app-surface);
+  --detail-panel: var(--app-surface-raised);
+  --detail-control: var(--app-surface-input);
+  --detail-text: var(--app-text);
+  --detail-muted: var(--app-muted);
+  --detail-border: var(--app-border-strong);
+  --detail-hover: var(--app-surface-hover);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .task-form .task-form-scroll,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .task-form .task-form-footer {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .task-form .input,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .approval-config-form .input {
+  background: var(--app-surface-input);
+  color: var(--app-text);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) :is(.drive-new-group-form, .drive-new-folder-form) :is(.drive-new-group-input, .drive-new-folder-input) {
+  background: var(--app-surface-input);
+  color: var(--app-text);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-space-members-modal .drive-member-search {
+  background: var(--app-surface-input);
+}
+
+/* The Messages New Conversation dialog isn't the shared Modal component. */
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .new-conversation-dialog {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+  color: var(--app-text);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .new-conversation-header,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .new-conversation-footer {
+  background: var(--palette-panel-gradient);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .new-conversation-close,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .new-conversation-type-switch {
+  background: var(--app-surface-raised);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .new-conversation-close:hover,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .new-conversation-type-switch button:hover:not(.is-active) {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .new-conversation-name-field,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .new-conversation-search,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .new-conversation-people-list {
+  background: var(--app-surface-input);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .new-conversation-search:focus-within {
+  background: var(--app-surface-input);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .new-conversation-person {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .new-conversation-person:hover {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .new-conversation-person.is-selected {
+  background: var(--palette-selection);
+}
+
+/* Complete Messages surface coverage, including menus, replies and composer. */
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .messages-page .chat-sidebar-tab:hover:not([aria-pressed="true"]) {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .messages-page .chat-conversation > header .absolute.z-40,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .messages-page .chat-conversation .chat-message-search .absolute.z-40 {
+  background: var(--app-surface-raised);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .messages-page :is(.chat-composer, .chat-date-divider > span, .chat-reply-preview) {
+  background: var(--app-surface-raised);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .messages-page :is(.chat-composer-form, .chat-message-search .input, .chat-sidebar-search .input) {
+  background: var(--app-surface-input);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .messages-page .chat-message-row:not(.chat-message-own) .chat-message-bubble {
+  background: var(--app-surface-input);
+  color: var(--app-text);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .messages-page .chat-message-row .attachment {
+  background: var(--app-surface-raised);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .messages-page .chat-messages-scroll .btn-secondary {
+  background: var(--app-surface-raised);
+  border-color: var(--app-border-strong);
+  color: var(--app-text);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .messages-page .chat-messages-scroll .btn-secondary:hover,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .messages-page .chat-conversation .icon-btn:hover {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .messages-page .chat-messages-scroll .bg-white {
+  background: var(--app-surface-raised);
+  color: var(--app-text);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .messages-page .chat-messages-scroll .bg-blue-50 {
+  background: var(--palette-selection);
+  color: var(--app-text);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .messages-page .chat-date-divider {
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .messages-page .chat-conversation-avatar .avatar,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .messages-page .chat-conversation-header-avatar .avatar {
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .new-conversation-people-list {
+  background: var(--app-surface);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .new-conversation-person.is-selected,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .new-conversation-person.is-selected:hover {
+  background: var(--palette-selection);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .new-conversation-check:not(.is-selected) {
+  background: var(--app-bg);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .modal:has(.conversation-members-modal) {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .modal:has(.conversation-members-modal) .modal-head {
+  background: var(--palette-panel-gradient);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .conversation-members-current-list {
+  background: var(--app-surface-raised);
+  border-color: var(--app-border);
+}
+
+/* Drive: directory, Shared spaces, action menus and permissions. */
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-page :is(.drive-directory-list .drive-table-head, .drive-directory-summary) {
+  background: var(--app-surface-raised);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-page .drive-directory-list .drive-directory-row,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-page :is(.drive-space-nav, .drive-shared-list .drive-shared-row) {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-page .drive-directory-list .drive-directory-row:hover,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-page .drive-shared-list .drive-shared-row:hover {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-page :is(.drive-toolbar .tabs, .drive-group-heading .icon-btn) {
+  background: var(--app-bg);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-page :is(.drive-toolbar .tabs button:hover:not(.active), .drive-directory-list .drive-row-actions .icon-btn:hover, .drive-group-heading .icon-btn:hover, .drive-group-link:hover) {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-page :is(.drive-shared-members-button, .drive-header-actions .btn-secondary, .drive-directory-list .drive-file-type) {
+  background: var(--app-surface-raised);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-page :is(.drive-shared-members-button:hover, .drive-header-actions .btn-secondary:hover) {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-page .drive-shared-space-heading {
+  background: var(--palette-panel-gradient);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-page .drive-shared-space-heading > svg {
+  background: var(--app-surface-input);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-member-list {
+  background: var(--app-bg);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-member-person {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-member-person:hover,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-member-person--admin:hover {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-member-person--admin {
+  background: var(--palette-panel-gradient);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) :is(.drive-member-admin-manager, .drive-member-search) {
+  background: var(--app-surface-input);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) :is(.drive-permission-mode-select, .drive-permission-access-select) {
+  background: var(--app-surface-input);
+  border-color: var(--app-border-strong);
+  color: var(--app-text);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .modal:has(.drive-space-members-modal) .modal-head,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .modal:has(:is(.drive-new-group-form, .drive-new-folder-form)) .modal-head {
+  background: var(--palette-panel-gradient);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .modal:has(:is(.drive-new-group-form, .drive-new-folder-form)) {
+  background: var(--app-surface);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-upload-float-icon {
+  background: var(--app-surface-hover);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) dialog.modal:has(.drive-upload-modal) :is(.drive-upload-dropzone, .drive-upload-folder-list, .drive-upload-file-list) {
+  border-color: var(--app-border-strong);
+}
+
+/* Tasks / Approvals: all list, form, dropdown, detail and builder surfaces. */
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) :is(.task-group-form, .approval-group-form) :is(.task-group-name-input, .approval-group-name-input) {
+  background: var(--app-surface-input) !important;
+  border-color: var(--app-border-strong);
+  color: var(--app-text);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) :is(.task-detail, .approval-detail) :is(.task-detail-person-icon, .filter-multiselect-icon) {
+  background: var(--app-surface-raised);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .task-form .task-form-footer,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .task-form .task-form-scroll {
+  background: var(--app-surface);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .modal:has(> .modal-body > :is(.task-form, .task-detail)) {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .modal:has(> .modal-body > :is(.task-form, .task-detail)) :is(.modal-head, .modal-body) {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .approval-type-row {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .approval-type-row:hover {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .approval-type-row-icon,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .approval-types-title-icon,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .approval-config-heading-icon {
+  background: var(--app-surface-input);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .modal:has(> .modal-body > :is(.approval-types-manager, .approval-config-form, .approval-detail)) {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+  color: var(--app-text);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .modal:has(> .modal-body > :is(.approval-types-manager, .approval-config-form, .approval-detail)) .modal-head {
+  background: var(--palette-panel-gradient);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .modal:has(> .modal-body > :is(.approval-types-manager, .approval-config-form, .approval-detail)) .modal-head .icon-btn:hover {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) :is(.approval-config-field-card, .approval-config-step-row, .approval-detail-fields, .approval-types-list) {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) :is(.approval-config-options, .approval-type-actions .btn-secondary.task-style-secondary) {
+  background: var(--app-surface-raised);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) :is(.approval-types-search, .approval-types-status-control, .approval-config-form .input) {
+  background: var(--app-surface-input);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) :is(.approval-type-row, .approval-config-field-card, .approval-config-step-row) :is(.text-slate-600, .text-slate-500) {
+  color: var(--app-muted);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .approval-bases-page :is(.approval-bases-nav-item, .approval-base-table) {
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .approval-bases-page .approval-bases-nav-item--active {
+  background: var(--palette-selection);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .approval-bases-page .approval-bases-nav-item--active .approval-bases-nav-item-icon {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .approval-bases-page .approval-bases-back:hover {
+  background: var(--app-surface-hover);
+}
+
+/* Overview cards and list content, beyond the outer dashboard panels. */
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) :is(.overview-focus-count, .overview-task-check, .overview-panel-action) {
+  background: var(--app-surface-input);
+  color: var(--app-text);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) :is(.overview-task-row, .overview-shortcut-row, .overview-update-row) {
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) :is(.overview-task-info strong, .overview-shortcut-copy strong, .overview-update-info strong, .overview-update-info > span) {
+  color: var(--app-text);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) :is(.overview-task-info > span, .overview-shortcut-copy small, .overview-updates-heading p, .overview-update-date) {
+  color: var(--app-muted);
+}
+
+/* Account: keep security and push status cues, recolor neutral surfaces. */
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) :is(.account-hero, .account-settings-card) {
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) :is(.account-tab:not(.is-active):hover, .account-sound-preview.btn-secondary:hover, .account-appearance-theme:not(.is-unavailable):hover) {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) :is(.account-password-field, .account-profile-input-wrap) .input {
+  background: var(--app-surface-input);
+  color: var(--app-text);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) :is(.account-appearance-theme, .account-appearance-accent-option, .account-sounds-toggle) {
+  background: var(--app-surface-input);
+  border-color: var(--app-border);
+}
+
+/* Common native picker: theme the OPTION popover, not just the closed select. */
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .app-modern-select {
+  background: var(--app-surface-input);
+  border-color: var(--app-border-strong);
+  color: var(--app-text);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .app-modern-select option:not(:checked) {
+  background: var(--app-surface-raised);
+  color: var(--app-text);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .app-modern-select option:hover:not(:checked),
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .app-modern-select option:focus:not(:checked) {
+  background: var(--app-surface-hover);
+  color: var(--app-text-strong);
+}
+@supports (appearance: base-select) {
+  .app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .app-modern-select::picker(select) {
+    background: var(--app-surface-raised);
+    border-color: var(--app-border-strong);
+    color: var(--app-text);
+  }
+  .app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .app-modern-select option:not(:checked) {
+    background: transparent;
+  }
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) table tbody tr:hover {
+  background-color: var(--app-surface-hover);
+}
+
+/* Retain type/status icons: only neutral page chrome follows the surface. */
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .sidebar-profile-card {
+  color: var(--app-text);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .sidebar-profile-identity:hover {
+  background: var(--app-interactive-hover);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) :is(.page-header, .modal-head, .form-actions) {
+  border-color: var(--app-border);
+}
+
+/* Administration, Roles and Audit use shared cards plus Tailwind utilities. */
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .bg-white:not(.workspace-sidebar):not(.workspace-sidebar-top):not(.workspace-mobile-header):not(.page-header):not(.chat-message-bubble) {
+  background-color: var(--app-surface);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) :is(.bg-slate-50, .bg-gray-50, .bg-slate-100, .bg-gray-100) {
+  background-color: var(--app-surface-raised);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .bg-slate-200 {
+  background-color: var(--app-surface-input);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) :is(.border-slate-100, .border-slate-200, .divide-slate-100) {
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) :is(.text-slate-900, .text-slate-800, .text-gray-900) {
+  color: var(--app-text-strong);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) :is(.text-slate-700, .text-slate-600, .text-gray-700) {
+  color: var(--app-text);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) :is(.text-slate-500, .text-slate-400) {
+  color: var(--app-muted);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .hover\:bg-slate-50:hover {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .card,
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .input {
+  background: var(--app-surface);
+  border-color: var(--app-border-strong);
+  color: var(--app-text);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .input {
+  background: var(--app-surface-input);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .badge.bg-slate-100 {
+  background: var(--app-surface-hover);
+  color: var(--app-muted);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) pre.bg-slate-50 {
+  background: var(--app-surface-raised);
+  color: var(--app-text);
+  border: 1px solid var(--app-border);
+}
+/* Keep the spreadsheet editing surface distinct from the data cell colors. */
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .workspace-spreadsheet {
+  background: var(--app-surface);
+  border-color: var(--app-border-strong);
+  color: var(--app-text);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .workspace-spreadsheet > :is(div:first-child, div:last-child) {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .workspace-spreadsheet .bg-slate-50 {
+  background: var(--app-surface-raised);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .workspace-spreadsheet > div:last-child {
+  color: var(--app-muted);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .workspace-spreadsheet .bg-white {
+  background: var(--app-surface);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .workspace-spreadsheet .border-white {
+  border-color: var(--app-surface);
+}
+
+/* Open approval dialogs also have their own [open]-qualified legacy rules.
+   Win that cascade explicitly, regardless of CSS module loading order. */
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"])
+  .modal[open]:has(> .modal-body > :is(.approval-types-manager, .approval-config-form, .approval-detail)),
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"])
+  .modal[open]:has(> .modal-body > :is(.task-form, .task-detail)) {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+  color: var(--app-text);
+}
+
+/* Inbox and People inherit Tasks' layout but use their own controls. */
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .notifications-page {
+  --notice-surface: var(--app-surface);
+  --notice-raised: var(--app-surface-raised);
+  --notice-control: var(--app-surface-input);
+  --notice-border: var(--app-border-strong);
+  --notice-hover: var(--app-surface-hover);
+  --notice-text: var(--app-text);
+  --notice-muted: var(--app-muted);
+  --notice-subtle: var(--app-subtle);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .directory-page :is(.directory-filter-select, .directory-search-bar) {
+  background: var(--app-surface-input);
+  border-color: var(--app-border-strong);
+  color: var(--app-text);
+}
+
+/* Task Form previously kept Midnight variables even when its parent used
+   OLED/Slate; rebind the complete form, including its participant picker. */
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .task-form {
+  --task-text: var(--app-text);
+  --task-muted: var(--app-muted);
+  --task-subtle: var(--app-subtle);
+  --task-border: var(--app-border-strong);
+  --task-control: var(--app-surface-input);
+  --task-hover: var(--app-surface-hover);
+  --task-surface: var(--app-surface);
+  --task-surface-raised: var(--app-surface-raised);
+  color: var(--task-text);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"])
+  .task-form :is(.task-form-description, .filter-multiselect-panel, .filter-multiselect-search, .filter-multiselect-options) {
+  color: var(--app-text);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"])
+  .task-form .filter-multiselect-panel {
+  background: var(--app-surface-raised);
+}
+.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"])
+  .task-form .filter-multiselect-search {
+  background: var(--app-surface-input);
+}

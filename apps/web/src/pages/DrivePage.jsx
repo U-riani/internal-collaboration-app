@@ -8,7 +8,6 @@ import {
   FileSpreadsheet,
   Upload,
   FolderPlus,
-  Search,
   ChevronRight,
   Download,
   Share2,
@@ -22,18 +21,22 @@ import {
   Plus,
   Settings2,
   ShieldCheck,
+  LockKeyhole,
 } from "lucide-react";
-import { api, uploadFile, downloadFile } from "../lib/api.js";
+import { api, downloadFile } from "../lib/api.js";
+import DriveUploadModal from "../components/DriveUploadModal.jsx";
 import { importExcelToUniverSnapshot } from "../lib/xlsx.js";
 import PageHeader from "../components/PageHeader.jsx";
-import FileDropzone from "../components/FileDropzone.jsx";
+import "./drive-personal.css";
 import {
   Modal,
   Field,
+  SearchBar,
   ErrorBox,
   Empty,
   Loading,
   Badge,
+  Avatar,
   fileSize,
   prettyDate,
 } from "../components/UI.jsx";
@@ -48,6 +51,29 @@ function isSpreadsheet(item) {
 
 function spreadsheetName(filename = "Imported spreadsheet") {
   return filename.replace(/\.(xlsx|xlsm|xls)$/i, "") || "Imported spreadsheet";
+}
+
+/* Display byte metadata as size, never a file extension. */
+function driveItemSize(item) {
+  const bytes = item?.file?.sizeBytes;
+  return typeof bytes === "number" && Number.isFinite(bytes) && bytes >= 0
+    ? fileSize(bytes)
+    : "—";
+}
+function driveFileExtension(item, spreadsheet) {
+  if (item.kind === "FOLDER") return "";
+  if (spreadsheet) return "XLSX";
+  const match = item.name?.match(/\.([a-z0-9]{1,8})$/i);
+  return match ? match[1].toUpperCase() : "FILE";
+}
+function driveFileTone(item, spreadsheet) {
+  if (item.kind === "FOLDER") return "folder";
+  if (spreadsheet) return "sheet";
+  const ext = driveFileExtension(item, false);
+  if (["XLSX", "XLS", "XLSM", "CSV"].includes(ext)) return "sheet";
+  if (ext === "PDF") return "pdf";
+  if (["DOC", "DOCX", "TXT", "RTF"].includes(ext)) return "document";
+  return "file";
 }
 
 function Permissions({ item, onClose, reload }) {
@@ -172,14 +198,18 @@ function Permissions({ item, onClose, reload }) {
   return (
     <Modal title={`Permissions · ${item.name}`} onClose={onClose}>
       {item.space.type === "PERSONAL" ? (
-        <div className="mb-5 rounded-xl border border-blue-100 bg-blue-50 p-3 text-sm text-blue-700">
-          Personal items stay private unless you explicitly share them. Folder
-          sharing is item-only by default.
+        <div className="drive-permission-note drive-permission-note--personal" role="note">
+          <ShieldCheck size={18} aria-hidden="true" />
+          <p>
+            Personal items stay private unless you explicitly share them. Folder
+            sharing is item-only by default.
+          </p>
         </div>
       ) : (
         <Field label="Visibility">
           <select
-            className="input"
+            className="input app-modern-select drive-permission-mode-select"
+            aria-label="Visibility"
             value={permissionMode}
             onChange={(e) => setPermissionMode(e.target.value)}
           >
@@ -190,16 +220,19 @@ function Permissions({ item, onClose, reload }) {
       )}
 
       {item.space.type !== "PERSONAL" && permissionMode === "CUSTOM" && (
-        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-          <strong>Restricted access.</strong> Only the selected recipients can
-          see this {item.kind === "FOLDER" ? "folder" : "file"}. Unselected
-          group members have no access.
-          {item.kind === "FOLDER" && (
-            <span className="mt-1 block text-xs text-amber-700">
-              Folder permissions also apply to current and future files and
-              nested folders unless a child item defines its own custom access.
-            </span>
-          )}
+        <div className="drive-permission-note drive-permission-note--restricted" role="note">
+          <LockKeyhole size={18} aria-hidden="true" />
+          <p>
+            <strong>Restricted access.</strong> Only the selected recipients can
+            see this {item.kind === "FOLDER" ? "folder" : "file"}. Unselected
+            group members have no access.
+            {item.kind === "FOLDER" && (
+              <span className="drive-permission-note-detail">
+                Folder permissions also apply to current and future files and
+                nested folders unless a child item defines its own custom access.
+              </span>
+            )}
+          </p>
         </div>
       )}
 
@@ -222,19 +255,14 @@ function Permissions({ item, onClose, reload }) {
       )}
 
       <div className="mt-5">
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <div className="relative min-w-52 flex-1">
-            <Search
-              size={15}
-              className="absolute left-3 top-3 text-slate-400"
-            />
-            <input
-              className="input pl-9"
-              placeholder="Search people or departments"
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-            />
-          </div>
+        <div className="drive-permission-toolbar mb-3 flex flex-wrap items-center gap-2">
+          <SearchBar
+            className="drive-member-search drive-permission-search min-w-52 flex-1"
+            ariaLabel="Search people or departments"
+            placeholder="Search people or departments"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+          />
           <button
             className="btn-secondary"
             onClick={() => setVisible("VIEWER")}
@@ -271,7 +299,7 @@ function Permissions({ item, onClose, reload }) {
                 <p className="text-[11px] text-slate-400">{recipient.kind}</p>
               </div>
               <select
-                className="input !w-32"
+                className="input app-modern-select drive-permission-access-select"
                 aria-label={`Permission for ${recipient.label}`}
                 value={assignments[recipient.key] || "NONE"}
                 onChange={(e) => {
@@ -353,9 +381,8 @@ function SpaceMembers({ space, onClose, reload }) {
   const visible = (people.data || []).filter(
     (person) =>
       person.status === "ACTIVE" &&
-      person.displayName
-        .toLocaleLowerCase()
-        .includes(filter.toLocaleLowerCase()),
+      [person.displayName, person.jobTitle, person.department?.name, person.email]
+        .some((text) => text?.toLocaleLowerCase().includes(filter.toLocaleLowerCase())),
   );
 
   const save = useMutation({
@@ -377,65 +404,84 @@ function SpaceMembers({ space, onClose, reload }) {
 
   return (
     <Modal title={`Members · ${space.name}`} onClose={onClose}>
+      <div className="drive-space-members-modal">
       <p className="mb-4 text-sm text-slate-500">
         {space.type === "GLOBAL"
           ? "Everyone can view Global. Add Editor or Manager roles for people who should maintain it."
           : "Group members receive the workspace role shown here. System administrators always have Manager access and cannot be downgraded."}
       </p>
-      <div className="relative mb-3">
-        <Search size={15} className="absolute left-3 top-3 text-slate-400" />
-        <input
-          className="input pl-9"
-          placeholder="Search people"
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-        />
-      </div>
-      <div className="max-h-80 overflow-y-auto rounded-xl border border-slate-200">
+      <SearchBar
+        className="drive-member-search"
+        ariaLabel="Search people or branches"
+        placeholder="Search people or branches..."
+        value={filter}
+        onChange={(e) => setFilter(e.target.value)}
+      />
+      <div className="drive-member-list max-h-80 overflow-y-auto rounded-xl border border-slate-200">
         {visible.map((person) => {
           const systemAdmin = person.roles?.includes("SYSTEM_ADMIN");
           return (
             <div
               key={person.id}
-              className="flex items-center gap-3 border-b border-slate-100 px-3 py-2 last:border-0"
+              className={`drive-member-person flex items-center gap-3 border-b border-slate-100 px-3 py-2 last:border-0 ${systemAdmin ? "drive-member-person--admin" : ""}`}
             >
+              <div className={`drive-member-avatar ${systemAdmin ? "drive-member-avatar--admin" : ""}`} aria-hidden="true">
+                {systemAdmin ? (
+                  <ShieldCheck size={19} strokeWidth={2} />
+                ) : (
+                  (person.displayName || "?").trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase()
+                )}
+              </div>
               <div className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-medium">
-                  {person.displayName}
+                <span className="drive-member-display-name block truncate text-sm font-medium">
+                  <span className="truncate">{person.displayName}</span>
+                  {systemAdmin && <LockKeyhole size={13} className="drive-admin-name-lock" aria-hidden="true" />}
                 </span>
+                {!systemAdmin && (
+                  <span className="drive-member-subtitle">
+                    {[person.jobTitle, person.department?.name].filter(Boolean).join(" · ") || "Colleague"}
+                  </span>
+                )}
                 {systemAdmin && (
-                  <span className="text-[11px] text-slate-400">
-                    System administrator · Always manager
+                  <span className="drive-member-subtitle drive-member-admin-subtitle">
+                    Global Tenant Policy · Manager Access
                   </span>
                 )}
               </div>
-              <select
-                className="input !w-36"
-                value={systemAdmin ? "MANAGER" : roles[person.id] || "NONE"}
-                disabled={systemAdmin}
-                onChange={(e) =>
-                  setRoles((current) => ({
-                    ...current,
-                    [person.id]: e.target.value,
-                  }))
-                }
-              >
-                <option value="NONE">
-                  {space.type === "GLOBAL" ? "Default viewer" : "Not a member"}
-                </option>
-                <option value="VIEWER">Viewer</option>
-                <option value="EDITOR">Editor</option>
-                <option value="MANAGER">Manager</option>
-              </select>
+              {systemAdmin ? (
+                <span
+                  className="drive-member-admin-manager"
+                  aria-label="Manager access is locked for system administrators"
+                >
+                  <LockKeyhole size={15} aria-hidden="true" />
+                  Manager
+                </span>
+              ) : (
+                <select
+                  className="drive-member-role-select app-modern-select input !w-36"
+                  aria-label={`Role for ${person.displayName}`}
+                  value={roles[person.id] || "NONE"}
+                  onChange={(e) =>
+                    setRoles((current) => ({
+                      ...current,
+                      [person.id]: e.target.value,
+                    }))
+                  }
+                >
+                  <option value="NONE">
+                    {space.type === "GLOBAL" ? "Default viewer" : "Not a member"}
+                  </option>
+                  <option value="VIEWER">Viewer</option>
+                  <option value="EDITOR">Editor</option>
+                  <option value="MANAGER">Manager</option>
+                </select>
+              )}
             </div>
           );
         })}
       </div>
       <ErrorBox error={error || people.error || members.error} />
-      <div className="form-actions">
-        <button className="btn-secondary" onClick={onClose}>
-          Cancel
-        </button>
+      <div className="drive-member-form-actions form-actions">
         <button
           className="btn-primary"
           disabled={save.isPending}
@@ -443,6 +489,7 @@ function SpaceMembers({ space, onClose, reload }) {
         >
           Save members
         </button>
+      </div>
       </div>
     </Modal>
   );
@@ -537,6 +584,7 @@ function CreateGroup({ onClose, onCreated }) {
   return (
     <Modal title="New shared group" onClose={onClose}>
       <form
+        className="drive-new-group-form"
         onSubmit={(e) => {
           e.preventDefault();
           save.mutate();
@@ -544,6 +592,8 @@ function CreateGroup({ onClose, onCreated }) {
       >
         <Field
           label="Group name"
+          className="drive-new-group-input"
+          placeholder="Enter group name"
           value={name}
           required
           maxLength={200}
@@ -551,10 +601,7 @@ function CreateGroup({ onClose, onCreated }) {
           onChange={(e) => setName(e.target.value)}
         />
         <ErrorBox error={error} />
-        <div className="form-actions">
-          <button type="button" className="btn-secondary" onClick={onClose}>
-            Cancel
-          </button>
+        <div className="drive-new-group-actions form-actions">
           <button className="btn-primary" disabled={save.isPending}>
             Create group
           </button>
@@ -658,24 +705,6 @@ export default function DrivePage() {
     }
   }
 
-  function uploadDriveFiles(files) {
-    if (!files.length || busy || !canAdd) return;
-    act(async () => {
-      for (const file of files) {
-        const uploaded = await uploadFile(file);
-        await api("/drive", {
-          method: "POST",
-          body: JSON.stringify({
-            name: file.name,
-            fileId: uploaded.id,
-            parentId: parent,
-            spaceId,
-          }),
-        });
-      }
-    });
-  }
-
   function switchSection(next) {
     setSection(next);
     setParent(null);
@@ -693,14 +722,34 @@ export default function DrivePage() {
   const canManageSpace =
     section === "shared" && selectedSpace?.access === "MANAGER";
 
-  console.log(query.data?.meta.breadcrumbs?.length);
+  // Each non-Personal footer reports only the file sizes available in its
+  // current listing; Personal still uses the API's full storage usage metric.
+  const listedItems = query.data?.data || [];
+  const listedBytesKnown = listedItems.every(
+    (item) =>
+      item.kind !== "FILE" ||
+      (typeof item.file?.sizeBytes === "number" &&
+        Number.isFinite(item.file.sizeBytes) && item.file.sizeBytes >= 0),
+  );
+  const listedFilesSize = listedBytesKnown
+    ? fileSize(
+        listedItems.reduce(
+          (total, item) => total + (item.kind === "FILE" ? item.file.sizeBytes : 0),
+          0,
+        ),
+      )
+    : "—";
+
+  const unifiedDirectoryView = ["personal", "shared", "shared-with-me", "trash"].includes(section);
+
   return (
     <>
+      <div className="drive-page">
       <PageHeader
         title="Drive"
         action={
           canAdd && (
-            <div className="overflow-x-auto  flex md:flex-wrap gap-2">
+            <div className="drive-header-actions flex flex-wrap gap-2">
               <Link to="/drive/sheets/new" className="btn-secondary text-nowrap">
                 <Table2 size={17} />
                 New spreadsheet
@@ -758,24 +807,20 @@ export default function DrivePage() {
                 <FolderPlus size={17} />
                 New folder
               </button>
-              <label
-                className={`btn-primary text-nowrap ${busy ? "pointer-events-none opacity-50" : ""}`}
+              <button
+                type="button"
+                className="btn-primary text-nowrap"
+                disabled={busy}
+                onClick={() => setModal({
+                  kind: "upload",
+                  parentId: parent,
+                  spaceId,
+                  name: query.data?.meta?.folder?.name || selectedSpace?.name || "Drive",
+                })}
               >
                 <Upload size={17} />
                 {busy ? "Working…" : "Upload files"}
-                <input
-                  type="file"
-                  multiple
-                  className="sr-only"
-                  aria-label="Upload files"
-                  disabled={busy}
-                  onChange={(e) => {
-                    const files = [...e.target.files];
-                    e.target.value = "";
-                    uploadDriveFiles(files);
-                  }}
-                />
-              </label>
+              </button>
             </div>
           )
         }
@@ -799,31 +844,27 @@ export default function DrivePage() {
           ))}
         </div>
         {section !== "trash" && (
-          <div className="relative ml-auto w-full sm:w-64">
-            <Search
-              size={16}
-              className="absolute right-3 top-3 text-slate-400"
-            />
-            <input
-              className="input pl-9 pe-7!"
-              aria-label="Search files"
-              placeholder="Search files and folders"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
+          <SearchBar
+            className="drive-search-bar relative ml-auto w-full sm:w-64"
+            inputClassName="drive-search-input input"
+            type="text"
+            ariaLabel="Search files"
+            placeholder="Search files and folders"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         )}
       </div>
 
       <div
         className={
-          section === "shared" ? "grid gap-4 lg:grid-cols-[230px_1fr]" : ""
+          section === "shared" ? "drive-shared-view grid gap-4 lg:grid-cols-[230px_1fr]" : ""
         }
       >
         {section === "shared" && (
           <aside className="drive-space-nav card h-fit p-2">
             <button
-              className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm ${selectedSpace?.type === "GLOBAL" ? "bg-slate-100 font-semibold" : ""}`}
+              className={`drive-space-global flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm ${selectedSpace?.type === "GLOBAL" ? "is-selected bg-slate-100 font-semibold" : ""}`}
               onClick={() => {
                 setSpaceId(global?.id || null);
                 setParent(null);
@@ -832,7 +873,7 @@ export default function DrivePage() {
               <Globe2 size={17} />
               Global
             </button>
-            <div className="mt-3 flex items-center justify-between px-3">
+            <div className="drive-group-heading mt-3 flex items-center justify-between px-3">
               <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                 Groups
               </span>
@@ -846,11 +887,11 @@ export default function DrivePage() {
                 </button>
               )}
             </div>
-            <div className="mt-1 space-y-1">
+            <div className="drive-groups-list mt-1 space-y-1">
               {groups.map((group) => (
                 <button
                   key={group.id}
-                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm ${spaceId === group.id ? "bg-slate-100 font-semibold" : ""}`}
+                  className={`drive-group-link flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm ${spaceId === group.id ? "is-selected bg-slate-100 font-semibold" : ""}`}
                   onClick={() => {
                     setSpaceId(group.id);
                     setParent(null);
@@ -858,12 +899,13 @@ export default function DrivePage() {
                 >
                   <Users size={16} />
                   <span className="truncate">{group.name}</span>
+                  {Number.isFinite(group.memberCount) && <span className="drive-group-member-count">{group.memberCount}</span>}
                 </button>
               ))}
             </div>
             {canManageSpace && (
               <button
-                className="btn-secondary mt-4 w-full"
+                className="drive-shared-members-button btn-secondary mt-4 w-full"
                 onClick={() =>
                   setModal({ kind: "members", space: selectedSpace })
                 }
@@ -877,7 +919,7 @@ export default function DrivePage() {
 
         <main className="min-w-0">
           {section === "shared" && selectedSpace && (
-            <div className="mb-4 flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
+            <div className="drive-shared-space-heading mb-4 flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
               {selectedSpace.type === "GLOBAL" ? (
                 <Globe2 size={19} className="text-blue-500" />
               ) : (
@@ -895,16 +937,6 @@ export default function DrivePage() {
             </div>
           )}
 
-          {canAdd && (
-            <div className="mb-4">
-              <FileDropzone
-                label="Drop files into this folder"
-                onFilesSelected={uploadDriveFiles}
-                disabled={busy}
-                compact
-              />
-            </div>
-          )}
           <ErrorBox error={error || query.error || spaces.error} />
 
           {parent && (
@@ -931,10 +963,12 @@ export default function DrivePage() {
 
           {/* <div className="drive-list-card card max-h-[calc(100vh-24.5rem)] md:max-h-[calc(100vh-13.94rem)] overflow-y-auto"> */}
           <div
-            className={`drive-list-card card ${query.data?.meta.breadcrumbs?.length ? "max-h-[calc(100vh-407px)]" : "max-h-[calc(100vh-370px)]"} md:max-h-[calc(100vh-14rem)] overflow-y-auto`}
+            className={`drive-list-card card ${unifiedDirectoryView ? "drive-directory-list" : ""} ${section === "personal" ? "drive-personal-list" : section === "shared" ? "drive-shared-list" : section === "shared-with-me" ? "drive-shared-with-me-list" : section === "trash" ? "drive-trash-list" : ""} ${query.data?.meta.breadcrumbs?.length ? "max-h-[calc(100vh-407px)]" : "max-h-[calc(100vh-370px)]"} md:max-h-[calc(100vh-14rem)] overflow-y-auto`}
           >
-            <div className="list-row sticky top-0 bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-400 ">
+            <div className={unifiedDirectoryView ? "drive-personal-table" : undefined}>
+            <div className="drive-table-head list-row sticky top-0 bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-400 ">
               <span className="flex-1">Name</span>
+              {unifiedDirectoryView && <span className="drive-owner-heading">Owner</span>}
               <span className="hidden w-28 md:block">Updated</span>
               <span className="hidden w-24 md:block">Size</span>
               <span className="drive-actions-header w-40 text-right">
@@ -951,10 +985,11 @@ export default function DrivePage() {
                   item.access === "OWNER" || item.access === "MANAGER";
                 const canDelete = deleteAccess.has(item.access);
                 const spreadsheet = isSpreadsheet(item);
+                const fileType = driveFileExtension(item, spreadsheet);
                 return (
-                  <div className="drive-item-row list-row" key={item.id}>
+                  <div className={`drive-item-row list-row ${unifiedDirectoryView ? "drive-directory-row" : ""} ${section === "personal" ? "drive-personal-row" : section === "shared" ? "drive-shared-row" : section === "shared-with-me" ? "drive-shared-with-me-row" : section === "trash" ? "drive-trash-row" : ""}`} key={item.id}>
                     <div
-                      className={`rounded-xl p-2.5 ${
+                      className={`drive-item-icon drive-item-icon--${driveFileTone(item, spreadsheet)} rounded-xl p-2.5 ${
                         item.kind === "FOLDER"
                           ? "bg-amber-50 text-amber-500"
                           : spreadsheet
@@ -983,11 +1018,14 @@ export default function DrivePage() {
                         }
                       }}
                     >
-                      <p className="truncate text-sm font-medium">
-                        {item.name}
+                      <p className="drive-item-name truncate text-sm font-medium">
+                        <span className="drive-item-label">{item.name}</span>
+                        {unifiedDirectoryView && fileType && (
+                          <span className="drive-file-type">{fileType}</span>
+                        )}
                       </p>
-                      <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-400">
-                        <span>{item.owner.displayName}</span>
+                      <div className={`mt-1 flex items-center gap-2 text-[11px] text-slate-400 ${section === "personal" ? "drive-name-meta-personal" : ""}`}>
+                        {section !== "shared" && <span>{item.owner.displayName}</span>}
                         {item.shared && <Share2 size={11} />}
                         <span>
                           {item.access === "EDITOR_DELETE"
@@ -1003,15 +1041,19 @@ export default function DrivePage() {
                           )}
                       </div>
                     </button>
-                    <span className="hidden w-28 text-xs text-slate-400 md:block">
+                    {unifiedDirectoryView && (
+                      <span className="drive-owner-cell">
+                        <Avatar small name={item.owner?.displayName || "User"} />
+                        <span className="drive-owner-name" title={item.owner?.displayName || ""}>
+                          {item.owner?.displayName || "Unknown"}
+                        </span>
+                      </span>
+                    )}
+                    <span className="drive-updated-cell hidden w-28 text-xs text-slate-400 md:block">
                       {prettyDate(item.updatedAt)}
                     </span>
-                    <span className="hidden w-24 text-xs text-slate-400 md:block">
-                      {spreadsheet
-                        ? "XLSX"
-                        : item.file
-                          ? fileSize(item.file.sizeBytes)
-                          : "—"}
+                    <span className="drive-size-cell hidden w-24 text-xs text-slate-400 md:block">
+                      {driveItemSize(item)}
                     </span>
                     <div className="drive-row-actions flex w-40 flex-wrap justify-end">
                       {section === "trash" ? (
@@ -1032,16 +1074,12 @@ export default function DrivePage() {
                         </button>
                       ) : (
                         <>
-                          <div className="flex flex-1 items-center gap-2 md:hidden">
+                          <div className="drive-mobile-metadata flex flex-1 items-center gap-2 md:hidden">
                             <span className="w-28 text-xs text-slate-400 ">
                               {prettyDate(item.updatedAt)}
                             </span>
                             <span className="w-24 text-xs text-slate-400 ">
-                              {spreadsheet
-                                ? "XLSX"
-                                : item.file
-                                  ? fileSize(item.file.sizeBytes)
-                                  : "—"}
+                              {driveItemSize(item)}
                             </span>
                           </div>
                           <div>
@@ -1135,15 +1173,30 @@ export default function DrivePage() {
                 />
               )
             )}
+            </div>
           </div>
 
-          <p className="mt-0 text-xs text-slate-400">
+          <p className={`mt-0 text-xs text-slate-400 ${unifiedDirectoryView ? "drive-directory-summary" : ""} ${section === "personal" ? "drive-personal-summary" : section === "shared" ? "drive-shared-summary" : section === "shared-with-me" ? "drive-shared-with-me-summary" : section === "trash" ? "drive-trash-summary" : ""}`}>
             {query.data?.data.length || 0} items
             {section === "personal" &&
               ` · ${fileSize(query.data?.meta.usedBytes || 0)} in Personal`}
+            {section === "shared" && ` · ${listedFilesSize} in Shared`}
+            {section === "shared-with-me" && ` · ${listedFilesSize} in Shared with me`}
+            {section === "trash" && ` · ${listedFilesSize} in Trash`}
           </p>
         </main>
       </div>
+      </div>
+
+      {modal?.kind === "upload" && (
+        <DriveUploadModal
+          spaceId={modal.spaceId}
+          initialParentId={modal.parentId}
+          initialName={modal.name}
+          onUploaded={reload}
+          onClose={() => setModal(null)}
+        />
+      )}
 
       {modal && ["create", "rename"].includes(modal.kind) && (
         <Modal
@@ -1151,13 +1204,17 @@ export default function DrivePage() {
           onClose={() => setModal(null)}
         >
           <form
+            className={modal.kind === "create" ? "drive-new-folder-form" : undefined}
             onSubmit={(e) => {
               e.preventDefault();
               save.mutate();
             }}
           >
             <Field
-              label="Name"
+              label={modal.kind === "create" ? "Folder name" : "Name"}
+              {...(modal.kind === "create"
+                ? { className: "drive-new-folder-input", placeholder: "Enter folder name" }
+                : {})}
               value={name}
               autoFocus
               required
@@ -1165,14 +1222,16 @@ export default function DrivePage() {
               onChange={(e) => setName(e.target.value)}
             />
             <ErrorBox error={error} />
-            <div className="form-actions">
-              <button
-                type="button"
-                className="btn-secondary"
-                onClick={() => setModal(null)}
-              >
-                Cancel
-              </button>
+            <div className={modal.kind === "create" ? "drive-new-folder-actions form-actions" : "form-actions"}>
+              {modal.kind === "rename" && (
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => setModal(null)}
+                >
+                  Cancel
+                </button>
+              )}
               <button className="btn-primary" disabled={save.isPending}>
                 Save
               </button>

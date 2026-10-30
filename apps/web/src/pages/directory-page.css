@@ -1,0 +1,105 @@
+/* People directory: reuse Tasks workspace, PageHeader, task-search-bar,
+   and the existing app-modern-select controls. Scoped to this page only. */
+.directory-page .page-header {
+  margin-bottom: 18px;
+}
+.directory-page .directory-filters {
+  z-index: 5;
+  min-width: 0;
+  margin-bottom: 18px;
+  padding: 12px 14px;
+  border: 1px solid var(--task-border);
+  border-radius: 13px;
+  background: var(--task-surface);
+  box-shadow: none;
+}
+.directory-page .directory-filters > .grid {
+  align-items: center;
+}
+.directory-page .directory-search-bar.task-search-bar {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+  max-width: none;
+  height: 40px;
+}
+.directory-page .directory-search-bar.task-search-bar > input {
+  height: 38px;
+  min-height: 38px;
+}
+.directory-page .directory-filters select.directory-filter-select,
+.app-theme-dark .directory-page .directory-filters select.directory-filter-select {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-width: 0;
+  height: 40px;
+  min-height: 40px;
+  margin: 0;
+  padding: 0 12px;
+  border: 1px solid var(--task-border);
+  border-radius: 10px;
+  background: var(--task-control);
+  color: var(--task-text);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  vertical-align: middle;
+  box-shadow: none;
+  cursor: pointer;
+  transition: border-color .16s ease, background-color .16s ease, box-shadow .16s ease;
+}
+.directory-page .directory-filters select.directory-filter-select:hover {
+  border-color: var(--app-ui-accent-outline, #817cf088);
+  background: var(--task-hover);
+}
+.directory-page .directory-filters select.directory-filter-select:focus,
+.directory-page .directory-filters select.directory-filter-select:focus-visible,
+.app-theme-dark .directory-page .directory-filters select.directory-filter-select:focus {
+  outline: none;
+  border-color: var(--app-ui-focus-ring, #817cf0);
+  box-shadow: 0 0 0 2px var(--app-ui-accent-tint, #8077f621);
+}
+.directory-page .directory-filters select.directory-filter-select::picker-icon {
+  align-self: center;
+  flex-shrink: 0;
+  margin-inline-start: auto;
+  color: var(--task-subtle);
+}
+/* People contact links and neutral directory avatars follow the selected
+   accent. Indigo fallback retains the existing utility-class colors. */
+.directory-page article.card a[href^="mailto:"],
+.directory-page article.card a[href^="tel:"] {
+  color: var(--app-ui-focus-ring, #2563eb);
+  transition: color .16s ease;
+}
+.directory-page article.card a[href^="mailto:"]:hover,
+.directory-page article.card a[href^="tel:"]:hover {
+  color: var(--app-ui-accent-selected-hover, #2563eb);
+}
+.directory-page article.card a[href^="mailto:"]:focus-visible,
+.directory-page article.card a[href^="tel:"]:focus-visible {
+  outline: 2px solid var(--app-ui-focus-ring, #817cf0);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+.directory-page article.card .bg-blue-100 {
+  background: var(--app-ui-accent-tint, #dbeafe);
+  color: var(--app-ui-focus-ring, #1d4ed8);
+}
+@media (prefers-reduced-motion: reduce) {
+  .directory-page article.card a[href^="mailto:"],
+  .directory-page article.card a[href^="tel:"] { transition: none; }
+}
+
+@media (max-width: 900px) {
+  .directory-page .directory-filters {
+    padding: 12px;
+  }
+}
+@media (max-width: 640px) {
+  .directory-page .directory-filters > .grid {
+    gap: 10px;
+  }
+}

@@ -1,0 +1,61 @@
+name: Collab production integration validation
+
+on:
+  push:
+    branches: [collab-production]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: collaboration
+          POSTGRES_PASSWORD: test-password
+          POSTGRES_DB: collaboration_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U collaboration -d collaboration_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://collaboration:test-password@127.0.0.1:5432/collaboration_test
+      JWT_ACCESS_SECRET: collab-integration-test-secret-at-least-32-characters
+      STORAGE_DRIVER: local
+      STORAGE_LOCAL_PATH: ./data/test-files
+      MINIO_ROOT_USER: integration
+      MINIO_ROOT_PASSWORD: integration-test-password
+      APP_ORIGIN: http://localhost:5173
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: |
+            apps/api/package-lock.json
+            apps/web/package-lock.json
+      - name: Install backend and frontend
+        run: |
+          npm ci --prefix apps/api
+          npm ci --prefix apps/web
+      - name: Backend syntax and Prisma schema check
+        run: npm --prefix apps/api run check
+      - name: Generate Prisma client
+        run: npm --prefix apps/api run db:generate
+      - name: Apply isolated test database migrations
+        run: npm --prefix apps/api run db:deploy
+      - name: Build React frontend
+        run: npm --prefix apps/web run build
+      - name: Run React tests
+        run: npm --prefix apps/web test
+      - name: Run backend tests
+        run: npm --prefix apps/api test

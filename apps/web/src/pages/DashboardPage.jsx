@@ -1,18 +1,64 @@
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
+  ArrowRight,
   ArrowUpRight,
-  CheckSquare,
+  CalendarDays,
+  CheckSquare2,
+  CircleCheck,
   Clock3,
   FileCheck2,
-  MessageSquare,
   FolderClosed,
-  ArrowRight,
+  Inbox,
+  MessageSquare,
 } from "lucide-react";
 import { api } from "../lib/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
-import PageHeader from "../components/PageHeader.jsx";
-import { Badge, ErrorBox, Empty, prettyDate } from "../components/UI.jsx";
+import { ErrorBox, prettyDate } from "../components/UI.jsx";
+import "./dashboard.css";
+
+const shortcuts = [
+  {
+    icon: MessageSquare,
+    title: "Start a conversation",
+    description: "Talk to a colleague or your team",
+    to: "/chat",
+    tone: "cyan",
+  },
+  {
+    icon: FolderClosed,
+    title: "Organize your files",
+    description: "Open your personal and shared Drive",
+    to: "/drive",
+    tone: "indigo",
+  },
+  {
+    icon: FileCheck2,
+    title: "Submit a request",
+    description: "Get the decision you need",
+    to: "/approvals",
+    tone: "violet",
+  },
+];
+
+function StatCard({ label, value, loading, icon: Icon, tone, to, chip }) {
+  return (
+    <Link to={to} className={"overview-stat overview-stat--" + tone}>
+      <div className="overview-stat-top">
+        <span className="overview-stat-icon"><Icon size={19} strokeWidth={2.3} /></span>
+        <ArrowUpRight className="overview-stat-arrow" size={17} />
+      </div>
+      <div className="overview-stat-bottom">
+        <strong className="overview-stat-number" aria-label={loading ? "Loading" : undefined}>
+          {loading ? "—" : value}
+        </strong>
+        <span className="overview-stat-chip">{chip}</span>
+      </div>
+      <span className="overview-stat-label">{label}</span>
+    </Link>
+  );
+}
+
 export default function DashboardPage() {
   const { user } = useAuth();
   const tasks = useQuery({
@@ -27,182 +73,132 @@ export default function DashboardPage() {
     queryKey: ["notifications"],
     queryFn: () => api("/notifications"),
   });
-  const list = (tasks.data || []).filter(
-    (t) => !["COMPLETED", "CANCELLED"].includes(t.status),
+
+  const activeTasks = (tasks.data || []).filter(
+    (task) => !["COMPLETED", "CANCELLED"].includes(task.status),
   );
-  const review = (approvals.data || []).filter(
-    (a) =>
-      a.status === "PENDING" &&
-      a.steps.some((s) => s.status === "PENDING" && s.approverId === user.id),
+  const overdueCount = activeTasks.filter(
+    (task) => task.dueDate && new Date(task.dueDate) < new Date(),
+  ).length;
+  const pendingReviews = (approvals.data || []).filter(
+    (approval) =>
+      approval.status === "PENDING" &&
+      approval.steps?.some(
+        (step) => step.status === "PENDING" && step.approverId === user.id,
+      ),
   );
+  const unreadCount = notifications.data?.meta?.unreadCount || 0;
+  const recentUpdates = notifications.data?.data?.slice(0, 4) || [];
+  const dateLabel = new Date().toLocaleDateString(undefined, {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
+
   const stats = [
-    [
-      "Active tasks",
-      list.length,
-      CheckSquare,
-      "/tasks",
-      "bg-blue-50 text-blue-600",
-    ],
-    [
-      "Overdue tasks",
-      list.filter((t) => t.dueDate && new Date(t.dueDate) < new Date()).length,
-      Clock3,
-      "/tasks",
-      "bg-amber-50 text-amber-600",
-    ],
-    [
-      "Needs your approval",
-      review.length,
-      FileCheck2,
-      "/approvals",
-      "bg-emerald-50 text-emerald-600",
-    ],
-    [
-      "Unread updates",
-      notifications.data?.meta.unreadCount || 0,
-      MessageSquare,
-      "/notifications",
-      "bg-violet-50 text-violet-600",
-    ],
+    { label: "Active tasks", value: activeTasks.length, loading: tasks.isLoading, icon: CheckSquare2, tone: "cyan", to: "/tasks", chip: "In flight" },
+    { label: "Overdue tasks", value: overdueCount, loading: tasks.isLoading, icon: Clock3, tone: "coral", to: "/tasks", chip: overdueCount > 0 ? "Urgent" : "On track" },
+    { label: "Needs your approval", value: pendingReviews.length, loading: approvals.isLoading, icon: FileCheck2, tone: "indigo", to: "/approvals", chip: pendingReviews.length > 0 ? "Pending" : "Caught up" },
+    { label: "Unread updates", value: unreadCount, loading: notifications.isLoading, icon: MessageSquare, tone: "violet", to: "/notifications", chip: unreadCount > 0 ? "New" : "Clear" },
   ];
+
   return (
-    <>
-      <PageHeader
-        title={`Hello, ${user.firstName}`}
-        description="Here’s what’s happening across your workspace."
-        action={
-          <span className="text-xs text-slate-400 py-3">
-            {new Date().toLocaleDateString(undefined, {
-              weekday: "long",
-              month: "long",
-              day: "numeric",
-            })}
-          </span>
-        }
-      />
-      <div className="max-h-[calc(100vh-17rem)] md:max-h-[calc(100vh-7.8rem)] overflow-y-auto  ">
-        <ErrorBox
-          error={tasks.error || approvals.error || notifications.error}
-        />
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {stats.map(([label, count, Icon, to, color]) => (
-            <Link
-              className="card p-5 hover:border-blue-200 transition"
-              to={to}
-              key={label}
-            >
-              <div className="flex items-center justify-between">
-                <span className={`p-2.5 rounded-xl ${color}`}>
-                  <Icon size={19} />
-                </span>
-                <ArrowUpRight size={16} className="text-slate-300" />
-              </div>
-              <p className="text-3xl font-semibold mt-5">
-                {tasks.isLoading ? "—" : count}
-              </p>
-              <p className="text-xs text-slate-400 mt-1">{label}</p>
-            </Link>
-          ))}
-        </div>
-        <div className="grid xl:grid-cols-[1.7fr_1fr] gap-6 mt-7">
-          <section className="card">
-            <div className="flex items-center justify-between p-5 border-b border-slate-100">
-              <h2 className="text-sm font-bold">Work to focus on</h2>
-              <Link
-                to="/tasks"
-                className="text-xs text-blue-600 flex gap-2 items-center"
-              >
-                All tasks
-                <ArrowRight size={13} />
-              </Link>
+    <div className="overview-dashboard">
+      <div className="overview-body">
+        <div className="overview-hero">
+          <div className="overview-hero-main">
+            <div className="overview-hero-title">
+              <h1>Hello, {user.firstName}</h1>
             </div>
-            {list.slice(0, 6).map((t) => (
-              <Link to="/tasks" className="list-row" key={t.id}>
-                <CheckSquare size={17} className="text-slate-300" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{t.title}</p>
-                  <p className="text-xs text-slate-400 mt-1">
-                    {t.assignee?.displayName || "Unassigned"} ·{" "}
-                    {prettyDate(t.dueDate)}
-                  </p>
-                </div>
-                <Badge value={t.status} />
-              </Link>
-            ))}
-            {!list.length && (
-              <Empty
-                title="A clear start"
-                text="Create a task to plan your team’s next steps."
-              />
-            )}
-          </section>
-          <section className="card p-5">
-            <h2 className="text-sm font-bold mb-5">Make room for good work</h2>
-            <p className="text-sm leading-6 text-slate-400 mb-5">
-              Keep conversations, files, and decisions connected in one shared
-              workspace.
-            </p>
-            {[
-              [
-                MessageSquare,
-                "Start a conversation",
-                "Talk to a colleague or your team",
-                "/chat",
-              ],
-              [
-                FolderClosed,
-                "Organize your files",
-                "Open your personal and shared Drive",
-                "/drive",
-              ],
-              [
-                FileCheck2,
-                "Submit a request",
-                "Get the decision you need",
-                "/approvals",
-              ],
-            ].map(([Icon, title, text, to]) => (
-              <Link
-                to={to}
-                key={to}
-                className="flex gap-3 items-center rounded-xl p-3 -mx-1 hover:bg-slate-50 mb-2"
-              >
-                <Icon size={19} className="text-blue-500" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium">{title}</p>
-                  <p className="text-[11px] mt-1 text-slate-400">{text}</p>
-                </div>
-                <ArrowUpRight size={14} className="text-slate-300" />
-              </Link>
-            ))}
-          </section>
-        </div>
-        <section className="card mt-6">
-          <div className="flex items-center justify-between p-5 border-b border-slate-100">
-            <h2 className="text-sm font-bold">Latest updates</h2>
-            <Link to="/notifications" className="text-xs text-blue-600">
-              Open inbox
-            </Link>
+            <p>Here's what's happening across your workspace today.</p>
           </div>
-          {notifications.data?.data.slice(0, 4).map((n) => (
-            <div key={n.id} className="list-row">
-              <span
-                className={`w-2 h-2 rounded-full ${n.isRead ? "bg-slate-200" : "bg-blue-500"}`}
-              />
-              <div className="flex-1">
-                <p className="text-sm font-medium">{n.title}</p>
-                <p className="text-xs text-slate-400 mt-1">{n.body}</p>
-              </div>
-              <span className="text-xs text-slate-400">
-                {prettyDate(n.createdAt)}
-              </span>
-            </div>
+          <div className="overview-hero-date"><CalendarDays size={16} /><span>{dateLabel}</span></div>
+        </div>
+
+        <ErrorBox error={tasks.error || approvals.error || notifications.error} />
+
+        <div className="overview-stats" aria-label="Workspace statistics">
+          {stats.map((stat) => (
+            <StatCard key={stat.label} {...stat} />
           ))}
-          {!notifications.data?.data.length && (
-            <p className="text-sm text-slate-400 p-6">You’re all caught up.</p>
-          )}
+        </div>
+
+        <div className="overview-work-grid">
+          <section className="overview-panel overview-focus">
+            <div className="overview-panel-heading">
+              <h2><span className="overview-heading-mark overview-heading-mark--indigo" />Work to focus on
+                <span className="overview-focus-count">{activeTasks.length}</span>
+              </h2>
+              <Link to="/tasks" className="overview-panel-action">All tasks <ArrowRight size={15} /></Link>
+            </div>
+            <div className="overview-focus-list">
+              {activeTasks.slice(0, 6).map((task) => (
+                <Link key={task.id} to="/tasks" className="overview-task-row">
+                  <span className="overview-task-check" aria-hidden="true" />
+                  <div className="overview-task-info">
+                    <strong title={task.title}>{task.title}</strong>
+                    <span>{task.assignee?.displayName || "Unassigned"} <span className="overview-separator">·</span> <span className="overview-task-date">{prettyDate(task.dueDate)}</span></span>
+                  </div>
+                  <span className="overview-task-status">{String(task.status || "Open").replaceAll("_", " ").toLocaleLowerCase()}</span>
+                  <ArrowUpRight size={15} className="overview-task-arrow" aria-hidden="true" />
+                </Link>
+              ))}
+              {!tasks.isLoading && activeTasks.length === 0 && (
+                <div className="overview-empty">
+                  <CircleCheck size={26} />
+                  <strong>A clear start</strong>
+                  <span>Create a task to plan your team's next steps.</span>
+                </div>
+              )}
+              {tasks.isLoading && <p className="overview-loading">Loading tasks…</p>}
+            </div>
+          </section>
+
+          <section className="overview-panel overview-shortcuts">
+            <div className="overview-panel-heading">
+              <h2><span className="overview-heading-mark overview-heading-mark--cyan" />Make room for good work</h2>
+            </div>
+            <p className="overview-shortcuts-intro">Keep conversations, files, and decisions connected in one shared workspace.</p>
+            <div className="overview-shortcut-list">
+              {shortcuts.map(({ icon: Icon, title, description, to, tone }) => (
+                <Link key={to} to={to} className="overview-shortcut-row">
+                  <span className={"overview-shortcut-icon overview-shortcut-icon--" + tone}><Icon size={19} /></span>
+                  <span className="overview-shortcut-copy"><strong>{title}</strong><small>{description}</small></span>
+                  <ArrowUpRight size={17} className="overview-shortcut-arrow" />
+                </Link>
+              ))}
+            </div>
+          </section>
+        </div>
+
+        <section className="overview-panel overview-updates">
+          <div className="overview-panel-heading overview-updates-heading">
+            <div>
+              <h2><span className="overview-heading-mark overview-heading-mark--violet" />Latest updates</h2>
+              <p>Real-time team communications and activity log</p>
+            </div>
+            <Link to="/notifications" className="overview-panel-action"><Inbox size={15} /> Open inbox</Link>
+          </div>
+          <div className="overview-update-list">
+            {recentUpdates.map((notification, index) => (
+              <div key={notification.id} className="overview-update-row">
+                <span className={"overview-update-dot " + (notification.isRead ? "overview-update-dot--read" : "")} />
+                <span className={"overview-update-icon overview-update-icon--" + (index % 3)}><MessageSquare size={17} /></span>
+                <div className="overview-update-info">
+                  <strong>{notification.title}</strong>
+                  <span>{notification.body}</span>
+                </div>
+                <time className="overview-update-date" dateTime={notification.createdAt}>{prettyDate(notification.createdAt)}</time>
+                <Link to="/notifications" className="overview-update-link" aria-label="Open notification in inbox"><ArrowRight size={16} /></Link>
+              </div>
+            ))}
+            {!notifications.isLoading && recentUpdates.length === 0 && (
+              <div className="overview-empty overview-empty--updates"><CircleCheck size={24} /><span>You're all caught up.</span></div>
+            )}
+            {notifications.isLoading && <p className="overview-loading">Loading updates…</p>}
+          </div>
         </section>
       </div>
-    </>
+    </div>
   );
 }

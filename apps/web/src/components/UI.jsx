@@ -6,9 +6,9 @@ import {
   cloneElement,
   isValidElement,
 } from "react";
-import { X, File, Download, LoaderCircle } from "lucide-react";
+import { X, File, Download, LoaderCircle, Search } from "lucide-react";
 import { downloadFile } from "../lib/api.js";
-export function Modal({ title, children, onClose, wide = false }) {
+export function Modal({ title, children, onClose, wide = false, headerIcon = null, subtitle = null, badge = null, className = "" }) {
   const ref = useRef(null);
   const id = useId();
   useEffect(() => {
@@ -24,13 +24,20 @@ export function Modal({ title, children, onClose, wide = false }) {
       onClick={(e) => {
         if (e.target === ref.current) onClose();
       }}
-      className={`modal ${wide ? "modal-wide" : ""}`}
+      className={`modal ${wide ? "modal-wide" : ""} ${className}`.trim()}
     >
       <div className="modal-head">
-        <h2 id={id}>{title}</h2>
+        {headerIcon && <span className="modal-head-leading" aria-hidden="true">{headerIcon}</span>}
+        <div className="modal-head-copy">
+          <div className="modal-head-title-row">
+            <h2 id={id}>{title}</h2>
+            {badge && <span className="modal-head-badge" title={badge}>{badge}</span>}
+          </div>
+          {subtitle && <p className="modal-head-subtitle">{subtitle}</p>}
+        </div>
         <button
           type="button"
-          className="icon-btn"
+          className="icon-btn modal-close-btn"
           aria-label="Close dialog"
           onClick={onClose}
         >
@@ -54,6 +61,33 @@ export function Field({ label, children, ...props }) {
     </label>
   );
 }
+// Reuse the same icon + input structure across Drive search surfaces.
+// Consumers supply a scoped visual class so the search behaves like its host page.
+export function SearchBar({
+  className = "",
+  inputClassName = "",
+  ariaLabel,
+  placeholder,
+  value,
+  onChange,
+  type = "search",
+  iconSize = 16,
+}) {
+  return (
+    <label className={className}>
+      <Search size={iconSize} aria-hidden="true" />
+      <input
+        type={type}
+        className={inputClassName}
+        aria-label={ariaLabel}
+        placeholder={placeholder}
+        value={value}
+        onChange={onChange}
+      />
+    </label>
+  );
+}
+
 export function ErrorBox({ error }) {
   return error ? (
     <div className="error-box" role="alert">

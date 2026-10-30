@@ -1,28 +1,250 @@
 import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
+import {
+  BellRing,
+  BadgeCheck,
+  CheckCircle2,
+  Circle,
+  CircleAlert,
+  ClipboardList,
+  Eye,
+  EyeOff,
+  KeyRound,
+  LogOut,
+  Mail,
+  MonitorCog,
+  Play,
+  Phone,
+  RotateCcw,
+  Trash2,
+  Upload,
+  UserRound,
+  Volume2,
+  VolumeX,
+} from "lucide-react";
 import { api } from "../lib/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
-import { BellRing, Play, Volume2 } from "lucide-react";
 import {
-  pushSupported, isIosHomeScreenRequired, pushPreferenceEnabled,
-  getWebPushConfiguration, browserPushStatus, sendTestPush,
-  enableBrowserPush, disableBrowserPush,
+  ACCENT_OPTIONS,
+  THEME_OPTIONS,
+  getAccentPreference,
+  saveAccentPreference,
+  getThemePreference,
+  saveThemePreference,
+} from "../lib/appearance.js";
+import { Avatar, ErrorBox, Field } from "../components/UI.jsx";
+import {
+  pushSupported,
+  isIosHomeScreenRequired,
+  pushPreferenceEnabled,
+  getWebPushConfiguration,
+  browserPushStatus,
+  sendTestPush,
+  enableBrowserPush,
+  disableBrowserPush,
 } from "../lib/pushNotifications.js";
 import {
   getNotificationSoundsEnabled,
   setNotificationSoundsEnabled,
   previewNotificationSound,
 } from "../lib/notificationSounds.js";
-import PageHeader from "../components/PageHeader.jsx";
-import { Field, ErrorBox } from "../components/UI.jsx";
-export default function AccountPage() {
-  const { user, logout } = useAuth();
+import "./account-page.css";
+
+const tabs = [
+  { id: "notifications", label: "Notifications", icon: BellRing },
+  { id: "profile", label: "Profile", icon: ClipboardList },
+  { id: "appearance", label: "Appearance & Theme", icon: MonitorCog },
+  { id: "security", label: "Security", icon: KeyRound },
+];
+
+const soundOptions = [
+  { category: "messages", label: "Messages", accent: "cyan" },
+  { category: "tasks", label: "Tasks", accent: "lavender" },
+  { category: "approvals", label: "Approvals", accent: "purple" },
+  { category: "system", label: "System", accent: "sky" },
+];
+
+function roleLabel(roles = []) {
+  const value = roles[0];
+  if (value === "SYSTEM_ADMIN") return "IT Admin";
+  if (value === "MANAGER") return "Manager";
+  if (value === "AUDITOR") return "Auditor";
+  if (value === "STORE") return "Store";
+  return value ? value.replaceAll("_", " ").toLowerCase() : "Employee";
+}
+
+function PushStatusRow({ name, value, positive, loading }) {
+  return (
+    <div className="account-push-status-row">
+      <span>{name}:</span>
+      <span className={positive ? "account-push-ok" : "account-push-neutral"}>
+        {loading ? (
+          <span className="account-push-status-loading">Checking…</span>
+        ) : positive ? (
+          <CheckCircle2 size={12} aria-hidden="true" />
+        ) : (
+          <CircleAlert size={12} aria-hidden="true" />
+        )}
+        {loading ? "" : value}
+      </span>
+    </div>
+  );
+}
+
+function PasswordInput({ label, value, onChange, autoComplete, placeholder, visible, onToggle, minLength, maxLength, disabled }) {
+  return (
+    <div className="account-password-field">
+      <Field label={label}>
+        <input
+          className="input account-password-input"
+          type={visible ? "text" : "password"}
+          autoComplete={autoComplete}
+          required
+          minLength={minLength}
+          maxLength={maxLength}
+          placeholder={placeholder}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          disabled={disabled}
+        />
+      </Field>
+      <button
+        type="button"
+        className="account-password-eye"
+        aria-label={visible ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`}
+        aria-pressed={visible}
+        title={visible ? "Hide password" : "Show password"}
+        onClick={onToggle}
+        disabled={disabled}
+      >
+        {visible ? <EyeOff size={17} aria-hidden="true" /> : <Eye size={17} aria-hidden="true" />}
+      </button>
+    </div>
+  );
+}
+
+function AccountSecurity() {
+  const { logout } = useAuth();
   const [currentPassword, setCurrent] = useState("");
   const [newPassword, setNew] = useState("");
   const [confirmation, setConfirmation] = useState("");
-  const [soundsEnabled, setSoundsEnabled] = useState(() =>
-    getNotificationSoundsEnabled(user.id),
+  const [revealed, setRevealed] = useState({
+    current: false,
+    next: false,
+    confirm: false,
+  });
+  function toggleVisibility(key) {
+    setRevealed((previous) => ({ ...previous, [key]: !previous[key] }));
+  }
+
+  // Match the authenticated POST /auth/password schema (12–200 characters;
+  // different from current). Confirmation is a frontend safeguard.
+  const rules = [
+    { id: "minimum", label: "At least 12 characters", met: newPassword.length >= 12 },
+    { id: "maximum", label: "No more than 200 characters", met: newPassword.length > 0 && newPassword.length <= 200 },
+    { id: "different", label: "Different from current password", met: currentPassword.length > 0 && newPassword.length > 0 && newPassword !== currentPassword },
+    { id: "matching", label: "Confirmation matches new password", met: confirmation.length > 0 && newPassword === confirmation },
+  ];
+  const save = useMutation({
+    mutationFn: () =>
+      api("/auth/password", {
+        method: "POST",
+        body: JSON.stringify({ currentPassword, newPassword }),
+      }),
+    onSuccess: () => logout(),
+  });
+  const canSave =
+    !save.isPending &&
+    currentPassword.length >= 1 &&
+    currentPassword.length <= 200 &&
+    rules.every((rule) => rule.met);
+
+  return (
+    <div className="account-security-grid">
+      <section className="account-settings-card account-security-card" aria-labelledby="account-security-title">
+        <div className="account-card-heading">
+          <span className="account-card-icon account-card-icon--violet" aria-hidden="true">
+            <RotateCcw size={20} />
+          </span>
+          <div>
+            <h2 id="account-security-title">Change password</h2>
+            <p>Credential encryption &amp; renewal</p>
+          </div>
+        </div>
+        <p className="account-settings-description">
+          Use at least 12 characters. After saving, sign in again with your new password on each device.
+        </p>
+        <form
+          className="account-password-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (canSave) save.mutate();
+          }}
+        >
+          <PasswordInput
+            label="Current password"
+            placeholder="Enter current password"
+            autoComplete="current-password"
+            value={currentPassword}
+            onChange={setCurrent}
+            maxLength={200}
+            visible={revealed.current}
+            onToggle={() => toggleVisibility("current")}
+            disabled={save.isPending}
+          />
+          <PasswordInput
+            label="New password"
+            placeholder="At least 12 characters"
+            autoComplete="new-password"
+            value={newPassword}
+            onChange={setNew}
+            minLength={12}
+            maxLength={200}
+            visible={revealed.next}
+            onToggle={() => toggleVisibility("next")}
+            disabled={save.isPending}
+          />
+          <PasswordInput
+            label="Confirm new password"
+            placeholder="Confirm new password"
+            autoComplete="new-password"
+            value={confirmation}
+            onChange={setConfirmation}
+            maxLength={200}
+            visible={revealed.confirm}
+            onToggle={() => toggleVisibility("confirm")}
+            disabled={save.isPending}
+          />
+          {confirmation && newPassword !== confirmation && (
+            <p className="account-validation-error" role="alert">Passwords do not match.</p>
+          )}
+          <ErrorBox error={save.error} />
+          <button className="btn-primary account-save-password" disabled={!canSave}>
+            {save.isPending ? "Saving…" : "Save password"}
+          </button>
+        </form>
+      </section>
+
+      <section className="account-settings-card account-password-policy" aria-labelledby="account-password-policy-title">
+        <h2 id="account-password-policy-title">Password Policy Requirements</h2>
+        <p>Server password limits and confirmation checks before saving.</p>
+        <ul className="account-password-rules" aria-label="Password requirements">
+          {rules.map((rule) => (
+            <li key={rule.id} className={rule.met ? "is-met" : "is-pending"}>
+              {rule.met
+                ? <CheckCircle2 size={16} aria-hidden="true" />
+                : <Circle size={16} aria-hidden="true" />}
+              <span>{rule.label}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </div>
   );
+}
+
+function AccountNotifications({ userId }) {
+  const [soundsEnabled, setSoundsEnabled] = useState(() => getNotificationSoundsEnabled(userId));
   const [push, setPush] = useState({
     supported: pushSupported(),
     loading: true,
@@ -36,287 +258,495 @@ export default function AccountPage() {
     result: "",
   });
   const iphoneNeedsInstall = isIosHomeScreenRequired();
+  const permission = push.supported ? Notification.permission : "unavailable";
+
+  useEffect(() => {
+    setSoundsEnabled(getNotificationSoundsEnabled(userId));
+  }, [userId]);
 
   useEffect(() => {
     let active = true;
     async function load() {
       if (!pushSupported()) {
-        if (active) setPush((old) => ({ ...old, loading: false }));
+        if (active) setPush((previous) => ({ ...previous, loading: false }));
         return;
       }
       try {
         const config = await getWebPushConfiguration();
         let status = { browserSubscribed: false, linked: false };
         try {
-          status = await browserPushStatus(user.id);
+          status = await browserPushStatus(userId);
         } catch {
-          // The status endpoint might be temporarily unavailable.
+          // The API can be temporarily unavailable. Show the browser status safely.
         }
-        if (active) setPush((old) => ({
-          ...old,
-          configured: config.enabled,
-          publicKey: config.publicKey,
-          registered: status.browserSubscribed,
-          linked: status.linked,
-          subscribed: status.browserSubscribed && pushPreferenceEnabled(user.id),
-          loading: false,
-        }));
+        if (active) {
+          setPush((previous) => ({
+            ...previous,
+            configured: config.enabled,
+            publicKey: config.publicKey,
+            registered: status.browserSubscribed,
+            linked: status.linked,
+            subscribed: status.browserSubscribed && pushPreferenceEnabled(userId),
+            loading: false,
+          }));
+        }
       } catch (error) {
-        if (active) setPush((old) => ({
-          ...old, loading: false, error: error.message,
-        }));
+        if (active) setPush((previous) => ({ ...previous, loading: false, error: error.message }));
       }
     }
     void load();
     return () => { active = false; };
-  }, [user.id]);
+  }, [userId]);
+
+  function updateSoundPreference(checked) {
+    setSoundsEnabled(checked);
+    setNotificationSoundsEnabled(userId, checked);
+  }
 
   async function enablePush() {
-    setPush((old) => ({ ...old, busy: true, error: "", result: "" }));
+    setPush((previous) => ({ ...previous, busy: true, error: "", result: "" }));
     try {
-      // The browser permission prompt occurs directly inside this click event.
-      await enableBrowserPush(user.id, push.publicKey);
-      const status = await browserPushStatus(user.id);
-      setPush((old) => ({
-        ...old,
-        subscribed: true,
+      // Request permission inside the click handler; Safari requires a user gesture.
+      await enableBrowserPush(userId, push.publicKey);
+      const status = await browserPushStatus(userId);
+      setPush((previous) => ({
+        ...previous,
         registered: true,
         linked: status.linked,
+        subscribed: true,
         busy: false,
         result: status.linked
-          ? "Push enabled and saved on the server. Use Send test notification."
+          ? "Push enabled and saved on the server. You can send a test notification."
           : "Browser subscribed, but server registration could not be verified.",
       }));
     } catch (error) {
-      setPush((old) => ({ ...old, busy: false, error: error.message }));
+      setPush((previous) => ({ ...previous, busy: false, error: error.message }));
     }
   }
 
   async function disablePush() {
-    setPush((old) => ({ ...old, busy: true, error: "", result: "" }));
+    setPush((previous) => ({ ...previous, busy: true, error: "", result: "" }));
     try {
-      await disableBrowserPush(user.id);
-      setPush((old) => ({
-        ...old, subscribed: false, registered: false, linked: false,
+      await disableBrowserPush(userId);
+      setPush((previous) => ({
+        ...previous, subscribed: false, registered: false, linked: false,
         busy: false, result: "Push disabled on this browser.",
       }));
     } catch (error) {
-      setPush((old) => ({
-        ...old, subscribed: false, registered: false, linked: false,
-        busy: false, error: error.message,
-      }));
+      setPush((previous) => ({ ...previous, busy: false, error: error.message }));
     }
   }
 
   async function testPush() {
-    setPush((old) => ({ ...old, busy: true, error: "", result: "" }));
+    setPush((previous) => ({ ...previous, busy: true, error: "", result: "" }));
     try {
-      const result = await sendTestPush(user.id);
-      setPush((old) => ({
-        ...old, busy: false,
-        result: `Gateway accepted push (HTTP ${result.status}). Check your Windows / Android / iPhone notifications. Delivery to the screen is not guaranteed by the gateway.`,
+      const result = await sendTestPush(userId);
+      setPush((previous) => ({
+        ...previous, busy: false,
+        result: `Gateway accepted the push (HTTP ${result.status}). Check your device's notification center for delivery.`,
       }));
     } catch (error) {
-      setPush((old) => ({ ...old, busy: false, error: error.message }));
+      setPush((previous) => ({ ...previous, busy: false, error: error.message }));
     }
   }
 
-  const soundOptions = [
-    { category: "messages", label: "Messages" },
-    { category: "tasks", label: "Tasks" },
-    { category: "approvals", label: "Approvals" },
-    { category: "system", label: "System" },
-  ];
-  const save = useMutation({
-    mutationFn: () =>
-      api("/auth/password", {
-        method: "POST",
-        body: JSON.stringify({ currentPassword, newPassword }),
-      }),
-    onSuccess: () => logout(),
-  });
   return (
-    <>
-      <PageHeader title="My account" description={user.email} />
-      <section className="card mb-5 max-w-lg p-6" aria-labelledby="notification-sounds-heading">
-        <div className="flex items-center justify-between gap-4">
+    <div className="account-notifications-grid">
+      <section className="account-settings-card account-sounds-card" aria-labelledby="account-sounds-title">
+        <div className="account-card-heading">
+          <span className="account-card-icon account-card-icon--violet"><Volume2 size={20} /></span>
           <div>
-            <h2 id="notification-sounds-heading" className="flex items-center gap-2 font-semibold">
-              <Volume2 size={18} /> Notification sounds
-            </h2>
-            <p className="mt-2 text-sm text-slate-500">
-              Play a distinct sound when a new message, task, approval, or system notification arrives.
-              This preference is saved for this account in this browser.
-            </p>
+            <h2 id="account-sounds-title">Notification sounds</h2>
+            <p>Real-time telemetry and chime events</p>
           </div>
-          <label className="flex shrink-0 items-center gap-2 text-sm font-medium">
+          <label className="account-sounds-toggle">
             <input
               type="checkbox"
-              checked={soundsEnabled}
-              onChange={(event) => {
-                setSoundsEnabled(event.target.checked);
-                setNotificationSoundsEnabled(user.id, event.target.checked);
-              }}
               aria-label="Enable notification sounds"
-              className="h-4 w-4 accent-blue-600"
+              checked={soundsEnabled}
+              onChange={(event) => updateSoundPreference(event.target.checked)}
             />
-            {soundsEnabled ? "On" : "Off"}
+            <span>{soundsEnabled ? "On" : "Off"}</span>
           </label>
         </div>
-        <div className="mt-5 grid grid-cols-2 gap-2">
-          {soundOptions.map(({ category, label }) => (
-            <button
-              key={category}
-              type="button"
-              className="btn-secondary flex items-center justify-center gap-2"
-              disabled={!soundsEnabled}
-              onClick={() => previewNotificationSound(category)}
-              aria-label={`Preview ${label} sound`}
-            >
-              <Play size={14} />
-              {label}
-            </button>
-          ))}
+        <p className="account-settings-description">
+          Play a distinct sound when a new message, task, approval, or system notification arrives.
+          This preference is saved for this account in this browser.
+        </p>
+        <div className="account-soundboard">
+          <p className="account-eyebrow">AUDIO SOUNDBOARD TRIGGERS</p>
+          <div className="account-sound-grid">
+            {soundOptions.map(({ category, label, accent }) => (
+              <button
+                key={category}
+                type="button"
+                className="btn-secondary account-sound-preview"
+                disabled={!soundsEnabled}
+                onClick={() => previewNotificationSound(category)}
+                aria-label={`Preview ${label} sound`}
+              >
+                <Play size={13} fill="currentColor" className={`account-sound--${accent}`} />
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
       </section>
-      <section className="card mb-5 max-w-lg p-6" aria-labelledby="web-push-heading">
-        <h2 id="web-push-heading" className="flex items-center gap-2 font-semibold">
-          <BellRing size={18} /> Web push notifications
-        </h2>
-        <p className="mt-2 text-sm text-slate-500">
-          Receive desktop and mobile system notifications when the website
-          is in the background or closed. Each browser must be enabled separately.
+      <section className="account-settings-card account-push-card" aria-labelledby="account-push-title">
+        <div className="account-card-heading">
+          <span className="account-card-icon account-card-icon--cyan"><BellRing size={20} /></span>
+          <div><h2 id="account-push-title">Web push notifications</h2></div>
+        </div>
+        <p className="account-settings-description">
+          Receive desktop and mobile system notifications when the website is in the background
+          or closed. Each browser must be enabled separately.
         </p>
 
+        <div className="account-push-status" role="status" aria-label="Web push diagnostics">
+          <PushStatusRow name="Browser support" value={push.supported ? "Supported" : "Unavailable"} positive={push.supported} />
+          <PushStatusRow name="Permission" value={permission} positive={permission === "granted"} />
+          <PushStatusRow name="Backend VAPID" value={push.configured ? "Valid" : "Unavailable"} positive={push.configured} loading={push.loading} />
+          <PushStatusRow name="Browser subscription" value={push.registered ? "Present" : "Not registered"} positive={push.registered} loading={push.loading} />
+          <PushStatusRow name="Current account/session" value={push.linked ? "Linked" : "Not linked"} positive={push.linked} loading={push.loading} />
+        </div>
+
         {iphoneNeedsInstall && (
-          <p className="mt-3 text-sm text-amber-700">
-            iPhone: Open this website in Safari, select Share → Add to Home Screen,
-            then open GTEX Collaboration from its Home Screen icon. Enable push
-            inside the installed web app, not an ordinary browser tab.
+          <p className="account-push-warning">
+            iPhone: open this site in Safari, choose Share → Add to Home Screen, then
+            enable notifications inside the installed web app.
           </p>
         )}
         {!push.supported && !iphoneNeedsInstall && (
-          <p className="mt-3 text-sm text-amber-700">
-            Web Push is unavailable. Use a compatible browser over HTTPS,
-            or localhost for desktop development.
-          </p>
+          <p className="account-push-warning">Web Push requires a supported browser and a secure connection.</p>
         )}
-        {push.supported && !push.loading && !push.configured && (
-          <p className="mt-3 text-sm text-amber-700">
-            The API is missing valid matching VAPID keys. Configure
-            PUSH_VAPID_PUBLIC_KEY, PUSH_VAPID_PRIVATE_KEY, and
-            PUSH_VAPID_SUBJECT in the backend environment, then restart it.
-          </p>
+        {push.supported && !push.loading && !push.configured && !push.error && (
+          <p className="account-push-warning">Web Push is not configured on the connected API.</p>
         )}
-        {push.supported && Notification.permission === "denied" && (
-          <p className="mt-3 text-sm text-amber-700">
-            Notifications are blocked. Allow them in this site's browser
-            permissions and in your device's notification settings.
-          </p>
-        )}
-
-        <div className="mt-4 space-y-1 text-xs text-slate-600" role="status">
-          <div>Browser support: {push.supported ? "Supported" : "Unavailable"}</div>
-          {push.supported && (
-            <>
-              <div>Permission: {Notification.permission}</div>
-              <div>Backend VAPID: {push.configured ? "Valid" : "Not configured"}</div>
-              <div>Browser subscription: {push.registered ? "Present" : "Not registered"}</div>
-              <div>Current account/session: {push.linked ? "Linked" : "Not linked"}</div>
-            </>
-          )}
-        </div>
-
-        {push.error && (
-          <p role="alert" className="mt-3 text-sm text-red-600">{push.error}</p>
-        )}
-        {push.result && (
-          <p role="status" className="mt-3 text-sm text-blue-700">{push.result}</p>
+        {push.supported && permission === "denied" && (
+          <p className="account-push-warning">Notifications are blocked. Update this site's browser permissions.</p>
         )}
         {push.subscribed && !push.linked && (
-          <p className="mt-3 text-sm text-amber-700">
-            A browser subscription exists but is not linked to your current
-            session. Disable and re-enable push, then send a test notification.
+          <p className="account-push-warning">
+            This browser has a subscription that is not linked to the current session.
+            Disable and re-enable push, then try again.
           </p>
         )}
-        <div className="mt-4 flex flex-wrap gap-2">
+        {push.error && <p className="account-push-error" role="alert">{push.error}</p>}
+        {push.result && <p className="account-push-result" role="status">{push.result}</p>}
+
+        <div className="account-push-actions">
           <button
             type="button"
-            className="btn-secondary"
-            disabled={push.loading || push.busy || !push.supported ||
-              (!push.subscribed && (!push.configured || iphoneNeedsInstall ||
-                Notification.permission === "denied"))}
+            className={`btn-secondary account-push-action ${push.subscribed ? "account-push-disable" : "account-push-enable"}`}
+            disabled={
+              push.loading || push.busy || !push.supported ||
+              (!push.subscribed && (!push.configured || iphoneNeedsInstall || permission === "denied"))
+            }
             onClick={push.subscribed ? disablePush : enablePush}
           >
-            {push.busy ? "Working…" : push.subscribed
-              ? "Disable push notifications" : "Enable push notifications"}
+            {push.subscribed ? <VolumeX size={15} /> : <BellRing size={15} />}
+            {push.busy ? "Working…" : push.subscribed ? "Disable push notifications" : "Enable push notifications"}
           </button>
           {push.subscribed && (
             <button
               type="button"
-              className="btn-secondary"
+              className="btn-secondary account-push-action account-push-test"
               disabled={push.busy || !push.linked}
               onClick={testPush}
             >
-              Send test notification
+              <Play size={13} /> Send test notification
             </button>
           )}
         </div>
-        <p className="mt-3 text-xs text-slate-500">
-          The test sends a real push through the browser gateway. System
-          notification sounds depend on your device settings; custom in-app
-          sounds remain active for Socket.IO events.
+        <p className="account-push-footnote">
+          The test sends a real push through the browser gateway. System notification sounds
+          depend on device settings; custom in-app sounds remain active for Socket.IO events.
         </p>
       </section>
-      <form
-        className="card p-6 max-w-lg"
-        onSubmit={(e) => {
-          e.preventDefault();
-          save.mutate();
-        }}
-      >
-        <h2 className="font-semibold">Change password</h2>
-        <p className="text-sm text-slate-500 mt-2 mb-5">
-          Use at least 12 characters. After saving, sign in again with your new
-          password on each device.
-        </p>
-        <Field
-          label="Current password"
-          type="password"
-          autoComplete="current-password"
-          required
-          value={currentPassword}
-          onChange={(e) => setCurrent(e.target.value)}
-        />
-        <Field
-          label="New password"
-          type="password"
-          autoComplete="new-password"
-          required
-          minLength={12}
-          maxLength={200}
-          value={newPassword}
-          onChange={(e) => setNew(e.target.value)}
-        />
-        <Field
-          label="Confirm new password"
-          type="password"
-          autoComplete="new-password"
-          required
-          value={confirmation}
-          onChange={(e) => setConfirmation(e.target.value)}
-        />
-        {confirmation && newPassword !== confirmation && (
-          <p className="text-xs text-red-600 mt-2">Passwords do not match.</p>
-        )}
-        <ErrorBox error={save.error} />
-        <button
-          className="btn-primary mt-5"
-          disabled={save.isPending || newPassword !== confirmation}
+    </div>
+  );
+}
+
+function AccountProfile({ user, displayName, photoUrl }) {
+  const departmentName = user.department?.name || "Not assigned";
+
+  return (
+    <div className="account-profile-grid">
+      <section className="account-settings-card account-profile-photo-card" aria-labelledby="account-photo-title">
+        <div className="account-card-heading">
+          <span className="account-card-icon account-card-icon--violet" aria-hidden="true">
+            <UserRound size={20} />
+          </span>
+          <div>
+            <h2 id="account-photo-title">Avatar &amp; Badge</h2>
+            <p>Public team picture representation</p>
+          </div>
+        </div>
+
+        <div
+          className="account-profile-dropzone"
+          aria-disabled="true"
+          title="Profile photo uploads are coming soon"
+          onDragOver={(event) => event.preventDefault()}
+          onDrop={(event) => event.preventDefault()}
         >
-          Save password
-        </button>
-      </form>
-    </>
+          <div className="account-profile-portrait" aria-hidden="true">
+            <Avatar name={displayName} />
+            {photoUrl && (
+              <img
+                src={photoUrl}
+                alt=""
+                onError={(event) => { event.currentTarget.style.display = "none"; }}
+              />
+            )}
+          </div>
+          <span className="account-profile-dropzone-caption">
+            Drop image here or click to browse
+          </span>
+          <span className="account-profile-dropzone-hint">Photo changes coming soon</span>
+        </div>
+
+        <div className="account-profile-photo-actions">
+          <button
+            type="button"
+            className="btn-primary account-profile-upload"
+            disabled
+            title="Photo upload will be available in a future update"
+          >
+            <Upload size={15} aria-hidden="true" />
+            Upload new photo
+          </button>
+          <button
+            type="button"
+            className="btn-secondary account-profile-remove"
+            disabled
+            title="Photo removal will be available in a future update"
+          >
+            <Trash2 size={15} aria-hidden="true" />
+            Remove
+          </button>
+        </div>
+      </section>
+
+      <section className="account-settings-card account-profile-info-card" aria-labelledby="account-personal-title">
+        <div className="account-profile-info-header">
+          <h2 id="account-personal-title">Personal Information</h2>
+          <p>Details synced across Workspace Organization directories.</p>
+        </div>
+
+        <div className="account-profile-fields">
+          <div className="account-profile-input-wrap">
+            <Field label="Display name (Full name)">
+              <input
+                className="input account-profile-readonly"
+                type="text"
+                value={displayName}
+                readOnly
+                aria-readonly="true"
+              />
+            </Field>
+            <UserRound className="account-profile-input-icon" size={16} aria-hidden="true" />
+          </div>
+
+          <div className="account-profile-input-wrap">
+            <Field label="Work email address">
+              <input
+                className="input account-profile-readonly"
+                type="email"
+                value={user.email || ""}
+                readOnly
+                aria-readonly="true"
+              />
+            </Field>
+            <BadgeCheck className="account-profile-input-icon account-profile-email-verified" size={18} aria-hidden="true" />
+            <p className="account-profile-field-hint">
+              Work email is managed by your workspace administrator and cannot be changed here.
+            </p>
+          </div>
+
+          <div className="account-profile-contact-row">
+            <div className="account-profile-input-wrap account-profile-department">
+              <Field label="Department">
+                <input
+                  className="input account-profile-readonly"
+                  type="text"
+                  value={departmentName}
+                  readOnly
+                  aria-readonly="true"
+                />
+              </Field>
+            </div>
+
+            <div className="account-profile-input-wrap account-profile-phone">
+              <Field label="Mobile phone number">
+                <input
+                  className="input account-profile-readonly"
+                  type="tel"
+                  value={user.phone || "Not provided"}
+                  readOnly
+                  aria-readonly="true"
+                />
+              </Field>
+              <Phone className="account-profile-input-icon" size={16} aria-hidden="true" />
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function AccountAppearance({ userId }) {
+  const [accent, setAccent] = useState(() => getAccentPreference(userId));
+  const [theme, setTheme] = useState(() => getThemePreference(userId));
+
+  useEffect(() => {
+    setAccent(getAccentPreference(userId));
+    setTheme(getThemePreference(userId));
+  }, [userId]);
+
+  function selectAccent(nextAccent) {
+    if (saveAccentPreference(userId, nextAccent)) setAccent(nextAccent);
+  }
+  function selectTheme(nextTheme) {
+    if (saveThemePreference(userId, nextTheme)) setTheme(nextTheme);
+  }
+
+  return (
+    <div className="account-appearance-grid">
+      <section className="account-settings-card account-appearance-workspace" aria-labelledby="account-appearance-title">
+        <div className="account-card-heading">
+          <span className="account-card-icon account-card-icon--violet" aria-hidden="true">
+            <MonitorCog size={20} />
+          </span>
+          <div>
+            <h2 id="account-appearance-title">Workspace Appearance</h2>
+            <p>Choose your workspace display style</p>
+          </div>
+        </div>
+        <div className="account-appearance-themes" role="radiogroup" aria-label="Workspace theme">
+          {THEME_OPTIONS.map(({ id, label }) => {
+            const selected = theme === id;
+            return (
+              <label
+                key={id}
+                className={`account-appearance-theme ${selected ? "is-active" : ""}`}
+              >
+                <input
+                  type="radio"
+                  className="sr-only"
+                  name="account-workspace-theme"
+                  value={id}
+                  checked={selected}
+                  onChange={() => selectTheme(id)}
+                />
+                <div className={`account-appearance-theme-preview preview-${id}`} aria-hidden="true">
+                  <span /><span /><span />
+                </div>
+                <strong>{label}</strong>
+                <span className="account-appearance-theme-state">{selected ? "Active" : "Select theme"}</span>
+              </label>
+            );
+          })}
+        </div>
+        <p className="account-appearance-hint">
+          Choose between Dark Midnight, OLED Pure Black, Deep Slate, and Light Theme. Your selection is saved for this account in this browser.
+        </p>
+      </section>
+
+      <section className="account-settings-card account-appearance-accent-card" aria-labelledby="account-accent-title">
+        <div className="account-card-heading">
+          <span className="account-card-icon account-card-icon--violet" aria-hidden="true">
+            <MonitorCog size={20} />
+          </span>
+          <div>
+            <h2 id="account-accent-title">Accent Color</h2>
+            <p>Customize primary highlights and navigation</p>
+          </div>
+        </div>
+        <div className="account-appearance-accent-list" role="radiogroup" aria-label="Accent Color">
+          {ACCENT_OPTIONS.map((option) => (
+            <label className={`account-appearance-accent-option ${accent === option.id ? "is-selected" : ""}`} key={option.id}>
+              <input
+                type="radio"
+                className="sr-only"
+                name="account-appearance-accent"
+                value={option.id}
+                checked={accent === option.id}
+                onChange={() => selectAccent(option.id)}
+              />
+              <span className="account-appearance-swatch" style={{ backgroundColor: option.color }} aria-hidden="true" />
+              <span className="account-appearance-accent-name">{option.label}</span>
+              {accent === option.id && <span className="account-appearance-selected">Selected</span>}
+            </label>
+          ))}
+        </div>
+        <p className="account-appearance-hint">
+          Saved for this account in this browser. Success, warning and error indicators retain their standard colors.
+        </p>
+      </section>
+    </div>
+  );
+}
+
+export default function AccountPage() {
+  const { user, logout } = useAuth();
+  const [activeTab, setActiveTab] = useState("notifications");
+  const displayName = user.displayName || user.firstName || user.email || "Workspace member";
+  const role = roleLabel(user.roles);
+  const photoUrl = user.avatarUrl || user.photoUrl;
+
+  return (
+    <div className="account-page">
+      <header className="account-hero">
+        <div className="account-hero-top">
+          <div className="account-identity">
+            <div className="account-hero-avatar">
+              <Avatar name={displayName} />
+              {photoUrl && (
+                <img src={photoUrl} alt="" onError={(event) => { event.currentTarget.style.display = "none"; }} />
+              )}
+            </div>
+            <div className="account-identity-copy">
+              <div className="account-identity-title">
+                <h1>{displayName}</h1>
+                <span className="account-role-badge">{role}</span>
+              </div>
+              <p className="account-email"><Mail size={14} /> {user.email}</p>
+              <p className="account-workspace-name"><span aria-hidden="true">✦</span> GTEX Workspace Enterprise</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="btn-secondary account-hero-signout"
+            onClick={logout}
+          >
+            <LogOut size={17} aria-hidden="true" />
+            <span>Sign out</span>
+          </button>
+        </div>
+        <nav className="account-tabs" aria-label="Account settings">
+          {tabs.map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              className={`account-tab ${activeTab === id ? "is-active" : ""}`}
+              type="button"
+              aria-current={activeTab === id ? "page" : undefined}
+              onClick={() => setActiveTab(id)}
+            >
+              <Icon size={15} aria-hidden="true" />
+              <span>{label}</span>
+            </button>
+          ))}
+        </nav>
+      </header>
+
+      {activeTab === "notifications" && <AccountNotifications userId={user.id} />}
+      {activeTab === "security" && <AccountSecurity />}
+      {activeTab === "profile" && (
+        <AccountProfile user={user} displayName={displayName} photoUrl={photoUrl} />
+      )}
+      {activeTab === "appearance" && <AccountAppearance userId={user.id} />}
+    </div>
   );
 }

@@ -19,6 +19,8 @@ import {
   Send,
   Paperclip,
   Users,
+  EllipsisVertical,
+  LogOut,
   Reply,
   Pencil,
   Trash2,
@@ -36,15 +38,21 @@ import {
   Lightbulb,
   Sparkles,
   Trophy,
+  Hash,
+  Check,
+  UserRound,
 } from "lucide-react";
 import { api, uploadFiles } from "../lib/api.js";
+import { SelectedFiles, useSelectedFiles } from "../components/SelectedFiles.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useSocket } from "../hooks/useSocket.js";
 import PageHeader from "../components/PageHeader.jsx";
-import FileDropzone from "../components/FileDropzone.jsx";
+import "./messages-theme.css";
+import { filterConversationMembers } from "../lib/conversation-member-search.js";
 import {
   Modal,
   Field,
+  SearchBar,
   ErrorBox,
   Empty,
   Loading,
@@ -58,6 +66,32 @@ const displayName = (c, me) =>
     : c?.name;
 
 const LAST_CHAT_KEY = "collab:last-selected-chat";
+const CONVERSATION_FILTERS = [
+  { id: "all", label: "All" },
+  { id: "direct", label: "Direct" },
+  { id: "unread", label: "Unread" },
+  { id: "channels", label: "Channels" },
+];
+function chatDateKey(value) { return new Date(value).toDateString(); }
+function chatDayLabel(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const now = new Date();
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  if (chatDateKey(date) === chatDateKey(now)) return "Today";
+  if (chatDateKey(date) === chatDateKey(yesterday)) return "Yesterday";
+  return date.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
+}
+function chatListTime(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const day = chatDayLabel(date);
+  if (day === "Today") return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  if (day === "Yesterday") return day;
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
 
 const CHAT_SEARCH_TABS = [
   { id: "messages", label: "Messages", icon: MessageSquare },
@@ -534,13 +568,29 @@ function ReceiptDetails({ details, onClose }) {
 }
 function NewChat({ onClose, onCreated }) {
   const { user } = useAuth();
+  const dialogRef = useRef(null);
   const [group, setGroup] = useState(false);
   const [name, setName] = useState("");
   const [members, setMembers] = useState([]);
+  const [memberSearch, setMemberSearch] = useState("");
+
   const users = useQuery({
     queryKey: ["users"],
     queryFn: () => api("/users").then((r) => r.data),
   });
+  const colleagues = useMemo(
+    () => (users.data || []).filter((person) => person.id !== user.id && person.status === "ACTIVE"),
+    [users.data, user.id],
+  );
+  const filteredColleagues = useMemo(() => {
+    const query = memberSearch.trim().toLocaleLowerCase();
+    if (!query) return colleagues;
+    return colleagues.filter((person) =>
+      [person.displayName, person.jobTitle, person.department?.name, person.email]
+        .some((value) => value?.toLocaleLowerCase().includes(query)),
+    );
+  }, [colleagues, memberSearch]);
+
   const save = useMutation({
     mutationFn: () =>
       api("/conversations", {
@@ -556,171 +606,290 @@ function NewChat({ onClose, onCreated }) {
       onClose();
     },
   });
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    dialog.showModal();
+    return () => {
+      if (dialog.open) dialog.close();
+    };
+  }, []);
+
+  const changeType = (nextGroup) => {
+    if (group === nextGroup) return;
+    setGroup(nextGroup);
+    setMembers([]);
+  };
+  const toggleMember = (id) => {
+    setMembers((selected) => {
+      if (!group) return [id];
+      return selected.includes(id)
+        ? selected.filter((memberId) => memberId !== id)
+        : [...selected, id];
+    });
+  };
+
   return (
-    <Modal title="New conversation" onClose={onClose}>
-      <div className="tabs mb-5">
-        <button
-          className={!group ? "active" : ""}
-          onClick={() => {
-            setGroup(false);
-            setMembers([]);
-          }}
-        >
-          Direct message
-        </button>
-        <button
-          className={group ? "active" : ""}
-          onClick={() => {
-            setGroup(true);
-            setMembers([]);
-          }}
-        >
-          Group
-        </button>
-      </div>
+    <dialog
+      ref={dialogRef}
+      className="new-conversation-dialog"
+      aria-labelledby="new-conversation-title"
+      aria-describedby="new-conversation-description"
+      onCancel={onClose}
+      onClick={(event) => {
+        if (event.target === dialogRef.current) onClose();
+      }}
+    >
       <form
-        onSubmit={(e) => {
-          e.preventDefault();
+        className="new-conversation-form"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (save.isPending || members.length === 0 || (group && name.trim().length < 2)) return;
           save.mutate();
         }}
       >
-        {group && (
-          <Field
-            label="Group name"
-            required
-            minLength={2}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-        )}
-        <Field label={group ? "Members" : "Person"}>
-          <select
-            className={`input ${group ? "h-40" : ""}`}
-            multiple={group}
-            required
-            value={group ? members : members[0] || ""}
-            onChange={(e) =>
-              setMembers([...e.target.selectedOptions].map((o) => o.value))
-            }
-          >
-            {!group && <option value="">Choose a colleague</option>}
-            {users.data
-              ?.filter((u) => u.id !== user.id && u.status === "ACTIVE")
-              .map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.displayName}
-                </option>
-              ))}
-          </select>
-        </Field>
-        {group && (
-          <p className="mt-2 text-xs text-slate-400">
-            Hold Ctrl / Cmd to select multiple people.
-          </p>
-        )}
-        <ErrorBox error={save.error} />
-        <div className="form-actions">
-          <button className="btn-primary" disabled={save.isPending}>
-            Start conversation
+        <header className="new-conversation-header">
+          <span className="new-conversation-header-icon" aria-hidden="true"><Plus size={24} /></span>
+          <div className="new-conversation-heading">
+            <h2 id="new-conversation-title">New conversation</h2>
+            <p id="new-conversation-description">Reach out to a team colleague or form a group channel</p>
+          </div>
+          <button type="button" className="new-conversation-close modal-close-btn" aria-label="Close new conversation" onClick={onClose}>
+            <X size={18} />
           </button>
+        </header>
+
+        <div className="new-conversation-body">
+          <div className="new-conversation-types">
+            <div className="new-conversation-type-switch" role="group" aria-label="Conversation type">
+              <button
+                type="button"
+                aria-pressed={!group}
+                className={!group ? "is-active" : ""}
+                onClick={() => changeType(false)}
+              >
+                <UserRound size={14} />
+                Direct message
+              </button>
+              <button
+                type="button"
+                aria-pressed={group}
+                className={group ? "is-active" : ""}
+                onClick={() => changeType(true)}
+              >
+                <Users size={14} />
+                Group
+              </button>
+            </div>
+            <span className="new-conversation-count" aria-live="polite">
+              {members.length} {members.length === 1 ? "member" : "members"} selected
+            </span>
+          </div>
+
+          {group && (
+            <label className="new-conversation-name-label">
+              <span>Group name <span className="new-conversation-required">*</span></span>
+              <span className="new-conversation-name-field">
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  minLength={2}
+                  required
+                  placeholder="Enter a group name"
+                  autoComplete="off"
+                />
+                <Hash size={16} aria-hidden="true" />
+              </span>
+            </label>
+          )}
+
+          <div className="new-conversation-members-heading">
+            <span>{group ? "Members" : "Person / Colleague"}</span>
+            <span>Search colleagues</span>
+          </div>
+          <div className="new-conversation-people-panel">
+            <label className="new-conversation-search">
+              <Search size={19} aria-hidden="true" />
+              <input
+                type="search"
+                aria-label="Search colleagues"
+                placeholder="Type name or branch to filter..."
+                value={memberSearch}
+                onChange={(event) => setMemberSearch(event.target.value)}
+                autoComplete="off"
+              />
+            </label>
+            <div
+              className="new-conversation-people-list"
+              role={group ? "group" : "radiogroup"}
+              aria-label={group ? "Select group members" : "Select a colleague"}
+            >
+              {users.isLoading ? (
+                <p className="new-conversation-list-state">Loading colleagues…</p>
+              ) : users.error ? (
+                <ErrorBox error={users.error} />
+              ) : !filteredColleagues.length ? (
+                <p className="new-conversation-list-state">
+                  {memberSearch.trim() ? "No matching colleagues found." : "No colleagues available."}
+                </p>
+              ) : (
+                filteredColleagues.map((person, index) => {
+                  const isSelected = members.includes(person.id);
+                  const initials = (person.displayName || "Colleague")
+                    .trim()
+                    .split(/\s+/)
+                    .slice(0, 2)
+                    .map((part) => part[0] || "")
+                    .join("")
+                    .toUpperCase();
+                  return (
+                    <button
+                      key={person.id}
+                      type="button"
+                      role={group ? "checkbox" : "radio"}
+                      aria-checked={isSelected}
+                      className={"new-conversation-person" + (isSelected ? " is-selected" : "")}
+                      onClick={() => toggleMember(person.id)}
+                    >
+                      <span className={"new-conversation-person-avatar avatar-tone-" + (index % 4)} aria-hidden="true">
+                        {initials}
+                      </span>
+                      <span className="new-conversation-person-details">
+                        <span className="new-conversation-person-name">
+                          {person.displayName}
+                        </span>
+                        <span className="new-conversation-person-subtitle">
+                          {[person.jobTitle, person.department?.name].filter(Boolean).join(" · ") || "Colleague"}
+                        </span>
+                      </span>
+                      <span className={"new-conversation-check" + (isSelected ? " is-selected" : "")} aria-hidden="true">
+                        {isSelected && <Check size={13} strokeWidth={3} />}
+                      </span>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </div>
+          <div className="new-conversation-helper">
+            <span className="new-conversation-hint">
+              <span className="new-conversation-hint-dot" aria-hidden="true" />
+              {group ? "Click to select multiple colleagues." : "Select a colleague to open a private channel."}
+            </span>
+            <span className="new-conversation-available">{colleagues.length} colleagues available</span>
+          </div>
+          <ErrorBox error={save.error} />
         </div>
+        <footer className="new-conversation-footer">
+          <button
+            type="submit"
+            className="new-conversation-submit"
+            disabled={save.isPending || members.length === 0 || (group && name.trim().length < 2)}
+          >
+            Start conversation <ArrowRight size={17} />
+          </button>
+        </footer>
       </form>
-    </Modal>
+    </dialog>
   );
 }
 function Members({ conversation, onClose }) {
-  const { user } = useAuth();
+  const [memberSearch, setMemberSearch] = useState("");
+  const filteredMembers = useMemo(
+    () => filterConversationMembers(conversation.members, memberSearch),
+    [conversation.members, memberSearch],
+  );
+  const searching = Boolean(memberSearch.trim());
+
+  return (
+    <Modal title="Conversation Members" onClose={onClose}>
+      <div className="conversation-members-modal">
+        <SearchBar
+          className="conversation-members-search"
+          ariaLabel="Search conversation members"
+          placeholder="Search members..."
+          value={memberSearch}
+          onChange={(event) => setMemberSearch(event.target.value)}
+          iconSize={18}
+        />
+        <div className="conversation-members-current-heading">
+          <span>Current members</span>
+          <span className="new-conversation-count" aria-live="polite">
+            {searching
+              ? `${filteredMembers.length} of ${conversation.members.length}`
+              : `${conversation.members.length} ${conversation.members.length === 1 ? "member" : "members"}`}
+          </span>
+        </div>
+        <div className="conversation-members-current-list" role="list" aria-label="Conversation members">
+          {filteredMembers.length ? (
+            filteredMembers.map((member) => (
+              <div key={member.userId} className="conversation-members-current-row" role="listitem">
+                <Avatar small name={member.user.displayName} />
+                <span className="conversation-members-current-name" title={member.user.displayName}>
+                  {member.user.displayName}
+                </span>
+                <span className="conversation-members-current-role">{member.role.toLowerCase()}</span>
+              </div>
+            ))
+          ) : (
+            <p className="conversation-members-empty" role="status">
+              {searching ? "No members found." : "No members in this conversation."}
+            </p>
+          )}
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+function GroupRenameModal({ conversation, onClose }) {
   const qc = useQueryClient();
-  const [id, setId] = useState("");
-  const users = useQuery({
-    queryKey: ["users"],
-    queryFn: () => api("/users").then((r) => r.data),
-  });
-  const save = useMutation({
-    mutationFn: (remove) =>
-      remove
-        ? api(`/conversations/${conversation.id}/members/${remove}`, {
-            method: "DELETE",
-          })
-        : api(`/conversations/${conversation.id}/members`, {
-            method: "POST",
-            body: JSON.stringify({ userId: id }),
-          }),
+  const [name, setName] = useState(conversation.name || "");
+  const rename = useMutation({
+    mutationFn: () =>
+      api(`/conversations/${conversation.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ name: name.trim() }),
+      }),
     onSuccess: () => {
-      setId("");
       qc.invalidateQueries({ queryKey: ["conversations"] });
+      onClose();
     },
   });
-  const owner = conversation.ownerId === user.id;
+  const cleanName = name.trim();
+  const canSave = cleanName.length >= 2 && cleanName.length <= 200 &&
+    cleanName !== conversation.name && !rename.isPending;
+
   return (
-    <Modal title="Conversation members" onClose={onClose}>
-      <div className="space-y-4">
-        {conversation.members.map((m) => (
-          <div key={m.userId} className="flex items-center gap-3 text-sm">
-            <Avatar small name={m.user.displayName} />
-            <span className="flex-1">{m.user.displayName}</span>
-            <span className="text-xs text-slate-400">
-              {m.role.toLowerCase()}
-            </span>
-            {owner &&
-              m.userId !== user.id &&
-              conversation.type !== "DIRECT" && (
-                <button
-                  className="icon-btn"
-                  aria-label={`Remove ${m.user.displayName}`}
-                  onClick={() => save.mutate(m.userId)}
-                >
-                  <X size={16} />
-                </button>
-              )}
-          </div>
-        ))}
-      </div>
-      {owner && conversation.type !== "DIRECT" && (
-        <form
-          className="mt-6 flex gap-3"
-          onSubmit={(e) => {
-            e.preventDefault();
-            save.mutate(null);
-          }}
-        >
-          <select
-            aria-label="Add member"
+    <Modal title="Rename Group" onClose={onClose} className="group-action-modal">
+      <form
+        className="conversation-rename-modal"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (canSave) rename.mutate();
+        }}
+      >
+        <label className="conversation-group-field">
+          <span>Group name</span>
+          <input
             className="input"
-            required
-            value={id}
-            onChange={(e) => setId(e.target.value)}
-          >
-            <option value="">Add a colleague…</option>
-            {users.data
-              ?.filter(
-                (u) =>
-                  u.status === "ACTIVE" &&
-                  !conversation.members.some((m) => m.userId === u.id),
-              )
-              .map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.displayName}
-                </option>
-              ))}
-          </select>
-          <button className="btn-primary" disabled={save.isPending}>
-            Add
+            autoFocus
+            value={name}
+            maxLength={200}
+            onChange={(event) => setName(event.target.value)}
+            placeholder="Enter group name"
+            aria-label="Group name"
+          />
+        </label>
+        <ErrorBox error={rename.error} />
+        <div className="conversation-group-modal-actions">
+          <button type="submit" className="btn-primary" disabled={!canSave}>
+            {rename.isPending ? "Saving…" : "Save changes"}
           </button>
-        </form>
-      )}
-      {!owner && conversation.type !== "DIRECT" && (
-        <button
-          className="btn-danger mt-6"
-          onClick={async () => {
-            await save.mutateAsync(user.id);
-            onClose();
-          }}
-        >
-          Leave group
-        </button>
-      )}
-      <ErrorBox error={save.error} />
+        </div>
+      </form>
     </Modal>
   );
 }
@@ -736,11 +905,16 @@ export default function ChatPage() {
   );
   const [focusMessageId, setFocusMessageId] = useState(linkedMessageId);
   const [text, setText] = useState("");
-  const [files, setFiles] = useState([]);
+  const { files, addFiles, removeFile, clearFiles, selectionError } = useSelectedFiles(10);
+  const attachmentUploads = useRef(new Map());
   const [reply, setReply] = useState(null);
   const [newChat, setNewChat] = useState(false);
   const [members, setMembers] = useState(false);
+  const [groupMenuOpen, setGroupMenuOpen] = useState(false);
+  const [renameGroup, setRenameGroup] = useState(false);
+  const [leaveGroupConfirm, setLeaveGroupConfirm] = useState(false);
   const [search, setSearch] = useState("");
+  const [conversationFilter, setConversationFilter] = useState("all");
   const [messageSearch, setMessageSearch] = useState("");
   const [searchType, setSearchType] = useState("messages");
   const [searchOpen, setSearchOpen] = useState(false);
@@ -759,6 +933,7 @@ export default function ChatPage() {
   const bottom = useRef(null);
   const composer = useRef(null);
   const scrollArea = useRef(null);
+  const groupMenuRef = useRef(null);
   const positionedConversation = useRef(null);
   const previousTail = useRef({ conversationId: null, messageId: null });
   const submittedReads = useRef(new Set());
@@ -783,11 +958,37 @@ export default function ChatPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!groupMenuOpen) return;
+    const onPointerDown = (event) => {
+      if (!groupMenuRef.current?.contains(event.target)) setGroupMenuOpen(false);
+    };
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") setGroupMenuOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [groupMenuOpen]);
+
   const conversations = useQuery({
     queryKey: ["conversations"],
     queryFn: () => api("/conversations").then((r) => r.data),
   });
   const selected = conversations.data?.find((c) => c.id === selectedId);
+  const visibleConversations = useMemo(() =>
+    (conversations.data || []).filter((c) => {
+      const textMatches = displayName(c, user.id)?.toLowerCase().includes(search.toLowerCase());
+      if (!textMatches) return false;
+      if (conversationFilter === "direct") return c.type === "DIRECT";
+      if (conversationFilter === "channels") return c.type !== "DIRECT";
+      if (conversationFilter === "unread")
+        return (c.unreadMessageCount || 0) + (c.unreadReactionCount || 0) > 0;
+      return true;
+    }), [conversations.data, conversationFilter, search, user.id]);
   const normalizedMessageSearch = messageSearch.trim();
   const messages = useInfiniteQuery({
     queryKey: ["messages", selectedId],
@@ -1027,7 +1228,8 @@ export default function ChatPage() {
 
   useEffect(() => {
     setText("");
-    setFiles([]);
+    clearFiles();
+    attachmentUploads.current.clear();
     setReply(null);
     setMessageSearch("");
     setSearchType("messages");
@@ -1035,6 +1237,10 @@ export default function ChatPage() {
     setComposerEmojiOpen(false);
     setReactionFor(null);
     setPinsOpen(false);
+    setGroupMenuOpen(false);
+    setRenameGroup(false);
+    setLeaveGroupConfirm(false);
+    setMembers(false);
     setNearBottom(true);
     atBottom.current = true;
     conversationReadTarget.current = null;
@@ -1154,14 +1360,15 @@ export default function ChatPage() {
         method: "POST",
         body: JSON.stringify({
           content,
-          attachmentIds: await uploadFiles(attachments),
+          attachmentIds: await uploadFiles(attachments, attachmentUploads.current),
           replyToMessageId: replyId,
         }),
       }),
     onSuccess: (_, vars) => {
       if (vars.id === selectedId) {
         setText("");
-        setFiles([]);
+        clearFiles();
+        attachmentUploads.current.clear();
         setReply(null);
       }
       qc.invalidateQueries({ queryKey: ["messages", vars.id] });
@@ -1202,6 +1409,25 @@ export default function ChatPage() {
       qc.invalidateQueries({ queryKey: ["message-pins", selectedId] });
     },
   });
+  const leaveGroup = useMutation({
+    mutationFn: (conversationId) =>
+      api(`/conversations/${conversationId}/members/${user.id}`, {
+        method: "DELETE",
+      }),
+    onSuccess: (_, conversationId) => {
+      setLeaveGroupConfirm(false);
+      setGroupMenuOpen(false);
+      setMembers(false);
+      if (selectedId === conversationId) {
+        selectConversation(null);
+        sessionStorage.removeItem(lastChatKey);
+      }
+      qc.setQueryData(["conversations"], (items = []) =>
+        items.filter((item) => item.id !== conversationId),
+      );
+      qc.invalidateQueries({ queryKey: ["conversations"] });
+    },
+  });
   const submit = () => {
     if (selectedId && (text.trim() || files.length) && !send.isPending)
       send.mutate({
@@ -1238,50 +1464,73 @@ export default function ChatPage() {
   };
   return (
     <>
+      <div className="messages-page">
       <PageHeader
         title="Messages"
-
+        description="Real-time team collaboration and system channels"
         action={
-          <button className="btn-primary" onClick={() => setNewChat(true)}>
-            <Plus size={17} />
-            New conversation
-          </button>
+          <>
+            <button className="btn-primary" onClick={() => setNewChat(true)}>
+              <Plus size={17} />
+              New conversation
+            </button>
+          </>
         }
       />
       <ErrorBox error={conversations.error} />
       <div className="chat-shell card flex overflow-hidden h-[calc(100vh-15.2rem)] md:h-[calc(100vh-6.6rem)]">
         <aside className={`chat-sidebar w-full sm:w-64 shrink-0 border-r border-slate-200 flex flex-col ${selectedId ? "chat-sidebar-hidden-mobile" : ""}`}>
-          <div className="p-3 sm:p-4">
-            <input
-              className="input"
-              aria-label="Search conversations"
-              placeholder="Find a conversation"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+          <div className="chat-sidebar-top">
+            <div className="chat-sidebar-search">
+              <Search size={15} aria-hidden="true" />
+              <input
+                className="input"
+                aria-label="Search conversations"
+                placeholder="Find a conversation"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <div className="chat-sidebar-tabs" role="group" aria-label="Conversation types">
+              {CONVERSATION_FILTERS.map((option) => (
+                <button
+                  type="button"
+                  key={option.id}
+                  className="chat-sidebar-tab"
+                  aria-pressed={conversationFilter === option.id}
+                  onClick={() => setConversationFilter(option.id)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="flex-1 overflow-y-auto">
-            {conversations.data
-              ?.filter((c) =>
-                displayName(c, user.id)
-                  ?.toLowerCase()
-                  .includes(search.toLowerCase()),
-              )
-              .map((c) => (
+          <div className="chat-sidebar-list flex-1 overflow-y-auto">
+            {visibleConversations.map((c) => (
                 <button
                   key={c.id}
                   title={displayName(c, user.id)}
                   onClick={() =>
                     selectConversation(c.id, c.unreadReactionMessageId)
                   }
-                  className={`flex w-full gap-3 items-center p-4 text-left border-l-2 ${c.id === selectedId ? "border-blue-600 bg-blue-50/70" : "border-transparent hover:bg-slate-50"}`}
+                  className={`chat-conversation-item ${c.id === selectedId ? "is-selected" : ""}`}
                 >
-                  <Avatar name={displayName(c, user.id)} />
+                  <div className="chat-conversation-avatar">
+                    <Avatar name={displayName(c, user.id)} />
+                    {(c.unreadMessageCount || 0) > 0 && <span className="chat-unread-indicator" aria-hidden="true" />}
+                  </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex justify-between items-center gap-2">
-                      <span className="truncate text-sm font-semibold">
+                      <span className="chat-conversation-title truncate">
                         {displayName(c, user.id)}
                       </span>
+                      <span className="chat-conversation-time">{chatListTime(c.messages[0]?.createdAt || c.updatedAt)}</span>
+                    </div>
+                    <div className="flex min-w-0 items-center justify-between gap-2">
+                    <p className="chat-conversation-preview truncate">
+                      {c.messages[0]?.content ||
+                        (c.messages[0] ? "Attachment" : "Start a conversation")}
+                    </p>
                       <div className="flex shrink-0 items-center gap-1.5">
                         {c.unreadReactionCount > 0 && (
                           <span
@@ -1295,19 +1544,18 @@ export default function ChatPage() {
                           </span>
                         )}
                         {c.unreadMessageCount > 0 && (
-                          <span className="rounded-full px-1.5 py-0.5 bg-blue-600 text-white text-[10px]">
+                          <span className="chat-unread-count">
                             {chatBadgeLabel(c.unreadMessageCount)}
                           </span>
                         )}
                       </div>
                     </div>
-                    <p className="truncate text-xs mt-1 text-slate-400">
-                      {c.messages[0]?.content ||
-                        (c.messages[0] ? "Attachment" : "Start a conversation")}
-                    </p>
                   </div>
                 </button>
               ))}
+            {!visibleConversations.length && !conversations.isLoading && (
+              <p className="chat-sidebar-empty">No conversations found.</p>
+            )}
           </div>
         </aside>
         <section className={`chat-conversation flex-1 min-w-0 flex-col ${selectedId ? "flex" : "hidden sm:flex"}`}>
@@ -1322,7 +1570,10 @@ export default function ChatPage() {
                 >
                   <ArrowLeft size={19} />
                 </button>
-                <div className="flex-1 min-w-0">
+                <div className="chat-conversation-header-avatar">
+                  <Avatar name={displayName(selected, user.id)} />
+                </div>
+                <div className="chat-conversation-header-identity flex-1 min-w-0">
                   <h2 className="font-semibold text-sm truncate">
                     {displayName(selected, user.id)}
                   </h2>
@@ -1330,12 +1581,9 @@ export default function ChatPage() {
                     {selected.members.length} members
                   </p>
                 </div>
-                <div className="relative hidden w-64 sm:block lg:w-80">
+                <div className="chat-message-search relative">
                   <div className="relative">
-                    <Search
-                      size={16}
-                      className={`pointer-events-none absolute right-3 ${searchOpen ? "opacity-0" : "opacity-100"}  top-1/2 -translate-y-1/2 text-slate-400`}
-                    />
+                    <Search size={16} className="chat-search-icon" />
                     <input
                       className="input pl-9 pr-9"
                       placeholder={
@@ -1366,17 +1614,14 @@ export default function ChatPage() {
                   </div>
                   {searchOpen && (
                     <div className="absolute right-0 top-[calc(100%+0.5rem)] z-40 w-[420px] max-w-[80vw] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
-                      <div className="flex border-b border-slate-100 p-1.5">
+                      <div className="chat-search-tabs flex border-b border-slate-100 p-1.5">
                         {CHAT_SEARCH_TABS.map(
                           ({ id, label, icon: SearchTypeIcon }) => (
                             <button
                               key={id}
                               type="button"
-                              className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs font-semibold transition ${
-                                searchType === id
-                                  ? "bg-blue-50 text-blue-700"
-                                  : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
-                              }`}
+                              aria-pressed={searchType === id}
+                              className="chat-search-tab flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs font-semibold transition"
                               onClick={() => setSearchType(id)}
                             >
                               <SearchTypeIcon size={14} />
@@ -1593,10 +1838,62 @@ export default function ChatPage() {
                 >
                   <Users size={18} />
                 </button>
+                {selected.type === "GROUP" && (
+                  <div className="chat-group-options" ref={groupMenuRef}>
+                    <button
+                      type="button"
+                      className="icon-btn chat-group-options-trigger"
+                      aria-label="Group options"
+                      aria-haspopup="menu"
+                      aria-expanded={groupMenuOpen}
+                      title="Group options"
+                      onClick={() => {
+                        setPinsOpen(false);
+                        setGroupMenuOpen((open) => !open);
+                      }}
+                    >
+                      <EllipsisVertical size={19} />
+                    </button>
+                    {groupMenuOpen && (
+                      <div className="chat-group-options-menu" role="menu" aria-label="Group options">
+                        <button
+                          type="button"
+                          role="menuitem"
+                          className="chat-group-options-item"
+                          onClick={() => {
+                            setGroupMenuOpen(false);
+                            setRenameGroup(true);
+                          }}
+                        >
+                          <Pencil size={16} />
+                          <span>Rename group</span>
+                        </button>
+                        <div className="chat-group-options-divider" />
+                        <button
+                          type="button"
+                          role="menuitem"
+                          className="chat-group-options-item is-danger"
+                          disabled={selected.ownerId === user.id}
+                          title={selected.ownerId === user.id ? "Group owners cannot leave until ownership is transferred." : "Leave this group"}
+                          onClick={() => {
+                            setGroupMenuOpen(false);
+                            setLeaveGroupConfirm(true);
+                          }}
+                        >
+                          <LogOut size={16} />
+                          <span>Leave group</span>
+                        </button>
+                        {selected.ownerId === user.id && (
+                          <p className="chat-group-options-note">Owners cannot leave their group.</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </header>
               <div
                 ref={scrollArea}
-                className="flex-1 overflow-y-auto p-3 sm:p-5 space-y-5 bg-slate-50/50"
+                className="chat-messages-scroll flex-1 overflow-y-auto p-3 sm:p-5 space-y-5 bg-slate-50/50"
                 onScroll={(event) => {
                   const element = event.currentTarget;
                   const distanceFromBottom = Math.max(
@@ -1624,8 +1921,10 @@ export default function ChatPage() {
                         Load earlier messages
                       </button>
                     )}
-                    {allMessages.map((m) => {
+                    {allMessages.map((m, index) => {
                       const own = m.senderId === user.id;
+                      const showDateDivider = index === 0 ||
+                        chatDateKey(allMessages[index - 1].createdAt) !== chatDateKey(m.createdAt);
                       const reactionGroups = groupedReactions(
                         m.reactions,
                         user.id,
@@ -1642,6 +1941,9 @@ export default function ChatPage() {
 
                       return (
                         <Fragment key={m.id}>
+                          {showDateDivider && (
+                            <div className="chat-date-divider"><span>{chatDayLabel(m.createdAt)}</span></div>
+                          )}
                           {showUnreadDivider && (
                             <div className="flex items-center gap-3 py-1 text-[11px] font-semibold text-blue-600">
                               <span className="h-px flex-1 bg-blue-200" />
@@ -1657,14 +1959,14 @@ export default function ChatPage() {
                             enabled={Boolean(unread)}
                             messageId={m.id}
                             onRead={queueMessageRead}
-                            className={`flex gap-2 ${own ? "flex-row-reverse" : ""} ${focusMessageId === m.id ? "rounded-xl ring-2 ring-blue-300 ring-offset-2" : ""}`}
+                            className={`chat-message-row flex gap-2 ${own ? "chat-message-own flex-row-reverse" : "chat-message-incoming"} ${focusMessageId === m.id ? "rounded-xl ring-2 ring-blue-300 ring-offset-2" : ""}`}
                           >
                             {!own && (
                               <Avatar small name={m.sender.displayName} />
                             )}
                             <div className="max-w-[90%] sm:max-w-[78%] min-w-0">
                               <div
-                                className={`mb-1 text-[10px] text-slate-400 ${own ? "text-right" : ""}`}
+                                className={`chat-message-meta mb-1 text-[10px] text-slate-400 ${own ? "text-right" : ""}`}
                               >
                                 {own ? "You" : m.sender.displayName} ·{" "}
                                 {new Date(m.createdAt).toLocaleTimeString([], {
@@ -1675,7 +1977,7 @@ export default function ChatPage() {
                                 {m.pin ? " · 📌 Pinned" : ""}
                               </div>
                               <div
-                                className={`px-2.5 py-2 rounded-2xl ${own ? "bg-blue-600 text-white rounded-tr-md" : "bg-white border border-slate-200 rounded-tl-md"}`}
+                                className={`chat-message-bubble px-2.5 py-2 rounded-2xl ${own ? "bg-blue-600 text-white rounded-tr-md" : "bg-white border border-slate-200 rounded-tl-md"}`}
                               >
                                 {m.replyToMessage && (
                                   <div className="border-l-2 pl-2 mb-3 opacity-60 text-xs truncate">
@@ -1738,7 +2040,7 @@ export default function ChatPage() {
                               )}
                               {!m.deletedAt && (
                                 <div
-                                  className={`flex gap-1 mt-1 ${own ? "justify-end" : ""}`}
+                                  className={`chat-message-actions flex gap-1 mt-1 ${own ? "justify-end" : ""}`}
                                 >
                                   <button
                                     title="Reply"
@@ -1866,9 +2168,9 @@ export default function ChatPage() {
                 )}
                 <ErrorBox error={messages.error} />
               </div>
-              <div className="border-t border-slate-100 p-4">
+              <div className="chat-composer border-t border-slate-100 p-4">
                 {reply && (
-                  <div className="flex items-center gap-2 text-xs bg-blue-50 rounded-lg p-2 mb-2">
+                  <div className="chat-reply-preview flex items-center gap-2 text-xs bg-blue-50 rounded-lg p-2 mb-2">
                     <Reply size={14} />
                     <span className="truncate flex-1">
                       Replying to {reply.sender.displayName}: {reply.content}
@@ -1881,22 +2183,34 @@ export default function ChatPage() {
                     </button>
                   </div>
                 )}
-                <FileDropzone
+                <SelectedFiles
                   files={files}
-                  onChange={setFiles}
-                  label="Message attachments"
-                  compact
+                  onRemove={removeFile}
                   disabled={send.isPending}
-                  maxFiles={50}
+                  className="chat-file-preview mb-2"
                 />
                 <form
-                  className="flex gap-2 items-end"
+                  className="chat-composer-form flex gap-2 items-end"
                   onSubmit={(e) => {
                     e.preventDefault();
                     submit();
                   }}
                 >
-                  <div className="relative mb-1">
+                  <label
+                    className="icon-btn mb-1 cursor-pointer"
+                    title="Attach file"
+                  >
+                    <Paperclip size={20} />
+                    <input
+                      type="file"
+                      multiple
+                      className="sr-only"
+                      aria-label="Message attachments"
+                      disabled={send.isPending}
+                      onChange={addFiles}
+                    />
+                  </label>
+                  <div className="chat-compose-emoji relative mb-1">
                     <button
                       type="button"
                       className="icon-btn"
@@ -1917,7 +2231,7 @@ export default function ChatPage() {
                   </div>
                   <textarea
                     ref={composer}
-                    className="input resize-none min-h-12"
+                    className="chat-compose-textarea input resize-none min-h-12"
                     rows={1}
                     aria-label="Message"
                     placeholder="Write a message…"
@@ -1935,15 +2249,15 @@ export default function ChatPage() {
                     }}
                   />
                   <button
-                    className="btn-primary px-3"
+                    className="chat-send-btn btn-primary px-3"
                     aria-label="Send message"
                     disabled={send.isPending || (!text.trim() && !files.length)}
                   >
                     <Send size={18} />
                   </button>
                 </form>
-                <ErrorBox error={send.error} />
-                <p className="hidden sm:block text-[10px] text-slate-400 mt-2 ml-11">
+                <ErrorBox error={selectionError || send.error} />
+                <p className="chat-compose-hint hidden sm:block text-[10px] text-slate-400 mt-2 ml-11">
                   Enter to send · Shift + Enter for a new line
                 </p>
               </div>
@@ -1955,6 +2269,7 @@ export default function ChatPage() {
             />
           )}
         </section>
+      </div>
       </div>
       {newChat && (
         <NewChat
@@ -1976,6 +2291,38 @@ export default function ChatPage() {
       {members && selected && (
         <Members conversation={selected} onClose={() => setMembers(false)} />
       )}{" "}
+      {renameGroup && selected?.type === "GROUP" && (
+        <GroupRenameModal
+          key={selected.id}
+          conversation={selected}
+          onClose={() => setRenameGroup(false)}
+        />
+      )}
+      {leaveGroupConfirm && selected?.type === "GROUP" && (
+        <Modal
+          title="Leave Group"
+          onClose={() => {
+            if (!leaveGroup.isPending) setLeaveGroupConfirm(false);
+          }}
+          className="group-action-modal"
+        >
+          <div className="conversation-leave-modal">
+            <p>Are you sure you want to leave <strong>{selected.name}</strong>?</p>
+            <p className="conversation-leave-hint">You will no longer see its messages unless you are added to the group again.</p>
+            <ErrorBox error={leaveGroup.error} />
+            <div className="conversation-group-modal-actions">
+              <button
+                type="button"
+                className="btn-danger"
+                disabled={leaveGroup.isPending}
+                onClick={() => leaveGroup.mutate(selected.id)}
+              >
+                {leaveGroup.isPending ? "Leaving…" : "Leave group"}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
       {editing && (
         <Modal title="Edit message" onClose={() => setEditing(null)}>
           <textarea

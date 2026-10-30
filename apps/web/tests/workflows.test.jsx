@@ -165,7 +165,18 @@ describe("main workspace flows", () => {
     );
     const user = mount(TasksPage);
     await user.click(screen.getByRole("button", { name: "New task" }));
+    // Header, scrollable fields and footer must be independent for all TaskForm modes.
+    const dialog = screen.getByRole("dialog");
+    const fields = dialog.querySelector(".task-form-scroll");
+    const footer = dialog.querySelector(".task-form-footer");
+    expect(fields).not.toBeNull();
+    expect(footer).not.toBeNull();
+    expect(fields.contains(footer)).toBe(false);
+    expect(footer.querySelector('button[type="submit"]').textContent).toBe("Save task");
+    expect(footer.querySelector('button[type="button"]')).toBeNull();
+    expect(dialog.querySelector(".task-form")?.classList.contains("task-form")).toBe(true);
     await user.type(screen.getByLabelText("Task title"), "Prepare handbook");
+    expect(screen.getByLabelText("Priority").classList.contains("app-modern-select")).toBe(true);
     const assignee = screen.getByLabelText("Assigned to");
     await waitFor(() =>
       expect(assignee.querySelectorAll("option")).toHaveLength(2),
@@ -182,6 +193,105 @@ describe("main workspace flows", () => {
       ),
     );
     expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("selects multiple task participants without Ctrl and saves them", async () => {
+    api.mockImplementation(async (path, options = {}) =>
+      path === "/users"
+        ? { data: people }
+        : { data: options.method ? { id: "task" } : [] },
+    );
+    const user = mount(TasksPage);
+    await user.click(screen.getByRole("button", { name: "New task" }));
+    await user.type(screen.getByLabelText("Task title"), "Review milestones");
+
+    const first = await screen.findByRole("checkbox", {
+      name: "Participants: Test User",
+    });
+    const second = screen.getByRole("checkbox", {
+      name: "Participants: Test Colleague",
+    });
+    await user.click(first);
+    await user.click(second);
+    expect(first.checked).toBe(true);
+    expect(second.checked).toBe(true);
+    expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "Save task" }));
+    await waitFor(() => {
+      const call = api.mock.calls.find(
+        ([path, options]) => path === "/tasks" && options?.method === "POST",
+      );
+      expect(call).toBeDefined();
+      expect(JSON.parse(call[1].body).participantIds).toEqual(["me", "colleague"]);
+    });
+  });
+
+  it("keeps long task group names compact and shows participants as user rows", async () => {
+    const group = {
+      id: "group-1",
+      name: "Flutter Mobile App Team with a very long group name",
+      canManage: true,
+      canUse: true,
+    };
+    const task = {
+      id: "task-details-fixture",
+      title: "Task details visual regression",
+      description: "Review the current implementation.",
+      creatorId: "me",
+      assigneeId: "me",
+      creator: people[0],
+      assignee: people[0],
+      status: "OPEN",
+      priority: "NORMAL",
+      dueDate: null,
+      createdAt: "2026-10-27T08:00:00.000Z",
+      parentTaskId: null,
+      personalLayout: { groupId: group.id, group, position: 0 },
+      participants: [{ userId: "colleague", user: people[1] }],
+      subtasks: [],
+      attachments: [],
+      comments: [],
+      history: [],
+      _count: { comments: 0 },
+    };
+    api.mockImplementation(async (path, options = {}) => {
+      if (path === "/tasks") return { data: [task] };
+      if (path === `/tasks/${task.id}`) return { data: task };
+      if (path === "/tasks/groups") return { data: [group] };
+      if (path === "/notifications") return { data: [] };
+      if (path === "/notifications/read-related") return { data: {} };
+      if (path === `/tasks/${task.id}/layout` && options.method === "PUT") {
+        return { data: {} };
+      }
+      throw new Error(`Unexpected API request: ${path}`);
+    });
+    const user = mount(TasksPage);
+    await user.click(await screen.findByText("Task details visual regression"));
+    const details = await screen.findByRole("dialog", { name: "Task details" });
+    const groupSelect = screen.getByRole("combobox", { name: "My task group" });
+    expect(groupSelect.classList.contains("task-detail-group-select")).toBe(true);
+    expect(groupSelect.title).toBe(group.name);
+    expect(groupSelect.value).toBe(group.id);
+    const statusSelect = screen.getByRole("combobox", { name: "Task status" });
+    const groupWrap = groupSelect.closest(".task-detail-select-wrap");
+    const statusWrap = statusSelect.closest(".task-detail-select-wrap");
+    expect(groupWrap).not.toBeNull();
+    expect(statusWrap).not.toBeNull();
+    expect(groupWrap.querySelector(".task-detail-select-preview-label").textContent).toBe(group.name);
+    expect(statusWrap.querySelector(".task-detail-select-preview-label").textContent).toBe("OPEN");
+    expect(details.querySelectorAll(".task-detail-select-preview > svg")).toHaveLength(2);
+    expect(details.querySelector(".task-detail-person-name")?.textContent).toBe("Test Colleague");
+    expect(details.querySelector(".task-detail-person-icon")).not.toBeNull();
+    expect(details.querySelector(".task-detail-participants-list")).not.toBeNull();
+
+    await user.selectOptions(groupSelect, "");
+    await waitFor(() =>
+      expect(api).toHaveBeenCalledWith(`/tasks/${task.id}/layout`, {
+        method: "PUT",
+        body: JSON.stringify({ groupId: null }),
+      }),
+    );
   });
 
   it("submits typed approval fields without asking employees to edit JSON", async () => {

@@ -131,15 +131,108 @@ export async function uploadFile(file) {
   }
 }
 
-// Upload sequentially to avoid saturating the server and to preserve each
-// file's individual authorization and quota checks.
-export async function uploadFiles(files = []) {
-  const ids = [];
-  for (const file of files) {
-    const uploaded = await uploadFile(file);
-    ids.push(uploaded.id);
+// Opt-in upload transport for interfaces that need real byte progress and cancellation.
+// The existing uploadFile() API stays intact for Messages, Tasks and Approvals.
+// Upload several attachments with bounded concurrency. Keep successful IDs
+// in a per-composer cache so a failed batch can retry without re-uploading
+// the files that were already accepted by the server.
+export async function uploadFiles(files, uploadedCache = new Map()) {
+  const selected = Array.from(files || []);
+  if (!selected.length) return [];
+
+  const ids = new Array(selected.length);
+  const failed = [];
+  let nextIndex = 0;
+
+  async function worker() {
+    while (nextIndex < selected.length) {
+      const index = nextIndex++;
+      const file = selected[index];
+      try {
+        let id = uploadedCache.get(file);
+        if (!id) {
+          id = (await uploadFile(file)).id;
+          uploadedCache.set(file, id);
+        }
+        ids[index] = id;
+      } catch (error) {
+        failed.push({ name: file.name, message: error.message });
+      }
+    }
+  }
+
+  await Promise.all(
+    Array.from({ length: Math.min(3, selected.length) }, () => worker()),
+  );
+
+  if (failed.length) {
+    const details = failed.map((entry) => `${entry.name}: ${entry.message}`).join("; ");
+    throw new Error(
+      `${failed.length} of ${selected.length} attachments could not be uploaded. Nothing was submitted. ${details}`,
+    );
   }
   return ids;
+}
+
+export async function uploadFileWithProgress(file, { onProgress, signal } = {}) {
+  async function send() {
+    return new Promise((resolve, reject) => {
+      if (signal?.aborted) {
+        reject(new DOMException("Upload cancelled", "AbortError"));
+        return;
+      }
+      const xhr = new XMLHttpRequest();
+      const data = new FormData();
+      data.append("file", file);
+      xhr.open("POST", "/api/v1/files");
+      xhr.withCredentials = true;
+      const token = getAccessToken();
+      if (token) xhr.setRequestHeader("authorization", "Bearer " + token);
+
+      const abort = () => xhr.abort();
+      const cleanup = () => signal?.removeEventListener("abort", abort);
+      signal?.addEventListener("abort", abort, { once: true });
+      xhr.upload.onprogress = (event) => {
+        onProgress?.(event.loaded, event.lengthComputable ? event.total : file.size);
+      };
+      xhr.onerror = () => {
+        cleanup();
+        reject(new Error("Network error while uploading file"));
+      };
+      xhr.onabort = () => {
+        cleanup();
+        reject(new DOMException("Upload cancelled", "AbortError"));
+      };
+      xhr.onload = () => {
+        cleanup();
+        let response = {};
+        try {
+          response = JSON.parse(xhr.responseText || "{}");
+        } catch {
+          // A non-JSON error page is still reported as an HTTP error below.
+        }
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve(response.data);
+          return;
+        }
+        const error = new Error(
+          response.error?.message || "Upload failed (HTTP " + xhr.status + ")",
+        );
+        error.status = xhr.status;
+        error.code = response.error?.code;
+        reject(error);
+      };
+      xhr.send(data);
+    });
+  }
+
+  try {
+    return await send();
+  } catch (error) {
+    if (error.status !== 401 || signal?.aborted) throw error;
+    await refreshSession();
+    return send();
+  }
 }
 
 export async function downloadFile(id, filename) {

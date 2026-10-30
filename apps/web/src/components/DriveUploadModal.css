@@ -1,0 +1,390 @@
+/* Scoped Drive upload dialog. Uses the existing shared Modal/button primitives. */
+dialog.modal:has(.drive-upload-modal) {
+  --upload-bg: #f9faff;
+  --upload-panel: #f0f2fa;
+  --upload-panel-soft: #f4f6fd;
+  --upload-border: #e3e7f1;
+  --upload-text: #25304a;
+  --upload-muted: #737d94;
+  --upload-primary: #6760e9;
+  --upload-primary-bright: #8078ff;
+  --upload-track: #e1e5f1;
+  --upload-pill: #e5e8f3;
+  --upload-shadow: rgba(42, 53, 92, .14);
+  width: min(660px, calc(100vw - 24px));
+  height: min(750px, calc(100dvh - 32px));
+  max-height: calc(100dvh - 32px);
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--upload-border);
+  border-radius: 19px;
+  color: var(--upload-text);
+  background: var(--upload-bg);
+  box-shadow: 0 28px 95px var(--upload-shadow);
+}
+dialog.modal:has(.drive-upload-modal)[open] { display: flex; }
+.app-theme-dark dialog.modal:has(.drive-upload-modal) {
+  --upload-bg: #141927;
+  --upload-panel: #1d2232;
+  --upload-panel-soft: #191f2e;
+  --upload-border: rgba(180, 195, 239, .10);
+  --upload-text: #eff0ff;
+  --upload-muted: #9ca6bd;
+  --upload-primary: var(--app-ui-accent-selected, #7569f7);
+  --upload-primary-bright: var(--app-ui-focus-ring, #9187ff);
+  --upload-track: #0e1422;
+  --upload-pill: #2c3246;
+  --upload-shadow: rgba(2, 5, 17, .75);
+  color-scheme: dark;
+  background: radial-gradient(ellipse at 50% -20%, #33394d, #191e2c 38%, #141927 80%);
+}
+dialog.modal:has(.drive-upload-modal) .modal-head {
+  flex: 0 0 auto;
+  padding: 18px 19px 15px;
+  justify-content: flex-start;
+  gap: 12px;
+  border-bottom: 0;
+  background: transparent;
+}
+dialog.modal:has(.drive-upload-modal) .modal-head-leading {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--app-ui-accent-start, #9288ff), var(--app-ui-accent-end, #6658ed));
+  color: var(--app-ui-accent-label, #28235e);
+  box-shadow: 0 3px 14px var(--app-ui-accent-shadow, rgba(115, 107, 252, .30));
+}
+dialog.modal:has(.drive-upload-modal) .modal-head-copy {
+  flex: 1;
+  min-width: 0;
+}
+dialog.modal:has(.drive-upload-modal) .modal-head-title-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 9px;
+}
+dialog.modal:has(.drive-upload-modal) .modal-head h2 {
+  color: var(--upload-text);
+  font-size: 16px;
+  font-weight: 760;
+  letter-spacing: -.025em;
+}
+dialog.modal:has(.drive-upload-modal) .modal-head-badge {
+  max-width: min(300px, 100%);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: rgba(20, 173, 217, .11);
+  border-radius: 6px;
+  padding: 3px 7px;
+  color: #299dbb;
+  font-size: 10px;
+  font-weight: 700;
+}
+.app-theme-dark dialog.modal:has(.drive-upload-modal) .modal-head-badge { color: #5ac6e5; }
+dialog.modal:has(.drive-upload-modal) .modal-head-subtitle {
+  color: var(--upload-muted);
+  font-size: 11px;
+  margin-top: 3px;
+}
+dialog.modal:has(.drive-upload-modal) .modal-head > .icon-btn {
+  background: var(--upload-pill);
+  color: var(--upload-muted);
+  padding: 8px;
+  border-radius: 9px;
+  margin-left: auto;
+}
+dialog.modal:has(.drive-upload-modal) .modal-head > .icon-btn:hover {
+  color: var(--upload-text);
+  filter: brightness(1.1);
+}
+dialog.modal:has(.drive-upload-modal) .modal-body {
+  min-height: 0;
+  flex: 1;
+  padding: 0;
+  overflow: hidden;
+}
+.drive-upload-modal {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  color: var(--upload-text);
+}
+.drive-upload-tabs {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 12px;
+  padding: 0 19px;
+  border-bottom: 1px solid var(--upload-border);
+}
+.drive-upload-tabs > button {
+  min-height: 47px;
+  padding: 10px 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  position: relative;
+  font-size: 12px;
+  font-weight: 690;
+  color: var(--upload-muted);
+  transition: color .15s ease;
+}
+.drive-upload-tabs > button:hover, .drive-upload-tabs > button.active { color: var(--upload-text); }
+.drive-upload-tabs > button.active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--app-ui-accent-selected, #9d97ff);
+  box-shadow: 0 0 10px var(--app-ui-accent-shadow, #958aff88);
+}
+.drive-upload-secure {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+  font-size: 10px;
+  color: #28b6d5;
+  font-weight: 680;
+}
+.drive-upload-dropzone {
+  margin: 17px 19px 0;
+  flex: 0 0 auto;
+  min-height: 214px;
+  padding: 15px 12px 17px;
+  border: 1px dashed transparent;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(155deg, var(--upload-panel) 0%, var(--upload-panel-soft) 100%);
+  transition: border-color .15s ease, background .15s ease;
+}
+.drive-upload-dropzone.is-dragging {
+  border-color: var(--upload-primary-bright);
+  background: var(--app-ui-accent-tint, rgba(116, 102, 248, .13));
+}
+.drive-upload-drop-icon {
+  height: 70px;
+  width: 92px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  color: var(--app-ui-focus-ring, #c6c3ff);
+  filter: drop-shadow(0 4px 10px var(--app-ui-accent-shadow, #7b6cff35));
+}
+.drive-upload-float-icon {
+  position: absolute;
+  padding: 4px;
+  border-radius: 6px;
+  box-sizing: content-box;
+  background: #363a57;
+}
+.drive-upload-float-icon.upper { top: 0; right: 5px; color: #43c4eb; }
+.drive-upload-float-icon.lower { bottom: 2px; left: 6px; color: #cb9fff; }
+.drive-upload-dropzone > strong { font-size: 13px; font-weight: 760; margin-top: 3px; }
+.drive-upload-dropzone > span { color: var(--upload-muted); font-size: 11px; margin-top: 3px; text-align: center; }
+.drive-upload-browse.btn-primary,
+.drive-upload-submit.btn-primary,
+.drive-upload-use-folder.btn-primary {
+  background: linear-gradient(120deg, var(--app-ui-accent-start, #8b7bff), var(--app-ui-accent-end, #5755e9));
+  box-shadow: 0 5px 18px var(--app-ui-accent-shadow, rgba(103, 96, 233, .27));
+  border: 1px solid var(--app-ui-accent-outline, rgba(200, 196, 255, .15));
+  color: var(--app-ui-accent-label, #fff);
+  transition: filter .15s ease, box-shadow .15s ease;
+}
+.drive-upload-browse.btn-primary:hover:not(:disabled),
+.drive-upload-submit.btn-primary:hover:not(:disabled),
+.drive-upload-use-folder.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(120deg, var(--app-ui-accent-start, #8b7bff), var(--app-ui-accent-end, #5755e9));
+  filter: brightness(1.12);
+  box-shadow: 0 7px 21px var(--app-ui-accent-shadow, rgba(103, 96, 233, .34));
+}
+.drive-upload-browse { min-height: 34px; margin-top: 12px; font-size: 12px; border-radius: 9px; }
+.drive-upload-format-hints { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; margin-top: 9px; }
+.drive-upload-format-hints > span {
+  background: var(--upload-pill);
+  border-radius: 4px;
+  color: var(--upload-muted);
+  font-size: 9px;
+  padding: 3px 6px;
+  font-weight: 600;
+}
+.drive-upload-file-heading {
+  flex: 0 0 auto;
+  margin: 18px 19px 9px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.drive-upload-file-heading h3 { font-size: 13px; font-weight: 740; }
+.drive-upload-file-heading h3 span {
+  display: inline-block;
+  vertical-align: middle;
+  font-weight: 700;
+  font-size: 10px;
+  padding: 3px 7px;
+  border-radius: 6px;
+  color: var(--app-ui-focus-ring, #a8a1ff);
+  background: var(--app-ui-accent-tint, rgba(130, 120, 245, .17));
+}
+.drive-upload-file-heading > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--upload-muted);
+  font-size: 10px;
+  font-weight: 650;
+}
+.drive-upload-file-heading > button:hover:not(:disabled) { color: var(--upload-text); }
+.drive-upload-summary {
+  margin: 0 19px 9px;
+  padding: 9px;
+  border-radius: 10px;
+  background: var(--upload-panel);
+  flex: 0 0 auto;
+}
+.drive-upload-summary-text {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 10px;
+  font-weight: 700;
+}
+.drive-upload-summary-text > span:last-child { color: #21badb; white-space: nowrap; }
+.drive-upload-dot { display: inline-block; width: 6px; height: 6px; margin-right: 6px; border-radius: 50%; background: #24c2d9; vertical-align: middle; }
+.drive-upload-track { overflow: hidden; height: 5px; background: var(--upload-track); border-radius: 10px; margin-top: 8px; }
+.drive-upload-track > div { height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--app-ui-accent-start, #8d7bff), var(--app-ui-accent-end, #c9c6ff)); transition: width .12s linear; }
+.drive-upload-file-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-height: 0;
+  flex: 1 1 auto;
+  margin: 0 19px 10px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  padding-right: 2px;
+}
+.drive-upload-empty { padding: 17px 10px; text-align: center; font-size: 11px; color: var(--upload-muted); }
+.drive-upload-file {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 10px;
+  border-radius: 10px;
+  padding: 11px 10px;
+  min-height: 57px;
+  background: var(--upload-panel-soft);
+}
+.drive-upload-file-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 33px;
+  height: 34px;
+  border-radius: 9px;
+  background: #2a3941;
+  color: #2bd4a6;
+}
+.drive-upload-file-icon.tone-pdf { background: #482b3b; color: #ff718d; }
+.drive-upload-file-icon.tone-archive { background: #463b29; color: #eab442; }
+.drive-upload-file-icon.tone-image { background: #343150; color: #bd9fff; }
+.drive-upload-file-icon.tone-video { background: #30394e; color: #82b1ff; }
+.drive-upload-file-icon.tone-document { background: #30394e; color: #8eb7ff; }
+.drive-upload-file-details { min-width: 0; flex: 1; }
+.drive-upload-file-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--upload-text);
+  font-size: 12px;
+  font-weight: 730;
+}
+.drive-upload-file-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; color: var(--upload-muted); font-size: 10px; margin-top: 2px; }
+.drive-upload-status { display: inline-flex; align-items: center; gap: 3px; max-width: 100%; overflow-wrap: anywhere; }
+.drive-upload-status.status-uploading, .drive-upload-status.status-saving { color: #ae96ff; }
+.drive-upload-status.status-done { color: #24bcac; }
+.drive-upload-status.status-error, .drive-upload-status.status-cancelled { color: #f389a6; }
+.drive-upload-track.file-track { margin-top: 8px; height: 4px; }
+.drive-upload-remove, .drive-upload-retry {
+  flex: 0 0 auto;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: var(--upload-pill);
+  color: var(--upload-muted);
+}
+.drive-upload-remove:hover:not(:disabled), .drive-upload-retry:hover:not(:disabled) { color: var(--upload-text); }
+.drive-upload-complete { font-size: 10px; font-weight: 700; color: #1fb7a2; display: inline-flex; align-items: center; gap: 4px; }
+.drive-upload-footer {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 19px;
+  margin-top: auto;
+  border-top: 1px solid var(--upload-border);
+  background: var(--upload-panel-soft);
+}
+.drive-upload-footer > span { color: var(--upload-muted); font-size: 10px; }
+.drive-upload-submit.btn-primary { min-height: 34px; border-radius: 9px; font-size: 12px; padding: 8px 13px; white-space: nowrap; }
+.drive-upload-error { color: #f389a6; font-size: 11px; padding: 8px 19px; }
+.drive-upload-spin { animation: drive-upload-spin 1s linear infinite; }
+@keyframes drive-upload-spin { to { transform: rotate(360deg); } }
+.drive-upload-browser { padding: 20px 19px; flex: 1 1 auto; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+.drive-upload-browser > p { font-size: 12px; color: var(--upload-muted); }
+.drive-upload-browser-path { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; font-size: 11px; }
+.drive-upload-browser-path > button, .drive-upload-browser-path > span > button { color: var(--upload-primary-bright); font-weight: 650; }
+.drive-upload-browser-path > span { display: inline-flex; align-items: center; gap: 5px; }
+.drive-upload-folder-list { display: flex; flex-direction: column; gap: 5px; overflow-y: auto; min-height: 0; }
+.drive-upload-folder-list > button { display: flex; align-items: center; gap: 11px; width: 100%; padding: 12px; border-radius: 10px; background: var(--upload-panel); color: var(--upload-text); font-size: 12px; text-align: left; }
+.drive-upload-folder-list > button:hover { background: var(--upload-pill); }
+.drive-upload-folder-list > button svg:first-child { color: var(--app-ui-focus-ring, #a69fff); }
+.drive-upload-folder-list > button span { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+.drive-upload-browser-state { flex: 1; display: flex; justify-content: center; align-items: center; gap: 9px; color: var(--upload-muted); font-size: 12px; }
+.drive-upload-browser-error { color: #f389a6 !important; font-size: 12px; }
+.drive-upload-use-folder { align-self: flex-end; margin-top: auto; font-size: 12px; }
+@media (max-width: 560px) {
+  dialog.modal:has(.drive-upload-modal) { width: calc(100vw - 12px); height: calc(100dvh - 24px); border-radius: 16px; }
+  dialog.modal:has(.drive-upload-modal) .modal-head { padding: 14px; }
+  .drive-upload-tabs { padding: 0 12px; gap: 6px; }
+  .drive-upload-tabs > button { padding: 8px 5px; font-size: 11px; }
+  .drive-upload-secure { font-size: 0; }
+  .drive-upload-secure svg { width: 16px; height: 16px; }
+  .drive-upload-dropzone { margin: 12px 12px 0; min-height: 175px; padding: 10px; }
+  .drive-upload-drop-icon { height: 48px; }
+  .drive-upload-file-heading { margin: 12px 12px 8px; }
+  .drive-upload-summary { margin: 0 12px 7px; }
+  .drive-upload-file-list { margin: 0 12px 8px; }
+  .drive-upload-footer { padding: 12px; }
+  .drive-upload-footer > span { max-width: 42%; }
+  .drive-upload-browser { padding: 14px 12px; }
+}
+@media (max-height: 670px) {
+  .drive-upload-dropzone { min-height: 146px; }
+  .drive-upload-drop-icon { height: 43px; }
+  .drive-upload-file-heading { margin-top: 11px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .drive-upload-spin { animation: none; }
+  .drive-upload-track > div { transition: none; }
+}

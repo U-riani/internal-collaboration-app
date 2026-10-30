@@ -1,10 +1,9 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import {
   Bell,
   CheckSquare,
   FileCheck2,
   LayoutDashboard,
-  LogOut,
   MessageSquare,
   Settings,
   Users,
@@ -16,11 +15,15 @@ import {
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../context/AuthContext.jsx";
+import { ACCENT_EVENT, getAccentPreference, THEME_EVENT, getThemePreference } from "../lib/appearance.js";
 import { useSocket } from "../hooks/useSocket.js";
+import { api } from "../lib/api.js";
 import { handleNotificationCreated, installNotificationAudioUnlock } from "../lib/notificationSounds.js";
 import { syncExistingBrowserPush } from "../lib/pushNotifications.js";
-import { api } from "../lib/api.js";
 import { Avatar } from "./UI.jsx";
+import "../theme.css";
+import "../appearance-palettes.css";
+import "../light-theme.css";
 const links = [
   ["/dashboard", "Overview", LayoutDashboard],
   ["/chat", "Messages", MessageSquare],
@@ -37,22 +40,45 @@ function badgeLabel(count) {
 }
 
 export default function Layout() {
-  const { user, logout, hasPermission } = useAuth();
+  const { user, hasPermission } = useAuth();
+  const [accent, setAccent] = useState(() => getAccentPreference(user.id));
+  const [appearance, setAppearance] = useState(() => getThemePreference(user.id));
+  const isOverview = useLocation().pathname === "/dashboard";
   const [open, setOpen] = useState(false);
   const qc = useQueryClient();
 
+  // Appearance preferences are local to this account and do not remount the app.
+  useEffect(() => {
+    setAccent(getAccentPreference(user.id));
+    const onAccentChange = (event) => {
+      if (event.detail?.userId === user.id) setAccent(event.detail.accent);
+    };
+    window.addEventListener(ACCENT_EVENT, onAccentChange);
+    return () => window.removeEventListener(ACCENT_EVENT, onAccentChange);
+  }, [user.id]);
+
+  // Theme switching only changes CSS attributes: no remounts or API calls.
+  useEffect(() => {
+    setAppearance(getThemePreference(user.id));
+    const onThemeChange = (event) => {
+      if (event.detail?.userId === user.id) setAppearance(event.detail.theme);
+    };
+    window.addEventListener(THEME_EVENT, onThemeChange);
+    return () => window.removeEventListener(THEME_EVENT, onThemeChange);
+  }, [user.id]);
+
+  // The existing global listener plays each realtime notification once.
   useEffect(() => installNotificationAudioUnlock(), []);
 
   useEffect(() => {
     void syncExistingBrowserPush(user.id);
-
-    if (!("serviceWorker" in navigator)) return;
-    const onChange = (event) => {
+    if (!("serviceWorker" in navigator)) return undefined;
+    const onSubscriptionChanged = (event) => {
       if (event.data?.type === "collab:push-subscription-changed")
         void syncExistingBrowserPush(user.id);
     };
-    navigator.serviceWorker.addEventListener("message", onChange);
-    return () => navigator.serviceWorker.removeEventListener("message", onChange);
+    navigator.serviceWorker.addEventListener("message", onSubscriptionChanged);
+    return () => navigator.serviceWorker.removeEventListener("message", onSubscriptionChanged);
   }, [user.id]);
 
   useEffect(() => {
@@ -148,8 +174,11 @@ export default function Layout() {
   };
 
   return (
-    <div className="max-h-screen ">
-      <div className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-slate-200 bg-white px-4 min-[901px]:hidden">
+    <div className={isOverview ? "app-theme-dark overview-layout" : "app-theme-dark max-h-screen"}
+      data-theme={appearance === "light" ? "light" : "dark"}
+      data-appearance={appearance}
+      data-accent={accent}>
+      <div className="workspace-mobile-header sticky top-0 z-40 flex h-16 items-center justify-between border-b border-slate-200 bg-white px-4 min-[901px]:hidden">
         <strong>Workspace</strong>
         <button
           className="icon-btn"
@@ -168,19 +197,19 @@ export default function Layout() {
         />
       )}
       <aside
-        className={`${open ? "flex" : "hidden"} fixed bottom-0 left-0 top-16 z-40 w-[82vw] max-w-[320px] flex-col overflow-y-auto border-r border-slate-200 bg-white px-5 shadow-xl min-[901px]:inset-y-0 min-[901px]:top-0 min-[901px]:flex min-[901px]:h-screen min-[901px]:w-[236px] min-[901px]:max-w-none min-[901px]:shadow-none`}
+        className={`workspace-sidebar ${open ? "flex" : "hidden"} fixed bottom-0 left-0 top-16 z-40 w-[82vw] max-w-[320px] flex-col overflow-y-auto border-r border-slate-200 bg-white px-5 shadow-xl min-[901px]:inset-y-0 min-[901px]:top-0 min-[901px]:flex min-[901px]:h-screen min-[901px]:w-[236px] min-[901px]:max-w-none min-[901px]:shadow-none`}
       >
-        <div className="sticky top-0 z-10 bg-white">
+        <div className="workspace-sidebar-top sticky top-0 z-10 bg-white">
           <div className="mb-9 mt-2 flex items-center gap-3 px-2">
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-blue-600 font-bold text-white">
+            <span className="workspace-logo grid h-9 w-9 place-items-center rounded-xl bg-blue-600 font-bold text-white">
               W
             </span>
             <div>
-              <strong className="text-[17px]">Workspace</strong>
-              <p className="text-[11px] text-slate-400">Your team, together</p>
+              <strong className="workspace-brand-name text-[17px]">Workspace</strong>
+              <p className="workspace-brand-caption text-[11px] text-slate-400">Your team, together</p>
             </div>
           </div>
-          <p className="mb-3 px-3 text-[10px] font-bold tracking-[.16em] text-slate-400">
+          <p className="workspace-section-label mb-3 px-3 text-[10px] font-bold tracking-[.16em] text-slate-400">
             WORKSPACE
           </p>
         </div>
@@ -203,7 +232,7 @@ export default function Layout() {
                 to={to}
                 onClick={() => setOpen(false)}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 rounded-xl px-3 py-3 text-[13px] font-medium ${isActive ? "bg-blue-50 text-blue-700" : "text-slate-500 hover:bg-slate-50"}`
+                  `workspace-nav-link flex items-center gap-3 rounded-xl px-3 py-3 text-[13px] font-medium ${isActive ? "bg-blue-50 text-blue-700" : "text-slate-500 hover:bg-slate-50"}`
                 }
               >
                 <Icon size={18} />
@@ -217,32 +246,26 @@ export default function Layout() {
             );
           })}
         </nav>
-        <div className="sticky bottom-0 bg-white mt-auto pb-3 border-t border-slate-100 pt-5">
-          <div className="mb-4 flex items-center gap-3">
-            <Avatar name={user.displayName} />
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold">
-                {user.displayName}s
-              </p>
-              <p className="truncate text-xs text-slate-400">
-                {user.department?.name || "Team member"}
-              </p>
-            </div>
+        <div className="sidebar-profile sticky bottom-0 mt-auto pb-3 pt-4">
+          <div className="sidebar-profile-card">
+            <NavLink
+              to="/account"
+              onClick={() => setOpen(false)}
+              className="sidebar-profile-identity"
+              title="My account"
+              aria-label={`Open account for ${user.displayName || user.firstName || "user"}`}
+            >
+              <Avatar name={user.displayName || user.firstName || "User"} />
+              <span className="sidebar-profile-details">
+                <strong className="sidebar-profile-name">
+                  {user.displayName || user.firstName || "User"}
+                </strong>
+                <span className="sidebar-profile-department">
+                  {user.department?.name || "Team member"}
+                </span>
+              </span>
+            </NavLink>
           </div>
-          <NavLink
-            to="/account"
-            onClick={() => setOpen(false)}
-            className="block text-xs text-blue-600 mb-4"
-          >
-            My account
-          </NavLink>
-          <button
-            className="flex items-center gap-2 text-xs text-slate-500 hover:text-slate-900"
-            onClick={logout}
-          >
-            <LogOut size={15} />
-            Sign out
-          </button>
         </div>
       </aside>
       {/* <main className="workspace-main max-[900px]:h-[calc(100dvh-4rem)] max-[900px]:overflow-y-auto min-[901px]:h-screen min-[901px]:overflow-y-auto"> */}

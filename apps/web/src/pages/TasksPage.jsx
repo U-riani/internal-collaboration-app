@@ -1,8 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import {
+  AlertCircle,
   ArrowUpDown,
+  ArrowUpRight,
+  CheckCircle2,
+  X,
   CalendarDays,
   CheckSquare,
   ChevronDown,
@@ -13,15 +17,17 @@ import {
   ListFilter,
   MessageSquare,
   Paperclip,
+  UserRound,
   Pencil,
   Plus,
   Search,
   Trash2,
 } from "lucide-react";
 import { api, uploadFiles } from "../lib/api.js";
+import { SelectedFiles, useSelectedFiles } from "../components/SelectedFiles.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import PageHeader from "../components/PageHeader.jsx";
-import FileDropzone from "../components/FileDropzone.jsx";
+import FilterMultiSelect from "../components/FilterMultiSelect.jsx";
 import {
   Attachments,
   Avatar,
@@ -33,6 +39,7 @@ import {
   Modal,
   prettyDate,
 } from "../components/UI.jsx";
+import "./tasks-page.css";
 
 const statuses = [
   "DRAFT",
@@ -63,7 +70,7 @@ const DEFAULT_TASK_FILTERS = {
 };
 
 const SORT_OPTIONS = [
-  ["manual", "Default / manual"],
+  ["manual", "Default"],
   ["due_asc", "Due date · earliest"],
   ["due_desc", "Due date · latest"],
   ["priority_desc", "Priority · high to low"],
@@ -113,25 +120,27 @@ function GroupForm({ existing, onClose }) {
       onClose={onClose}
     >
       <form
+        className="task-group-form"
         onSubmit={(event) => {
           event.preventDefault();
-          save.mutate();
+          if (name.trim() && !save.isPending) save.mutate();
         }}
       >
-        <Field
-          label="Group name"
-          required
-          minLength={1}
-          maxLength={120}
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-        />
+        <Field label="Group name">
+          <input
+            className="input task-group-name-input"
+            type="text"
+            required
+            minLength={1}
+            maxLength={120}
+            autoFocus
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+          />
+        </Field>
         <ErrorBox error={save.error} />
-        <div className="form-actions">
-          <button type="button" className="btn-secondary" onClick={onClose}>
-            Cancel
-          </button>
-          <button className="btn-primary" disabled={save.isPending}>
+        <div className="form-actions task-group-form-actions">
+          <button type="submit" className="btn-primary" disabled={save.isPending || !name.trim()}>
             {save.isPending ? "Saving…" : existing ? "Save" : "Create group"}
           </button>
         </div>
@@ -167,7 +176,8 @@ function TaskForm({ existing, parentTask, defaultGroupId = "", onClose }) {
     participantIds:
       existing?.participants.map((participant) => participant.userId) || [],
   });
-  const [files, setFiles] = useState([]);
+  const { files, addFiles, removeFile, selectionError } = useSelectedFiles();
+  const attachmentUploads = useRef(new Map());
   const users = useQuery({
     queryKey: ["users"],
     queryFn: () => api("/users").then((response) => response.data),
@@ -180,7 +190,7 @@ function TaskForm({ existing, parentTask, defaultGroupId = "", onClose }) {
     mutationFn: async () => {
       const attachmentIds = [
         ...(existing?.attachments.map((attachment) => attachment.fileId) || []),
-        ...(await uploadFiles(files)),
+        ...(await uploadFiles(files, attachmentUploads.current)),
       ];
       const { groupId, ...sharedForm } = form;
       const response = await api(
@@ -221,15 +231,17 @@ function TaskForm({ existing, parentTask, defaultGroupId = "", onClose }) {
       onClose={onClose}
     >
       <form
+        className="task-form"
         onSubmit={(event) => {
           event.preventDefault();
-          save.mutate();
+          if (!save.isPending) save.mutate();
         }}
       >
+        <div className="task-form-scroll">
         {(parentTask || existing?.parentTask) && (
-          <div className="mb-4 rounded-xl bg-slate-50 px-4 py-3 text-xs text-slate-500">
+          <div className="task-form-parent mb-4 rounded-xl px-4 py-3 text-xs">
             Subtask of{" "}
-            <span className="font-semibold text-slate-700">
+            <span className="task-form-parent-title font-semibold">
               {parentTask?.title || existing.parentTask.title}
             </span>
           </div>
@@ -243,16 +255,16 @@ function TaskForm({ existing, parentTask, defaultGroupId = "", onClose }) {
         />
         <Field label="Description">
           <textarea
-            className="input min-h-24"
+            className="input task-form-description min-h-24"
             value={form.description}
             onChange={(event) => change("description", event.target.value)}
           />
         </Field>
-        <div className="grid gap-4 sm:grid-cols-2 mt-4">
+        <div className="task-form-row grid gap-4 sm:grid-cols-2">
           <Field label="Assigned to">
             <select
               aria-label="Assigned to"
-              className="input"
+              className="input app-modern-select"
               value={form.assigneeId}
               onChange={(event) => change("assigneeId", event.target.value)}
             >
@@ -274,7 +286,7 @@ function TaskForm({ existing, parentTask, defaultGroupId = "", onClose }) {
           </Field>
           <Field label="Priority">
             <select
-              className="input"
+              className="input app-modern-select"
               value={form.priority}
               onChange={(event) => change("priority", event.target.value)}
             >
@@ -288,7 +300,7 @@ function TaskForm({ existing, parentTask, defaultGroupId = "", onClose }) {
         {!isSubtask && (
           <Field label="Group">
             <select
-              className="input"
+              className="input app-modern-select"
               value={form.groupId}
               onChange={(event) => change("groupId", event.target.value)}
             >
@@ -301,48 +313,53 @@ function TaskForm({ existing, parentTask, defaultGroupId = "", onClose }) {
             </select>
           </Field>
         )}
-        <Field
-          label="Due date"
-          type="datetime-local"
-          value={form.dueDate}
-          onChange={(event) => change("dueDate", event.target.value)}
-        />
-        <Field label="Participants">
-          <select
-            className="input h-24"
-            multiple
-            value={form.participantIds}
-            onChange={(event) =>
-              change(
-                "participantIds",
-                [...event.target.selectedOptions].map((option) => option.value),
-              )
-            }
-          >
-            {users.data
-              ?.filter((member) => member.status === "ACTIVE")
-              .map((member) => (
-                <option key={member.id} value={member.id}>
-                  {member.displayName}
-                </option>
-              ))}
-          </select>
+        <Field label="Due date">
+          <input
+            className="input task-form-date"
+            type="datetime-local"
+            value={form.dueDate}
+            onChange={(event) => change("dueDate", event.target.value)}
+          />
         </Field>
-        <p className="text-xs text-slate-400 mt-1">
-          Hold Ctrl / Cmd to select multiple people.
-        </p>
-        <FileDropzone
-          label="Task attachments"
-          files={files}
-          onChange={setFiles}
-          disabled={save.isPending}
+        <FilterMultiSelect
+          label="Participants"
+          options={(users.data || [])
+            .filter(
+              (member) =>
+                member.status === "ACTIVE" ||
+                form.participantIds.includes(member.id),
+            )
+            .map((member) => ({
+              value: member.id,
+              label: member.displayName || member.email || "Unknown",
+            }))}
+          values={form.participantIds}
+          onToggle={(value) =>
+            change(
+              "participantIds",
+              form.participantIds.includes(value)
+                ? form.participantIds.filter((id) => id !== value)
+                : [...form.participantIds, value],
+            )
+          }
         />
-        <ErrorBox error={save.error || groups.error} />
-        <div className="form-actions">
-          <button className="btn-secondary" type="button" onClick={onClose}>
-            Cancel
-          </button>
-          <button className="btn-primary" disabled={save.isPending}>
+        <Field label="Attachments">
+          <input
+            className="input task-form-file"
+            type="file"
+            multiple
+            disabled={save.isPending}
+            onChange={addFiles}
+          />
+        </Field>
+        <SelectedFiles files={files} onRemove={removeFile} disabled={save.isPending} />
+        <ErrorBox error={selectionError || save.error || groups.error} />
+        </div>
+        <div className="task-form-footer">
+          <span className="task-form-footer-note">
+            Select participants using checkboxes.
+          </span>
+          <button className="btn-primary" type="submit" disabled={save.isPending}>
             {save.isPending
               ? "Saving…"
               : parentTask
@@ -359,7 +376,8 @@ function TaskDetail({ id, onClose }) {
   const qc = useQueryClient();
   const { user, hasPermission } = useAuth();
   const [comment, setComment] = useState("");
-  const [files, setFiles] = useState([]);
+  const { files, addFiles, removeFile, clearFiles, selectionError } = useSelectedFiles();
+  const attachmentUploads = useRef(new Map());
   const [edit, setEdit] = useState(false);
   const [createSubtask, setCreateSubtask] = useState(false);
   const [childId, setChildId] = useState(null);
@@ -389,12 +407,13 @@ function TaskDetail({ id, onClose }) {
         method: "POST",
         body: JSON.stringify({
           content: comment,
-          attachmentIds: await uploadFiles(files),
+          attachmentIds: await uploadFiles(files, attachmentUploads.current),
         }),
       }),
     onSuccess: () => {
       setComment("");
-      setFiles([]);
+      clearFiles();
+      attachmentUploads.current.clear();
       qc.invalidateQueries({ queryKey: ["task", id] });
       qc.invalidateQueries({ queryKey: ["tasks"] });
     },
@@ -447,95 +466,116 @@ function TaskDetail({ id, onClose }) {
 
   return (
     <Modal title="Task details" onClose={onClose} wide>
+      <div className="task-detail">
       {query.isLoading ? (
         <Loading />
       ) : task ? (
         <>
-          <div className="flex justify-between gap-3 items-start">
+          <div className="task-detail-intro flex justify-between gap-3 items-start">
             <div className="min-w-0">
               {task.parentTask && (
                 <p className="mb-2 text-xs text-slate-400">
                   Subtask of {task.parentTask.title}
                 </p>
               )}
-              <h2 className="text-xl font-bold mb-3">{task.title}</h2>
-              <div className="flex flex-wrap gap-2">
+              <h2 className="task-detail-title text-xl font-bold mb-3">{task.title}</h2>
+              <div className="task-detail-badges flex flex-wrap gap-2">
                 <Badge value={task.priority} />
                 <Badge value={task.status} />
                 {task.personalLayout?.group && (
-                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-500">
+                  <span className="task-detail-group-label" title={task.personalLayout.group.name}>
                     My group · {task.personalLayout.group.name}
                   </span>
                 )}
               </div>
             </div>
             {canManage && (
-              <button className="btn-secondary" onClick={() => setEdit(true)}>
+              <button className="btn-secondary task-detail-edit" onClick={() => setEdit(true)}>
                 Edit task
               </button>
             )}
           </div>
-          <p className="whitespace-pre-wrap text-sm leading-6 text-slate-500 mt-6">
+          <p className="task-detail-description whitespace-pre-wrap text-sm leading-6 text-slate-500 mt-6">
             {task.description || "No description provided."}
           </p>
           <div
-            className={`grid gap-4 my-6 rounded-xl bg-slate-50 p-4 text-sm ${
+            className={`task-detail-meta grid gap-4 my-6 rounded-xl bg-slate-50 p-4 text-sm ${
               task.parentTaskId
                 ? "sm:grid-cols-2 lg:grid-cols-4"
                 : "sm:grid-cols-2 lg:grid-cols-5"
             }`}
           >
-            <div>
-              <p className="text-xs text-slate-400 mb-2">Assigned to</p>
-              {task.assignee?.displayName || "Unassigned"}
+            <div className="task-detail-meta-item">
+              <p className="task-detail-meta-label text-xs text-slate-400 mb-2">Assigned to</p>
+              <span className="task-detail-meta-value task-detail-assignee">{task.assignee?.displayName || "Unassigned"}</span>
             </div>
-            <div>
-              <p className="text-xs text-slate-400 mb-2">Created by</p>
-              {task.creator?.displayName || "Unknown"}
+            <div className="task-detail-meta-item">
+              <p className="task-detail-meta-label text-xs text-slate-400 mb-2">Created by</p>
+              <span className="task-detail-meta-value task-detail-creator">{task.creator?.displayName || "Unknown"}</span>
             </div>
-            <div>
-              <p className="text-xs text-slate-400 mb-2">Due date</p>
-              {prettyDate(task.dueDate)}
+            <div className="task-detail-meta-item">
+              <p className="task-detail-meta-label text-xs text-slate-400 mb-2">Due date</p>
+              <span className="task-detail-meta-value task-detail-due">{prettyDate(task.dueDate)}</span>
             </div>
-            <div>
-              <p className="text-xs text-slate-400 mb-2">Status</p>
-              <select
-                aria-label="Task status"
-                className="input"
-                value={task.status}
-                disabled={updateStatus.isPending || !canChangeStatus}
-                onChange={(event) => changeParentStatus(event.target.value)}
-              >
-                {statuses.map((status) => (
-                  <option key={status} value={status}>
-                    {status.replaceAll("_", " ")}
-                  </option>
-                ))}
-              </select>
-            </div>
-            {!task.parentTaskId && (
-              <div>
-                <p className="text-xs text-slate-400 mb-2">My group</p>
+            <div className="task-detail-meta-item">
+              <p className="task-detail-meta-label text-xs text-slate-400 mb-2">Status</p>
+              <div className="task-detail-select-wrap">
                 <select
-                  aria-label="My task group"
-                  className="input"
-                  value={task.personalLayout?.groupId || ""}
-                  disabled={updateLayout.isPending}
-                  onChange={(event) => updateLayout.mutate(event.target.value)}
+                  aria-label="Task status"
+                  className="input app-modern-select task-detail-select task-detail-status-select"
+                  value={task.status}
+                  disabled={updateStatus.isPending || !canChangeStatus}
+                  onChange={(event) => changeParentStatus(event.target.value)}
                 >
-                  <option value="">Ungrouped</option>
-                  {(groups.data || []).map((group) => (
-                    <option key={group.id} value={group.id}>
-                      {group.name}
+                  {statuses.map((status) => (
+                    <option key={status} value={status}>
+                      {status.replaceAll("_", " ")}
                     </option>
                   ))}
                 </select>
+                <span className="task-detail-select-preview" aria-hidden="true">
+                  <span className="task-detail-select-preview-label">
+                    {task.status.replaceAll("_", " ")}
+                  </span>
+                  <ChevronDown size={15} />
+                </span>
+              </div>
+            </div>
+            {!task.parentTaskId && (
+              <div className="task-detail-meta-item task-detail-group-field">
+                <p className="task-detail-meta-label text-xs text-slate-400 mb-2">My group</p>
+                <div
+                  className="task-detail-select-wrap"
+                  title={task.personalLayout?.group?.name || "Ungrouped"}
+                >
+                  <select
+                    aria-label="My task group"
+                    title={task.personalLayout?.group?.name || "Ungrouped"}
+                    className="input app-modern-select task-detail-select task-detail-group-select"
+                    value={task.personalLayout?.groupId || ""}
+                    disabled={updateLayout.isPending}
+                    onChange={(event) => updateLayout.mutate(event.target.value)}
+                  >
+                    <option value="">Ungrouped</option>
+                    {(groups.data || []).map((group) => (
+                      <option key={group.id} value={group.id}>
+                        {group.name}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="task-detail-select-preview" aria-hidden="true">
+                    <span className="task-detail-select-preview-label">
+                      {task.personalLayout?.group?.name || "Ungrouped"}
+                    </span>
+                    <ChevronDown size={15} />
+                  </span>
+                </div>
               </div>
             )}
           </div>
 
-          <section className="my-7 rounded-xl border border-slate-200 overflow-hidden">
-            <div className="bg-slate-50 px-4 py-3">
+          <section className="task-detail-section task-detail-participants my-7 rounded-xl border border-slate-200 overflow-hidden">
+            <div className="task-detail-section-header bg-slate-50 px-4 py-3">
               <h3 className="text-sm font-semibold">Participants</h3>
               <p className="mt-0.5 text-xs text-slate-400">
                 People involved in this task. Use Edit task to change
@@ -543,29 +583,28 @@ function TaskDetail({ id, onClose }) {
               </p>
             </div>
             {task.participants?.length ? (
-              <div className="flex flex-wrap gap-2 border-t border-slate-100 px-4 py-4">
+              <div className="task-detail-participants-list">
                 {task.participants.map((participant) => (
-                  <div
-                    key={participant.userId}
-                    className="flex items-center gap-2 rounded-full border border-slate-200 bg-white py-1.5 pl-1.5 pr-3 text-sm text-slate-600"
-                  >
-                    <Avatar small name={participant.user.displayName} />
-                    <span className="font-medium">
-                      {participant.user.displayName}
+                  <div key={participant.userId} className="task-detail-person">
+                    <span className="task-detail-person-icon" aria-hidden="true">
+                      <UserRound size={17} strokeWidth={1.8} />
+                    </span>
+                    <span className="task-detail-person-name">
+                      {participant.user?.displayName || "Unknown"}
                     </span>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="border-t border-slate-100 px-4 py-4 text-sm text-slate-400">
+              <div className="task-detail-empty border-t border-slate-100 px-4 py-4 text-sm text-slate-400">
                 No participants.
               </div>
             )}
           </section>
 
           {!task.parentTaskId && (
-            <section className="my-7 rounded-xl border border-slate-200 overflow-hidden">
-              <div className="flex items-center justify-between gap-3 bg-slate-50 px-4 py-3">
+            <section className="task-detail-section task-detail-subtasks my-7 rounded-xl border border-slate-200 overflow-hidden">
+              <div className="task-detail-section-header flex items-center justify-between gap-3 bg-slate-50 px-4 py-3">
                 <div>
                   <h3 className="text-sm font-semibold">Subtasks</h3>
                   <p className="mt-0.5 text-xs text-slate-400">
@@ -576,7 +615,7 @@ function TaskDetail({ id, onClose }) {
                 </div>
                 {hasPermission("tasks.create") && (
                   <button
-                    className="btn-secondary px-3 py-1.5 text-xs"
+                    className="btn-secondary task-detail-add-subtask px-3 py-1.5 text-xs"
                     onClick={() => setCreateSubtask(true)}
                   >
                     <Plus size={14} />
@@ -596,7 +635,7 @@ function TaskDetail({ id, onClose }) {
                     return (
                       <div
                         key={subtask.id}
-                        className="flex items-center gap-3 border-t border-slate-100 px-4 py-3"
+                        className="task-detail-subtask-row flex items-center gap-3 border-t border-slate-100 px-4 py-3"
                       >
                         <button
                           type="button"
@@ -605,7 +644,7 @@ function TaskDetail({ id, onClose }) {
                               ? `Reopen ${subtask.title}`
                               : `Complete ${subtask.title}`
                           }
-                          className="grid h-6 w-6 shrink-0 place-items-center rounded-md text-blue-600 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-40"
+                          className="task-detail-subtask-toggle grid h-6 w-6 shrink-0 place-items-center rounded-md text-blue-600 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-40"
                           disabled={
                             updateStatus.isPending || !canChangeSubtaskStatus
                           }
@@ -624,7 +663,7 @@ function TaskDetail({ id, onClose }) {
                         </button>
                         <button
                           type="button"
-                          className={`min-w-0 flex-1 truncate text-left text-sm font-medium hover:text-blue-600 ${completed ? "text-slate-400 line-through" : "text-slate-700"}`}
+                          className={`task-detail-subtask-title min-w-0 flex-1 truncate text-left text-sm font-medium ${completed ? "text-slate-400 line-through" : "text-slate-700"}`}
                           onClick={() => setChildId(subtask.id)}
                         >
                           {subtask.title}
@@ -653,12 +692,12 @@ function TaskDetail({ id, onClose }) {
           <ErrorBox
             error={updateStatus.error || updateLayout.error || groups.error}
           />
-          <h3 className="font-semibold text-sm mt-8 mb-4">
+          <h3 className="task-detail-discussion-title font-semibold text-sm mt-8 mb-4">
             Discussion · {task.comments.length}
           </h3>
-          <div className="space-y-5">
+          <div className="task-detail-comments space-y-5">
             {task.comments.map((entry) => (
-              <div className="flex gap-3" key={entry.id}>
+              <div className="task-detail-comment flex gap-3" key={entry.id}>
                 <Avatar small name={entry.author.displayName} />
                 <div className="min-w-0 flex-1">
                   <div className="text-xs font-semibold">
@@ -676,7 +715,7 @@ function TaskDetail({ id, onClose }) {
             ))}
           </div>
           <form
-            className="mt-5"
+            className="task-detail-comment-form mt-5"
             onSubmit={(event) => {
               event.preventDefault();
               addComment.mutate();
@@ -685,28 +724,37 @@ function TaskDetail({ id, onClose }) {
             <textarea
               aria-label="Comment"
               placeholder="Add a comment…"
-              className="input min-h-24"
+              className="input task-detail-comment-input min-h-24"
               required
               value={comment}
               onChange={(event) => setComment(event.target.value)}
             />
-            <div className="flex justify-between items-center mt-3">
-              <div className="min-w-0 flex-1 mr-3">
-                <FileDropzone
-                  label="Comment attachments"
-                  files={files}
-                  onChange={setFiles}
+            <div className="task-detail-comment-actions flex justify-between items-center mt-3">
+              <label className="task-detail-file-label text-xs text-slate-500 flex items-center gap-2 cursor-pointer">
+                <Paperclip size={16} />
+                {files.length ? `${files.length} file${files.length === 1 ? "" : "s"} selected` : "Attach files"}
+                <input
+                  type="file"
+                  multiple
+                  className="sr-only"
+                  aria-label="Comment attachments"
                   disabled={addComment.isPending}
-                  compact
+                  onChange={addFiles}
                 />
-              </div>
-              <button className="btn-primary" disabled={addComment.isPending}>
+              </label>
+              <button className="btn-primary task-detail-comment-submit" disabled={addComment.isPending}>
                 Comment
               </button>
             </div>
-            <ErrorBox error={addComment.error} />
+            <SelectedFiles
+              files={files}
+              onRemove={removeFile}
+              disabled={addComment.isPending}
+              className="mt-2"
+            />
+            <ErrorBox error={selectionError || addComment.error} />
           </form>
-          <details className="mt-7 text-xs text-slate-500">
+          <details className="task-detail-history mt-7 text-xs text-slate-500">
             <summary className="cursor-pointer font-semibold">
               Activity history
             </summary>
@@ -733,6 +781,7 @@ function TaskDetail({ id, onClose }) {
       ) : (
         <ErrorBox error={query.error} />
       )}
+      </div>
     </Modal>
   );
 }
@@ -802,6 +851,22 @@ export default function TasksPage() {
   };
 
   const allTasks = query.data || [];
+  // Summary cards reflect top-level tasks in this user's accessible task feed.
+  // Keep counts independent of the quick filter, search and personal grouping.
+  const taskSummary = useMemo(() => {
+    const tasks = allTasks.filter((task) => !task.parentTaskId);
+    const unfinished = tasks.filter(
+      (task) => !["COMPLETED", "CANCELLED"].includes(task.status),
+    );
+    const needsAttention = (task) =>
+      task.status === "BLOCKED" ||
+      (task.dueDate && new Date(task.dueDate).getTime() < Date.now());
+
+    return {
+      attention: unfinished.filter(needsAttention).length,
+      completed: tasks.filter((task) => task.status === "COMPLETED").length,
+    };
+  }, [allTasks]);
   const unreadTaskIds = useMemo(
     () =>
       new Set(
@@ -860,13 +925,6 @@ export default function TasksPage() {
     }));
   };
 
-  const setAdvancedValues = (key, event) => {
-    const values = [...event.target.selectedOptions].map(
-      (option) => option.value,
-    );
-    setAdvancedFilters((current) => ({ ...current, [key]: values }));
-  };
-
   const setAdvancedValue = (key, value) =>
     setAdvancedFilters((current) => ({ ...current, [key]: value }));
 
@@ -911,6 +969,10 @@ export default function TasksPage() {
         )) ||
       (filter === "active" &&
         !["COMPLETED", "CANCELLED"].includes(task.status)) ||
+      (filter === "attention" &&
+        !["COMPLETED", "CANCELLED"].includes(task.status) &&
+        (task.status === "BLOCKED" ||
+          (task.dueDate && new Date(task.dueDate).getTime() < Date.now()))) ||
       (filter === "completed" && task.status === "COMPLETED");
 
     const layoutOwner = task.parentTaskId && parentTask ? parentTask : task;
@@ -1151,7 +1213,7 @@ export default function TasksPage() {
     return (
       <button
         key={task.id}
-        className="card relative p-4 text-left w-full hover:border-blue-300 transition"
+        className="task-board-card card relative p-4 text-left w-full hover:border-blue-300 transition"
         onClick={() => setId(task.id)}
       >
         {hasUnread && (
@@ -1217,7 +1279,7 @@ export default function TasksPage() {
         <div
           role="button"
           tabIndex={0}
-          className={`task-list-row relative grid min-w-[940px] grid-cols-[minmax(300px,1.8fr)_180px_165px_110px_145px_70px] items-center gap-4 border-t border-slate-100 px-5 py-3.5 text-left transition hover:bg-slate-50 focus:bg-slate-50 focus:outline-none ${subtask ? "bg-slate-50/40" : ""}`}
+          className={`task-list-row relative grid min-w-[890px] grid-cols-[minmax(280px,1.8fr)_160px_145px_105px_125px_70px] items-center gap-4 border-t border-slate-100 px-5 py-3.5 text-left transition hover:bg-slate-50 focus:bg-slate-50 focus:outline-none ${subtask ? "task-list-row--subtask" : ""}`}
           onClick={() => setId(task.id)}
           onKeyDown={(event) => {
             if (event.key === "Enter" || event.key === " ") {
@@ -1329,10 +1391,12 @@ export default function TasksPage() {
 
   return (
     <>
+      <div className="tasks-page">
       <PageHeader
         title="Tasks"
+        description="Manage project milestones, sprints, and team execution."
         action={
-          <div className="flex items-center gap-2">
+          <div className="task-header-actions flex items-center gap-2">
             <button className="btn-secondary" onClick={() => setGroupForm({})}>
               <FolderPlus size={17} />
               New group
@@ -1352,7 +1416,35 @@ export default function TasksPage() {
           </div>
         }
       />
-      <div className="toolbar task-toolbar stickytop-20 z-30 flex items-center gap-4 rounded-lg border border-slate-200 bg-white shadow-sm">
+      <div className="task-summary" aria-label="Task overview">
+        <button
+          type="button"
+          className="task-summary-card task-summary-card--attention"
+          onClick={() => setFilter("attention")}
+          aria-pressed={filter === "attention"}
+        >
+          <span className="task-summary-icon"><AlertCircle size={16} /></span>
+          <span className="task-summary-copy">
+            <span className="task-summary-number">{taskSummary.attention}</span>
+            <span className="task-summary-label">Needs attention</span>
+          </span>
+          <ArrowUpRight className="task-summary-arrow" size={12} aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          className="task-summary-card task-summary-card--completed"
+          onClick={() => setFilter("completed")}
+          aria-pressed={filter === "completed"}
+        >
+          <span className="task-summary-icon"><CheckCircle2 size={16} /></span>
+          <span className="task-summary-copy">
+            <span className="task-summary-number">{taskSummary.completed}</span>
+            <span className="task-summary-label">Completed tasks</span>
+          </span>
+          <ArrowUpRight className="task-summary-arrow" size={12} aria-hidden="true" />
+        </button>
+      </div>
+      <div className="toolbar task-toolbar task-toolbar--refresh">
         <div className="tabs task-quick-tabs" aria-label="Task quick filters">
           {[
             ["active", "Active", "Active"],
@@ -1366,6 +1458,7 @@ export default function TasksPage() {
               key={value}
               type="button"
               className={filter === value ? "active" : ""}
+              aria-pressed={filter === value}
               onClick={() => setFilter(value)}
               title={label}
             >
@@ -1376,69 +1469,57 @@ export default function TasksPage() {
         </div>
 
         <div className="task-toolbar-actions ml-auto flex items-center gap-2">
-          <div className="relative">
-            <Search
-              className={`absolute right-3  top-3 text-slate-400`}
-              size={15}
-            />
+          <label className="task-search-bar">
+            <Search size={16} aria-hidden="true" />
             <input
               aria-label="Search tasks"
-              className="input pl-9 pe-8! w-44 xl:w-52"
-              placeholder="Search tasks"
+              className="input"
+              placeholder="Search tasks..."
               value={search}
               onChange={(event) => setSearch(event.target.value)}
             />
-          </div>
+          </label>
 
           <div className="relative">
             <button
               type="button"
-              className={`btn-secondary relative ${advancedFilterCount ? "border-blue-300 bg-blue-50 text-blue-700" : ""}`}
+              className={`btn-secondary task-filter-trigger relative ${advancedFilterCount ? "task-filter-trigger--active" : ""}`}
               onClick={() => setFiltersOpen((current) => !current)}
               aria-expanded={filtersOpen}
             >
               <ListFilter size={16} />
               <span className="hidden xl:inline">Filter</span>
               {advancedFilterCount > 0 && (
-                <span className="grid h-5 min-w-5 place-items-center rounded-full bg-blue-600 px-1 text-[10px] font-bold text-white">
+                <span className="task-filter-count-badge">
                   {advancedFilterCount}
                 </span>
               )}
             </button>
 
             {filtersOpen && (
-              <div className="task-filter-panel fixed top-2 left-1/2 -translate-x-1/2 w-[680px] max-w-[calc(100vw-48px)] max-h-[calc(100vh-1rem)] overflow-y-auto rounded-2xl border border-slate-200 bg-white px-5 shadow-xl z-50">
-                <div className="sticky top-0 z-10  bg-white pt-5 pb-3 flex items-center justify-between gap-4 border-b border-slate-200">
-                  <div>
-                    <h3 className="text-sm font-bold text-slate-800 sticky">
-                      Filter tasks
-                    </h3>
-                    <p className="mt-1 text-xs text-slate-400">
-                      These filters refine the selected quick filter.
-                    </p>
-                  </div>
-                  <div>
-                    <button
-                      className="btn-secondary btn-sm"
-                      onClick={() => setFiltersOpen((current) => !current)}
-                    >
-                      x
-                    </button>
-                  </div>
-                </div>
-                <div className="relative h-full mb-4 flex items-start justify-between gap-4">
-                  {advancedFilterCount > 0 && (
-                    <button
-                      type="button"
-                      className="text-xs font-semibold text-blue-600 hover:text-blue-800"
-                      onClick={clearAdvancedFilters}
-                    >
-                      Clear all
-                    </button>
-                  )}
+              <Modal
+                title="Filter tasks"
+                subtitle="These filters refine the selected quick filter."
+                onClose={() => setFiltersOpen(false)}
+                className="task-filter-panel"
+              >
+                <div className="task-filter-utilities">
+                  <span className="task-filter-count">
+                    {advancedFilterCount > 0
+                      ? `${advancedFilterCount} active filter${advancedFilterCount === 1 ? "" : "s"}`
+                      : "Refine the task list"}
+                  </span>
+                  <button
+                    type="button"
+                    className="btn-secondary task-filter-clear"
+                    onClick={clearAdvancedFilters}
+                    disabled={advancedFilterCount === 0}
+                  >
+                    Clear all
+                  </button>
                 </div>
 
-                <div className="grid gap-5 md:grid-cols-2">
+                <div className="task-filter-fields grid gap-5 md:grid-cols-2">
                   <div>
                     <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">
                       Status
@@ -1447,10 +1528,11 @@ export default function TasksPage() {
                       {statuses.map((status) => (
                         <label
                           key={status}
-                          className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-100 px-2.5 py-2 text-xs text-slate-600 hover:bg-slate-50"
+                          className="task-filter-choice flex cursor-pointer items-center gap-2 rounded-lg border border-slate-100 px-2.5 py-2 text-xs text-slate-600"
                         >
                           <input
                             type="checkbox"
+                            className="task-filter-checkbox"
                             checked={advancedFilters.statuses.includes(status)}
                             onChange={() =>
                               toggleAdvancedValue("statuses", status)
@@ -1470,10 +1552,11 @@ export default function TasksPage() {
                       {priorities.map((priority) => (
                         <label
                           key={priority}
-                          className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-100 px-2.5 py-2 text-xs text-slate-600 hover:bg-slate-50"
+                          className="task-filter-choice flex cursor-pointer items-center gap-2 rounded-lg border border-slate-100 px-2.5 py-2 text-xs text-slate-600"
                         >
                           <input
                             type="checkbox"
+                            className="task-filter-checkbox"
                             checked={advancedFilters.priorities.includes(
                               priority,
                             )}
@@ -1489,7 +1572,7 @@ export default function TasksPage() {
                     <label className="mt-4 block text-xs font-semibold text-slate-500">
                       Due date
                       <select
-                        className="input mt-1.5"
+                        className="input app-modern-select mt-1.5"
                         value={advancedFilters.due}
                         onChange={(event) =>
                           setAdvancedValue("due", event.target.value)
@@ -1504,101 +1587,71 @@ export default function TasksPage() {
                     </label>
                   </div>
 
-                  <label className="text-xs font-semibold text-slate-500">
-                    Assigned to
-                    <select
-                      multiple
-                      className="input mt-1.5 h-28"
-                      value={advancedFilters.assigneeIds}
-                      onChange={(event) =>
-                        setAdvancedValues("assigneeIds", event)
-                      }
-                    >
-                      <option value={UNASSIGNED}>Unassigned</option>
-                      {filterPeople.map((person) => (
-                        <option key={person.id} value={person.id}>
-                          {person.displayName || person.email}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                  <FilterMultiSelect
+                    label="Assigned to"
+                    options={[
+                      { value: UNASSIGNED, label: "Unassigned" },
+                      ...filterPeople.map((person) => ({
+                        value: person.id,
+                        label: person.displayName || person.email || "Unknown",
+                      })),
+                    ]}
+                    values={advancedFilters.assigneeIds}
+                    onToggle={(value) => toggleAdvancedValue("assigneeIds", value)}
+                  />
 
-                  <label className="text-xs font-semibold text-slate-500">
-                    Created by
-                    <select
-                      multiple
-                      className="input mt-1.5 h-28"
-                      value={advancedFilters.creatorIds}
-                      onChange={(event) =>
-                        setAdvancedValues("creatorIds", event)
-                      }
-                    >
-                      {filterPeople.map((person) => (
-                        <option key={person.id} value={person.id}>
-                          {person.displayName || person.email}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                  <FilterMultiSelect
+                    label="Created by"
+                    options={filterPeople.map((person) => ({
+                      value: person.id,
+                      label: person.displayName || person.email || "Unknown",
+                    }))}
+                    values={advancedFilters.creatorIds}
+                    onToggle={(value) => toggleAdvancedValue("creatorIds", value)}
+                  />
 
-                  <label className="text-xs font-semibold text-slate-500">
-                    Participant
-                    <select
-                      multiple
-                      className="input mt-1.5 h-28"
-                      value={advancedFilters.participantIds}
-                      onChange={(event) =>
-                        setAdvancedValues("participantIds", event)
-                      }
-                    >
-                      {filterPeople.map((person) => (
-                        <option key={person.id} value={person.id}>
-                          {person.displayName || person.email}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                  <FilterMultiSelect
+                    label="Participant"
+                    options={filterPeople.map((person) => ({
+                      value: person.id,
+                      label: person.displayName || person.email || "Unknown",
+                    }))}
+                    values={advancedFilters.participantIds}
+                    onToggle={(value) => toggleAdvancedValue("participantIds", value)}
+                  />
 
-                  <label className="text-xs font-semibold text-slate-500">
-                    Personal group
-                    <select
-                      multiple
-                      className="input mt-1.5 h-28"
-                      value={advancedFilters.groupIds}
-                      onChange={(event) => setAdvancedValues("groupIds", event)}
-                    >
-                      <option value={UNGROUPED}>Ungrouped</option>
-                      {(groups.data || []).map((group) => (
-                        <option key={group.id} value={group.id}>
-                          {group.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                  <FilterMultiSelect
+                    label="Personal group"
+                    kind="group"
+                    options={[
+                      { value: UNGROUPED, label: "Ungrouped" },
+                      ...(groups.data || []).map((group) => ({
+                        value: group.id,
+                        label: group.name,
+                      })),
+                    ]}
+                    values={advancedFilters.groupIds}
+                    onToggle={(value) => toggleAdvancedValue("groupIds", value)}
+                  />
 
-                  <label className="text-xs font-semibold text-slate-500">
-                    Department
-                    <select
-                      multiple
-                      className="input mt-1.5 h-28"
-                      value={advancedFilters.departmentIds}
-                      onChange={(event) =>
-                        setAdvancedValues("departmentIds", event)
-                      }
-                    >
-                      <option value={NO_DEPARTMENT}>No department</option>
-                      {filterDepartments.map((department) => (
-                        <option key={department.id} value={department.id}>
-                          {department.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                  <FilterMultiSelect
+                    label="Department"
+                    kind="department"
+                    options={[
+                      { value: NO_DEPARTMENT, label: "No department" },
+                      ...filterDepartments.map((department) => ({
+                        value: department.id,
+                        label: department.name,
+                      })),
+                    ]}
+                    values={advancedFilters.departmentIds}
+                    onToggle={(value) => toggleAdvancedValue("departmentIds", value)}
+                  />
 
                   <label className="text-xs font-semibold text-slate-500">
                     Attachments
                     <select
-                      className="input mt-1.5"
+                      className="input app-modern-select mt-1.5"
                       value={advancedFilters.attachments}
                       onChange={(event) =>
                         setAdvancedValue("attachments", event.target.value)
@@ -1610,7 +1663,7 @@ export default function TasksPage() {
                     </select>
                   </label>
 
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:col-span-2">
+                  <div className="task-filter-dates grid grid-cols-1 gap-3 sm:grid-cols-2 md:col-span-2">
                     <label className="text-xs font-semibold text-slate-500">
                       Created from
                       <input
@@ -1636,9 +1689,9 @@ export default function TasksPage() {
                   </div>
                 </div>
 
-                <div className="sticky bottom-0 py-3 flex items-center justify-between border-t border-slate-100 bg-white pt-4">
+                <div className="task-filter-footer sticky bottom-0 flex items-center justify-between border-t border-slate-100 bg-white">
                   <span className="hidden text-xs text-slate-400 sm:inline">
-                    Hold Ctrl/Cmd to select multiple people or groups.
+                    Select multiple values with checkboxes.
                   </span>
                   <button
                     type="button"
@@ -1648,15 +1701,15 @@ export default function TasksPage() {
                     Done
                   </button>
                 </div>
-              </div>
+              </Modal>
             )}
           </div>
 
-          <label className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600">
+          <label className="task-sort-control">
             <ArrowUpDown size={15} className="text-slate-400" />
             <select
               aria-label="Sort tasks"
-              className="max-w-40 bg-transparent outline-none"
+              className="input app-modern-select task-sort-select"
               value={sortBy}
               onChange={(event) => setSortBy(event.target.value)}
             >
@@ -1669,24 +1722,29 @@ export default function TasksPage() {
           </label>
 
           <div
-            className="inline-flex rounded-xl border border-slate-200 bg-white p-1"
+            className="task-view-toggle"
+            role="group"
             aria-label="Task view"
           >
             <button
               type="button"
-              className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${!board ? "bg-slate-100 text-slate-800" : "text-slate-500 hover:text-slate-800"}`}
+              className={`task-view-button ${!board ? "task-view-button--active" : ""}`}
+              aria-label="List view"
+              aria-pressed={!board}
               onClick={() => setBoard(false)}
             >
               <List size={15} />
-              <span className="hidden xl:inline">List</span>
+              <span>List</span>
             </button>
             <button
               type="button"
-              className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${board ? "bg-slate-100 text-slate-800" : "text-slate-500 hover:text-slate-800"}`}
+              className={`task-view-button ${board ? "task-view-button--active" : ""}`}
+              aria-label="Board view"
+              aria-pressed={board}
               onClick={() => setBoard(true)}
             >
               <Columns3 size={15} />
-              <span className="hidden xl:inline">Board</span>
+              <span>Board</span>
             </button>
           </div>
         </div>
@@ -1729,7 +1787,7 @@ export default function TasksPage() {
             [["WAITING_REVIEW"], "IN REVIEW"],
             [["COMPLETED", "CANCELLED"], "DONE"],
           ].map(([statusGroup, label]) => (
-            <section key={label} className="rounded-xl bg-slate-100 p-3">
+            <section key={label} className="task-board-column rounded-xl bg-slate-100 p-3">
               <h3 className="text-xs font-bold px-1 mb-4 text-slate-500">
                 {label}
                 <span className="float-right">
@@ -1749,22 +1807,17 @@ export default function TasksPage() {
           ))}
         </div>
       ) : (
-        // <div className="task-list-card card max-h-[calc(100vh-18.6rem)] md:max-h-[calc(100vh-10.74rem)] overflow-auto">
-        <div className="task-list-card card max-h-[calc(100vh-377px)] md:max-h-[calc(100vh-10.8rem)] overflow-auto">
-          <div className=" ">
-            <div className="task-list-header sticky top-0 z-5 grid min-w-[940px] grid-cols-[minmax(300px,1.8fr)_180px_165px_110px_145px_70px] items-center gap-4 bg-slate-50 px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-slate-400">
-              <span>Task</span>
-              <span>Assignee</span>
-              <span>Due date</span>
-              <span>Priority</span>
-              <span>Status</span>
-              <span className="text-right">Comments</span>
-            </div>
+        <div className="task-list-card">
+          <div className="task-groups-stack">
             {groupSections.map((group) => {
               const collapsed = collapsedGroups.has(group.id);
+              const groupAttention = group.tasks.some((task) =>
+                task.status === "BLOCKED" || isOverdue(task));
+              const groupCompleted = group.tasks.length > 0 &&
+                group.tasks.every((task) => task.status === "COMPLETED");
               return (
-                <section key={group.id}>
-                  <div className="task-group-header sticky top-0 md:top-10 z-4 flex min-w-[940px] items-center gap-2 border-t border-slate-200 bg-slate-100 px-4 py-2.5">
+                <section key={group.id} className="task-group-card">
+                  <div className="task-group-header flex min-w-0 items-center gap-2 px-4 py-2.5">
                     <button
                       type="button"
                       className="grid h-7 w-7 place-items-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700"
@@ -1784,16 +1837,24 @@ export default function TasksPage() {
                     <span className="font-semibold text-sm text-slate-700">
                       {group.name}
                     </span>
-                    <span className="text-xs text-slate-400">
-                      {group.tasks.length} task
-                      {group.tasks.length === 1 ? "" : "s"}
+                    <span className="task-group-count">
+                      {group.tasks.length} task{group.tasks.length === 1 ? "" : "s"}
                     </span>
+                    {group.tasks.length > 0 && (
+                      <span className={`task-group-state ${groupCompleted
+                        ? "task-group-state--complete"
+                        : groupAttention
+                          ? "task-group-state--attention"
+                          : "task-group-state--progress"}`}>
+                        {groupCompleted ? "Completed" : groupAttention ? "Needs attention" : "In progress"}
+                      </span>
+                    )}
                     <div className="ml-auto flex items-center gap-1">
                       {hasPermission("tasks.create") &&
                         group.canUse !== false && (
                           <button
                             type="button"
-                            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-slate-500 hover:bg-white hover:text-slate-800"
+                            className="btn-primary task-group-add"
                             onClick={(event) =>
                               openCreateForGroup(event, group.id)
                             }
@@ -1832,20 +1893,35 @@ export default function TasksPage() {
                       )}
                     </div>
                   </div>
-                  {!collapsed &&
-                    (group.tasks.length ? (
-                      group.tasks.map((task) => listRow(task))
-                    ) : (
-                      <div className="task-empty-row min-w-[940px] border-t border-slate-100 px-14 py-4 text-sm text-slate-400">
-                        No tasks in this group.
-                      </div>
-                    ))}
+                  {!collapsed && (
+                    <div className="task-group-content">
+                      {group.tasks.length ? (
+                        <>
+                          <div className="task-list-header grid min-w-[890px] grid-cols-[minmax(280px,1.8fr)_160px_145px_105px_125px_70px] items-center gap-4 px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-slate-400">
+                            <span>Task</span>
+                            <span>Assignee</span>
+                            <span>Due date</span>
+                            <span>Priority</span>
+                            <span>Status</span>
+                            <span className="text-right">Comments</span>
+                          </div>
+                          {group.tasks.map((task) => listRow(task))}
+                        </>
+                      ) : (
+                        <div className="task-empty-row">
+                          <CheckCircle2 size={16} aria-hidden="true" />
+                          <span>No tasks match the selected filters in this group.</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </section>
               );
             })}
           </div>
         </div>
       )}
+      </div>
       {create && (
         <TaskForm
           defaultGroupId={createInGroup}

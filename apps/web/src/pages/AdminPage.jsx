@@ -170,7 +170,7 @@ export default function AdminPage() {
     return <Navigate to="/dashboard" replace />;
 
   return (
-    <>
+    <div className="administration-page">
       <PageHeader
         title="Administration"
         action={
@@ -743,6 +743,6 @@ export default function AdminPage() {
           </form>
         </Modal>
       )}
-    </>
+    </div>
   );
 }

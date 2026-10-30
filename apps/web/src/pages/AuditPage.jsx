@@ -14,7 +14,7 @@ export default function AuditPage() {
   });
   if (!allowed) return <Navigate to="/dashboard" replace />;
   return (
-    <>
+    <div className="audit-page">
       <PageHeader
         title="Audit log"
         description="The 100 most recent recorded actions."
@@ -55,6 +55,6 @@ export default function AuditPage() {
           )}
         </div>
       </div>
-    </>
+    </div>
   );
 }

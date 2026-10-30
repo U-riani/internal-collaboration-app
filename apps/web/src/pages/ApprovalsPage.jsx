@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
@@ -17,11 +17,16 @@ import {
   Pencil,
   Search,
   Trash2,
+  X,
+  CheckCircle2,
+  CalendarDays,
+  Ban,
 } from "lucide-react";
 import { api, uploadFiles } from "../lib/api.js";
+import { SelectedFiles, useSelectedFiles } from "../components/SelectedFiles.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import PageHeader from "../components/PageHeader.jsx";
-import FileDropzone from "../components/FileDropzone.jsx";
+import FilterMultiSelect from "../components/FilterMultiSelect.jsx";
 import {
   Modal,
   Field,
@@ -30,8 +35,12 @@ import {
   Empty,
   Loading,
   Attachments,
+  Avatar,
   prettyDate,
 } from "../components/UI.jsx";
+import "./tasks-page.css";
+import "./approvals-page.css";
+
 const approvalStatuses = [
   "DRAFT",
   "SUBMITTED",
@@ -111,7 +120,7 @@ function FormFields({ schema, values, setValues, draft = false }) {
             />
           ) : field.type === "select" ? (
             <select
-              className="input"
+              className="input app-modern-select"
               required={field.required && !draft}
               value={values[key] ?? ""}
               onChange={(e) => setValues({ ...values, [key]: e.target.value })}
@@ -124,7 +133,7 @@ function FormFields({ schema, values, setValues, draft = false }) {
           ) : field.type === "checkbox" ? (
             <input
               type="checkbox"
-              className="w-5 h-5"
+              className="approval-request-checkbox h-5 w-5"
               checked={values[key] ?? false}
               onChange={(e) =>
                 setValues({ ...values, [key]: e.target.checked })
@@ -234,357 +243,421 @@ function Configure({ existing, onClose }) {
   });
   return (
     <Modal
-      title={existing ? `Edit ${existing.name}` : "New approval type"}
+      title={
+        <span className="approval-config-heading">
+          <span className="approval-config-heading-icon" aria-hidden="true">
+            <FileCheck2 size={20} />
+          </span>
+          <span className="approval-config-heading-copy">
+            <span className="approval-config-heading-title">
+              {existing ? `Edit ${existing.name}` : "New approval type"}
+            </span>
+            <span className="approval-config-heading-subtitle">
+              Configure intake form fields and hierarchical approval chain routing
+            </span>
+          </span>
+        </span>
+      }
       wide
       onClose={onClose}
     >
       <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          save.mutate();
+        className="task-form approval-config-form"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (!save.isPending) save.mutate();
         }}
       >
-        {existing && (
-          <div className="mb-5 rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-500">
-            <strong className="text-slate-700">
-              Version {existing.version}
-            </strong>
-            {" · "}
-            {usedCount} request{usedCount === 1 ? "" : "s"} created from this
-            type. Saving configuration changes creates version{" "}
-            {existing.version + 1}; existing requests keep their saved workflow.
-          </div>
-        )}
-        <div className="grid sm:grid-cols-2 gap-4">
-          <Field
-            label="Name"
-            required
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <div>
-            <Field label="Code (letters, numbers, underscores)">
-              <input
-                className="input"
-                required
-                disabled={Boolean(existing && usedCount > 0)}
-                value={code}
-                onChange={(e) => setCode(e.target.value.toUpperCase())}
-              />
-            </Field>
-            {existing && usedCount > 0 && (
-              <p className="mt-1 text-xs text-slate-400">
-                The code is locked because this request type is already in use.
-              </p>
-            )}
-          </div>
-        </div>
-        <Field label="Description">
-          <textarea
-            className="input min-h-20"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
-        </Field>
-        <h3 className="text-sm font-bold mt-6 mb-3">Request form</h3>
-        <div className="space-y-3">
-          {fields.map((f, i) => (
-            <div className="rounded-xl border border-slate-200 p-3" key={f.key}>
-              <div className="flex flex-wrap gap-2">
+        <div className="task-form-scroll approval-config-scroll">
+          {existing && (
+            <div className="approval-config-version">
+              <strong>Version {existing.version}</strong>
+              {" · "}
+              {usedCount} request{usedCount === 1 ? "" : "s"} created from this
+              type. Saving configuration changes creates version{" "}
+              {existing.version + 1}; existing requests keep their saved workflow.
+            </div>
+          )}
+
+          <div className="task-form-row approval-config-main-fields grid gap-4 sm:grid-cols-2">
+            <Field
+              label="Name"
+              required
+              placeholder="e.g. Travel & Expense Claim"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+            />
+            <div className="approval-config-code-field">
+              <Field label="Code (letters, numbers, underscores)">
                 <input
-                  className="input w-32"
-                  aria-label={`Field ${i + 1} key`}
-                  title="Technical field key"
+                  className="input"
+                  placeholder="e.g. EXPENSE_APPROVAL_V2"
                   required
-                  pattern="[A-Za-z][A-Za-z0-9_]*"
-                  value={f.key}
-                  onChange={(e) =>
-                    setFields(
-                      fields.map((x, j) =>
-                        i === j ? { ...x, key: e.target.value } : x,
-                      ),
-                    )
-                  }
+                  disabled={Boolean(existing && usedCount > 0)}
+                  value={code}
+                  onChange={(event) => setCode(event.target.value.toUpperCase())}
                 />
-                <input
-                  className="input flex-1 min-w-40"
-                  aria-label={`Field ${i + 1} label`}
-                  placeholder="Field label"
-                  required
-                  value={f.label}
-                  onChange={(e) =>
-                    setFields(
-                      fields.map((x, j) =>
-                        i === j ? { ...x, label: e.target.value } : x,
-                      ),
-                    )
-                  }
-                />
-                <select
-                  className="input w-32"
-                  aria-label={`Field ${i + 1} type`}
-                  value={f.type}
-                  onChange={(e) =>
-                    setFields(
-                      fields.map((x, j) =>
-                        i === j
-                          ? {
-                              ...x,
-                              type: e.target.value,
-                              ...(e.target.value === "select"
-                                ? {
-                                    options: x.options?.length
-                                      ? x.options
-                                      : ["Option 1"],
-                                  }
-                                : { options: undefined }),
-                            }
-                          : x,
-                      ),
-                    )
-                  }
-                >
-                  {[
-                    "text",
-                    "textarea",
-                    "number",
-                    "date",
-                    "select",
-                    "checkbox",
-                  ].map((t) => (
-                    <option key={t}>{t}</option>
-                  ))}
-                </select>
-                <label className="flex gap-2 items-center text-xs">
-                  <input
-                    type="checkbox"
-                    checked={f.required}
-                    onChange={(e) =>
-                      setFields(
-                        fields.map((x, j) =>
-                          i === j ? { ...x, required: e.target.checked } : x,
-                        ),
-                      )
-                    }
-                  />
-                  Required
-                </label>
-                <button
-                  type="button"
-                  className="icon-btn"
-                  aria-label={`Remove field ${i + 1}`}
-                  onClick={() => setFields(fields.filter((_, j) => j !== i))}
-                >
-                  ×
-                </button>
-              </div>
-              {f.type === "select" && (
-                <div className="mt-3 rounded-xl bg-slate-50 p-3">
-                  <div className="mb-2 flex items-center justify-between gap-3">
-                    <p className="text-xs font-semibold text-slate-600">
-                      Options
-                    </p>
-                    <button
-                      type="button"
-                      className="btn-secondary"
-                      disabled={(f.options || []).length >= 50}
-                      onClick={() =>
+              </Field>
+              {existing && usedCount > 0 && (
+                <p className="approval-config-help">
+                  The code is locked because this request type is already in use.
+                </p>
+              )}
+            </div>
+          </div>
+
+          <Field label="Description">
+            <textarea
+              className="input task-form-description approval-config-description"
+              placeholder="Describe when this approval type should be requested and any policy constraints..."
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+            />
+          </Field>
+
+          <section className="approval-config-section" aria-label="Request form">
+            <div className="approval-config-section-heading">
+              <h3>Request form</h3>
+              <span className="approval-config-section-hint">Define intake inputs</span>
+            </div>
+            <div className="approval-config-items">
+              {fields.map((field, index) => (
+                <div className="approval-config-field-card" key={index}>
+                  <div className="approval-config-field-stack">
+                    <input
+                      className="input"
+                      aria-label={`Field ${index + 1} key`}
+                      title="Technical field key"
+                      placeholder="Field key"
+                      required
+                      pattern="[A-Za-z][A-Za-z0-9_]*"
+                      value={field.key}
+                      onChange={(event) =>
                         setFields(
-                          fields.map((x, j) =>
-                            i === j
+                          fields.map((current, i) =>
+                            index === i ? { ...current, key: event.target.value } : current,
+                          ),
+                        )
+                      }
+                    />
+                    <input
+                      className="input"
+                      aria-label={`Field ${index + 1} label`}
+                      placeholder="Field label"
+                      required
+                      value={field.label}
+                      onChange={(event) =>
+                        setFields(
+                          fields.map((current, i) =>
+                            index === i ? { ...current, label: event.target.value } : current,
+                          ),
+                        )
+                      }
+                    />
+                    <select
+                      className="input app-modern-select"
+                      aria-label={`Field ${index + 1} type`}
+                      value={field.type}
+                      onChange={(event) =>
+                        setFields(
+                          fields.map((current, i) =>
+                            index === i
                               ? {
-                                  ...x,
-                                  options: [...(x.options || []), ""],
+                                  ...current,
+                                  type: event.target.value,
+                                  ...(event.target.value === "select"
+                                    ? {
+                                        options: current.options?.length
+                                          ? current.options
+                                          : ["Option 1"],
+                                      }
+                                    : { options: undefined }),
                                 }
-                              : x,
+                              : current,
                           ),
                         )
                       }
                     >
-                      <Plus size={14} />
-                      Add option
+                      {["text", "textarea", "number", "date", "select", "checkbox"].map((type) => (
+                        <option key={type}>{type}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="approval-config-field-actions">
+                    <label className="task-filter-choice approval-config-required">
+                      <input
+                        type="checkbox"
+                        checked={field.required}
+                        onChange={(event) =>
+                          setFields(
+                            fields.map((current, i) =>
+                              index === i ? { ...current, required: event.target.checked } : current,
+                            ),
+                          )
+                        }
+                      />
+                      <span>Required</span>
+                    </label>
+                    <button
+                      type="button"
+                      className="icon-btn approval-config-remove"
+                      aria-label={`Remove field ${index + 1}`}
+                      title="Remove field"
+                      onClick={() => setFields(fields.filter((_, i) => i !== index))}
+                    >
+                      <X size={15} />
                     </button>
                   </div>
-                  <div className="space-y-2">
-                    {(f.options || ["Option 1"]).map((option, optionIndex) => (
-                      <div
-                        className="flex items-center gap-2"
-                        key={`option-${optionIndex}`}
-                      >
-                        <input
-                          className="input flex-1"
-                          aria-label={`Field ${i + 1} option ${optionIndex + 1}`}
-                          placeholder={`Option ${optionIndex + 1}`}
-                          required
-                          value={option}
-                          onChange={(e) =>
+
+                  {field.type === "select" && (
+                    <div className="approval-config-options">
+                      <div className="approval-config-options-heading">
+                        <span>Options</span>
+                        <button
+                          type="button"
+                          className="btn-secondary approval-config-secondary"
+                          disabled={(field.options || []).length >= 50}
+                          onClick={() =>
                             setFields(
-                              fields.map((x, j) =>
-                                i === j
-                                  ? {
-                                      ...x,
-                                      options: (x.options || []).map(
-                                        (value, index) =>
-                                          index === optionIndex
-                                            ? e.target.value
-                                            : value,
-                                      ),
-                                    }
-                                  : x,
+                              fields.map((current, i) =>
+                                index === i
+                                  ? { ...current, options: [...(current.options || []), ""] }
+                                  : current,
                               ),
                             )
                           }
-                        />
-                        {(f.options || []).length > 1 && (
-                          <button
-                            type="button"
-                            className="icon-btn"
-                            aria-label={`Remove field ${i + 1} option ${optionIndex + 1}`}
-                            onClick={() =>
-                              setFields(
-                                fields.map((x, j) =>
-                                  i === j
-                                    ? {
-                                        ...x,
-                                        options: (x.options || []).filter(
-                                          (_, index) => index !== optionIndex,
-                                        ),
-                                      }
-                                    : x,
-                                ),
-                              )
-                            }
-                          >
-                            ×
-                          </button>
-                        )}
+                        >
+                          <Plus size={14} />
+                          Add option
+                        </button>
                       </div>
-                    ))}
-                  </div>
+                      <div className="approval-config-option-list">
+                        {(field.options || ["Option 1"]).map((option, optionIndex) => (
+                          <div className="approval-config-option-row" key={optionIndex}>
+                            <input
+                              className="input"
+                              aria-label={`Field ${index + 1} option ${optionIndex + 1}`}
+                              placeholder={`Option ${optionIndex + 1}`}
+                              required
+                              value={option}
+                              onChange={(event) =>
+                                setFields(
+                                  fields.map((current, i) =>
+                                    index === i
+                                      ? {
+                                          ...current,
+                                          options: (current.options || []).map((value, j) =>
+                                            j === optionIndex ? event.target.value : value,
+                                          ),
+                                        }
+                                      : current,
+                                  ),
+                                )
+                              }
+                            />
+                            {(field.options || []).length > 1 && (
+                              <button
+                                type="button"
+                                className="icon-btn approval-config-remove"
+                                aria-label={`Remove field ${index + 1} option ${optionIndex + 1}`}
+                                onClick={() =>
+                                  setFields(
+                                    fields.map((current, i) =>
+                                      index === i
+                                        ? {
+                                            ...current,
+                                            options: (current.options || []).filter((_, j) => j !== optionIndex),
+                                          }
+                                        : current,
+                                    ),
+                                  )
+                                }
+                              >
+                                <X size={15} />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
+              ))}
             </div>
-          ))}
-        </div>
-        <button
-          type="button"
-          className="btn-secondary mt-3"
-          onClick={() =>
-            setFields([
-              ...fields,
-              {
-                key: nextFieldKey(fields),
-                label: "",
-                type: "text",
-                required: false,
-              },
-            ])
-          }
-        >
-          Add field
-        </button>
-        <h3 className="text-sm font-bold mt-6 mb-3">
-          Approval steps, in order
-        </h3>
-        <div className="space-y-3">
-          {steps.map((s, i) => (
-            <div
-              className="rounded-xl border border-slate-200 p-3 flex flex-wrap gap-2"
-              key={i}
+            <button
+              type="button"
+              className="btn-secondary approval-config-secondary approval-config-add"
+              onClick={() =>
+                setFields([
+                  ...fields,
+                  {
+                    key: nextFieldKey(fields),
+                    label: "",
+                    type: "text",
+                    required: false,
+                  },
+                ])
+              }
             >
-              <span className="text-xs pt-3">{i + 1}.</span>
-              <input
-                className="input flex-1 min-w-36"
-                aria-label={`Step ${i + 1} name`}
-                required
-                value={s.name}
-                onChange={(e) =>
-                  setSteps(
-                    steps.map((x, j) =>
-                      i === j ? { ...x, name: e.target.value } : x,
-                    ),
-                  )
-                }
-              />
-              <select
-                className="input flex-1 min-w-44"
-                aria-label={`Step ${i + 1} approver`}
-                value={
-                  s.approverRule === "USER" ? s.approverValue : s.approverRule
-                }
-                onChange={(e) =>
-                  setSteps(
-                    steps.map((x, j) =>
-                      i === j
-                        ? {
-                            ...x,
-                            approverRule: [
-                              "REQUESTER_MANAGER",
-                              "DEPARTMENT_MANAGER",
-                            ].includes(e.target.value)
-                              ? e.target.value
-                              : "USER",
-                            approverValue: [
-                              "REQUESTER_MANAGER",
-                              "DEPARTMENT_MANAGER",
-                            ].includes(e.target.value)
-                              ? ""
-                              : e.target.value,
-                          }
-                        : x,
-                    ),
-                  )
-                }
-              >
-                <option value="REQUESTER_MANAGER">Requester’s manager</option>
-                <option value="DEPARTMENT_MANAGER">Department manager</option>
-                {users.data
-                  ?.filter((u) => u.status === "ACTIVE")
-                  .map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.displayName}
-                    </option>
-                  ))}
-              </select>
-              {steps.length > 1 && (
-                <button
-                  className="icon-btn"
-                  aria-label={`Remove step ${i + 1}`}
-                  type="button"
-                  onClick={() => setSteps(steps.filter((_, j) => j !== i))}
-                >
-                  ×
-                </button>
-              )}
+              <Plus size={14} />
+              Add field
+            </button>
+          </section>
+
+          <section className="approval-config-section" aria-label="Approval steps">
+            <div className="approval-config-section-heading">
+              <h3>Approval steps, in order</h3>
+              <span className="approval-config-section-hint">Sequential step triggers</span>
             </div>
-          ))}
+            <div className="approval-config-items">
+              {steps.map((step, index) => (
+                <div className="approval-config-step-row" key={index}>
+                  <span className="approval-config-step-number">{index + 1}</span>
+                  <input
+                    className="input approval-config-step-name"
+                    aria-label={`Step ${index + 1} name`}
+                    placeholder="Step name"
+                    required
+                    value={step.name}
+                    onChange={(event) =>
+                      setSteps(
+                        steps.map((current, i) =>
+                          index === i ? { ...current, name: event.target.value } : current,
+                        ),
+                      )
+                    }
+                  />
+                  <select
+                    className="input app-modern-select approval-config-step-approver"
+                    aria-label={`Step ${index + 1} approver`}
+                    value={step.approverRule === "USER" ? step.approverValue : step.approverRule}
+                    onChange={(event) =>
+                      setSteps(
+                        steps.map((current, i) =>
+                          index === i
+                            ? {
+                                ...current,
+                                approverRule: [
+                                  "REQUESTER_MANAGER",
+                                  "DEPARTMENT_MANAGER",
+                                ].includes(event.target.value)
+                                  ? event.target.value
+                                  : "USER",
+                                approverValue: [
+                                  "REQUESTER_MANAGER",
+                                  "DEPARTMENT_MANAGER",
+                                ].includes(event.target.value)
+                                  ? ""
+                                  : event.target.value,
+                              }
+                            : current,
+                        ),
+                      )
+                    }
+                  >
+                    <option value="REQUESTER_MANAGER">Requester’s manager</option>
+                    <option value="DEPARTMENT_MANAGER">Department manager</option>
+                    {users.data
+                      ?.filter((person) => person.status === "ACTIVE")
+                      .map((person) => (
+                        <option key={person.id} value={person.id}>
+                          {person.displayName}
+                        </option>
+                      ))}
+                  </select>
+                  {steps.length > 1 && (
+                    <button
+                      type="button"
+                      className="icon-btn approval-config-remove approval-config-step-remove"
+                      aria-label={`Remove step ${index + 1}`}
+                      title="Remove step"
+                      onClick={() => setSteps(steps.filter((_, i) => i !== index))}
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              className="btn-secondary approval-config-secondary approval-config-add"
+              onClick={() =>
+                setSteps([
+                  ...steps,
+                  {
+                    name: "Review",
+                    approverRule: "REQUESTER_MANAGER",
+                    approverValue: "",
+                  },
+                ])
+              }
+            >
+              <Plus size={14} />
+              Add step
+            </button>
+          </section>
+          <ErrorBox error={save.error} />
         </div>
-        <button
-          type="button"
-          className="btn-secondary mt-3"
-          onClick={() =>
-            setSteps([
-              ...steps,
-              {
-                name: "Review",
-                approverRule: "REQUESTER_MANAGER",
-                approverValue: "",
-              },
-            ])
-          }
-        >
-          Add step
-        </button>
-        <ErrorBox error={save.error} />
-        <div className="form-actions">
-          <button className="btn-primary" disabled={save.isPending}>
-            {existing ? "Save new version" : "Create approval type"}
+        <div className="task-form-footer approval-config-footer">
+          <span className="task-form-footer-note">
+            {existing
+              ? "Existing requests keep their saved workflow."
+              : "Define your fields and approval steps before saving."}
+          </span>
+          <button className="btn-primary" type="submit" disabled={save.isPending}>
+            {save.isPending
+              ? "Saving…"
+              : existing
+                ? "Save new version"
+                : "Create approval type"}
           </button>
         </div>
       </form>
     </Modal>
   );
 }
+
+export function ApprovalDateField({ label, value, onChange }) {
+  const displayValue = value
+    ? `${value.slice(5, 7)}/${value.slice(8, 10)}/${value.slice(0, 4)}`
+    : "mm/dd/yyyy";
+
+  return (
+    <label className="approval-date-field">
+      <span className="approval-date-label">{label}</span>
+      <span className="approval-date-control">
+        <span
+          className={`approval-date-preview ${value ? "approval-date-preview--filled" : ""}`}
+          aria-hidden="true"
+        >
+          {displayValue}
+        </span>
+        <CalendarDays size={17} className="approval-date-icon" aria-hidden="true" />
+        <input
+          type="date"
+          className="approval-date-native"
+          aria-label={label}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          onClick={(event) => {
+            // The native date picker remains the only source of selected dates.
+            // The visual overlay hides Chrome's separately highlighted mm/dd/yyyy segments.
+            if (typeof event.currentTarget.showPicker === "function") {
+              try {
+                event.currentTarget.showPicker();
+              } catch {
+                // Other browsers can open their own native picker normally.
+              }
+            }
+          }}
+        />
+      </span>
+    </label>
+  );
+}
+
 function RequestTypesManager({ onClose }) {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
@@ -624,87 +697,129 @@ function RequestTypesManager({ onClose }) {
   );
 
   return (
-    <Modal title="Request types" wide onClose={onClose}>
-      <div className="flex flex-wrap gap-2 mb-4">
-        <input
-          className="input flex-1 min-w-52"
-          aria-label="Search request types"
-          placeholder="Search request types…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <select
-          className="input w-36"
-          aria-label="Request type status"
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
-        >
-          <option value="all">All statuses</option>
-          <option value="ACTIVE">Active</option>
-          <option value="INACTIVE">Inactive</option>
-          <option value="DRAFT">Draft</option>
-        </select>
-        <button className="btn-primary" onClick={() => setEditing("new")}>
-          <Plus size={16} />
-          New type
-        </button>
-      </div>
-      <ErrorBox error={query.error || changeStatus.error} />
-      {query.isLoading ? (
-        <Loading />
-      ) : items.length ? (
-        <div className="space-y-2">
-          {items.map((item) => {
-            const requestCount = item._count?.requests || 0;
-            return (
-              <div
-                key={item.id}
-                className="rounded-xl border border-slate-200 p-4 flex flex-wrap items-center gap-3"
-              >
-                <div className="flex-1 min-w-52">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-semibold text-sm">{item.name}</h3>
-                    <Badge value={item.status} />
-                  </div>
-                  <p className="text-xs text-slate-400 mt-1">
-                    {item.code} · v{item.version} · {requestCount} request
-                    {requestCount === 1 ? "" : "s"}
-                    {item.createdBy?.displayName
-                      ? ` · Created by ${item.createdBy.displayName}`
-                      : ""}
-                  </p>
-                </div>
-                <button
-                  className="btn-secondary"
-                  onClick={() => setEditing(item)}
-                >
-                  Edit
-                </button>
-                <button
-                  className="btn-secondary"
-                  disabled={changeStatus.isPending}
-                  onClick={() =>
-                    changeStatus.mutate({
-                      id: item.id,
-                      status: item.status === "ACTIVE" ? "INACTIVE" : "ACTIVE",
-                    })
-                  }
-                >
-                  {item.status === "ACTIVE" ? "Deactivate" : "Activate"}
-                </button>
-              </div>
-            );
-          })}
+    <Modal
+      title={
+        <span className="approval-types-modal-title">
+          <span className="approval-types-title-icon" aria-hidden="true">
+            <FileCheck2 size={20} />
+          </span>
+          <span>Request types</span>
+        </span>
+      }
+      wide
+      onClose={onClose}
+    >
+      <div className="approval-types-manager">
+        <div className="approval-types-toolbar">
+          <label className="task-search-bar approval-types-search">
+            <Search size={16} aria-hidden="true" />
+            <input
+              className="input"
+              aria-label="Search request types"
+              placeholder="Search request types..."
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+          </label>
+          <label className="approval-types-status-control task-sort-control">
+            <select
+              className="input app-modern-select task-sort-select"
+              aria-label="Request type status"
+              value={status}
+              onChange={(event) => setStatus(event.target.value)}
+            >
+              <option value="all">All statuses</option>
+              <option value="ACTIVE">Active</option>
+              <option value="INACTIVE">Inactive</option>
+              <option value="DRAFT">Draft</option>
+            </select>
+          </label>
+          <button
+            type="button"
+            className="btn-primary approval-types-create task-style-primary"
+            onClick={() => setEditing("new")}
+          >
+            <Plus size={16} />
+            New type
+          </button>
         </div>
-      ) : (
-        <Empty
-          title="No request types"
-          text="Create a request type or change the current filter."
-        />
-      )}
+
+        <ErrorBox error={query.error || changeStatus.error} />
+        {query.isLoading ? (
+          <Loading />
+        ) : items.length ? (
+          <div className="approval-types-list">
+            {items.map((item) => {
+              const requestCount = item._count?.requests || 0;
+              const isActive = item.status === "ACTIVE";
+              return (
+                <div key={item.id} className="approval-type-row">
+                  <span
+                    className={`approval-type-row-icon approval-type-row-icon--${item.status.toLowerCase()}`}
+                    aria-hidden="true"
+                  >
+                    <FileCheck2 size={17} />
+                  </span>
+                  <div className="approval-type-info">
+                    <div className="approval-type-name-line">
+                      <h3 className="approval-type-name" title={item.name}>
+                        {item.name}
+                      </h3>
+                      <Badge value={item.status} />
+                    </div>
+                    <p className="approval-type-meta">
+                      <span>{item.code}</span>
+                      <span aria-hidden="true">·</span>
+                      <span>v{item.version}</span>
+                      <span aria-hidden="true">·</span>
+                      <span>{requestCount} request{requestCount === 1 ? "" : "s"}</span>
+                      {item.createdBy?.displayName && (
+                        <>
+                          <span aria-hidden="true">·</span>
+                          <span>Created by {item.createdBy.displayName}</span>
+                        </>
+                      )}
+                    </p>
+                  </div>
+                  <div className="approval-type-actions">
+                    <button
+                      type="button"
+                      className="btn-secondary approval-type-edit task-style-secondary"
+                      onClick={() => setEditing(item)}
+                    >
+                      <Pencil size={14} aria-hidden="true" />
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      className={`btn-secondary approval-type-status-action task-style-secondary ${isActive ? "approval-type-deactivate" : "approval-type-activate"}`}
+                      disabled={changeStatus.isPending}
+                      onClick={() =>
+                        changeStatus.mutate({
+                          id: item.id,
+                          status: isActive ? "INACTIVE" : "ACTIVE",
+                        })
+                      }
+                    >
+                      {isActive ? <Ban size={14} aria-hidden="true" /> : <CheckCircle2 size={14} aria-hidden="true" />}
+                      {isActive ? "Deactivate" : "Activate"}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <Empty
+            title="No request types"
+            text="Create a request type or change the current filter."
+          />
+        )}
+      </div>
     </Modal>
   );
 }
+
 function ApprovalGroupForm({ existing, onClose }) {
   const qc = useQueryClient();
   const [name, setName] = useState(existing?.name || "");
@@ -726,25 +841,27 @@ function ApprovalGroupForm({ existing, onClose }) {
       onClose={onClose}
     >
       <form
+        className="approval-group-form"
         onSubmit={(event) => {
           event.preventDefault();
-          save.mutate();
+          if (name.trim() && !save.isPending) save.mutate();
         }}
       >
-        <Field
-          label="Group name"
-          required
-          minLength={1}
-          maxLength={120}
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-        />
+        <Field label="Group name">
+          <input
+            className="input approval-group-name-input"
+            type="text"
+            required
+            minLength={1}
+            maxLength={120}
+            autoFocus
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+          />
+        </Field>
         <ErrorBox error={save.error} />
-        <div className="form-actions">
-          <button type="button" className="btn-secondary" onClick={onClose}>
-            Cancel
-          </button>
-          <button className="btn-primary" disabled={save.isPending}>
+        <div className="form-actions approval-group-form-actions">
+          <button type="submit" className="btn-primary" disabled={save.isPending || !name.trim()}>
             {save.isPending ? "Saving…" : existing ? "Save" : "Create group"}
           </button>
         </div>
@@ -758,7 +875,8 @@ function RequestForm({ existing, onClose }) {
   const [typeId, setTypeId] = useState(existing?.approvalTypeId || "");
   const [title, setTitle] = useState(existing?.title || "");
   const [values, setValues] = useState(existing?.data || {});
-  const [files, setFiles] = useState([]);
+  const { files, addFiles, removeFile, selectionError } = useSelectedFiles(10);
+  const attachmentUploads = useRef(new Map());
   const types = useQuery({
     queryKey: ["approval-types"],
     queryFn: () => api("/approval-types").then((r) => r.data),
@@ -791,7 +909,7 @@ function RequestForm({ existing, onClose }) {
             title,
             data: values,
             submit,
-            attachmentIds: await uploadFiles(files),
+            attachmentIds: await uploadFiles(files, attachmentUploads.current),
           }),
         });
     },
@@ -816,48 +934,62 @@ function RequestForm({ existing, onClose }) {
       onClose={onClose}
     >
       <form
+        className="approval-request-form"
         onSubmit={(e) => {
           e.preventDefault();
           save.mutate(true);
         }}
       >
-        <Field label="Request type">
-          <select
-            className="input"
-            disabled={Boolean(existing)}
+        <div className="approval-request-fields">
+          <Field label="Request type">
+            <select
+              className="input app-modern-select approval-request-type"
+              disabled={Boolean(existing)}
+              required
+              value={typeId}
+              onChange={(e) => {
+                setTypeId(e.target.value);
+                setValues({});
+              }}
+            >
+              <option value="">Choose a type</option>
+              {types.data?.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field
+            label="Title"
+            className="input approval-request-title"
             required
-            value={typeId}
-            onChange={(e) => {
-              setTypeId(e.target.value);
-              setValues({});
-            }}
-          >
-            <option value="">Choose a type</option>
-            {types.data?.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field
-          label="Title"
-          required
-          minLength={2}
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
-        <FormFields schema={schema} values={values} setValues={setValues} />
-        {!existing && (
-          <FileDropzone
-            label="Approval attachments"
-            files={files}
-            onChange={setFiles}
-            disabled={save.isPending}
+            minLength={2}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
           />
-        )}
-        <ErrorBox error={save.error} />
-        <div className="form-actions">
+          <FormFields schema={schema} values={values} setValues={setValues} />
+          {!existing && (
+            <>
+              <Field
+                label="Attachments (optional)"
+                type="file"
+                className="input approval-request-file"
+                multiple
+                disabled={save.isPending}
+                onChange={addFiles}
+              />
+              <SelectedFiles
+                files={files}
+                onRemove={removeFile}
+                disabled={save.isPending}
+                className="mt-2"
+              />
+            </>
+          )}
+          <ErrorBox error={selectionError || save.error} />
+        </div>
+        <div className="form-actions approval-request-actions">
           <button
             className="btn-secondary"
             type="button"
@@ -949,177 +1081,266 @@ export function RequestDetail({ item, onClose }) {
       qc.invalidateQueries({ queryKey: ["approval", item.id] });
     },
   });
+  const selectedGroupName =
+    (groups.data || []).find((group) => group.id === item.personalLayout?.groupId)?.name ||
+    item.personalLayout?.group?.name ||
+    "Ungrouped";
+
+  const canComment =
+    !canAct &&
+    (mine ||
+      user.roles.includes("SYSTEM_ADMIN") ||
+      item.steps.some((step) => step.approverId === user.id));
+
   return (
     <Modal title={item.title} onClose={onClose} wide>
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-sm text-slate-400">
-          {item.requester.displayName} ·{" "}
-          {item.workflowSnapshot?.type?.name || item.approvalType.name} · v
-          {item.workflowSnapshot?.type?.version || item.approvalTypeVersion} ·{" "}
-          {prettyDate(item.createdAt)}
-        </p>
-        <Badge value={item.status} />
-      </div>
-      <div className="mt-5 max-w-xs">
-        <Field label="My group">
-          <select
-            className="input"
-            value={item.personalLayout?.groupId || ""}
-            disabled={updateLayout.isPending}
-            onChange={(event) => updateLayout.mutate(event.target.value)}
-          >
-            <option value="">Ungrouped</option>
-            {(groups.data || []).map((group) => (
-              <option key={group.id} value={group.id}>
-                {group.name}
-              </option>
-            ))}
-          </select>
-        </Field>
-      </div>
-      <div className="grid sm:grid-cols-2 gap-5 my-6 rounded-xl bg-slate-50 p-5">
-        {Object.entries(schema).map(([key, field]) => (
-          <div key={key}>
-            <p className="text-xs text-slate-400 mb-1">{field.label}</p>
-            <p className="text-sm whitespace-pre-wrap break-words">
-              {typeof item.data[key] === "boolean"
-                ? item.data[key]
-                  ? "Yes"
-                  : "No"
-                : String(item.data[key] ?? "—")}
-            </p>
-          </div>
-        ))}
-      </div>
-      <Attachments items={item.attachments} />
-      <h3 className="font-semibold text-sm mt-6 mb-4">Approval progress</h3>
-      <div className="space-y-3">
-        {item.steps.map((s) => (
-          <div key={s.id} className="flex gap-3 items-start">
-            <span
-              className={`rounded-full w-7 h-7 flex items-center justify-center text-xs ${s.status === "APPROVED" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}
-            >
-              {s.status === "APPROVED" ? <Check size={15} /> : s.stepNumber}
+      <div className="task-detail approval-detail">
+        <div className="task-detail-intro approval-detail-intro">
+          <div className="approval-detail-request-meta">
+            <span className="approval-detail-request-icon" aria-hidden="true">
+              <FileCheck2 size={18} />
             </span>
-            <div className="flex-1">
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-sm font-medium">{s.stepName}</span>
-                <Badge value={s.status} />
-              </div>
-              <p className="text-xs text-slate-400 mt-1">
-                {s.approver.displayName}
-              </p>
-              {s.comment && (
-                <p className="mt-2 text-sm text-slate-500">{s.comment}</p>
-              )}
+            <div className="approval-detail-request-copy">
+              <span className="approval-detail-requester">{item.requester.displayName}</span>
+              <span className="approval-detail-meta-separator" aria-hidden="true">·</span>
+              <span>{item.workflowSnapshot?.type?.name || item.approvalType.name}</span>
+              <span className="approval-detail-version">
+                v{item.workflowSnapshot?.type?.version || item.approvalTypeVersion}
+              </span>
+              <span className="approval-detail-meta-separator" aria-hidden="true">·</span>
+              <span>{prettyDate(item.createdAt)}</span>
             </div>
           </div>
-        ))}
-      </div>
-      {mine && ["DRAFT", "CHANGES_REQUESTED"].includes(item.status) && (
-        <div className="mt-6">
-          <button className="btn-primary" onClick={() => setEdit(true)}>
-            Edit and submit
-          </button>
+          <Badge value={item.status} />
         </div>
-      )}
-      {canAct && (
-        <div className="mt-6 rounded-xl bg-blue-50 p-4">
-          <p className="font-semibold text-sm mb-3">Your review is needed</p>
-          <select
-            className="input mb-3"
-            aria-label="Decision"
-            value={decision}
-            onChange={(e) => setDecision(e.target.value)}
-          >
-            <option value="APPROVE">Approve</option>
-            <option value="REQUEST_CHANGES">Request changes</option>
-            <option value="REJECT">Reject</option>
-          </select>
-          <textarea
-            className="input mb-3"
-            aria-label="Review comment"
-            placeholder={
-              decision === "APPROVE"
-                ? "Comment (optional)"
-                : "Explain your decision (required)"
-            }
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-          />
-          <button
-            className="btn-primary"
-            disabled={
-              save.isPending || (decision !== "APPROVE" && !comment.trim())
-            }
-            onClick={() => save.mutate({})}
-          >
-            Confirm decision
-          </button>
+
+        <div className="approval-detail-group">
+          <p className="task-detail-meta-label">My group</p>
+          <div className="task-detail-select-wrap" title={selectedGroupName}>
+            <select
+              className="input app-modern-select task-detail-select task-detail-group-select"
+              aria-label="My approval group"
+              title={selectedGroupName}
+              value={item.personalLayout?.groupId || ""}
+              disabled={updateLayout.isPending}
+              onChange={(event) => updateLayout.mutate(event.target.value)}
+            >
+              <option value="">Ungrouped</option>
+              {(groups.data || []).map((group) => (
+                <option key={group.id} value={group.id}>
+                  {group.name}
+                </option>
+              ))}
+            </select>
+            <span className="task-detail-select-preview" aria-hidden="true">
+              <span className="task-detail-select-preview-label">
+                {selectedGroupName}
+              </span>
+              <ChevronDown size={15} />
+            </span>
+          </div>
         </div>
-      )}
-      <ErrorBox error={save.error || updateLayout.error || groups.error} />
-      <h3 className="text-sm font-semibold mt-6 mb-3">Comments</h3>
-      {item.comments.map((c) => (
-        <p key={c.id} className="text-sm my-3">
-          <strong className="text-xs">{c.author.displayName}</strong>
-          <br />
-          {c.content}
-        </p>
-      ))}
-      {!canAct &&
-        (mine ||
-          user.roles.includes("SYSTEM_ADMIN") ||
-          item.steps.some((step) => step.approverId === user.id)) && (
-          <form
-            className="flex gap-2"
-            onSubmit={(e) => {
-              e.preventDefault();
-              save.mutate({ commentOnly: true });
-            }}
-          >
-            <input
-              className="input"
-              aria-label="Approval comment"
-              required
-              placeholder="Add a comment…"
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-            />
-            <button className="btn-secondary" disabled={save.isPending}>
-              Send
-            </button>
-          </form>
-        )}
-      {item.rounds?.length > 0 && (
-        <details className="mt-5 text-xs text-slate-500">
-          <summary>Earlier review rounds ({item.rounds.length})</summary>
-          {item.rounds.map((r, i) => (
-            <div key={i} className="mt-3">
-              Round {i + 1}
-              {r.steps.map((s) => (
-                <p key={s.id} className="ml-3 mt-1">
-                  {s.stepName}: {s.status.toLowerCase()}{" "}
-                  {s.comment && `— ${s.comment}`}
-                </p>
+
+        {Object.entries(schema || {}).length > 0 && (
+          <section className="task-detail-section approval-detail-fields" aria-label="Request fields">
+            <div className="approval-detail-fields-grid">
+              {Object.entries(schema).map(([key, field]) => (
+                <div className="approval-detail-field" key={key}>
+                  <p className="approval-detail-field-label">{field.label}</p>
+                  <p className="approval-detail-field-value">
+                    {typeof item.data[key] === "boolean"
+                      ? item.data[key] ? "Yes" : "No"
+                      : String(item.data[key] ?? "—")}
+                  </p>
+                </div>
               ))}
             </div>
-          ))}
-        </details>
-      )}
-      {mine && !["APPROVED", "REJECTED", "CANCELLED"].includes(item.status) && (
-        <button
-          className="mt-6 text-xs text-red-600"
-          disabled={save.isPending}
-          onClick={() => save.mutate({ action: "CANCEL" })}
-        >
-          Cancel request
-        </button>
-      )}
-      {edit && <RequestForm existing={item} onClose={() => setEdit(false)} />}
+          </section>
+        )}
+
+        <div className="approval-detail-attachments">
+          <Attachments items={item.attachments} />
+        </div>
+
+        <section className="approval-detail-progress" aria-label="Approval progress">
+          <h3 className="task-detail-discussion-title approval-detail-section-title">
+            Approval progress
+          </h3>
+          <div className="approval-detail-timeline">
+            {item.steps.map((step) => (
+              <div className="approval-detail-timeline-item" key={step.id}>
+                <span
+                  className={`approval-detail-step-indicator approval-detail-step-indicator--${step.status.toLowerCase()}`}
+                  aria-hidden="true"
+                >
+                  {step.status === "APPROVED" ? <Check size={15} /> : step.stepNumber}
+                </span>
+                <div className="approval-detail-step-info">
+                  <div className="approval-detail-step-top">
+                    <span className="approval-detail-step-name">{step.stepName}</span>
+                    <Badge value={step.status} />
+                  </div>
+                  <p className="approval-detail-step-approver">{step.approver.displayName}</p>
+                  {step.comment && (
+                    <p className="approval-detail-step-comment">{step.comment}</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {mine && ["DRAFT", "CHANGES_REQUESTED"].includes(item.status) && (
+          <div className="approval-detail-edit-actions">
+            <button
+              type="button"
+              className="btn-secondary task-detail-edit"
+              onClick={() => setEdit(true)}
+            >
+              <Pencil size={15} />
+              Edit and submit
+            </button>
+          </div>
+        )}
+
+        {canAct && (
+          <section className="task-detail-section approval-detail-review" aria-label="Approval decision">
+            <div className="task-detail-section-header">
+              <h3>Your review is needed</h3>
+              <p>Select a decision and include a reason when required.</p>
+            </div>
+            <div className="approval-detail-review-body">
+              <label className="approval-detail-review-field">
+                <span>Decision</span>
+                <select
+                  className="input app-modern-select task-detail-select"
+                  aria-label="Decision"
+                  value={decision}
+                  onChange={(event) => setDecision(event.target.value)}
+                >
+                  <option value="APPROVE">Approve</option>
+                  <option value="REQUEST_CHANGES">Request changes</option>
+                  <option value="REJECT">Reject</option>
+                </select>
+              </label>
+              <label className="approval-detail-review-field">
+                <span>Comment</span>
+                <textarea
+                  className="input task-detail-comment-input"
+                  aria-label="Review comment"
+                  placeholder={
+                    decision === "APPROVE"
+                      ? "Comment (optional)"
+                      : "Explain your decision (required)"
+                  }
+                  value={comment}
+                  onChange={(event) => setComment(event.target.value)}
+                />
+              </label>
+              <button
+                type="button"
+                className="btn-primary task-detail-comment-submit approval-detail-confirm"
+                disabled={save.isPending || (decision !== "APPROVE" && !comment.trim())}
+                onClick={() => save.mutate({})}
+              >
+                <Check size={15} />
+                Confirm decision
+              </button>
+            </div>
+          </section>
+        )}
+
+        <ErrorBox error={save.error || updateLayout.error || groups.error} />
+
+        <section className="approval-detail-discussion" aria-label="Comments">
+          <h3 className="task-detail-discussion-title approval-detail-section-title">
+            Comments{item.comments.length ? ` · ${item.comments.length}` : ""}
+          </h3>
+          {item.comments.length > 0 && (
+            <div className="task-detail-comments approval-detail-comments">
+              {item.comments.map((entry) => (
+                <div className="task-detail-comment approval-detail-comment" key={entry.id}>
+                  <Avatar small name={entry.author.displayName} />
+                  <div className="approval-detail-comment-copy">
+                    <div className="approval-detail-comment-byline">
+                      <span>{entry.author.displayName}</span>
+                      {entry.createdAt && (
+                        <span className="approval-detail-comment-date">
+                          {prettyDate(entry.createdAt)}
+                        </span>
+                      )}
+                    </div>
+                    <p className="approval-detail-comment-body">{entry.content}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {canComment && (
+            <form
+              className="approval-detail-comment-form"
+              onSubmit={(event) => {
+                event.preventDefault();
+                save.mutate({ commentOnly: true });
+              }}
+            >
+              <input
+                className="input approval-detail-comment-input"
+                aria-label="Approval comment"
+                required
+                placeholder="Add a comment..."
+                value={comment}
+                onChange={(event) => setComment(event.target.value)}
+              />
+              <button
+                type="submit"
+                className="btn-primary task-detail-comment-submit approval-detail-send"
+                disabled={save.isPending}
+              >
+                Send
+              </button>
+            </form>
+          )}
+        </section>
+
+        {item.rounds?.length > 0 && (
+          <details className="task-detail-history approval-detail-history">
+            <summary className="cursor-pointer font-semibold">
+              Earlier review rounds ({item.rounds.length})
+            </summary>
+            <div className="approval-detail-rounds">
+              {item.rounds.map((round, index) => (
+                <div key={index} className="approval-detail-round">
+                  <strong>Round {index + 1}</strong>
+                  {round.steps.map((step) => (
+                    <p key={step.id}>
+                      {step.stepName}: {step.status.toLowerCase()}{" "}
+                      {step.comment && `— ${step.comment}`}
+                    </p>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </details>
+        )}
+
+        {mine && !["APPROVED", "REJECTED", "CANCELLED"].includes(item.status) && (
+          <button
+            type="button"
+            className="approval-detail-cancel"
+            disabled={save.isPending}
+            onClick={() => save.mutate({ action: "CANCEL" })}
+          >
+            <X size={15} />
+            Cancel request
+          </button>
+        )}
+        {edit && <RequestForm existing={item} onClose={() => setEdit(false)} />}
+      </div>
     </Modal>
   );
 }
+
 export default function ApprovalsPage() {
   const { user, hasPermission } = useAuth();
   const qc = useQueryClient();
@@ -1388,13 +1609,6 @@ export default function ApprovalsPage() {
     }));
   };
 
-  const setAdvancedValues = (key, event) => {
-    const values = [...event.target.selectedOptions].map(
-      (option) => option.value,
-    );
-    setAdvancedFilters((current) => ({ ...current, [key]: values }));
-  };
-
   const setAdvancedValue = (key, value) =>
     setAdvancedFilters((current) => ({ ...current, [key]: value }));
 
@@ -1431,7 +1645,7 @@ export default function ApprovalsPage() {
         }}
         onDragEnd={() => setDraggingId(null)}
         onClick={() => setSelectedId(request.id)}
-        className={`card relative w-full p-4 text-left transition hover:border-blue-300 ${
+        className={`card task-board-card approval-board-card relative w-full p-4 text-left transition ${
           draggingId === request.id ? "opacity-50" : ""
         }`}
       >
@@ -1473,7 +1687,7 @@ export default function ApprovalsPage() {
     const hasUnread = unreadApprovalIds.has(request.id);
     return (
       <button
-        className="approval-list-row relative grid min-w-[900px] w-full grid-cols-[minmax(280px,1.8fr)_180px_190px_145px_160px] items-center gap-4 border-t border-slate-100 px-5 py-3.5 text-left transition hover:bg-slate-50"
+        className="task-list-row approval-list-row relative grid min-w-[900px] w-full grid-cols-[minmax(280px,1.8fr)_180px_190px_145px_160px] items-center gap-4 border-t border-slate-100 px-5 py-3.5 text-left transition hover:bg-slate-50"
         key={request.id}
         onClick={() => setSelectedId(request.id)}
       >
@@ -1523,17 +1737,15 @@ export default function ApprovalsPage() {
     Boolean(advancedFilters.createdTo),
   ].filter(Boolean).length;
 
-  const activeFilterCount =
-    (involvement !== "all" ? 1 : 0) +
-    advancedFilterCount +
-    (search.trim() ? 1 : 0);
 
   return (
     <>
+      <div className="tasks-page approvals-page">
       <PageHeader
         title="Approvals"
+        description="Review requests, track decisions, and keep approvals moving."
         action={
-          <div className="flex  md:flex-wrap text-nowrap items-center gap-2 overflow-x-auto scrollbar-none">
+          <div className="task-header-actions flex flex-wrap items-center gap-2">
             <button
               className="btn-secondary"
               onClick={() => setGroupForm({})}
@@ -1571,9 +1783,9 @@ export default function ApprovalsPage() {
       />
 
       <div className="relative">
-        <div className="approval-toolbar toolbar flex items-center gap-4 rounded-lg border border-slate-200 bg-white shadow-sm">
+        <div className="approval-toolbar toolbar task-toolbar task-toolbar--refresh">
           <div className="approval-toolbar-primary min-w-0 flex-1">
-            <div className="tabs" aria-label="Approval quick filters">
+            <div className="tabs task-quick-tabs" aria-label="Approval quick filters">
               {[
                 ["all", "All"],
                 ["review", "Needs my review"],
@@ -1584,6 +1796,7 @@ export default function ApprovalsPage() {
                   key={value}
                   type="button"
                   className={involvement === value ? "active" : ""}
+                  aria-pressed={involvement === value}
                   onClick={() => setInvolvement(value)}
                 >
                   {label}
@@ -1592,28 +1805,23 @@ export default function ApprovalsPage() {
             </div>
           </div>
 
-          <div className="approval-toolbar-secondary ml-auto flex items-center gap-2">
-            <div className="approval-search relative min-w-60!">
-              <Search
-                className="absolute right-3 top-3 text-slate-400"
-                size={15}
-              />
+          <div className="approval-toolbar-secondary task-toolbar-actions ml-auto flex items-center gap-2">
+            <label className="task-search-bar">
+              <Search size={16} aria-hidden="true" />
               <input
                 aria-label="Search approvals"
-                className="input w-full  pl-9 pe-8! "
-                placeholder="Search approvals"
+                className="input"
+                placeholder="Search approvals..."
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
               />
-            </div>
+            </label>
 
             <div className="relative">
               <button
                 type="button"
-                className={`btn-secondary relative ${
-                  advancedFilterCount
-                    ? "border-blue-300 bg-blue-50 text-blue-700"
-                    : ""
+                className={`btn-secondary task-filter-trigger relative ${
+                  advancedFilterCount ? "task-filter-trigger--active" : ""
                 }`}
                 onClick={() => setFiltersOpen((current) => !current)}
                 aria-expanded={filtersOpen}
@@ -1621,45 +1829,37 @@ export default function ApprovalsPage() {
                 <ListFilter size={16} />
                 <span className="hidden xl:inline">Filter</span>
                 {advancedFilterCount > 0 && (
-                  <span className="grid h-5 min-w-5 place-items-center rounded-full bg-blue-600 px-1 text-[10px] font-bold text-white">
+                  <span className="task-filter-count-badge">
                     {advancedFilterCount}
                   </span>
                 )}
               </button>
 
               {filtersOpen && (
-                <div className="approval-filter-panel fixed left-1/2 top-2 z-50 w-[680px] max-w-[calc(100vw-48px)] -translate-x-1/2 overflow-y-auto rounded-2xl border border-slate-200 bg-white px-5 shadow-xl max-h-[calc(100vh-1rem)]">
-                  <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-slate-200 bg-white pb-3 pt-5">
-                    <div>
-                      <h3 className="text-sm font-bold text-slate-800">
-                        Filter approvals
-                      </h3>
-                      <p className="mt-1 text-xs text-slate-400">
-                        These filters refine the selected quick filter.
-                      </p>
-                    </div>
+                <Modal
+                  className="task-filter-panel approval-filter-panel"
+                  title="Filter approvals"
+                  subtitle="These filters refine the selected quick filter."
+                  onClose={() => setFiltersOpen(false)}
+                >
+
+                  <div className="task-filter-utilities">
+                    <span className="task-filter-count">
+                      {advancedFilterCount > 0
+                        ? `${advancedFilterCount} active filter${advancedFilterCount === 1 ? "" : "s"}`
+                        : "Refine the approval list"}
+                    </span>
                     <button
                       type="button"
-                      className="btn-secondary btn-sm"
-                      onClick={() => setFiltersOpen(false)}
+                      className="btn-secondary task-filter-clear"
+                      onClick={clearAdvancedFilters}
+                      disabled={advancedFilterCount === 0}
                     >
-                      x
+                      Clear all
                     </button>
                   </div>
 
-                  <div className="relative mb-4 flex min-h-8 items-center pt-3">
-                    {advancedFilterCount > 0 && (
-                      <button
-                        type="button"
-                        className="text-xs font-semibold text-blue-600 hover:text-blue-800"
-                        onClick={clearAdvancedFilters}
-                      >
-                        Clear all
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="grid gap-5 md:grid-cols-2">
+                  <div className="task-filter-fields grid gap-5 md:grid-cols-2">
                     <div className="md:col-span-2">
                       <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">
                         Status
@@ -1668,10 +1868,11 @@ export default function ApprovalsPage() {
                         {approvalStatuses.map((status) => (
                           <label
                             key={status}
-                            className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-100 px-2.5 py-2 text-xs text-slate-600 hover:bg-slate-50"
+                            className="task-filter-choice flex cursor-pointer items-center gap-2 rounded-lg border border-slate-100 px-2.5 py-2 text-xs text-slate-600"
                           >
                             <input
                               type="checkbox"
+                              className="task-filter-checkbox"
                               checked={advancedFilters.statuses.includes(
                                 status,
                               )}
@@ -1685,90 +1886,57 @@ export default function ApprovalsPage() {
                       </div>
                     </div>
 
-                    <label className="text-xs font-semibold text-slate-500">
-                      Request type
-                      <select
-                        multiple
-                        className="input mt-1.5 h-28"
-                        value={advancedFilters.typeIds}
-                        onChange={(event) =>
-                          setAdvancedValues("typeIds", event)
-                        }
-                      >
-                        {typeOptions.map((type) => (
-                          <option key={type.id} value={type.id}>
-                            {type.name}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
+                    <FilterMultiSelect
+                      label="Request type"
+                      kind="group"
+                      options={typeOptions.map((type) => ({ value: type.id, label: type.name }))}
+                      values={advancedFilters.typeIds}
+                      onToggle={(value) => toggleAdvancedValue("typeIds", value)}
+                    />
 
-                    <label className="text-xs font-semibold text-slate-500">
-                      Requester
-                      <select
-                        multiple
-                        className="input mt-1.5 h-28"
-                        value={advancedFilters.requesterIds}
-                        onChange={(event) =>
-                          setAdvancedValues("requesterIds", event)
-                        }
-                      >
-                        {requesterOptions.map((requester) => (
-                          <option key={requester.id} value={requester.id}>
-                            {requester.displayName}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
+                    <FilterMultiSelect
+                      label="Requester"
+                      options={requesterOptions.map((requester) => ({
+                        value: requester.id,
+                        label: requester.displayName,
+                      }))}
+                      values={advancedFilters.requesterIds}
+                      onToggle={(value) => toggleAdvancedValue("requesterIds", value)}
+                    />
 
-                    <label className="text-xs font-semibold text-slate-500 md:col-span-2">
-                      Personal group
-                      <select
-                        multiple
-                        className="input mt-1.5 h-28"
-                        value={advancedFilters.groupIds}
-                        onChange={(event) =>
-                          setAdvancedValues("groupIds", event)
-                        }
-                      >
-                        <option value={UNGROUPED}>Ungrouped</option>
-                        {(groups.data || []).map((group) => (
-                          <option key={group.id} value={group.id}>
-                            {group.name}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
+                    <div className="md:col-span-2">
+                      <FilterMultiSelect
+                        label="Personal group"
+                        kind="group"
+                        options={[
+                          { value: UNGROUPED, label: "Ungrouped" },
+                          ...(groups.data || []).map((group) => ({
+                            value: group.id,
+                            label: group.name,
+                          })),
+                        ]}
+                        values={advancedFilters.groupIds}
+                        onToggle={(value) => toggleAdvancedValue("groupIds", value)}
+                      />
+                    </div>
 
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:col-span-2">
-                      <label className="text-xs font-semibold text-slate-500">
-                        Created from
-                        <input
-                          type="date"
-                          className="input mt-1.5"
-                          value={advancedFilters.createdFrom}
-                          onChange={(event) =>
-                            setAdvancedValue("createdFrom", event.target.value)
-                          }
-                        />
-                      </label>
-                      <label className="text-xs font-semibold text-slate-500">
-                        Created to
-                        <input
-                          type="date"
-                          className="input mt-1.5"
-                          value={advancedFilters.createdTo}
-                          onChange={(event) =>
-                            setAdvancedValue("createdTo", event.target.value)
-                          }
-                        />
-                      </label>
+                    <div className="approval-filter-dates grid grid-cols-1 gap-3 sm:grid-cols-2 md:col-span-2">
+                      <ApprovalDateField
+                        label="Created from"
+                        value={advancedFilters.createdFrom}
+                        onChange={(value) => setAdvancedValue("createdFrom", value)}
+                      />
+                      <ApprovalDateField
+                        label="Created to"
+                        value={advancedFilters.createdTo}
+                        onChange={(value) => setAdvancedValue("createdTo", value)}
+                      />
                     </div>
                   </div>
 
-                  <div className="sticky bottom-0 flex items-center justify-between border-t border-slate-100 bg-white py-3 pt-4">
+                  <div className="task-filter-footer sticky bottom-0 flex items-center justify-between border-t border-slate-100 bg-white">
                     <span className="hidden text-xs text-slate-400 sm:inline">
-                      Hold Ctrl/Cmd to select multiple values.
+                      Select multiple values with checkboxes.
                     </span>
                     <button
                       type="button"
@@ -1778,15 +1946,15 @@ export default function ApprovalsPage() {
                       Done
                     </button>
                   </div>
-                </div>
+                </Modal>
               )}
             </div>
 
-            <label className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600">
+            <label className="task-sort-control">
               <ArrowUpDown size={15} className="text-slate-400" />
               <select
                 aria-label="Sort approvals"
-                className="max-w-44 bg-transparent outline-none"
+                className="input app-modern-select task-sort-select"
                 value={sortBy}
                 onChange={(event) => setSortBy(event.target.value)}
               >
@@ -1799,16 +1967,15 @@ export default function ApprovalsPage() {
             </label>
 
             <div
-              className="inline-flex rounded-xl border border-slate-200 bg-white p-1"
+              className="task-view-toggle"
+              role="group"
               aria-label="Approval view"
             >
               <button
                 type="button"
-                className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                  !board
-                    ? "bg-slate-100 text-slate-800"
-                    : "text-slate-500 hover:text-slate-800"
-                }`}
+                className={`task-view-button ${!board ? "task-view-button--active" : ""}`}
+                aria-label="List view"
+                aria-pressed={!board}
                 onClick={() => setBoard(false)}
               >
                 <List size={15} />
@@ -1816,11 +1983,9 @@ export default function ApprovalsPage() {
               </button>
               <button
                 type="button"
-                className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                  board
-                    ? "bg-slate-100 text-slate-800"
-                    : "text-slate-500 hover:text-slate-800"
-                }`}
+                className={`task-view-button ${board ? "task-view-button--active" : ""}`}
+                aria-label="Board view"
+                aria-pressed={board}
                 onClick={() => setBoard(true)}
               >
                 <Columns3 size={15} />
@@ -1858,11 +2023,11 @@ export default function ApprovalsPage() {
         {query.isLoading || groups.isLoading ? (
           <Loading />
         ) : board ? (
-          <div className="flex gap-4 overflow-x-auto pb-4">
+          <div className="approval-board flex gap-4 overflow-x-auto pb-4">
             {groupSections.map((group) => (
               <section
                 key={group.id}
-                className="approval-board-column w-[300px] min-w-[300px] rounded-xl bg-slate-100 p-3"
+                className="task-board-column approval-board-column w-[300px] min-w-[300px] rounded-xl p-3"
                 onDragOver={(event) => {
                   event.preventDefault();
                   event.dataTransfer.dropEffect = "move";
@@ -1964,21 +2129,14 @@ export default function ApprovalsPage() {
             ))}
           </div>
         ) : (
-          <div className="approval-list-card card max-h-[calc(100vh-22.3rem)] md:max-h-[calc(100vh-10.8rem)] overflow-auto">
-            <div className="">
-              <div className="approval-list-header sticky -top-[0.1px] z-5 grid min-w-[900px] grid-cols-[minmax(280px,1.8fr)_180px_190px_145px_160px] items-center gap-4 bg-slate-50 px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-slate-400">
-                <span>Request</span>
-                <span>Requester</span>
-                <span>Request type</span>
-                <span>Status</span>
-                <span>Created</span>
-              </div>
+          <div className="task-list-card approval-list-card">
+            <div className="task-groups-stack">
               {groupSections.map((group) => {
                 const collapsed = collapsedGroups.has(group.id);
                 return (
-                  <section key={group.id}>
+                  <section key={group.id} className="task-group-card approval-group-card">
                     <div
-                      className="approval-group-header sticky top-0 md:top-10 flex min-w-[900px] items-center gap-2 border-t border-slate-200 bg-slate-100 px-4 py-2.5"
+                      className="task-group-header approval-group-header flex min-w-0 items-center gap-2 px-4 py-2.5"
                       onDragOver={(event) => {
                         event.preventDefault();
                         event.dataTransfer.dropEffect = "move";
@@ -2041,7 +2199,7 @@ export default function ApprovalsPage() {
                       <span className="font-semibold text-sm text-slate-700">
                         {group.name}
                       </span>
-                      <span className="text-xs text-slate-400">
+                      <span className="task-group-count">
                         {group.requests.length} request
                         {group.requests.length === 1 ? "" : "s"}
                       </span>
@@ -2074,14 +2232,27 @@ export default function ApprovalsPage() {
                         </div>
                       )}
                     </div>
-                    {!collapsed &&
-                      (group.requests.length ? (
-                        group.requests.map(approvalRow)
-                      ) : (
-                        <div className="approval-empty-row min-w-[900px] border-t border-slate-100 px-14 py-4 text-sm text-slate-400">
-                          No approvals in this group.
-                        </div>
-                      ))}
+                    {!collapsed && (
+                      <div className="task-group-content">
+                        {group.requests.length ? (
+                          <>
+                            <div className="task-list-header approval-list-header grid min-w-[900px] grid-cols-[minmax(280px,1.8fr)_180px_190px_145px_160px] items-center gap-4 px-5 py-3 text-[11px] font-bold uppercase tracking-wide">
+                              <span>Request</span>
+                              <span>Requester</span>
+                              <span>Request type</span>
+                              <span>Status</span>
+                              <span>Created</span>
+                            </div>
+                            {group.requests.map(approvalRow)}
+                          </>
+                        ) : (
+                          <div className="task-empty-row approval-empty-row">
+                            <FileCheck2 size={16} aria-hidden="true" />
+                            <span>No approvals match the selected filters in this group.</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </section>
                 );
               })}
@@ -2112,6 +2283,7 @@ export default function ApprovalsPage() {
           />
         )}
         {item && <RequestDetail item={item} onClose={closeRequest} />}
+      </div>
       </div>
     </>
   );

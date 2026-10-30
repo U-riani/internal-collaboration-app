@@ -19,6 +19,15 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      {/* Native Flutter WebView entry: no desktop Layout or sidebar. */}
+      <Route
+        path="/mobile/sheets/:id"
+        element={
+          <ProtectedRoute>
+            <SpreadsheetPage mobile />
+          </ProtectedRoute>
+        }
+      />
       <Route
         element={
           <ProtectedRoute>

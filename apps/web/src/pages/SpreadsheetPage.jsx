@@ -10,6 +10,7 @@ import {
   X,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext.jsx";
+import { getThemePreference } from "../lib/appearance.js";
 import { api } from "../lib/api.js";
 import { useSocket } from "../hooks/useSocket.js";
 import {
@@ -19,7 +20,7 @@ import {
 import { connectUniverPermissions } from "../lib/univer-permissions.js";
 
 const UNIVER_VERSION = "1.0.2";
-const writeAccess = new Set(["OWNER", "MANAGER", "EDITOR"]);
+const writeAccess = new Set(["OWNER", "MANAGER", "EDITOR", "EDITOR_DELETE"]);
 const MAX_ROWS = 1048576;
 const MAX_COLUMNS = 16384;
 const MAX_MERGE_RETRIES = 4;
@@ -152,7 +153,7 @@ function SheetCreate() {
   }
 
   return (
-    <div className="mx-auto max-w-xl py-8">
+    <div className="workspace-spreadsheet-create mx-auto max-w-xl py-8">
       <div className="mb-5 flex items-center gap-3">
         <Link to="/drive" className="icon-btn" title="Back to Drive">
           <ArrowLeft size={18} />
@@ -229,7 +230,7 @@ function SheetCreate() {
   );
 }
 
-function SheetEditor({ id }) {
+function SheetEditor({ id, mobile = false }) {
   const { user } = useAuth();
   const hostRef = useRef(null);
   const runtimeRef = useRef(null);
@@ -626,6 +627,11 @@ function SheetEditor({ id }) {
         hostRef.current.appendChild(container);
 
         const runtime = createUniver({
+          // Univer owns its toolbar and canvas. Use dark rendering only for
+          // OLED / Slate; Midnight and Light retain Univer's native light UI.
+          // This is read on editor mount, avoiding an unsafe workbook remount
+          // while the user has unsaved local changes.
+          darkMode: !mobile && ["oled", "slate"].includes(getThemePreference(user.id)),
           locale: LocaleType.EN_US,
           locales: {
             [LocaleType.EN_US]: mergeLocales(
@@ -714,13 +720,55 @@ function SheetEditor({ id }) {
     saveCurrentWorkbook();
   }
 
+  async function closeMobileEditor() {
+    clearTimeout(timerRef.current);
+    if (savingRef.current || conflictRef.current) {
+      setError("Save or resolve the spreadsheet conflict before closing.");
+      return;
+    }
+    if (canEdit) {
+      const previousVersion = versionRef.current;
+      await saveCurrentWorkbook();
+      if (
+        versionRef.current === previousVersion ||
+        conflictRef.current ||
+        remountPendingSaveRef.current ||
+        pendingRef.current
+      ) {
+        setError("Spreadsheet changes could not be saved. Try Save again before leaving.");
+        return;
+      }
+    }
+    // End the separate refresh-cookie session used by this WebView.
+    try {
+      await api("/auth/logout", { method: "POST" });
+    } catch {
+      // On a temporary connectivity loss the native session is still
+      // managed separately; do not trap a user who finished saving.
+    }
+    window.CollaborationFlutter?.postMessage(JSON.stringify({ type: "close" }));
+  }
+
   return (
     <>
-      <div className="flex h-[calc(100vh-9.1rem)] min-h-[580px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm md:h-[calc(100vh-1.8rem)]">
+      <div className={mobile
+          ? "flex h-[100dvh] min-h-0 w-full flex-col overflow-hidden bg-white"
+          : "workspace-spreadsheet flex h-[calc(100vh-9.1rem)] min-h-[580px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm md:h-[calc(100vh-1.8rem)]"}>
         <div className="flex min-h-14 items-center gap-3 border-b border-slate-200 px-3 sm:px-4">
-          <Link to="/drive" className="icon-btn shrink-0" title="Back to Drive">
-            <ArrowLeft size={18} />
-          </Link>
+          {mobile ? (
+            <button
+              type="button"
+              className="icon-btn shrink-0"
+              title="Back to Flutter Drive"
+              onClick={closeMobileEditor}
+            >
+              <ArrowLeft size={18} />
+            </button>
+          ) : (
+            <Link to="/drive" className="icon-btn shrink-0" title="Back to Drive">
+              <ArrowLeft size={18} />
+            </Link>
+          )}
           <Table2 size={20} className="shrink-0 text-emerald-600" />
           <div className="min-w-0 flex-1">
             <div className="truncate text-sm font-semibold text-slate-900">
@@ -891,7 +939,7 @@ function SheetEditor({ id }) {
 
       {resizeOpen && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/40 p-4"
+          className="spreadsheet-resize-backdrop fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/40 p-4"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) setResizeOpen(false);
           }}
@@ -978,7 +1026,9 @@ function SheetEditor({ id }) {
   );
 }
 
-export default function SpreadsheetPage() {
+export default function SpreadsheetPage({ mobile = false }) {
   const { id } = useParams();
-  return id === "new" ? <SheetCreate /> : <SheetEditor id={id} />;
+  return id === "new" && !mobile
+    ? <SheetCreate />
+    : <SheetEditor id={id} mobile={mobile} />;
 }

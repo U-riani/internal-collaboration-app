@@ -9,6 +9,41 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     let active = true;
+
+    // The Flutter WebView is authenticated by its native secure-storage session,
+    // not by the browser refresh cookie. The token is transferred only through
+    // the in-memory JS bridge on our own HTTPS origin (never via a URL).
+    if (window.location.pathname.startsWith("/mobile/sheets/")) {
+      const handleMobileSession = async (event) => {
+        const token = event.detail?.token;
+        if (!token || !active) {
+          if (active) setLoading(false);
+          return;
+        }
+        setAccessToken(token);
+        try {
+          // Establish a dedicated WebView refresh cookie so editing stays
+          // authenticated even after the native access token expires.
+          const result = await api("/auth/mobile-webview-session", {
+            method: "POST",
+          }, false);
+          setAccessToken(result.data.accessToken);
+          if (active) setUser(result.data.user);
+        } catch {
+          setAccessToken(null);
+          if (active) setUser(null);
+        } finally {
+          if (active) setLoading(false);
+        }
+      };
+      window.addEventListener("collab-mobile-session", handleMobileSession);
+      window.CollaborationFlutter?.postMessage(JSON.stringify({ type: "ready" }));
+      return () => {
+        active = false;
+        window.removeEventListener("collab-mobile-session", handleMobileSession);
+      };
+    }
+
     refreshSession()
       .then((data) => {
         if (active) setUser(data.user);
@@ -44,15 +79,13 @@ export function AuthProvider({ children }) {
         );
         queryClient.clear();
         setAccessToken(result.data.accessToken);
-        // A browser origin has one push subscription; a shared computer must
-        // never continue receiving another account\u0027s private notifications.
-        await clearForeignBrowserSubscription(result.data.user.id).catch(() => {});
         setUser(result.data.user);
+        // A shared browser must not keep delivering a different account's push.
+        void clearForeignBrowserSubscription(result.data.user.id).catch(() => {});
       },
       async logout() {
         try {
-          // Revoke this browser subscription before ending the session.
-          await disableBrowserPush(user?.id).catch(() => {});
+          if (user?.id) await disableBrowserPush(user.id).catch(() => {});
           await api("/auth/logout", { method: "POST" });
         } finally {
           setAccessToken(null);

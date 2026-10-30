@@ -1,0 +1,2066 @@
+/*
+ * Light Theme — phase 1 foundation.
+ *
+ * Light is the fourth selectable workspace theme.
+ * This stylesheet has no effect on Midnight, OLED or Slate. All module
+ * integrations remain scoped to data-appearance="light".
+ * Keep the existing .app-theme-dark class while legacy module styles migrate;
+ * the data-appearance attribute gates every override.
+ */
+.app-theme-dark[data-appearance="light"] {
+  color-scheme: light;
+  --app-bg: #f5f7fc;
+  --app-sidebar: #ffffff;
+  --app-surface: #ffffff;
+  --app-surface-raised: #f1f4fa;
+  --app-surface-hover: #e9eef7;
+  --app-surface-input: #f8fafe;
+  --app-border: rgba(36, 55, 88, .12);
+  --app-border-strong: #d4dcea;
+  --app-text: #314058;
+  --app-text-strong: #182335;
+  --app-muted: #59677b;
+  --app-subtle: #68788d;
+
+  --app-primary: #5c55d7;
+  --app-primary-hover: #514ac8;
+  --app-primary-soft: #eeecff;
+  --app-focus-ring: #5c55d7;
+  --app-accent-shadow: rgba(78, 73, 178, .15);
+  --app-secondary: #087d9d;
+  --app-tertiary: #854cb3;
+  --app-success: #13765c;
+  --app-danger: #bd3650;
+
+  /* Accent, hover and typography tokens remain the shared design system. */
+  --app-accent-soft: #eeecff;
+  --app-interactive-hover: var(--app-surface-hover);
+  --app-interactive-hover-text: var(--app-text-strong);
+  --app-interactive-focus: var(--app-focus-ring);
+  --app-ui-focus-ring: var(--app-focus-ring);
+  --app-ui-accent-start: var(--app-accent-gradient-start);
+  --app-ui-accent-end: var(--app-accent-gradient-end);
+  --app-ui-accent-selected: var(--app-accent);
+  --app-ui-accent-selected-hover: var(--app-accent-hover);
+  --app-ui-accent-selected-text: var(--app-on-accent);
+  --app-ui-accent-label: var(--app-on-accent);
+  --app-ui-accent-shadow: var(--app-accent-shadow);
+  --app-ui-accent-tint: color-mix(in srgb, var(--app-accent) 13%, transparent);
+  --app-ui-accent-outline: color-mix(in srgb, var(--app-accent) 42%, transparent);
+  --app-ui-selection-start: color-mix(in srgb, var(--app-accent) 12%, #ffffff);
+  --app-ui-selection-end: color-mix(in srgb, var(--app-accent) 8%, #ffffff);
+  --app-ui-selection-hover: color-mix(in srgb, var(--app-accent) 18%, #ffffff);
+
+  --palette-page: var(--app-bg);
+  --palette-panel: var(--app-surface);
+  --palette-raised: var(--app-surface-raised);
+  --palette-input: var(--app-surface-input);
+  --palette-selection: color-mix(in srgb, var(--app-accent) 11%, #ffffff);
+  --palette-panel-gradient: linear-gradient(125deg, #ffffff, #f2f5fc);
+  --palette-chat-gradient: linear-gradient(145deg, #ffffff, #f5f7fc);
+  --palette-border: var(--app-border-strong);
+}
+
+/* Each accent keeps its identity; focus rings and soft selections need more
+ * contrast against white surfaces than against Midnight backgrounds. */
+.app-theme-dark[data-appearance="light"][data-accent="cyan"] {
+  --app-primary-soft: #e0f5f9;
+  --app-accent-soft: #e0f5f9;
+  --app-focus-ring: #0b7185;
+}
+.app-theme-dark[data-appearance="light"][data-accent="violet"] {
+  --app-primary-soft: #f2e7fa;
+  --app-accent-soft: #f2e7fa;
+  --app-focus-ring: #7b45a8;
+}
+.app-theme-dark[data-appearance="light"][data-accent="sky"] {
+  --app-primary-soft: #e4f5fa;
+  --app-accent-soft: #e4f5fa;
+  --app-focus-ring: #196b83;
+}
+
+/* Stage 1 only: app shell and shared primitives. Individual module hardcoded
+ * surfaces will be migrated and visually tested before Light is enabled. */
+body:has(.app-theme-dark[data-appearance="light"]) {
+  background: #f5f7fc;
+}
+.app-theme-dark[data-appearance="light"] > .workspace-main {
+  background: radial-gradient(ellipse at 78% 28%, #eef2ff, var(--app-bg) 60%);
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] > :is(.workspace-sidebar, .workspace-mobile-header),
+.app-theme-dark[data-appearance="light"] > .workspace-sidebar > .workspace-sidebar-top {
+  background: var(--app-sidebar);
+  color: var(--app-text);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] .sidebar-profile-card {
+  background: var(--app-surface-raised);
+  border-color: var(--app-border);
+  box-shadow: 0 5px 18px rgba(23, 37, 65, .05);
+}
+.app-theme-dark[data-appearance="light"] .sidebar-profile-identity:hover {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark[data-appearance="light"] :is(.card, .modal, .modal-head, .form-actions) {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] :is(.input, select, textarea:not(.chat-compose-textarea)) {
+  background: var(--app-surface-input);
+  color: var(--app-text);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark[data-appearance="light"] :is(.input, textarea)::placeholder {
+  color: var(--app-subtle);
+}
+.app-theme-dark[data-appearance="light"] :is(.btn-secondary, .icon-btn) {
+  color: var(--app-text);
+  background: var(--app-surface-raised);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark[data-appearance="light"] :is(.btn-secondary, .icon-btn):hover:not(:disabled) {
+  color: var(--app-interactive-hover-text);
+  background: var(--app-interactive-hover);
+}
+.app-theme-dark[data-appearance="light"] .btn-primary,
+.app-theme-dark[data-appearance="light"] .btn-primary:hover:not(:disabled) {
+  color: var(--app-on-accent);
+}
+.app-theme-dark[data-appearance="light"] :is(.app-modern-select, .app-modern-select option) {
+  color: var(--app-text);
+  background: var(--app-surface-input);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark[data-appearance="light"] .app-modern-select option:checked {
+  color: var(--app-ui-accent-selected-text);
+  background: var(--app-ui-accent-selected);
+}
+.app-theme-dark[data-appearance="light"] .modal::backdrop {
+  background: rgba(22, 34, 58, .34);
+}
+.app-theme-dark[data-appearance="light"] .error-box {
+  color: #912b41;
+  border-color: #f0c4cc;
+  background: #fff1f3;
+}
+.app-theme-dark[data-appearance="light"] .attachment {
+  color: var(--app-text);
+  background: var(--app-surface-raised);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark[data-appearance="light"] .tabs {
+  color: var(--app-text);
+  background: var(--app-surface-raised);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark[data-appearance="light"] .tabs button.active {
+  background: var(--app-accent-soft);
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] :is(.btn-primary, .btn-secondary, .input, .app-modern-select):focus-visible {
+  outline-color: var(--app-interactive-focus);
+}
+@supports (appearance: base-select) {
+  .app-theme-dark[data-appearance="light"] .app-modern-select::picker(select) {
+    background: var(--app-surface);
+    border-color: var(--app-border-strong);
+    color: var(--app-text);
+    box-shadow: 0 14px 32px rgba(22, 34, 58, .13);
+  }
+  .app-theme-dark[data-appearance="light"] .app-modern-select option:not(:checked) {
+    color: var(--app-text);
+    background: transparent;
+  }
+  .app-theme-dark[data-appearance="light"] .app-modern-select option:not(:checked):hover {
+    color: var(--app-text-strong);
+    background: var(--app-surface-hover);
+  }
+}
+
+
+/* Phase 2 — workspace navigation and shared primitives.
+ * Only [data-appearance="light"] can match these rules: the three approved
+ * dark palettes retain their exact defaults and their existing overrides. */
+.app-theme-dark[data-appearance="light"] > .workspace-sidebar,
+.app-theme-dark[data-appearance="light"] > .workspace-mobile-header,
+.app-theme-dark[data-appearance="light"] > .workspace-sidebar > .workspace-sidebar-top {
+  background: var(--app-sidebar);
+  color: var(--app-text);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] > .workspace-sidebar {
+  box-shadow: 2px 0 20px rgba(24, 35, 53, .035);
+}
+.app-theme-dark[data-appearance="light"] .workspace-logo {
+  color: var(--app-on-accent);
+  background: linear-gradient(140deg, var(--app-accent-gradient-start), var(--app-accent-gradient-end));
+  box-shadow: 0 4px 14px var(--app-accent-shadow);
+}
+.app-theme-dark[data-appearance="light"] :is(.workspace-brand-name, .sidebar-profile-name) {
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] :is(.workspace-brand-caption, .workspace-section-label, .sidebar-profile-department) {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .sidebar-profile {
+  background: var(--app-sidebar);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] .sidebar-profile-card {
+  background: var(--app-surface-raised);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] .sidebar-profile-identity .avatar {
+  background: var(--app-accent-soft);
+  color: var(--app-focus-ring);
+}
+.app-theme-dark[data-appearance="light"] .sidebar-profile-identity:hover {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark[data-appearance="light"] .workspace-nav-link:not([aria-current="page"]) {
+  background: transparent;
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .workspace-nav-link:not([aria-current="page"]):hover {
+  background: var(--app-interactive-hover);
+  color: var(--app-interactive-hover-text);
+}
+.app-theme-dark[data-appearance="light"] .workspace-nav-link[aria-current="page"],
+.app-theme-dark[data-appearance="light"] .workspace-nav-link[aria-current="page"]:hover,
+.app-theme-dark[data-appearance="light"] .workspace-nav-link[aria-current="page"]:focus-visible {
+  background: linear-gradient(112deg, var(--app-accent-gradient-start), var(--app-accent-gradient-end));
+  color: var(--app-on-accent);
+  box-shadow: 0 4px 12px var(--app-accent-shadow);
+}
+.app-theme-dark[data-appearance="light"] .workspace-nav-link[aria-current="page"]:hover {
+  filter: brightness(1.04);
+}
+.app-theme-dark[data-appearance="light"] .workspace-nav-link[aria-current="page"] > svg,
+.app-theme-dark[data-appearance="light"] .workspace-nav-link[aria-current="page"] > span:first-of-type,
+.app-theme-dark[data-appearance="light"] .workspace-nav-link[aria-current="page"]:hover > svg,
+.app-theme-dark[data-appearance="light"] .workspace-nav-link[aria-current="page"]:hover > span:first-of-type {
+  color: var(--app-on-accent);
+}
+.app-theme-dark[data-appearance="light"] .workspace-nav-link:focus-visible,
+.app-theme-dark[data-appearance="light"] .sidebar-profile-identity:focus-visible {
+  outline: 2px solid var(--app-focus-ring);
+  outline-offset: 2px;
+}
+.app-theme-dark[data-appearance="light"] > .workspace-mobile-header .icon-btn {
+  color: var(--app-text);
+  background: transparent;
+}
+.app-theme-dark[data-appearance="light"] > .workspace-mobile-header .icon-btn:hover {
+  background: var(--app-surface-hover);
+  color: var(--app-text-strong);
+}
+
+/* Reusable cards, form fields, status badges, action buttons and menus. */
+.app-theme-dark[data-appearance="light"] :is(.page-header h1, .modal-head h2, .empty h3) {
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] :is(.page-header p, .field, .empty p, .empty) {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .card {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+  color: var(--app-text);
+  box-shadow: 0 3px 16px rgba(24, 35, 53, .035);
+}
+.app-theme-dark[data-appearance="light"] .modal {
+  background: var(--app-surface);
+  border-color: var(--app-border-strong);
+  color: var(--app-text);
+  box-shadow: 0 22px 70px rgba(24, 35, 53, .20);
+}
+.app-theme-dark[data-appearance="light"] :is(.modal-head, .form-actions) {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] :is(.input, select, textarea:not(.chat-compose-textarea)) {
+  background: var(--app-surface-input);
+  border-color: var(--app-border-strong);
+  color: var(--app-text);
+  color-scheme: light;
+}
+.app-theme-dark[data-appearance="light"] :is(.input, select, textarea:not(.chat-compose-textarea)):focus {
+  border-color: var(--app-interactive-focus);
+  outline-color: var(--app-interactive-focus);
+  --tw-ring-color: color-mix(in srgb, var(--app-focus-ring) 20%, transparent);
+}
+.app-theme-dark[data-appearance="light"] .app-modern-select option:not(:checked) {
+  background: var(--app-surface);
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] .app-modern-select option:not(:checked):hover {
+  background: var(--app-surface-hover);
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] .btn-primary,
+.app-theme-dark[data-appearance="light"] .btn-primary:hover:not(:disabled) {
+  color: var(--app-on-accent);
+}
+.app-theme-dark[data-appearance="light"] .btn-secondary {
+  background: var(--app-surface-raised);
+  border-color: var(--app-border-strong);
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] .btn-secondary:hover:not(:disabled) {
+  background: var(--app-surface-hover);
+  border-color: var(--app-ui-accent-outline);
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] .btn-danger {
+  color: #a52a43;
+  background: #fff0f2;
+  border-color: #f4c4cd;
+}
+.app-theme-dark[data-appearance="light"] .btn-danger:hover:not(:disabled) {
+  background: #ffe2e8;
+  color: #91233b;
+}
+.app-theme-dark[data-appearance="light"] .icon-btn {
+  background: transparent;
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .icon-btn:hover:not(:disabled) {
+  background: var(--app-surface-hover);
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] .attachment {
+  background: var(--app-surface-raised);
+  border-color: var(--app-border-strong);
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] .attachment small {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .empty-symbol {
+  color: var(--app-focus-ring);
+}
+.app-theme-dark[data-appearance="light"] :is(.tabs, .tabs button) {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .tabs button.active,
+.app-theme-dark[data-appearance="light"] .tabs button.active:hover {
+  color: var(--app-text-strong);
+  background: var(--app-accent-soft);
+}
+.app-theme-dark[data-appearance="light"] .tabs button:not(.active):hover {
+  background: var(--app-surface-hover);
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] :is(.avatar, .badge.bg-slate-100) {
+  background: var(--app-accent-soft);
+  color: var(--app-focus-ring);
+}
+.app-theme-dark[data-appearance="light"] .status {
+  background: var(--app-surface-raised);
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] :is(.status-completed, .status-approved, .status-active) {
+  color: #13765c;
+  background: #dcf6eb;
+}
+.app-theme-dark[data-appearance="light"] :is(.status-in_progress, .status-pending, .status-editor) {
+  color: #4548a4;
+  background: #e9eaff;
+}
+.app-theme-dark[data-appearance="light"] :is(.status-waiting_review, .status-changes_requested, .status-high) {
+  color: #8b5217;
+  background: #fff1db;
+}
+.app-theme-dark[data-appearance="light"] :is(.status-rejected, .status-blocked, .status-urgent) {
+  color: #ae334c;
+  background: #ffe7ec;
+}
+.app-theme-dark[data-appearance="light"] table {
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] table th {
+  color: var(--app-muted);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] table td {
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] table tbody tr:hover {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark[data-appearance="light"] :is(.modal, .card, .workspace-main) {
+  scrollbar-color: #b6c1d2 transparent;
+}
+
+
+/* Phase 2 — Dashboard. Preserve existing structure, statistics categories,
+ * notification unread markers, routing, responsive layout and transitions. */
+.app-theme-dark[data-appearance="light"].overview-layout > .workspace-main {
+  background: radial-gradient(ellipse at 78% 30%, #eef2ff 0%, var(--app-bg) 60%);
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] .overview-dashboard {
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] .overview-hero {
+  border-color: var(--app-border);
+  background:
+    radial-gradient(ellipse at 58% -150%, color-mix(in srgb, var(--app-accent) 10%, transparent), transparent 80%),
+    linear-gradient(145deg, #ffffff, #f1f4fc);
+  box-shadow: 0 8px 25px rgba(24, 35, 53, .05);
+}
+.app-theme-dark[data-appearance="light"] .overview-hero h1 {
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] .overview-hero p {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .overview-hero-date {
+  color: var(--app-text);
+  background: var(--app-surface-raised);
+  border: 1px solid var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] :is(.overview-stat, .overview-panel) {
+  border-color: var(--app-border);
+  background: var(--app-surface);
+  box-shadow: 0 4px 20px rgba(24, 35, 53, .045);
+}
+.app-theme-dark[data-appearance="light"] .overview-stat:hover {
+  background: var(--app-surface-raised);
+  border-color: var(--app-ui-accent-outline);
+}
+.app-theme-dark[data-appearance="light"] :is(.overview-stat-number, .overview-panel-heading h2) {
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] :is(.overview-stat-label, .overview-stat-arrow) {
+  color: var(--app-muted);
+}
+/* Category identities stay cyan/coral/indigo/violet, but invert to a pale
+ * badge surface and dark, accessible foreground for a white theme. */
+.app-theme-dark[data-appearance="light"] :is(.overview-stat--cyan .overview-stat-icon, .overview-shortcut-icon--cyan) {
+  color: #075d76;
+  background: #dbf5fb;
+}
+.app-theme-dark[data-appearance="light"] .overview-stat--cyan .overview-stat-chip {
+  color: #075d76;
+  background: #dbf5fb;
+}
+.app-theme-dark[data-appearance="light"] .overview-stat--coral .overview-stat-icon {
+  color: #a42c43;
+  background: #fff0f2;
+}
+.app-theme-dark[data-appearance="light"] .overview-stat--coral .overview-stat-chip {
+  color: #a42c43;
+  background: #fff0f2;
+}
+.app-theme-dark[data-appearance="light"] :is(.overview-stat--indigo .overview-stat-icon, .overview-shortcut-icon--indigo) {
+  color: #4d43a9;
+  background: #efedff;
+}
+.app-theme-dark[data-appearance="light"] .overview-stat--indigo .overview-stat-chip {
+  color: #4d43a9;
+  background: #efedff;
+}
+.app-theme-dark[data-appearance="light"] :is(.overview-stat--violet .overview-stat-icon, .overview-shortcut-icon--violet) {
+  color: #7a3ba6;
+  background: #f6ebfd;
+}
+.app-theme-dark[data-appearance="light"] .overview-stat--violet .overview-stat-chip {
+  color: #7a3ba6;
+  background: #f6ebfd;
+}
+.app-theme-dark[data-appearance="light"] :is(.overview-focus-count, .overview-task-check) {
+  background: var(--app-surface-raised);
+  color: var(--app-muted);
+  border: 1px solid var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] .overview-panel-action {
+  color: var(--app-focus-ring);
+  background: var(--app-accent-soft);
+}
+.app-theme-dark[data-appearance="light"] .overview-panel-action:hover {
+  color: var(--app-focus-ring);
+  background: var(--app-ui-accent-tint);
+}
+.app-theme-dark[data-appearance="light"] :is(.overview-task-row:hover, .overview-shortcut-row:hover, .overview-update-row:hover) {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark[data-appearance="light"] :is(.overview-task-info strong, .overview-shortcut-copy strong, .overview-update-info strong) {
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] :is(.overview-task-info > span, .overview-shortcut-copy small, .overview-shortcuts-intro, .overview-updates-heading p, .overview-update-info > span, .overview-update-date, .overview-task-arrow, .overview-shortcut-arrow) {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .overview-separator {
+  color: var(--app-subtle);
+}
+.app-theme-dark[data-appearance="light"] .overview-task-date {
+  color: #0a708a;
+}
+.app-theme-dark[data-appearance="light"] .overview-task-status {
+  color: #0b6780;
+  background: #e2f6fa;
+}
+.app-theme-dark[data-appearance="light"] .overview-empty {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .overview-empty strong {
+  color: var(--app-text-strong);
+}
+/* These indicators still represent unread vs read, not theme preference. */
+.app-theme-dark[data-appearance="light"] .overview-update-dot {
+  background: #0eafc5;
+  box-shadow: 0 0 0 2px #daf6fb;
+}
+.app-theme-dark[data-appearance="light"] .overview-update-dot--read {
+  background: #a4aebf;
+  box-shadow: none;
+}
+.app-theme-dark[data-appearance="light"] .overview-update-icon {
+  color: #086781;
+  background: #def4fa;
+}
+.app-theme-dark[data-appearance="light"] .overview-update-icon--1 {
+  color: #4d43a9;
+  background: #efedff;
+}
+.app-theme-dark[data-appearance="light"] .overview-update-icon--2 {
+  color: #7a3ba6;
+  background: #f6ebfd;
+}
+.app-theme-dark[data-appearance="light"] .overview-update-link {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .overview-update-link:hover {
+  color: var(--app-focus-ring);
+  background: var(--app-accent-soft);
+}
+@media (max-width: 700px) {
+  .app-theme-dark[data-appearance="light"] .overview-stats {
+    scrollbar-color: #b6c1d2 transparent;
+  }
+}
+
+
+/* Phase 3A — Messages: conversation list, chat canvas, composer and replies.
+ * Keep unread state, online indicators and outgoing bubbles semantically intact. */
+.app-theme-dark[data-appearance="light"] .messages-page {
+  --message-bg: var(--app-bg);
+  --message-text: var(--app-text);
+  --message-muted: var(--app-muted);
+  background: var(--app-bg);
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] .messages-page :is(.page-header h1, .chat-conversation-header-identity h2, .chat-conversation-title) {
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] .messages-page :is(.page-header p, .chat-conversation-preview, .chat-conversation-time, .chat-conversation-header-identity p, .chat-message-meta, .chat-compose-hint, .chat-sidebar-empty, .chat-file-preview) {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .messages-page .chat-shell {
+  background: var(--app-surface);
+  border-color: var(--app-border-strong);
+  box-shadow: 0 8px 30px rgba(24, 35, 53, .055);
+}
+.app-theme-dark[data-appearance="light"] .messages-page :is(.chat-sidebar, .chat-conversation > header, .chat-composer) {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] .messages-page .chat-conversation {
+  background: var(--palette-chat-gradient);
+}
+.app-theme-dark[data-appearance="light"] .messages-page :is(.chat-sidebar-search .input, .chat-message-search .input, .chat-composer-form) {
+  background: var(--app-surface-input);
+  border-color: var(--app-border-strong);
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] .messages-page .input::placeholder,
+.app-theme-dark[data-appearance="light"] .messages-page .chat-compose-textarea::placeholder {
+  color: var(--app-subtle);
+}
+.app-theme-dark[data-appearance="light"] .messages-page .chat-compose-textarea {
+  background: transparent;
+  color: var(--app-text);
+  color-scheme: light;
+}
+.app-theme-dark[data-appearance="light"] .messages-page .chat-sidebar-tab {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .messages-page .chat-sidebar-tab:not([aria-pressed="true"]):hover {
+  color: var(--app-text-strong);
+  background: var(--app-surface-hover);
+}
+.app-theme-dark[data-appearance="light"] .messages-page .chat-sidebar-tab[aria-pressed="true"] {
+  color: var(--app-ui-accent-label);
+  background: linear-gradient(130deg, var(--app-ui-accent-start), var(--app-ui-accent-end));
+}
+.app-theme-dark[data-appearance="light"] .messages-page .chat-conversation-item {
+  color: var(--app-text);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] .messages-page .chat-conversation-item:hover {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark[data-appearance="light"] .messages-page .chat-conversation-item.is-selected {
+  background: var(--palette-selection);
+}
+.app-theme-dark[data-appearance="light"] .messages-page :is(.chat-conversation-avatar .avatar, .chat-conversation-header-avatar .avatar, .chat-message-row .avatar-small) {
+  color: var(--app-focus-ring);
+  background: var(--app-accent-soft);
+}
+.app-theme-dark[data-appearance="light"] .messages-page .chat-conversation .icon-btn {
+  color: var(--app-muted);
+  background: transparent;
+}
+.app-theme-dark[data-appearance="light"] .messages-page .chat-conversation .icon-btn:hover {
+  color: var(--app-text-strong);
+  background: var(--app-surface-hover);
+}
+.app-theme-dark[data-appearance="light"] .messages-page :is(.chat-conversation > header .absolute.z-40, .chat-conversation .chat-message-search .absolute.z-40) {
+  background: var(--app-surface);
+  color: var(--app-text);
+  border-color: var(--app-border-strong);
+  box-shadow: 0 12px 25px rgba(24, 35, 53, .11);
+}
+.app-theme-dark[data-appearance="light"] .messages-page .chat-conversation > header .absolute.z-40 :is(.text-slate-400, .text-slate-600, .text-slate-700) {
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] .messages-page .chat-conversation > header .absolute.z-40 button:not(.chat-search-tab):hover {
+  background: var(--app-surface-hover);
+}
+
+/* Only the hover surface varies; active, hover, focus and spacing behavior
+   are defined once in messages-theme.css for every appearance. */
+.app-theme-dark[data-appearance="light"] .messages-page .chat-search-tabs {
+  --chat-search-hover-bg: var(--app-surface-raised);
+}
+.app-theme-dark[data-appearance="light"] .messages-page .chat-date-divider {
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] .messages-page .chat-date-divider > span {
+  background: var(--app-surface-raised);
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .messages-page .chat-message-bubble {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+  color: var(--app-text-strong);
+  box-shadow: 0 2px 8px rgba(24, 35, 53, .04);
+}
+.app-theme-dark[data-appearance="light"] .messages-page .chat-message-own .chat-message-bubble {
+  background: linear-gradient(115deg, var(--app-ui-accent-start), var(--app-ui-accent-end));
+  color: var(--app-ui-accent-label);
+  border-color: transparent;
+}
+.app-theme-dark[data-appearance="light"] .messages-page .chat-message-row .attachment {
+  background: var(--app-surface-raised);
+  border-color: var(--app-border-strong);
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] .messages-page :is(.chat-reply-preview, .chat-messages-scroll .bg-white) {
+  color: var(--app-text);
+  background: var(--app-surface-raised);
+}
+.app-theme-dark[data-appearance="light"] .messages-page :is(.chat-messages-scroll .bg-blue-50, .chat-messages-scroll .btn-secondary) {
+  color: var(--app-text);
+  background: var(--palette-selection);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] .messages-page .chat-messages-scroll .btn-secondary:hover:not(:disabled) {
+  color: var(--app-text-strong);
+  background: var(--app-surface-hover);
+}
+.app-theme-dark[data-appearance="light"] .messages-page .chat-messages-scroll :is(.text-slate-400, .text-slate-500) {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .messages-page .chat-composer-form .chat-send-btn {
+  color: var(--app-ui-accent-label);
+  background: linear-gradient(130deg, var(--app-ui-accent-start), var(--app-ui-accent-end));
+}
+.app-theme-dark[data-appearance="light"] .messages-page .chat-composer-form:focus-within {
+  border-color: var(--app-focus-ring);
+  box-shadow: 0 0 0 2px var(--app-ui-accent-tint);
+}
+
+/* New Conversation uses a dedicated dialog rather than the shared Modal. */
+.app-theme-dark[data-appearance="light"] .new-conversation-dialog,
+.app-theme-dark[data-appearance="light"] .modal:has(.conversation-members-modal) {
+  background: var(--app-surface);
+  color: var(--app-text);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark[data-appearance="light"] .new-conversation-dialog::backdrop {
+  background: rgba(24, 35, 53, .34);
+}
+.app-theme-dark[data-appearance="light"] :is(.new-conversation-header, .new-conversation-footer),
+.app-theme-dark[data-appearance="light"] .modal:has(.conversation-members-modal) .modal-head {
+  background: var(--palette-panel-gradient);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] :is(.new-conversation-heading h2, .new-conversation-person-name),
+.app-theme-dark[data-appearance="light"] .modal:has(.conversation-members-modal) .modal-head h2 {
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] :is(.new-conversation-heading p, .new-conversation-members-heading, .new-conversation-person-subtitle, .new-conversation-list-state, .new-conversation-helper, .new-conversation-hint, .new-conversation-available) {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] :is(.new-conversation-close, .new-conversation-type-switch) {
+  background: var(--app-surface-raised);
+  color: var(--app-text);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] .new-conversation-close:hover,
+.app-theme-dark[data-appearance="light"] .new-conversation-type-switch button:hover:not(.is-active) {
+  background: var(--app-surface-hover);
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] .new-conversation-type-switch button:not(.is-active) {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .new-conversation-type-switch button.is-active {
+  background: linear-gradient(130deg, var(--app-ui-accent-start), var(--app-ui-accent-end));
+  color: var(--app-ui-accent-label);
+}
+.app-theme-dark[data-appearance="light"] :is(.new-conversation-name-field, .new-conversation-search) {
+  background: var(--app-surface-input);
+  border-color: var(--app-border-strong);
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] .new-conversation-search:focus-within,
+.app-theme-dark[data-appearance="light"] .new-conversation-name-field:focus-within {
+  background: var(--app-surface-input);
+  border-color: var(--app-focus-ring);
+  box-shadow: 0 0 0 2px var(--app-ui-accent-tint);
+}
+.app-theme-dark[data-appearance="light"] :is(.new-conversation-name-field input, .new-conversation-search input) {
+  background: transparent;
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] :is(.new-conversation-name-field input, .new-conversation-search input)::placeholder {
+  color: var(--app-subtle);
+}
+.app-theme-dark[data-appearance="light"] :is(.new-conversation-people-list, .conversation-members-current-list) {
+  background: var(--app-surface-raised);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] .new-conversation-person {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] .new-conversation-person:hover {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark[data-appearance="light"] .new-conversation-person.is-selected,
+.app-theme-dark[data-appearance="light"] .new-conversation-person.is-selected:hover {
+  background: var(--palette-selection);
+}
+.app-theme-dark[data-appearance="light"] .new-conversation-person-avatar {
+  color: var(--app-focus-ring);
+  background: var(--app-accent-soft);
+}
+.app-theme-dark[data-appearance="light"] .new-conversation-check:not(.is-selected) {
+  background: var(--app-surface);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark[data-appearance="light"] .new-conversation-check.is-selected {
+  color: var(--app-ui-accent-selected-text);
+  background: var(--app-ui-accent-selected);
+}
+.app-theme-dark[data-appearance="light"] .new-conversation-submit,
+.app-theme-dark[data-appearance="light"] .new-conversation-submit:hover:not(:disabled) {
+  color: var(--app-ui-accent-label);
+  background: linear-gradient(115deg, var(--app-ui-accent-start), var(--app-ui-accent-end));
+}
+.app-theme-dark[data-appearance="light"] .new-conversation-submit:hover:not(:disabled) {
+  filter: brightness(1.045);
+}
+
+
+/* Phase 3B — Tasks: local tokens, filters, groups, board and detail dialogs.
+ * Tasks' dark class overrides the page variables, so the Light rules must
+ * rebind them at the same descendants without changing their layouts. */
+.app-theme-dark[data-appearance="light"] .tasks-page {
+  --task-bg: var(--app-bg);
+  --task-surface: var(--app-surface);
+  --task-surface-raised: var(--app-surface-raised);
+  --task-control: var(--app-surface-input);
+  --task-text: var(--app-text-strong);
+  --task-muted: var(--app-muted);
+  --task-subtle: var(--app-subtle);
+  --task-border: var(--app-border-strong);
+  --task-hover: var(--app-surface-hover);
+  --task-primary: var(--app-accent);
+  --task-primary-text: var(--app-on-accent);
+  color: var(--task-text);
+  background: radial-gradient(ellipse at 50% 95%, #eef2fc, var(--app-bg) 62%);
+}
+.app-theme-dark[data-appearance="light"] .tasks-page :is(.task-toolbar--refresh, .task-group-card, .task-summary-card, .task-filter-panel, .task-board-card) {
+  background: var(--task-surface);
+  border-color: var(--task-border);
+  color: var(--task-text);
+}
+.app-theme-dark[data-appearance="light"] .tasks-page :is(.task-toolbar .task-filter-trigger, .task-toolbar .task-sort-control, .task-toolbar .task-view-toggle, .task-search-bar, .task-filter-panel .input) {
+  background: var(--task-control);
+  color: var(--task-text);
+  border-color: var(--task-border);
+}
+.app-theme-dark[data-appearance="light"] .tasks-page :is(.task-summary-card, .task-list-row, .task-board-card):hover {
+  background: var(--task-hover);
+}
+.app-theme-dark[data-appearance="light"] .tasks-page :is(.task-list-header, .task-board-column) {
+  background: var(--task-surface-raised);
+  color: var(--task-muted);
+  border-color: var(--task-border);
+}
+.app-theme-dark[data-appearance="light"] .tasks-page .task-list-row--subtask {
+  background: var(--task-surface-raised);
+}
+.app-theme-dark[data-appearance="light"] .tasks-page .task-list-row:focus-visible,
+.app-theme-dark[data-appearance="light"] .tasks-page .task-board-card:focus-visible {
+  outline-color: var(--app-focus-ring);
+}
+.app-theme-dark[data-appearance="light"] .tasks-page :is(.task-summary-number, .task-list-row p.font-semibold, .task-board-card p.font-semibold) {
+  color: var(--task-text);
+}
+.app-theme-dark[data-appearance="light"] .tasks-page :is(.task-summary-label, .task-list-row .text-slate-500, .task-list-row .text-slate-600, .task-filter-panel .text-slate-500, .task-filter-panel .text-slate-600) {
+  color: var(--task-muted);
+}
+.app-theme-dark[data-appearance="light"] .tasks-page .task-summary-card--attention .task-summary-icon {
+  color: #ab354c;
+  background: #ffe7ec;
+}
+.app-theme-dark[data-appearance="light"] .tasks-page .task-summary-card--attention .task-summary-number {
+  color: #a63248;
+}
+.app-theme-dark[data-appearance="light"] .tasks-page .task-summary-card--completed .task-summary-icon {
+  color: #4d43a9;
+  background: #efedff;
+}
+.app-theme-dark[data-appearance="light"] .tasks-page .task-toolbar .task-quick-tabs button.active,
+.app-theme-dark[data-appearance="light"] .tasks-page .task-view-button--active,
+.app-theme-dark[data-appearance="light"] .tasks-page .task-view-button--active:hover,
+.app-theme-dark[data-appearance="light"] .tasks-page .task-group-add.btn-primary,
+.app-theme-dark[data-appearance="light"] .tasks-page .task-group-add.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(110deg, var(--app-ui-accent-start), var(--app-ui-accent-end));
+  color: var(--app-ui-accent-label);
+}
+.app-theme-dark[data-appearance="light"] .tasks-page .task-group-add.btn-primary:hover:not(:disabled) {
+  filter: brightness(1.045);
+}
+.app-theme-dark[data-appearance="light"] .tasks-page .task-toolbar .task-quick-tabs button:not(.active):hover,
+.app-theme-dark[data-appearance="light"] .tasks-page .task-view-button:not(.task-view-button--active):hover {
+  background: var(--task-hover);
+  color: var(--task-text);
+}
+.app-theme-dark[data-appearance="light"] .tasks-page .task-filter-panel :is(.task-filter-footer, .task-filter-panel > div:first-child) {
+  background: var(--task-surface);
+  border-color: var(--task-border);
+}
+.app-theme-dark[data-appearance="light"] .tasks-page .task-filter-panel :is(select.app-modern-select, .task-filter-dates .input) {
+  background: var(--task-control) !important;
+  color: var(--task-text);
+  border-color: var(--task-border) !important;
+  color-scheme: light;
+}
+.app-theme-dark[data-appearance="light"] .tasks-page :is(.task-search-bar, .task-filter-dates .input):focus-within {
+  border-color: var(--app-focus-ring);
+  box-shadow: 0 0 0 2px var(--app-ui-accent-tint);
+}
+.app-theme-dark[data-appearance="light"] .tasks-page .task-filter-choice input[type="checkbox"] {
+  accent-color: var(--app-accent);
+}
+.app-theme-dark[data-appearance="light"] .tasks-page .task-group-header .icon-btn:not(:disabled):hover {
+  color: var(--task-text);
+  background: var(--task-hover);
+}
+
+/* Task Group creation and the dynamic filter/participant multiselect. */
+.app-theme-dark[data-appearance="light"] :is(.task-group-form, .approval-group-form) {
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] :is(.task-group-form, .approval-group-form) :is(.task-group-name-input, .approval-group-name-input) {
+  background: var(--app-surface-input) !important;
+  color: var(--app-text);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark[data-appearance="light"] :is(.tasks-page, .task-form) :is(.filter-multiselect-panel, .filter-multiselect-options) {
+  background: var(--app-surface);
+  color: var(--app-text);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark[data-appearance="light"] :is(.tasks-page, .task-form) :is(.filter-multiselect-search, .filter-multiselect-option) {
+  background: var(--app-surface-input);
+  color: var(--app-text);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] :is(.tasks-page, .task-form) .filter-multiselect-option:hover {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark[data-appearance="light"] :is(.tasks-page, .task-form) .filter-multiselect-option.is-selected {
+  background: var(--palette-selection);
+}
+.app-theme-dark[data-appearance="light"] :is(.tasks-page, .task-form) .filter-multiselect-option :is(.text-slate-500, .text-slate-600) {
+  color: var(--app-muted);
+}
+
+/* The task form and details have their own dark token scope. */
+.app-theme-dark[data-appearance="light"] .task-form {
+  --task-text: var(--app-text-strong);
+  --task-muted: var(--app-muted);
+  --task-subtle: var(--app-subtle);
+  --task-border: var(--app-border-strong);
+  --task-control: var(--app-surface-input);
+  --task-hover: var(--app-surface-hover);
+  --task-surface: var(--app-surface);
+  --task-surface-raised: var(--app-surface-raised);
+  color: var(--task-text);
+  background: var(--app-surface);
+}
+.app-theme-dark[data-appearance="light"] .modal[open]:has(> .modal-body > :is(.task-form, .task-detail)) {
+  background: var(--app-surface);
+  color: var(--app-text);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark[data-appearance="light"] .modal:has(> .modal-body > :is(.task-form, .task-detail)) :is(.modal-head, .modal-body) {
+  background: var(--app-surface);
+  color: var(--app-text);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] .task-form :is(.task-form-scroll, .task-form-footer) {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] .task-form :is(.input, .task-form-description, .task-form-date, select.app-modern-select) {
+  background: var(--app-surface-input) !important;
+  color: var(--app-text);
+  border-color: var(--app-border-strong);
+  color-scheme: light;
+}
+.app-theme-dark[data-appearance="light"] .task-form select.app-modern-select:hover:not(:disabled) {
+  background: var(--app-surface-hover) !important;
+}
+.app-theme-dark[data-appearance="light"] .task-form :is(.input, select.app-modern-select):focus-visible {
+  border-color: var(--app-focus-ring) !important;
+  box-shadow: 0 0 0 2px var(--app-ui-accent-tint);
+}
+.app-theme-dark[data-appearance="light"] .task-form .task-form-file::file-selector-button {
+  color: var(--app-text);
+  background: var(--app-surface-raised);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark[data-appearance="light"] .task-form .task-form-file:hover::file-selector-button {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark[data-appearance="light"] .task-form .task-form-footer .btn-primary,
+.app-theme-dark[data-appearance="light"] .task-form .task-form-footer .btn-primary:hover:not(:disabled) {
+  background: var(--app-ui-accent-selected);
+  color: var(--app-ui-accent-selected-text);
+}
+.app-theme-dark[data-appearance="light"] .task-detail {
+  --detail-bg: var(--app-surface);
+  --detail-panel: var(--app-surface-raised);
+  --detail-control: var(--app-surface-input);
+  --detail-text: var(--app-text-strong);
+  --detail-muted: var(--app-muted);
+  --detail-border: var(--app-border-strong);
+  --detail-hover: var(--app-surface-hover);
+  --detail-accent: var(--app-focus-ring);
+  background: var(--app-surface);
+  color: var(--detail-text);
+}
+.app-theme-dark[data-appearance="light"] .task-detail :is(.task-detail-section, .task-detail-comment-form, .task-detail-subtask-row) {
+  background: var(--detail-bg);
+  border-color: var(--detail-border);
+}
+.app-theme-dark[data-appearance="light"] .task-detail :is(.task-detail-meta, .task-detail-section-header, .task-detail-person, .task-detail-comment, .task-detail-history) {
+  background: var(--detail-panel);
+  color: var(--detail-text);
+  border-color: var(--detail-border);
+}
+.app-theme-dark[data-appearance="light"] .task-detail :is(.task-detail-edit, .task-detail-add-subtask, .task-detail-select-preview, .task-detail-comment-input, select.task-detail-select) {
+  background: var(--detail-control) !important;
+  color: var(--detail-text);
+  border-color: var(--detail-border);
+}
+.app-theme-dark[data-appearance="light"] .task-detail .task-detail-select-wrap > select.task-detail-select {
+  color-scheme: light;
+}
+.app-theme-dark[data-appearance="light"] .task-detail :is(.task-detail-person-icon, .task-detail-group-label) {
+  background: var(--app-accent-soft);
+  color: var(--app-focus-ring);
+}
+.app-theme-dark[data-appearance="light"] .task-detail :is(.task-detail-subtask-row:hover, .task-detail-edit:hover, .task-detail-add-subtask:hover) {
+  background: var(--detail-hover);
+}
+.app-theme-dark[data-appearance="light"] .task-detail :is(.task-detail-comment-submit, .task-detail-comment-submit:hover:not(:disabled)) {
+  background: var(--app-ui-accent-selected);
+  color: var(--app-ui-accent-selected-text);
+}
+
+
+/* Phase 3C — Approvals: reuse the same task palette for list and board. */
+.app-theme-dark[data-appearance="light"] .approvals-page,
+.app-theme-dark[data-appearance="light"] .approval-bases-page {
+  --task-bg: var(--app-bg);
+  --task-surface: var(--app-surface);
+  --task-surface-raised: var(--app-surface-raised);
+  --task-control: var(--app-surface-input);
+  --task-text: var(--app-text-strong);
+  --task-muted: var(--app-muted);
+  --task-subtle: var(--app-subtle);
+  --task-border: var(--app-border-strong);
+  --task-hover: var(--app-surface-hover);
+  color: var(--task-text);
+  background: var(--app-bg);
+}
+.app-theme-dark[data-appearance="light"] .approvals-page :is(.approval-group-card, .approval-list-card, .approval-board-card) {
+  background: var(--task-surface);
+  color: var(--task-text);
+  border-color: var(--task-border);
+}
+.app-theme-dark[data-appearance="light"] .approvals-page :is(.approval-list-header, .approval-board-column) {
+  background: var(--task-surface-raised);
+  border-color: var(--task-border);
+  color: var(--task-muted);
+}
+.app-theme-dark[data-appearance="light"] .approvals-page :is(.approval-list-row:hover, .approval-board-card:hover) {
+  background: var(--task-hover);
+}
+.app-theme-dark[data-appearance="light"] .approvals-page .approval-list-row {
+  border-color: var(--task-border);
+  color: var(--task-text);
+}
+.app-theme-dark[data-appearance="light"] .approvals-page .approval-list-row > div:first-child > span:first-child {
+  color: var(--app-focus-ring);
+  background: var(--app-accent-soft);
+}
+.app-theme-dark[data-appearance="light"] .approvals-page .approval-filter-panel {
+  background: var(--task-surface);
+  color: var(--task-text);
+  border-color: var(--task-border);
+}
+.app-theme-dark[data-appearance="light"] .approvals-page :is(.approval-date-control, .approval-filter-panel .input) {
+  background: var(--task-control);
+  color: var(--task-text);
+  border-color: var(--task-border);
+  color-scheme: light;
+}
+
+/* Request Types and Approval configuration use their own scoped dark values. */
+.app-theme-dark[data-appearance="light"] .approval-types-manager {
+  --task-control: var(--app-surface-input);
+  --task-text: var(--app-text-strong);
+  --task-muted: var(--app-muted);
+  --task-subtle: var(--app-subtle);
+  --task-border: var(--app-border-strong);
+  --task-hover: var(--app-surface-hover);
+  color: var(--task-text);
+  background: var(--app-surface);
+}
+.app-theme-dark[data-appearance="light"] .modal[open]:has(> .modal-body > :is(.approval-types-manager, .approval-config-form, .approval-detail, .approval-request-form)) {
+  background: var(--app-surface);
+  color: var(--app-text);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark[data-appearance="light"] .modal:has(> .modal-body > :is(.approval-types-manager, .approval-config-form, .approval-detail, .approval-request-form)) :is(.modal-head, .modal-body) {
+  background: var(--app-surface);
+  color: var(--app-text);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] .modal:has(> .modal-body > :is(.approval-types-manager, .approval-config-form, .approval-detail, .approval-request-form)) .modal-head h2 {
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] :is(.approval-types-title-icon, .approval-type-row-icon, .approval-config-heading-icon, .approval-detail-request-icon) {
+  background: var(--app-accent-soft);
+  color: var(--app-focus-ring);
+}
+.app-theme-dark[data-appearance="light"] :is(.approval-types-toolbar, .approval-types-list, .approval-types-status-control) {
+  color: var(--app-text);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] :is(.approval-types-search, .approval-types-status-control, .approval-config-form .input, .approval-config-form select.app-modern-select) {
+  background: var(--app-surface-input) !important;
+  color: var(--app-text);
+  border-color: var(--app-border-strong);
+  color-scheme: light;
+}
+.app-theme-dark[data-appearance="light"] .approval-types-status-control > select.app-modern-select {
+  background: transparent !important;
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] .approval-type-row {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] .approval-type-row:hover {
+  background: var(--app-surface-hover);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark[data-appearance="light"] :is(.approval-type-name, .approval-config-heading-title, .approval-config-section-heading h3, .approval-detail .task-detail-title) {
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] :is(.approval-type-meta, .approval-config-heading-subtitle, .approval-config-section-hint, .approval-config-help, .approval-detail-field-label) {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .task-form.approval-config-form {
+  --task-control: var(--app-surface-input);
+  --task-text: var(--app-text-strong);
+  --task-muted: var(--app-muted);
+  --task-subtle: var(--app-subtle);
+  --task-border: var(--app-border-strong);
+  --task-hover: var(--app-surface-hover);
+  --task-surface: var(--app-surface);
+  --task-surface-raised: var(--app-surface-raised);
+}
+.app-theme-dark[data-appearance="light"] :is(.approval-config-field-card, .approval-config-step-row, .approval-config-options) {
+  background: var(--app-surface-raised);
+  border-color: var(--app-border);
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] :is(.approval-config-field-card, .approval-config-step-row) :is(.input, select) {
+  color-scheme: light;
+  background: var(--app-surface-input) !important;
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] .approval-config-remove.icon-btn:hover {
+  color: #a52a43;
+  background: #fff0f2;
+}
+.app-theme-dark[data-appearance="light"] .approval-config-secondary.btn-secondary {
+  color: var(--app-text);
+  background: var(--app-surface-raised);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark[data-appearance="light"] .approval-config-secondary.btn-secondary:hover:not(:disabled) {
+  background: var(--app-surface-hover);
+  color: var(--app-text-strong);
+}
+
+/* New Request / Revise Request include native file inputs and dynamic fields. */
+.app-theme-dark[data-appearance="light"] .approval-request-form {
+  color: var(--app-text);
+  background: var(--app-surface);
+}
+.app-theme-dark[data-appearance="light"] .approval-request-form .field,
+.app-theme-dark[data-appearance="light"] .approval-request-form .field > span:first-child {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .approval-request-form :is(.input, select.app-modern-select) {
+  background: var(--app-surface-input);
+  color: var(--app-text);
+  border-color: var(--app-border-strong);
+  color-scheme: light;
+}
+.app-theme-dark[data-appearance="light"] .approval-request-form :is(.input, select.app-modern-select):focus-visible {
+  border-color: var(--app-focus-ring);
+  box-shadow: 0 0 0 2px var(--app-ui-accent-tint);
+}
+.app-theme-dark[data-appearance="light"] .approval-request-form .approval-request-file::file-selector-button {
+  color: var(--app-text);
+  background: var(--app-surface-raised);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark[data-appearance="light"] .approval-request-form .approval-request-file:hover::file-selector-button {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark[data-appearance="light"] .approval-request-form input[type="checkbox"] {
+  accent-color: var(--app-accent);
+}
+.app-theme-dark[data-appearance="light"] .approval-request-actions {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] .approval-request-actions .btn-secondary {
+  color: var(--app-text);
+  background: var(--app-surface-raised);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark[data-appearance="light"] .approval-request-actions .btn-secondary:hover:not(:disabled) {
+  color: var(--app-text-strong);
+  background: var(--app-surface-hover);
+}
+.app-theme-dark[data-appearance="light"] .approval-request-actions .btn-secondary:disabled,
+.app-theme-dark[data-appearance="light"] .approval-request-actions .btn-secondary:disabled:hover {
+  color: var(--app-muted);
+  background: var(--app-surface-raised);
+  opacity: 1;
+}
+
+/* Approval detail and its review/comment/attachment sections. */
+.app-theme-dark[data-appearance="light"] .approval-detail {
+  --detail-bg: var(--app-surface);
+  --detail-panel: var(--app-surface-raised);
+  --detail-control: var(--app-surface-input);
+  --detail-text: var(--app-text-strong);
+  --detail-muted: var(--app-muted);
+  --detail-border: var(--app-border-strong);
+  --detail-hover: var(--app-surface-hover);
+  --detail-accent: var(--app-focus-ring);
+  color: var(--detail-text);
+  background: var(--app-surface);
+}
+.app-theme-dark[data-appearance="light"] .approval-detail :is(.approval-detail-fields, .approval-detail-review, .approval-detail-discussion, .approval-detail-comment-form, .approval-detail-history, .approval-detail-confirm) {
+  background: var(--app-surface);
+  color: var(--app-text);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] .approval-detail :is(.approval-detail-comment, .approval-detail-review-body, .approval-detail-round) {
+  background: var(--app-surface-raised);
+  color: var(--app-text);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] .approval-detail :is(.approval-detail-comment-input, .approval-detail-review-field select, .approval-detail-group .task-detail-select-preview) {
+  background: var(--app-surface-input);
+  color: var(--app-text);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark[data-appearance="light"] .approval-detail :is(.approval-detail-step-name, .approval-detail-comment-byline, .approval-detail-section-title) {
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] .approval-detail :is(.approval-detail-step-comment, .approval-detail-step-approver, .approval-detail-comment-date, .approval-detail-field-label) {
+  color: var(--app-muted);
+}
+
+/* Approval Bases: left navigation, records table and filters. */
+.app-theme-dark[data-appearance="light"] .approval-bases-page {
+  --base-bg: var(--app-bg);
+  --base-surface: var(--app-surface);
+  --base-raised: var(--app-surface-raised);
+  --base-control: var(--app-surface-input);
+  --base-text: var(--app-text-strong);
+  --base-muted: var(--app-muted);
+  --base-subtle: var(--app-subtle);
+  --base-border: var(--app-border-strong);
+  --base-hover: var(--app-surface-hover);
+}
+.app-theme-dark[data-appearance="light"] .approval-bases-page :is(.approval-bases-nav, .approval-bases-records-surface, .approval-bases-records-panel, .approval-base-table-wrap) {
+  color: var(--base-text);
+  background: var(--base-surface);
+  border-color: var(--base-border);
+}
+.app-theme-dark[data-appearance="light"] .approval-bases-page :is(.approval-bases-nav-item, .approval-bases-active-count, .approval-bases-filter-button, .approval-bases-sort-control, .approval-bases-record-search) {
+  color: var(--base-text);
+  background: var(--base-control);
+  border-color: var(--base-border);
+}
+.app-theme-dark[data-appearance="light"] .approval-bases-page :is(.approval-bases-nav-item:hover, .approval-bases-filter-button:hover, .approval-bases-sort-control:hover, .approval-base-record-row:hover) {
+  background: var(--base-hover);
+}
+.app-theme-dark[data-appearance="light"] .approval-bases-page .approval-bases-nav-item--active {
+  color: var(--app-text-strong);
+  background: var(--palette-selection);
+  border-color: var(--app-ui-accent-outline);
+}
+.app-theme-dark[data-appearance="light"] .approval-bases-page .approval-bases-nav-item--active .approval-bases-nav-item-icon {
+  color: var(--app-focus-ring);
+  background: var(--app-accent-soft);
+}
+.app-theme-dark[data-appearance="light"] .approval-bases-page .approval-bases-page-title-icon {
+  color: var(--app-focus-ring);
+  background: var(--app-accent-soft);
+  border-color: var(--app-ui-accent-outline);
+}
+.app-theme-dark[data-appearance="light"] .approval-bases-page .approval-base-table th {
+  color: var(--app-muted);
+  background: var(--app-surface-raised);
+  border-color: var(--base-border);
+}
+.app-theme-dark[data-appearance="light"] .approval-bases-page .approval-base-table td {
+  color: var(--app-text);
+  border-color: var(--base-border);
+}
+.app-theme-dark[data-appearance="light"] .approval-bases-page .approval-base-table tr.approval-base-record-row:hover td {
+  background: var(--base-hover);
+}
+
+
+/* Phase 4A — Drive: Personal, Shared, Shared with me and Trash surfaces.
+ * Recolor legacy hardcoded dark backgrounds without altering file type
+ * indicators, data, permissions, action handlers or responsive dimensions. */
+.app-theme-dark[data-appearance="light"] .drive-page {
+  color: var(--app-text);
+  background: radial-gradient(ellipse at 60% 85%, #edf2fb, var(--app-bg) 65%);
+}
+.app-theme-dark[data-appearance="light"] .drive-page :is(.page-header h1, .drive-item-name, .drive-directory-list .drive-item-name, .drive-shared-list .drive-item-name) {
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] .drive-page :is(.drive-directory-list .drive-owner-name, .drive-directory-list .drive-updated-cell, .drive-directory-list .drive-size-cell, .drive-directory-summary, .drive-group-heading, .drive-group-member-count, .drive-shared-space-heading p:last-child) {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .drive-page :is(.drive-toolbar, .drive-directory-list, .drive-space-nav) {
+  background: var(--app-surface);
+  border-color: var(--app-border-strong);
+  color: var(--app-text);
+  scrollbar-color: #b6c1d2 transparent;
+}
+.app-theme-dark[data-appearance="light"] .drive-page .drive-toolbar .tabs {
+  background: var(--app-surface-raised);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] .drive-page .drive-toolbar .tabs button:not(.active) {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .drive-page .drive-toolbar .tabs button:not(.active):hover {
+  color: var(--app-text-strong);
+  background: var(--app-surface-hover);
+}
+.app-theme-dark[data-appearance="light"] .drive-page .drive-toolbar .tabs button.active,
+.app-theme-dark[data-appearance="light"] .drive-page .drive-toolbar .tabs button.active:hover {
+  color: var(--app-ui-accent-label);
+  background: linear-gradient(110deg, var(--app-ui-accent-start), var(--app-ui-accent-end));
+}
+.app-theme-dark[data-appearance="light"] .drive-page .drive-search-bar {
+  background: var(--app-surface-input);
+  color: var(--app-muted);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark[data-appearance="light"] .drive-page .drive-search-bar :is(input, svg) {
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] .drive-page .drive-search-bar input::placeholder {
+  color: var(--app-subtle);
+}
+.app-theme-dark[data-appearance="light"] .drive-page .drive-search-bar:focus-within {
+  border-color: var(--app-focus-ring);
+  box-shadow: 0 0 0 2px var(--app-ui-accent-tint);
+}
+.app-theme-dark[data-appearance="light"] .drive-page .drive-header-actions .btn-secondary {
+  color: var(--app-text);
+  background: var(--app-surface-raised);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark[data-appearance="light"] .drive-page .drive-header-actions .btn-secondary:hover:not(:disabled) {
+  color: var(--app-text-strong);
+  background: var(--app-surface-hover);
+}
+.app-theme-dark[data-appearance="light"] .drive-page .drive-directory-list :is(.drive-table-head, .drive-directory-summary) {
+  background: var(--app-surface-raised);
+  color: var(--app-muted);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] .drive-page .drive-directory-list :is(.drive-directory-row, .drive-shared-row),
+.app-theme-dark[data-appearance="light"] .drive-page .drive-shared-list .drive-shared-row {
+  background: var(--app-surface);
+  color: var(--app-text);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] .drive-page .drive-directory-list .drive-directory-row:hover,
+.app-theme-dark[data-appearance="light"] .drive-page .drive-shared-list .drive-shared-row:hover {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark[data-appearance="light"] .drive-page .drive-directory-list :is(.drive-file-type, .drive-owner-cell .avatar) {
+  color: var(--app-muted);
+  background: var(--app-surface-raised);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] .drive-page .drive-directory-list .drive-row-actions .icon-btn {
+  color: var(--app-muted);
+  background: transparent;
+}
+.app-theme-dark[data-appearance="light"] .drive-page .drive-directory-list .drive-row-actions .icon-btn:hover {
+  color: var(--app-text-strong);
+  background: var(--app-surface-hover);
+}
+.app-theme-dark[data-appearance="light"] .drive-page :is(.drive-space-global, .drive-group-link) {
+  color: var(--app-text);
+  background: transparent;
+}
+.app-theme-dark[data-appearance="light"] .drive-page :is(.drive-space-global:hover, .drive-group-link:hover) {
+  color: var(--app-text-strong);
+  background: var(--app-surface-hover);
+}
+.app-theme-dark[data-appearance="light"] .drive-page :is(.drive-space-global.is-selected, .drive-group-link.is-selected) {
+  background: var(--palette-selection);
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] .drive-page .drive-group-heading .icon-btn {
+  color: var(--app-muted);
+  background: var(--app-surface-raised);
+}
+.app-theme-dark[data-appearance="light"] .drive-page .drive-group-heading .icon-btn:hover {
+  color: var(--app-text-strong);
+  background: var(--app-surface-hover);
+}
+.app-theme-dark[data-appearance="light"] .drive-page .drive-shared-members-button {
+  color: var(--app-text);
+  background: var(--app-surface-raised);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark[data-appearance="light"] .drive-page .drive-shared-members-button:hover {
+  color: var(--app-text-strong);
+  background: var(--app-surface-hover);
+}
+.app-theme-dark[data-appearance="light"] .drive-page .drive-shared-space-heading {
+  color: var(--app-text);
+  background: var(--palette-panel-gradient);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] .drive-page .drive-shared-space-heading p:first-child {
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] .drive-page .drive-shared-space-heading > svg {
+  background: var(--app-accent-soft);
+  color: var(--app-focus-ring);
+}
+.app-theme-dark[data-appearance="light"] .drive-page .drive-shared-space-heading .status {
+  background: var(--app-accent-soft);
+  color: var(--app-focus-ring);
+}
+
+/* Members and Permissions are shared Modal portals, not Drive page descendants. */
+.app-theme-dark[data-appearance="light"] .modal:has(.drive-space-members-modal),
+.app-theme-dark[data-appearance="light"] .modal:has(:is(.drive-new-group-form, .drive-new-folder-form)),
+.app-theme-dark[data-appearance="light"] .modal:has(.drive-permission-note) {
+  color: var(--app-text);
+  background: var(--app-surface);
+  border-color: var(--app-border-strong);
+  box-shadow: 0 22px 65px rgba(24, 35, 53, .16);
+}
+.app-theme-dark[data-appearance="light"] .modal:has(.drive-space-members-modal) .modal-head,
+.app-theme-dark[data-appearance="light"] .modal:has(:is(.drive-new-group-form, .drive-new-folder-form)) .modal-head,
+.app-theme-dark[data-appearance="light"] .modal:has(.drive-permission-note) .modal-head {
+  background: var(--palette-panel-gradient);
+  color: var(--app-text);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] .modal:has(.drive-space-members-modal) .modal-body {
+  background: var(--app-surface);
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] .modal:has(.drive-space-members-modal) .modal-head h2,
+.app-theme-dark[data-appearance="light"] .modal:has(:is(.drive-new-group-form, .drive-new-folder-form)) .modal-head h2 {
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] :is(.drive-member-search, .drive-member-admin-manager, .drive-member-list) {
+  background: var(--app-surface-input);
+  color: var(--app-text);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark[data-appearance="light"] .drive-member-search > input {
+  color: var(--app-text);
+  background: transparent !important;
+}
+.app-theme-dark[data-appearance="light"] .drive-member-search input::placeholder {
+  color: var(--app-subtle);
+}
+.app-theme-dark[data-appearance="light"] .drive-member-person {
+  color: var(--app-text);
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] .drive-member-person:hover,
+.app-theme-dark[data-appearance="light"] .drive-member-person--admin:hover {
+  background: var(--app-surface-hover);
+}
+.app-theme-dark[data-appearance="light"] .drive-member-person--admin {
+  background: var(--palette-panel-gradient);
+  border-color: var(--app-border) !important;
+}
+.app-theme-dark[data-appearance="light"] :is(.drive-member-display-name, .drive-member-person .drive-member-avatar) {
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] :is(.drive-member-person .drive-member-avatar, .drive-member-person .drive-member-avatar--admin) {
+  background: var(--app-accent-soft);
+  color: var(--app-focus-ring);
+}
+.app-theme-dark[data-appearance="light"] :is(.drive-member-person .drive-member-subtitle, .drive-member-admin-subtitle, .drive-member-person .text-slate-400, .drive-member-person--admin .drive-member-admin-manager) {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] :is(.drive-permission-mode-select, .drive-permission-access-select, .drive-member-role-select) {
+  background: var(--app-surface-input);
+  color: var(--app-text);
+  border-color: var(--app-border-strong);
+  color-scheme: light;
+}
+.app-theme-dark[data-appearance="light"] .drive-member-form-actions {
+  background: transparent !important;
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] :is(.drive-new-group-form, .drive-new-folder-form) .field {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] :is(.drive-new-group-form, .drive-new-folder-form) :is(.drive-new-group-input, .drive-new-folder-input) {
+  color: var(--app-text);
+  background: var(--app-surface-input);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark[data-appearance="light"] :is(.drive-new-group-form, .drive-new-folder-form) :is(.drive-new-group-input, .drive-new-folder-input)::placeholder {
+  color: var(--app-subtle);
+}
+.app-theme-dark[data-appearance="light"] :is(.drive-new-group-actions, .drive-new-folder-actions) {
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] .drive-permission-note {
+  color: var(--app-muted);
+  background: var(--app-surface-raised);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] .drive-permission-note--restricted > svg,
+.app-theme-dark[data-appearance="light"] .drive-permission-note--restricted strong {
+  color: #905c24;
+}
+.app-theme-dark[data-appearance="light"] .drive-permission-note-detail {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .modal:has(.drive-permission-note) :is(.border-slate-100, .border-slate-200) {
+  border-color: var(--app-border);
+}
+
+/* Drive Upload has its own dialog-wide --upload-* tokens. The upload progress
+ * bar and success/error file states keep their semantic meaning. */
+.app-theme-dark[data-appearance="light"] dialog.modal:has(.drive-upload-modal) {
+  --upload-bg: var(--app-surface);
+  --upload-panel: var(--app-surface-raised);
+  --upload-panel-soft: var(--app-surface-input);
+  --upload-border: var(--app-border-strong);
+  --upload-text: var(--app-text-strong);
+  --upload-muted: var(--app-muted);
+  --upload-primary: var(--app-accent);
+  --upload-primary-bright: var(--app-focus-ring);
+  --upload-track: #dfe5f0;
+  --upload-pill: #e9edf5;
+  --upload-shadow: rgba(24, 35, 53, .17);
+  background: var(--palette-panel-gradient);
+  color: var(--upload-text);
+  border-color: var(--upload-border);
+  color-scheme: light;
+}
+.app-theme-dark[data-appearance="light"] dialog.modal:has(.drive-upload-modal) :is(.modal-head, .drive-upload-footer) {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] dialog.modal:has(.drive-upload-modal) :is(.drive-upload-dropzone, .drive-upload-file-list, .drive-upload-folder-list, .drive-upload-summary) {
+  color: var(--upload-text);
+  background: var(--app-surface-raised);
+  border-color: var(--upload-border);
+}
+.app-theme-dark[data-appearance="light"] dialog.modal:has(.drive-upload-modal) :is(.drive-upload-file, .drive-upload-format-hints > span, .drive-upload-float-icon) {
+  background: var(--app-surface-input);
+  border-color: var(--upload-border);
+}
+.app-theme-dark[data-appearance="light"] dialog.modal:has(.drive-upload-modal) .drive-upload-file-icon {
+  background: var(--app-accent-soft);
+  color: var(--app-focus-ring);
+}
+.app-theme-dark[data-appearance="light"] dialog.modal:has(.drive-upload-modal) :is(.drive-upload-file-details, .drive-upload-file-name, .drive-upload-file-heading h3) {
+  color: var(--upload-text);
+}
+.app-theme-dark[data-appearance="light"] dialog.modal:has(.drive-upload-modal) :is(.drive-upload-file-meta, .drive-upload-format-hints > span, .drive-upload-empty, .drive-upload-dropzone > span) {
+  color: var(--upload-muted);
+}
+.app-theme-dark[data-appearance="light"] dialog.modal:has(.drive-upload-modal) .drive-upload-track {
+  background: var(--upload-track);
+}
+
+
+
+/* Light-readable Upload status messages without changing operation state. */
+.app-theme-dark[data-appearance="light"] dialog.modal:has(.drive-upload-modal) .modal-head-badge,
+.app-theme-dark[data-appearance="light"] dialog.modal:has(.drive-upload-modal) .drive-upload-summary-text > span:last-child {
+  color: #086a82;
+}
+.app-theme-dark[data-appearance="light"] dialog.modal:has(.drive-upload-modal) :is(.drive-upload-status.status-done, .drive-upload-complete) {
+  color: #13765c;
+}
+.app-theme-dark[data-appearance="light"] dialog.modal:has(.drive-upload-modal) :is(.drive-upload-status.status-error, .drive-upload-status.status-cancelled) {
+  color: #bd3650;
+}
+.app-theme-dark[data-appearance="light"] dialog.modal:has(.drive-upload-modal) :is(.drive-upload-status.status-uploading, .drive-upload-status.status-saving) {
+  color: var(--app-focus-ring);
+}
+
+/* Phase 4B — Notifications: neutral chrome follows Light while the
+ * LOW/NORMAL/HIGH/URGENT priority stripes and unread state remain semantic. */
+.app-theme-dark[data-appearance="light"] .notifications-page {
+  --notice-surface: var(--app-surface);
+  --notice-raised: var(--app-surface-raised);
+  --notice-control: var(--app-surface-input);
+  --notice-border: var(--app-border-strong);
+  --notice-text: var(--app-text-strong);
+  --notice-muted: var(--app-muted);
+  --notice-subtle: var(--app-subtle);
+  --notice-hover: var(--app-surface-hover);
+  background: var(--app-bg);
+  color: var(--notice-text);
+}
+.app-theme-dark[data-appearance="light"] .notifications-page :is(.notifications-shell, .notifications-toolbar, .notifications-content, .notifications-footer) {
+  background: var(--notice-surface);
+  color: var(--notice-text);
+  border-color: var(--notice-border);
+}
+.app-theme-dark[data-appearance="light"] .notifications-page :is(.notifications-read-all.btn-secondary, .notifications-header-sort.task-sort-control, .notification-action.btn-secondary, .notification-priority-control.task-sort-control, .notifications-pagination .btn-secondary) {
+  background: var(--notice-control);
+  color: var(--notice-text);
+  border-color: var(--notice-border);
+}
+.app-theme-dark[data-appearance="light"] .notifications-page :is(.notifications-read-all.btn-secondary, .notifications-header-sort.task-sort-control, .notification-action.btn-secondary, .notification-priority-control.task-sort-control, .notifications-pagination .btn-secondary):hover:not(:disabled) {
+  background: var(--notice-hover);
+  color: var(--notice-text);
+  border-color: var(--app-ui-accent-outline);
+}
+.app-theme-dark[data-appearance="light"] .notifications-page :is(.notifications-header-sort, .notification-priority-control):focus-within {
+  border-color: var(--app-focus-ring);
+  box-shadow: 0 0 0 2px var(--app-ui-accent-tint);
+}
+.app-theme-dark[data-appearance="light"] .notifications-page :is(.notifications-header-sort select.task-sort-select, .notification-priority-control select.app-modern-select) {
+  background: transparent !important;
+  color: var(--notice-text);
+  color-scheme: light;
+}
+.app-theme-dark[data-appearance="light"] .notifications-page .notifications-tabs button:not(.active) {
+  color: var(--notice-muted);
+  background: transparent;
+}
+.app-theme-dark[data-appearance="light"] .notifications-page .notifications-tabs button:not(.active):hover {
+  color: var(--notice-text);
+  background: var(--notice-hover);
+}
+.app-theme-dark[data-appearance="light"] .notifications-page .notifications-tabs button.active,
+.app-theme-dark[data-appearance="light"] .notifications-page .notifications-tabs button.active:hover {
+  color: var(--app-ui-accent-label);
+  background: linear-gradient(115deg, var(--app-ui-accent-start), var(--app-ui-accent-end));
+}
+.app-theme-dark[data-appearance="light"] .notifications-page .notifications-tab-count {
+  color: var(--notice-muted);
+  background: var(--notice-raised);
+}
+.app-theme-dark[data-appearance="light"] .notifications-page .notifications-tabs button.active .notifications-tab-count {
+  color: var(--app-ui-accent-label);
+  background: rgba(255, 255, 255, .19);
+}
+.app-theme-dark[data-appearance="light"] .notifications-page .notification-card {
+  color: var(--notice-text);
+  background: var(--notice-surface);
+  border-color: var(--notice-border);
+  border-left-color: var(--notice-accent);
+}
+.app-theme-dark[data-appearance="light"] .notifications-page .notification-card--unread {
+  background: linear-gradient(95deg, var(--notice-tint), transparent 78%), var(--notice-surface);
+  border-left-color: var(--notice-accent);
+}
+.app-theme-dark[data-appearance="light"] .notifications-page .notification-card:hover {
+  background: linear-gradient(95deg, var(--notice-tint), transparent 88%), var(--notice-hover);
+  border-color: var(--app-ui-accent-outline);
+  border-left-color: var(--notice-accent);
+}
+.app-theme-dark[data-appearance="light"] .notifications-page .notification-card :is(.notification-card-title-line h3, .notification-card-content) {
+  color: var(--notice-text);
+}
+.app-theme-dark[data-appearance="light"] .notifications-page :is(.notification-card-body, .notification-card-time, .notification-priority-caption, .notifications-sync-hint, .notifications-footer, .notification-card-content > [aria-label$="approval steps completed"] > span:last-child) {
+  color: var(--notice-muted);
+}
+.app-theme-dark[data-appearance="light"] .notifications-page .notification-card-icon {
+  color: var(--notice-muted);
+  background: var(--notice-raised);
+}
+.app-theme-dark[data-appearance="light"] .notifications-page .notification-card--unread .notification-card-icon {
+  color: var(--notice-accent);
+  background: var(--notice-tint);
+}
+.app-theme-dark[data-appearance="light"] .notifications-page :is(.notifications-empty, .notifications-empty p) {
+  color: var(--notice-muted);
+}
+.app-theme-dark[data-appearance="light"] .notifications-page :is(.notification-action.btn-secondary:disabled, .notifications-pagination .btn-secondary:disabled) {
+  color: var(--notice-subtle);
+  background: var(--notice-raised);
+}
+
+/* Phase 4C — People: its search and dropdowns inherit the Tasks design system;
+ * employee cards, contact links and metadata stay legible on white surfaces. */
+.app-theme-dark[data-appearance="light"] .directory-page {
+  background: var(--app-bg);
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] .directory-page .directory-filters {
+  color: var(--app-text);
+  background: var(--app-surface);
+  border-color: var(--app-border);
+  box-shadow: 0 4px 20px rgba(24, 35, 53, .04);
+}
+.app-theme-dark[data-appearance="light"] .directory-page .directory-search-bar.task-search-bar {
+  color: var(--app-muted);
+  background: var(--app-surface-input);
+  border: 1px solid var(--app-border-strong);
+}
+.app-theme-dark[data-appearance="light"] .directory-page .directory-search-bar.task-search-bar:focus-within {
+  border-color: var(--app-focus-ring);
+  box-shadow: 0 0 0 2px var(--app-ui-accent-tint);
+}
+.app-theme-dark[data-appearance="light"] .directory-page .directory-search-bar.task-search-bar > input {
+  background: transparent !important;
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] .directory-page .directory-search-bar.task-search-bar > input::placeholder {
+  color: var(--app-subtle);
+}
+.app-theme-dark[data-appearance="light"] .directory-page .directory-filters select.directory-filter-select {
+  color: var(--app-text);
+  background: var(--app-surface-input);
+  border-color: var(--app-border-strong);
+  color-scheme: light;
+}
+.app-theme-dark[data-appearance="light"] .directory-page .directory-filters select.directory-filter-select:hover {
+  color: var(--app-text-strong);
+  background: var(--app-surface-hover);
+  border-color: var(--app-ui-accent-outline);
+}
+.app-theme-dark[data-appearance="light"] .directory-page .directory-filters select.directory-filter-select:focus-visible {
+  border-color: var(--app-focus-ring);
+  box-shadow: 0 0 0 2px var(--app-ui-accent-tint);
+}
+.app-theme-dark[data-appearance="light"] .directory-page article.card {
+  color: var(--app-text);
+  background: var(--app-surface);
+  border-color: var(--app-border);
+  box-shadow: 0 4px 18px rgba(24, 35, 53, .045);
+}
+.app-theme-dark[data-appearance="light"] .directory-page article.card h2 {
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] .directory-page article.card :is(.text-slate-500, .text-slate-400) {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .directory-page article.card .bg-blue-100 {
+  color: var(--app-focus-ring);
+  background: var(--app-accent-soft);
+}
+.app-theme-dark[data-appearance="light"] .directory-page article.card .badge.bg-slate-100 {
+  color: var(--app-muted);
+  background: var(--app-surface-raised);
+}
+.app-theme-dark[data-appearance="light"] .directory-page article.card :is(a[href^="tel:"], a[href^="mailto:"]) {
+  color: var(--app-focus-ring);
+}
+.app-theme-dark[data-appearance="light"] .directory-page article.card :is(a[href^="tel:"], a[href^="mailto:"]):hover {
+  color: var(--app-accent-hover);
+}
+.app-theme-dark[data-appearance="light"] .directory-page article.card :is(a[href^="tel:"], a[href^="mailto:"]):focus-visible {
+  outline: 2px solid var(--app-focus-ring);
+  outline-offset: 3px;
+}
+
+
+/* Phase 5A — My Account. Rebind its page-local design tokens rather than
+ * replacing the typography, settings logic or theme thumbnail previews. */
+.app-theme-dark[data-appearance="light"] .account-page {
+  --account-page: var(--app-bg);
+  --account-hero: var(--app-surface-raised);
+  --account-panel: var(--app-surface);
+  --account-deep: var(--app-surface-input);
+  --account-button: var(--app-surface-raised);
+  --account-text: var(--app-text-strong);
+  --account-muted: var(--app-muted);
+  --account-border: var(--app-border-strong);
+  --account-shadow: rgba(24, 35, 53, .055);
+  --account-accent: var(--app-focus-ring);
+  background: radial-gradient(ellipse at 45% 100%, #eef2fc, var(--app-bg) 65%);
+  color: var(--account-text);
+}
+.app-theme-dark[data-appearance="light"] .account-hero {
+  background: var(--palette-panel-gradient);
+  border-color: var(--app-border);
+  box-shadow: 0 8px 28px var(--account-shadow);
+}
+.app-theme-dark[data-appearance="light"] :is(.account-settings-card, .account-push-status, .account-profile-dropzone, .account-profile-info-card) {
+  background: var(--account-panel);
+  border-color: var(--account-border);
+  color: var(--account-text);
+}
+.app-theme-dark[data-appearance="light"] :is(.account-settings-card, .account-hero, .account-sounds-toggle, .account-sound-preview, .account-push-status) {
+  color: var(--account-text);
+}
+.app-theme-dark[data-appearance="light"] :is(.account-identity-title h1, .account-card-heading h2, .account-profile-info-header h2, .account-password-policy h2) {
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] :is(.account-email, .account-workspace-name, .account-card-heading p, .account-settings-description, .account-profile-field-hint, .account-appearance-hint, .account-appearance-theme-state) {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .account-role-badge {
+  color: #086a82;
+  background: #e0f5f9;
+}
+.app-theme-dark[data-appearance="light"] .account-workspace-name span {
+  color: var(--app-focus-ring);
+}
+.app-theme-dark[data-appearance="light"] .account-tab {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .account-tab:hover:not(.is-active) {
+  background: var(--app-surface-hover);
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] .account-tab.is-active,
+.app-theme-dark[data-appearance="light"] .account-tab.is-active:hover {
+  background: linear-gradient(112deg, var(--app-ui-accent-start), var(--app-ui-accent-end));
+  color: var(--app-ui-accent-label);
+}
+.app-theme-dark[data-appearance="light"] .account-card-icon--violet {
+  color: #71429f;
+  background: #f3eafb;
+}
+.app-theme-dark[data-appearance="light"] .account-card-icon--cyan {
+  color: #086a82;
+  background: #e0f5f9;
+}
+.app-theme-dark[data-appearance="light"] :is(.account-sounds-toggle, .account-sound-preview.btn-secondary, .account-push-action.btn-secondary, .account-appearance-theme, .account-appearance-accent-option) {
+  background: var(--app-surface-raised);
+  border-color: var(--app-border-strong);
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] :is(.account-sound-preview.btn-secondary:hover:not(:disabled), .account-push-action.btn-secondary:hover:not(:disabled), .account-appearance-theme:not(.is-unavailable):hover, .account-appearance-accent-option:hover) {
+  background: var(--app-surface-hover);
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] :is(.account-appearance-theme.is-active, .account-appearance-accent-option.is-selected) {
+  border-color: var(--app-focus-ring);
+  background: var(--app-accent-soft);
+}
+.app-theme-dark[data-appearance="light"] :is(.account-appearance-theme.is-active .account-appearance-theme-state, .account-appearance-selected) {
+  color: var(--app-focus-ring);
+}
+/* Thumbnail previews intentionally depict their specific named appearance;
+ * they must not be recolored by the theme currently in use. */
+.app-theme-dark[data-appearance="light"] .account-profile-portrait {
+  background: linear-gradient(140deg, #6575c4, #38488b);
+}
+.app-theme-dark[data-appearance="light"] :is(.account-profile-input-wrap .account-profile-readonly.input, .account-security-card .account-password-field .account-password-input.input, .account-password-form .field input) {
+  background: var(--app-surface-input);
+  border-color: var(--app-border-strong);
+  color: var(--app-text);
+  color-scheme: light;
+}
+.app-theme-dark[data-appearance="light"] .account-profile-input-wrap .account-profile-readonly.input:is(:hover, :active, :focus, :focus-visible) {
+  background: var(--app-surface-input);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark[data-appearance="light"] .account-security-card .account-password-field .account-password-input.input:focus {
+  border-color: var(--app-focus-ring);
+}
+.app-theme-dark[data-appearance="light"] :is(.account-password-field .account-password-eye, .account-profile-input-icon) {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .account-password-field .account-password-eye:hover:not(:disabled) {
+  background: var(--app-surface-hover);
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] :is(.account-security-card .account-validation-error, .account-push-error) {
+  color: #a52a43;
+}
+.app-theme-dark[data-appearance="light"] .account-push-error {
+  background: #fff0f2;
+}
+.app-theme-dark[data-appearance="light"] .account-push-warning {
+  color: #8b5217;
+  background: #fff1db;
+}
+.app-theme-dark[data-appearance="light"] .account-push-result {
+  color: #13765c;
+  background: #dcf6eb;
+}
+.app-theme-dark[data-appearance="light"] :is(.account-push-status-row .account-push-ok, .account-password-rules > li.is-met, .account-password-rules > li.is-met svg) {
+  color: #13765c;
+}
+.app-theme-dark[data-appearance="light"] .account-push-status-row .account-push-neutral {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .account-hero-signout.btn-secondary,
+.app-theme-dark[data-appearance="light"] .account-push-disable.btn-secondary {
+  color: #a52a43;
+  border-color: #f4c4cd;
+  background: #fff0f2;
+}
+.app-theme-dark[data-appearance="light"] .account-hero-signout.btn-secondary:hover:not(:disabled),
+.app-theme-dark[data-appearance="light"] .account-push-disable.btn-secondary:hover:not(:disabled) {
+  color: #91233b;
+  background: #ffe2e8;
+}
+.app-theme-dark[data-appearance="light"] :is(.account-security-card .account-save-password.btn-primary, .account-profile-upload.btn-primary) {
+  color: var(--app-ui-accent-label);
+  background: linear-gradient(115deg, var(--app-ui-accent-start), var(--app-ui-accent-end));
+}
+.app-theme-dark[data-appearance="light"] :is(.account-security-card .account-save-password.btn-primary:hover:not(:disabled), .account-profile-upload.btn-primary:hover:not(:disabled)) {
+  color: var(--app-ui-accent-label);
+  background: linear-gradient(115deg, var(--app-ui-accent-start), var(--app-ui-accent-end));
+  filter: brightness(1.045);
+}
+
+
+/* Phase 5B — Administration and Audit. These pages use native Tailwind utility
+ * classes rather than dedicated page styles; a small root wrapper prevents
+ * neutral color overrides from leaking into Tasks/Drive/other modules. */
+.app-theme-dark[data-appearance="light"] :is(.administration-page, .audit-page) {
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] :is(.administration-page, .audit-page) .card {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+  color: var(--app-text);
+  box-shadow: 0 4px 18px rgba(24, 35, 53, .04);
+}
+.app-theme-dark[data-appearance="light"] :is(.administration-page, .audit-page) :is(h2, h3, .font-bold, .font-semibold, strong) {
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] :is(.administration-page, .audit-page) :is(.bg-white, .bg-slate-50, .bg-gray-50) {
+  background: var(--app-surface);
+  color: var(--app-text);
+}
+.app-theme-dark[data-appearance="light"] :is(.administration-page, .audit-page) :is(.text-slate-400, .text-slate-500, .text-slate-600, .text-gray-500) {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] :is(.administration-page, .audit-page) :is(.border-slate-100, .border-slate-200, .divide-slate-100, .divide-slate-200) {
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] :is(.administration-page, .audit-page) :is(.input, select, textarea) {
+  background: var(--app-surface-input);
+  border-color: var(--app-border-strong);
+  color: var(--app-text);
+  color-scheme: light;
+}
+.app-theme-dark[data-appearance="light"] :is(.administration-page, .audit-page) :is(.input, select, textarea):focus-visible {
+  border-color: var(--app-focus-ring);
+  outline-color: var(--app-focus-ring);
+}
+.app-theme-dark[data-appearance="light"] .administration-page :is(.bg-blue-50, .bg-slate-100) {
+  color: var(--app-text);
+  background: var(--app-surface-raised);
+}
+.app-theme-dark[data-appearance="light"] .administration-page :is(.text-blue-600, .text-blue-700, .text-blue-800) {
+  color: var(--app-focus-ring);
+}
+.app-theme-dark[data-appearance="light"] .administration-page :is(.bg-emerald-100, .text-emerald-700) {
+  color: #13765c;
+}
+.app-theme-dark[data-appearance="light"] .administration-page .bg-emerald-100 {
+  background: #dcf6eb;
+}
+.app-theme-dark[data-appearance="light"] .administration-page :is(.text-red-700, .text-rose-700) {
+  color: #a52a43;
+}
+.app-theme-dark[data-appearance="light"] .administration-page :is(.bg-red-50, .bg-rose-50) {
+  background: #fff0f2;
+}
+.app-theme-dark[data-appearance="light"] .administration-page .form-actions {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] .administration-page :is(.btn-secondary:hover:not(:disabled), .icon-btn:hover:not(:disabled)) {
+  background: var(--app-surface-hover);
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] .administration-page .btn-primary,
+.app-theme-dark[data-appearance="light"] .administration-page .btn-primary:hover:not(:disabled) {
+  color: var(--app-on-accent);
+}
+.app-theme-dark[data-appearance="light"] .administration-page .btn-primary:hover:not(:disabled) {
+  background: var(--app-accent-hover);
+}
+
+/* Audit <details> rows and JSON payload are independently scrollable;
+ * preserve the action/entity labels and the underlying audit data. */
+.app-theme-dark[data-appearance="light"] .audit-page details {
+  background: var(--app-surface);
+  color: var(--app-text);
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] .audit-page details:hover,
+.app-theme-dark[data-appearance="light"] .audit-page details[open] {
+  background: var(--app-surface-raised);
+}
+.app-theme-dark[data-appearance="light"] .audit-page details summary {
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] .audit-page details :is(.text-slate-400, .text-slate-500) {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .audit-page details pre {
+  background: var(--app-surface-input);
+  color: var(--app-text);
+  border: 1px solid var(--app-border);
+  scrollbar-color: #b6c1d2 transparent;
+}
+
+
+/* Phase 5C — Spreadsheet desktop wrapper. Univer controls its own
+ * toolbar, cells and canvas via createUniver({ darkMode: false }); these
+ * selectors are intentionally limited to our React-owned chrome. */
+.app-theme-dark[data-appearance="light"] :is(.workspace-spreadsheet-create, .workspace-spreadsheet) {
+  color: var(--app-text);
+  color-scheme: light;
+}
+.app-theme-dark[data-appearance="light"] .workspace-spreadsheet-create .card,
+.app-theme-dark[data-appearance="light"] .workspace-spreadsheet {
+  background: var(--app-surface);
+  color: var(--app-text);
+  border-color: var(--app-border-strong);
+  box-shadow: 0 5px 22px rgba(24, 35, 53, .045);
+}
+.app-theme-dark[data-appearance="light"] :is(.workspace-spreadsheet-create, .workspace-spreadsheet) :is(.border-slate-200, .border-slate-100) {
+  border-color: var(--app-border);
+}
+.app-theme-dark[data-appearance="light"] :is(.workspace-spreadsheet-create, .workspace-spreadsheet) :is(.text-slate-900, .text-slate-700, .text-slate-600) {
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] :is(.workspace-spreadsheet-create, .workspace-spreadsheet) :is(.text-slate-400, .text-slate-500) {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .workspace-spreadsheet :is(.bg-white, .bg-slate-50),
+.app-theme-dark[data-appearance="light"] .workspace-spreadsheet-create .bg-slate-50 {
+  background: var(--app-surface-raised);
+}
+.app-theme-dark[data-appearance="light"] .workspace-spreadsheet .bg-emerald-100 {
+  color: #13765c;
+  background: #dcf6eb;
+}
+.app-theme-dark[data-appearance="light"] .workspace-spreadsheet .text-emerald-700 {
+  color: #13765c;
+}
+.app-theme-dark[data-appearance="light"] :is(.workspace-spreadsheet-create, .workspace-spreadsheet) :is(.btn-secondary, .icon-btn) {
+  color: var(--app-text);
+  background: var(--app-surface-raised);
+  border-color: var(--app-border-strong);
+}
+.app-theme-dark[data-appearance="light"] :is(.workspace-spreadsheet-create, .workspace-spreadsheet) :is(.btn-secondary, .icon-btn):hover:not(:disabled) {
+  color: var(--app-text-strong);
+  background: var(--app-surface-hover);
+}
+.app-theme-dark[data-appearance="light"] .workspace-spreadsheet :is(.text-red-700, .border-red-300),
+.app-theme-dark[data-appearance="light"] .workspace-spreadsheet-create .text-red-700 {
+  color: #a52a43;
+}
+.app-theme-dark[data-appearance="light"] :is(.workspace-spreadsheet-create, .workspace-spreadsheet) .bg-red-50 {
+  background: #fff0f2;
+}
+.app-theme-dark[data-appearance="light"] .spreadsheet-resize-backdrop {
+  background: rgba(24, 35, 53, .38);
+}
+.app-theme-dark[data-appearance="light"] .spreadsheet-resize-backdrop form {
+  color: var(--app-text);
+  background: var(--app-surface);
+  border-color: var(--app-border-strong);
+  box-shadow: 0 24px 70px rgba(24, 35, 53, .18);
+}
+.app-theme-dark[data-appearance="light"] .spreadsheet-resize-backdrop form :is(.text-slate-900, .text-slate-700) {
+  color: var(--app-text-strong);
+}
+.app-theme-dark[data-appearance="light"] .spreadsheet-resize-backdrop form :is(.text-slate-400, .text-slate-500) {
+  color: var(--app-muted);
+}
+.app-theme-dark[data-appearance="light"] .spreadsheet-resize-backdrop form .input {
+  color: var(--app-text);
+  background: var(--app-surface-input);
+  border-color: var(--app-border-strong);
+  color-scheme: light;
+}
+.app-theme-dark[data-appearance="light"] .spreadsheet-resize-backdrop form .input:focus-visible {
+  border-color: var(--app-focus-ring);
+}
+.app-theme-dark[data-appearance="light"] .spreadsheet-resize-backdrop form .btn-secondary:hover:not(:disabled) {
+  color: var(--app-text-strong);
+  background: var(--app-surface-hover);
+}
+/* Univer's own UI must not be re-themed with broad .bg-white/.input rules. */

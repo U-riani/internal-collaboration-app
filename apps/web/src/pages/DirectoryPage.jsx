@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Mail, Phone, Search, UserRound } from "lucide-react";
 import { api } from "../lib/api.js";
 import PageHeader from "../components/PageHeader.jsx";
+import "./tasks-page.css";
+import "./directory-page.css";
 
 export default function DirectoryPage() {
   const [filters, setFilters] = useState({
@@ -32,26 +34,23 @@ export default function DirectoryPage() {
     setFilters((current) => ({ ...current, [key]: value }));
 
   return (
-    <>
-      <PageHeader title="Employee directory" />
+    <div className="tasks-page directory-page">
+      <PageHeader title="People" />
       <div className="max-h-[calc(100vh-15rem)] md:max-h-[calc(100vh-7.8rem)] overflow-y-auto">
         <div className="directory-filters sticky top-0 card mb-5 p-4">
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <label className="relative">
-              <span className="sr-only">Search people</span>
-              <Search
-                size={16}
-                className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
-              />
+            <label className="task-search-bar directory-search-bar">
+              <Search size={16} aria-hidden="true" />
               <input
-                className="input pl-9 pe-8!"
+                className="input"
+                aria-label="Search people"
                 placeholder="Search people..."
                 value={filters.q}
                 onChange={(event) => setFilter("q", event.target.value)}
               />
             </label>
             <select
-              className="input"
+              className="input app-modern-select directory-filter-select"
               aria-label="Filter by department"
               value={filters.departmentId}
               onChange={(event) =>
@@ -66,7 +65,7 @@ export default function DirectoryPage() {
               ))}
             </select>
             <select
-              className="input"
+              className="input app-modern-select directory-filter-select"
               aria-label="Filter by role"
               value={filters.role}
               onChange={(event) => setFilter("role", event.target.value)}
@@ -78,7 +77,7 @@ export default function DirectoryPage() {
               <option value="SYSTEM_ADMIN">System administrator</option>
             </select>
             <select
-              className="input"
+              className="input app-modern-select directory-filter-select"
               aria-label="Filter by status"
               value={filters.status}
               onChange={(event) => setFilter("status", event.target.value)}
@@ -141,6 +140,6 @@ export default function DirectoryPage() {
           )}
         </div>
       </div>
-    </>
+    </div>
   );
 }

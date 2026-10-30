@@ -561,23 +561,40 @@ export default async function taskRoutes(app) {
         ? existing.position
         : await nextLayoutPosition(request.authUser.id, groupId));
 
-    const layout = await app.prisma.userTaskLayout.upsert({
-      where: {
-        userId_taskId: {
+    // Layouts are personal. Record a change only when the group actually
+    // changes and keep this activity visible to its actor alone.
+    const groupChanged = (existing?.groupId ?? null) !== groupId;
+    const layout = await app.prisma.$transaction(async (tx) => {
+      const saved = await tx.userTaskLayout.upsert({
+        where: {
+          userId_taskId: {
+            userId: request.authUser.id,
+            taskId: task.id,
+          },
+        },
+        create: {
           userId: request.authUser.id,
           taskId: task.id,
+          groupId,
+          position,
         },
-      },
-      create: {
-        userId: request.authUser.id,
-        taskId: task.id,
-        groupId,
-        position,
-      },
-      update: { groupId, position },
-      include: {
-        group: { select: { id: true, name: true, position: true } },
-      },
+        update: { groupId, position },
+        include: {
+          group: { select: { id: true, name: true, position: true } },
+        },
+      });
+      if (groupChanged) {
+        await tx.taskHistory.create({
+          data: {
+            taskId: task.id,
+            actorId: request.authUser.id,
+            actionType: "PERSONAL_GROUP_CHANGED",
+            oldValue: { groupId: existing?.groupId ?? null },
+            newValue: { groupId },
+          },
+        });
+      }
+      return saved;
     });
     return { success: true, data: layout };
   });
@@ -596,6 +613,14 @@ export default async function taskRoutes(app) {
           orderBy: { createdAt: "asc" },
         },
         history: {
+          // A personal grouping change should not be disclosed to other
+          // collaborators who can read this task.
+          where: {
+            OR: [
+              { actionType: { not: "PERSONAL_GROUP_CHANGED" } },
+              { actorId: request.authUser.id },
+            ],
+          },
           include: { actor: { select: { id: true, displayName: true } } },
           orderBy: { createdAt: "desc" },
         },
@@ -816,7 +841,13 @@ export default async function taskRoutes(app) {
     if (!task) throw new HttpError(404, "TASK_NOT_FOUND", "Task was not found");
     requireTaskAccess(request.authUser, task);
     const data = await app.prisma.taskHistory.findMany({
-      where: { taskId: task.id },
+      where: {
+        taskId: task.id,
+        OR: [
+          { actionType: { not: "PERSONAL_GROUP_CHANGED" } },
+          { actorId: request.authUser.id },
+        ],
+      },
       include: { actor: { select: { id: true, displayName: true } } },
       orderBy: { createdAt: "desc" },
     });

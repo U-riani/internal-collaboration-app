@@ -39,7 +39,7 @@ const VIEW_ACTIONS = new Set([
 
 function driveRole(access) {
   if (access === "OWNER") return UNIT_ROLE.OWNER;
-  if (access === "MANAGER" || access === "EDITOR") return UNIT_ROLE.EDITOR;
+  if (["MANAGER", "EDITOR", "EDITOR_DELETE"].includes(access)) return UNIT_ROLE.EDITOR;
   return UNIT_ROLE.READER;
 }
 

@@ -4,6 +4,27 @@ Base: `/api/v1`. Use `Authorization: Bearer <accessToken>` after login. Refresh 
 
 Success: `{ "success": true, "data": ... }`, optionally `meta`. Errors: `{ "success": false, "error": { "code": "...", "message": "..." }, "requestId": "..." }`. Common statuses: 400 invalid input, 401 sign-in required, 403 forbidden, 404 unavailable item, 409 conflict, 413 file/quota exceeded. API errors do not expose internal stacks. Identifiers are UUID strings.
 
+## Native Flutter sessions (dev-luka)
+
+Flutter mobile uses dedicated JSON-token endpoints; the existing web
+authentication and HttpOnly cookie flow below remain unchanged.
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| POST | `/auth/mobile/login` | `{email,password}` → `{accessToken,refreshToken,user}` |
+| POST | `/auth/mobile/refresh` | `{refreshToken}` → rotated `{accessToken,refreshToken,user}`; old token becomes invalid |
+| POST | `/auth/mobile/logout` | `{refreshToken}` → revoke native session and connected sockets |
+
+Native refresh credentials must only be kept in OS secure storage and sent via
+HTTPS (local loopback/ADB HTTP is for debug only). Native mobile routes never
+set the browser refresh cookie. The shared `Session` record is revocable and
+refresh tokens are stored hashed. Native logout is idempotent.
+
+**Deployment dependency:** Deploy the backend `dev-luka` version before
+using the updated Flutter client. An older server returns 404 for these
+endpoints. The browser's existing `/auth/login`, `/auth/refresh` and
+`/auth/logout` contracts are unaffected.
+
 ## Authentication and administration
 
 | Method | Path | Input / result |
