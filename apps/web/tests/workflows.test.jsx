@@ -85,7 +85,7 @@ describe("main workspace flows", () => {
     });
     const user = mount(DrivePage);
     await user.click(await screen.findByRole("button", { name: "New folder" }));
-    await user.type(screen.getByLabelText("Name"), "Team handbook");
+    await user.type(screen.getByLabelText("Folder name"), "Team handbook");
     await user.click(screen.getByRole("button", { name: "Save", exact: true }));
     await screen.findByRole("button", { name: /^Team handbook/ });
     expect(api).toHaveBeenCalledWith("/drive", {
@@ -129,10 +129,7 @@ describe("main workspace flows", () => {
     const user = mount(ChatPage);
     await screen.findByRole("button", { name: /Existing team/ });
     await user.click(screen.getByRole("button", { name: "New conversation" }));
-    await user.selectOptions(
-      await screen.findByLabelText("Person"),
-      "colleague",
-    );
+    await user.click(await screen.findByRole("radio", { name: /Test Colleague/ }));
     await user.click(
       screen.getByRole("button", { name: "Start conversation" }),
     );

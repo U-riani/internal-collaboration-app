@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { SearchBar } from "../src/components/UI.jsx";
 
 function SearchExample() {
@@ -31,8 +32,8 @@ describe("Drive permissions UI alignment", () => {
   });
 
   it("reuses the same SearchBar in Drive, Members and Permissions without changing permissions text", () => {
-    const page = readFileSync(new URL("../src/pages/DrivePage.jsx", import.meta.url), "utf8");
-    const css = readFileSync(new URL("../src/pages/drive-personal.css", import.meta.url), "utf8");
+    const page = readFileSync(resolve(process.cwd(), "src/pages/DrivePage.jsx"), "utf8");
+    const css = readFileSync(resolve(process.cwd(), "src/pages/drive-personal.css"), "utf8");
     expect(page.split("<SearchBar").length - 1).toBe(3);
     expect(page).toContain('className="drive-member-search drive-permission-search min-w-52 flex-1"');
     expect(page).toContain('className="drive-member-search"');
