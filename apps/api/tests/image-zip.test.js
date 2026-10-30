@@ -2,6 +2,11 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { Readable } from "node:stream";
 import { buffer } from "node:stream/consumers";
+import { mkdtemp, writeFile, rm } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import os from "node:os";
+import path from "node:path";
 import { createImageZipStream, uniqueImageNames } from "../src/lib/image-zip.js";
 
 test("ZIP64 archive streams original bytes, CRC and central directory", async () => {
@@ -42,4 +47,29 @@ test("ZIP stream rejects file size mismatches rather than producing corrupt arch
     buffer(createImageZipStream([{ originalName: "bad.png", sizeBytes: 100, open: () => Readable.from([Buffer.from("short")]) }])),
     /size changed/,
   );
+});
+
+test("ZIP64 archive can be extracted by a standard ZIP reader", async (t) => {
+  if (process.platform !== "linux") return t.skip("Linux interoperability check");
+  const run = promisify(execFile);
+  try {
+    await run("unzip", ["-v"]);
+  } catch {
+    return t.skip("unzip tool not installed");
+  }
+  const archive = await buffer(createImageZipStream([
+    { originalName: "photo.png", sizeBytes: 5, open: () => Readable.from([Buffer.from("hello")]) },
+    { originalName: "photo.png", sizeBytes: 5, open: () => Readable.from([Buffer.from("world")]) },
+  ]));
+  const directory = await mkdtemp(path.join(os.tmpdir(), "zip64-images-"));
+  try {
+    const archivePath = path.join(directory, "photos.zip");
+    await writeFile(archivePath, archive);
+    const first = await run("unzip", ["-p", archivePath, "photo.png"]);
+    const second = await run("unzip", ["-p", archivePath, "photo (2).png"]);
+    assert.equal(first.stdout, "hello");
+    assert.equal(second.stdout, "world");
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
 });
