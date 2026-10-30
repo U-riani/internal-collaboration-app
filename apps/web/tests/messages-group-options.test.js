@@ -84,7 +84,7 @@ describe("Messages group actions", () => {
   it("keeps the Add label simple and shows errors without success notices", () => {
     const members = chat.split("function Members(")[1].split("function GroupRenameModal(")[0];
     expect(members).toContain('{addMember.isPending ? "Adding…" : "Add"}');
-    expect(members).toContain('colleagues selected');
+    expect(members).toContain('eligibleSelectedIds.length === 1 ? "colleague" : "colleagues"');
     expect(members).not.toContain('"Add ("');
     expect(members).not.toContain('setSuccessMessage');
     expect(members).not.toContain('conversation-members-success');
