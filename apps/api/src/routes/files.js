@@ -165,6 +165,35 @@ export default async function fileRoutes(app) {
       },
     };
   });
+  // Render only browser-safe raster images inline. Reuse getFile() so
+  // previews have exactly the same authorization and scan checks as downloads.
+  // SVG and arbitrary MIME types must never be rendered as same-origin content.
+  const inlineImageTypes = new Set([
+    "image/jpeg",
+    "image/png",
+    "image/gif",
+    "image/webp",
+    "image/avif",
+  ]);
+  app.get("/:id/preview", async (request, reply) => {
+    const file = await getFile(request);
+    const mimeType = file.mimeType?.toLowerCase().split(";")[0].trim();
+    if (!inlineImageTypes.has(mimeType)) {
+      throw new HttpError(
+        415,
+        "FILE_PREVIEW_UNSUPPORTED",
+        "Only safe image formats can be previewed",
+      );
+    }
+    const stream = await app.minio.getObject(file.bucket, file.objectKey);
+    return reply
+      .header("cache-control", "private, no-store")
+      .header("x-content-type-options", "nosniff")
+      .header("content-disposition", "inline")
+      .type(mimeType)
+      .send(stream);
+  });
+
   app.get("/:id/download", async (request, reply) => {
     const file = await getFile(request);
     const stream = await app.minio.getObject(file.bucket, file.objectKey);
