@@ -2,7 +2,7 @@ name: Collab production integration validation
 
 on:
   push:
-    branches: [collab-production]
+    branches: [collab-production, "feature/**"]
   workflow_dispatch:
 
 permissions:
