@@ -853,7 +853,14 @@ function GroupRenameModal({ conversation, onClose }) {
         method: "PATCH",
         body: JSON.stringify({ name: name.trim() }),
       }),
-    onSuccess: () => {
+    onSuccess: ({ data: updated }) => {
+      // Reflect the saved name immediately in the sidebar and chat header.
+      // The follow-up fetch also syncs other conversation metadata.
+      qc.setQueryData(["conversations"], (items) =>
+        items?.map((item) =>
+          item.id === conversation.id ? { ...item, name: updated.name } : item,
+        ),
+      );
       qc.invalidateQueries({ queryKey: ["conversations"] });
       onClose();
     },
