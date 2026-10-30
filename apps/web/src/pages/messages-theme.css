@@ -884,7 +884,7 @@
 }
 
 
-/* Conversation Members: a searchable multi-picker and stacked member cards.
+/* Conversation Members: a searchable multi-picker and Tasks-style member rows.
    All surfaces/colors are sourced from the active application palette. */
 .app-theme-dark .modal.conversation-members-dialog {
   width: min(530px, calc(100vw - 28px));
@@ -1003,9 +1003,50 @@
   margin-top: 7px;
   padding: 1px 1px 2px;
 }
+/* Match the New Task → Participants structure: one framed search/list panel,
+   compact rows inside it, and no individual member-card backgrounds or borders. */
+.conversation-members-current-panel {
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid var(--app-border-strong);
+  border-radius: 12px;
+  background: var(--app-surface);
+}
+.conversation-members-current-panel .conversation-members-search {
+  min-height: 37px;
+  margin-bottom: 8px;
+}
+.conversation-members-current-panel .conversation-members-search input {
+  height: 35px;
+}
 .conversation-members-current-list {
   max-height: min(300px, 38dvh);
+  gap: 2px;
 }
+.conversation-members-current-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  gap: 10px;
+  padding: 6px 7px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--app-text-strong);
+}
+.conversation-members-person-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--app-icon-soft-bg, var(--app-accent-soft));
+  color: var(--app-icon-accent, var(--app-focus-ring));
+}
+.conversation-members-person-icon svg { flex: 0 0 auto; }
 .conversation-member-card {
   display: flex;
   align-items: center;
@@ -1204,7 +1245,6 @@
   font-size: 12px;
   text-align: center;
 }
-.conversation-members-success,
 .conversation-members-note {
   margin: 0;
   color: var(--app-muted);
@@ -1224,6 +1264,8 @@
   .conversation-members-invite { padding: 10px; }
   .conversation-member-card { padding: 9px 8px; gap: 8px; }
   .conversation-member-card .avatar { flex-basis: 32px; width: 32px; height: 32px; }
+  .conversation-members-current-panel { padding: 7px; }
+  .conversation-members-current-row { padding: 6px 4px; gap: 7px; }
   .conversation-members-protected { font-size: 0; gap: 0; padding: 6px; }
   .app-theme-dark .conversation-members-remove { padding: 7px 5px; gap: 4px; font-size: 10px; }
   .conversation-members-name-line { gap: 4px; }
