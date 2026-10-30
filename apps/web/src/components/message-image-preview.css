@@ -1,0 +1,163 @@
+/* Messages only: media thumbnails use shared appearance and accent tokens. */
+.message-attachments {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 8px;
+}
+.message-images-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  width: min(440px, 100%);
+  min-width: min(255px, 62vw);
+}
+.message-images-grid:has(> :only-child) {
+  grid-template-columns: minmax(0, 1fr);
+  width: min(320px, 100%);
+}
+.message-image-attachment {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--app-border-strong);
+  border-radius: 12px;
+  background: var(--app-surface-raised);
+  color: var(--app-text);
+}
+.message-image-thumbnail {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: clamp(132px, 22vw, 190px);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: var(--app-surface-input);
+  color: var(--app-muted);
+  overflow: hidden;
+  cursor: zoom-in;
+}
+.message-image-thumbnail img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.message-image-thumbnail:hover:not(:disabled) img { filter: brightness(.94); }
+.message-image-thumbnail:disabled {
+  opacity: 1;
+  cursor: default;
+}
+.message-image-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 12px;
+  color: var(--app-muted);
+  font-size: 11px;
+  text-align: center;
+}
+.message-image-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px;
+  min-width: 0;
+  padding: 5px 8px;
+  color: var(--app-text);
+}
+.message-image-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 10px;
+}
+.message-image-download {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 27px;
+  height: 27px;
+  padding: 4px;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--app-muted);
+}
+.message-image-download:hover:not(:disabled),
+.message-image-download:focus-visible {
+  background: var(--app-interactive-hover);
+  color: var(--app-text-strong);
+}
+.message-image-error {
+  padding: 5px 8px;
+  margin: 0;
+  font-size: 11px;
+  color: var(--app-danger);
+}
+.message-image-loading { animation: message-image-spin 1s linear infinite; }
+@keyframes message-image-spin { to { transform: rotate(360deg); } }
+
+.app-theme-dark .modal.chat-image-lightbox {
+  width: min(960px, calc(100vw - 24px));
+  max-height: 94dvh;
+  background: var(--app-surface);
+  color: var(--app-text);
+  border: 1px solid var(--app-border-strong);
+}
+.app-theme-dark .modal.chat-image-lightbox .modal-head {
+  background: var(--app-surface-raised);
+  border-bottom: 1px solid var(--app-border);
+}
+.app-theme-dark .modal.chat-image-lightbox .modal-head h2 {
+  color: var(--app-text-strong);
+  overflow-wrap: anywhere;
+}
+.app-theme-dark .modal.chat-image-lightbox .modal-body {
+  overflow-y: auto;
+  max-height: calc(94dvh - 77px);
+}
+.chat-image-lightbox-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+.chat-image-lightbox-content > img {
+  display: block;
+  max-width: 100%;
+  max-height: min(74dvh, 850px);
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 8px;
+}
+.app-theme-dark .chat-image-lightbox-download {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex: 0 0 auto;
+  min-height: 38px;
+  border-radius: 9px;
+  background: var(--app-interactive-selected);
+  color: var(--app-interactive-selected-text);
+}
+.app-theme-dark .chat-image-lightbox-download:hover:not(:disabled) {
+  background: var(--app-interactive-selected-hover);
+}
+@media (max-width: 600px) {
+  .message-images-grid { min-width: min(210px, 62vw); gap: 5px; }
+  .message-image-thumbnail { height: clamp(118px, 34vw, 165px); }
+  .app-theme-dark .modal.chat-image-lightbox .modal-body { padding: 12px; }
+  .chat-image-lightbox-content > img { max-height: 73dvh; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .message-image-loading { animation: none; }
+  .message-image-thumbnail img { transition: none; }
+}
