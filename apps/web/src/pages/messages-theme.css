@@ -884,44 +884,79 @@
 }
 
 
-/* Conversation Members — read-only, searchable and palette-aware. */
-.app-theme-dark .modal:has(.conversation-members-modal) {
-  width: min(480px, calc(100vw - 32px));
+/* Conversation Members: a searchable multi-picker and Tasks-style member rows.
+   All surfaces/colors are sourced from the active application palette. */
+.app-theme-dark .modal.conversation-members-dialog {
+  width: min(530px, calc(100vw - 28px));
+  max-height: min(92dvh, 850px);
   border: 1px solid var(--app-border-strong);
-  color: var(--app-text);
   background: var(--app-surface);
+  color: var(--app-text);
 }
-.app-theme-dark .modal:has(.conversation-members-modal) .modal-head {
-  border-bottom: 1px solid var(--app-border);
+.app-theme-dark .modal.conversation-members-dialog .modal-head {
   background: var(--app-surface-raised);
+  border-bottom: 1px solid var(--app-border);
 }
-.app-theme-dark .modal:has(.conversation-members-modal) .modal-head h2 {
+.app-theme-dark .modal.conversation-members-dialog .modal-head h2 {
   color: var(--app-text-strong);
   letter-spacing: -.025em;
 }
-.conversation-members-modal {
+.app-theme-dark .modal.conversation-members-dialog .modal-body {
+  overflow-y: auto;
+  max-height: calc(92dvh - 76px);
+}
+.conversation-members-modal,
+.conversation-members-invite,
+.conversation-members-existing {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  gap: 14px;
+}
+.conversation-members-modal { gap: 18px; }
+/* The add-members heading sits directly on the modal surface; only the
+   inner searchable picker keeps its outline. */
+.conversation-members-invite {
+  gap: 11px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.conversation-members-existing { gap: 11px; }
+.conversation-members-invite-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--app-text-strong);
+  font-size: 12px;
+  font-weight: 700;
+}
+.conversation-members-invite-heading svg {
+  flex: 0 0 auto;
+  color: var(--app-muted);
+}
+.conversation-members-picker {
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--app-border-strong);
+  border-radius: 11px;
+  background: var(--app-surface);
 }
 .app-theme-dark .conversation-members-search {
   display: flex;
   align-items: center;
   gap: 10px;
   min-width: 0;
-  min-height: 44px;
+  min-height: 42px;
   padding: 0 12px;
   border: 1px solid var(--app-border-strong);
-  border-radius: 11px;
+  border-radius: 10px;
   background: var(--app-surface-input);
   color: var(--app-muted);
   cursor: text;
   transition: border-color .15s ease, box-shadow .15s ease;
 }
-.app-theme-dark .conversation-members-search:hover {
-  border-color: var(--app-border-strong);
-}
+.app-theme-dark .conversation-members-search:hover { border-color: var(--app-border-strong); }
 .app-theme-dark .conversation-members-search:focus-within {
   border-color: var(--app-interactive-focus);
   box-shadow: 0 0 0 2px var(--app-ui-accent-tint);
@@ -934,7 +969,7 @@
   flex: 1 1 auto;
   width: 100%;
   min-width: 0;
-  height: 42px;
+  height: 40px;
   padding: 0;
   border: 0;
   outline: none;
@@ -953,6 +988,152 @@
   border: 0;
   box-shadow: none;
 }
+.conversation-members-picker-list,
+.conversation-members-current-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: var(--app-border-strong) transparent;
+  scrollbar-width: thin;
+}
+.conversation-members-picker-list {
+  max-height: min(205px, 28dvh);
+  margin-top: 7px;
+  padding: 1px 1px 2px;
+}
+/* Match the New Task → Participants structure: one framed search/list panel,
+   compact rows inside it, and no individual member-card backgrounds or borders. */
+.conversation-members-current-panel {
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid var(--app-border-strong);
+  border-radius: 12px;
+  background: var(--app-surface);
+}
+.conversation-members-current-panel .conversation-members-search {
+  min-height: 37px;
+  margin-bottom: 8px;
+}
+.conversation-members-current-panel .conversation-members-search input {
+  height: 35px;
+}
+/* Unlike legacy Members layouts, this list never has a second surface.
+   The shared current-panel carries the only outline. */
+.conversation-members-current-list {
+  max-height: min(300px, 38dvh);
+  gap: 2px;
+  border: 0;
+  background: transparent;
+}
+.conversation-members-current-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  gap: 10px;
+  padding: 6px 7px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--app-text-strong);
+}
+.conversation-members-person-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--app-icon-soft-bg, var(--app-accent-soft));
+  color: var(--app-icon-accent, var(--app-focus-ring));
+}
+.conversation-members-person-icon svg { flex: 0 0 auto; }
+/* Add-member choices are frameless rows in the one bordered picker. */
+.conversation-member-card {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+  min-height: 62px;
+  padding: 10px 11px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--app-text-strong);
+}
+.conversation-member-card .avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 37px;
+  width: 37px;
+  height: 37px;
+  border-radius: 50%;
+  background: var(--app-accent-soft);
+  color: var(--app-focus-ring);
+  font-size: 11px;
+  font-weight: 700;
+}
+.conversation-members-person-info {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+}
+.conversation-members-person-name,
+.conversation-members-person-email {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.conversation-members-person-name {
+  color: var(--app-text-strong);
+  font-size: 12px;
+  font-weight: 700;
+}
+.conversation-members-person-email {
+  color: var(--app-muted);
+  font-size: 10px;
+}
+.conversation-members-name-line {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+.conversation-members-name-line .conversation-members-person-name {
+  flex: 0 1 auto;
+}
+.conversation-members-role-badge,
+.conversation-members-protected {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  flex: 0 0 auto;
+  padding: 4px 7px;
+  border-radius: 99px;
+  border: 1px solid var(--app-border);
+  background: var(--app-surface-input);
+  color: var(--app-muted);
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+.conversation-members-role-badge.is-owner {
+  border-color: var(--app-border-strong);
+  background: var(--app-accent-soft);
+  color: var(--app-focus-ring);
+}
 .conversation-members-current-heading {
   display: flex;
   align-items: center;
@@ -963,74 +1144,137 @@
   font-size: 12px;
   font-weight: 700;
 }
-.conversation-members-current-list {
-  max-height: min(350px, 44dvh);
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding: 5px;
-  border: 1px solid var(--app-border);
-  border-radius: 12px;
-  background: var(--app-surface-raised);
-  scrollbar-color: var(--app-border-strong) transparent;
-  scrollbar-width: thin;
+.conversation-members-current-row { transition: background-color .15s ease; }
+.conversation-members-current-row:hover { background: var(--app-interactive-hover); }
+.conversation-member-choice {
+  cursor: pointer;
+  transition: background-color .15s ease, border-color .15s ease;
 }
-.conversation-members-current-row {
+.conversation-member-choice:hover,
+.conversation-member-choice:focus-within {
+  background: var(--app-interactive-hover);
+}
+.conversation-member-choice.is-selected {
+  background: var(--app-accent-soft);
+}
+.app-theme-dark .conversation-members-checkbox {
+  appearance: none;
+  display: inline-grid;
+  place-content: center;
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  border: 1px solid var(--app-border-strong);
+  border-radius: 5px;
+  background: var(--app-surface-input);
+  cursor: pointer;
+}
+.app-theme-dark .conversation-members-checkbox:checked {
+  border-color: var(--app-interactive-selected);
+  background: var(--app-interactive-selected);
+}
+.app-theme-dark .conversation-members-checkbox:checked::after {
+  content: "";
+  width: 5px;
+  height: 9px;
+  margin-top: -2px;
+  border: solid var(--app-interactive-selected-text);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.app-theme-dark .conversation-members-checkbox:focus-visible {
+  outline: 2px solid var(--app-interactive-focus);
+  outline-offset: 3px;
+}
+.app-theme-dark .conversation-members-checkbox:disabled { cursor: not-allowed; }
+.conversation-members-add-footer {
   display: flex;
   align-items: center;
-  min-height: 45px;
+  justify-content: space-between;
+  gap: 10px;
   min-width: 0;
-  gap: 11px;
-  padding: 7px 10px;
-  border-radius: 9px;
-  color: var(--app-text-strong);
-  font-size: 12px;
-  transition: background-color .15s ease;
+  color: var(--app-muted);
+  font-size: 11px;
 }
-.conversation-members-current-row + .conversation-members-current-row { margin-top: 2px; }
-.conversation-members-current-row:hover { background: var(--app-interactive-hover); }
-.conversation-members-current-row .avatar {
+.app-theme-dark .conversation-members-add-btn {
+  flex: 0 0 auto;
+  min-height: 39px;
+  padding: 8px 15px;
+  border-radius: 10px;
+  background: var(--app-interactive-selected);
+  color: var(--app-interactive-selected-text);
+  font-size: 12px;
+}
+.app-theme-dark .conversation-members-add-btn:hover:not(:disabled) {
+  background: var(--app-interactive-selected-hover);
+}
+/* Disabled means visually inert: no hover color, animation or overlay. */
+.app-theme-dark .modal.conversation-members-dialog .conversation-members-add-btn:disabled,
+.app-theme-dark .modal.conversation-members-dialog .conversation-members-add-btn:disabled:hover,
+.app-theme-dark .modal.conversation-members-dialog .conversation-members-add-btn:disabled:focus {
+  background: var(--app-surface-input);
+  color: var(--app-muted);
+  border: 1px solid var(--app-border);
+  box-shadow: none;
+  transform: none;
+  filter: none;
+  opacity: 1;
+  pointer-events: none;
+  transition: none;
+}
+.app-theme-dark .conversation-members-remove {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  flex: 0 0 31px;
-  width: 31px;
-  height: 31px;
-  border-radius: 9px;
-  background: var(--app-accent-soft);
-  color: var(--app-focus-ring);
-  font-size: 10px;
-}
-.conversation-members-current-name {
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  color: var(--app-text-strong);
-  font-weight: 650;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.conversation-members-current-role {
+  gap: 6px;
   flex: 0 0 auto;
-  color: var(--app-muted);
-  font-size: 10px;
-  text-transform: capitalize;
+  padding: 7px 8px;
+  border-radius: 8px;
+  color: var(--app-danger);
+  font-size: 11px;
+  font-weight: 650;
+}
+.app-theme-dark .conversation-members-remove:hover:not(:disabled),
+.app-theme-dark .conversation-members-remove:focus-visible {
+  background: var(--app-interactive-hover);
+  color: var(--app-danger);
 }
 .conversation-members-empty {
-  padding: 24px 12px;
+  padding: 19px 10px;
+  margin: 0;
   color: var(--app-muted);
   font-size: 12px;
   text-align: center;
 }
+.conversation-members-note {
+  margin: 0;
+  color: var(--app-muted);
+  font-size: 11px;
+}
+.app-theme-dark .conversation-members-invite .error-box { margin: 0; }
 @media (max-width: 639px) {
-  .app-theme-dark .modal:has(.conversation-members-modal) {
-    width: 100vw;
+  .app-theme-dark .modal.conversation-members-dialog {
+    width: min(100vw - 16px, 530px);
     max-height: 94dvh;
   }
-  .conversation-members-current-list { max-height: min(340px, 42dvh); }
-  .conversation-members-current-row { padding: 7px 8px; gap: 9px; }
+  .app-theme-dark .modal.conversation-members-dialog .modal-body { max-height: calc(94dvh - 72px); }
+  .conversation-members-picker-list { max-height: min(190px, 23dvh); }
+  .conversation-members-current-list { max-height: min(260px, 30dvh); }
+}
+@media (max-width: 420px) {
+  .conversation-members-invite { padding: 0; }
+  .conversation-member-card { padding: 9px 8px; gap: 8px; }
+  .conversation-member-card .avatar { flex-basis: 32px; width: 32px; height: 32px; }
+  .conversation-members-current-panel { padding: 7px; }
+  .conversation-members-current-row { padding: 6px 4px; gap: 7px; }
+  .conversation-members-protected { font-size: 0; gap: 0; padding: 6px; }
+  .app-theme-dark .conversation-members-remove { padding: 7px 5px; gap: 4px; font-size: 10px; }
+  .conversation-members-name-line { gap: 4px; }
+  .conversation-members-role-badge { padding: 3px 5px; font-size: 8px; }
 }
 @media (prefers-reduced-motion: reduce) {
+  .conversation-member-choice,
   .conversation-members-current-row,
   .conversation-members-search { transition: none; }
 }

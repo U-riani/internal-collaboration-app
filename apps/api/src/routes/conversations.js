@@ -1047,6 +1047,8 @@ export default async function conversationRoutes(app) {
     return { success: true, data: { count } };
   });
 
+  // Group membership administration belongs to the conversation creator, not
+  // to an organization-wide administrator or a member with a stale OWNER role.
   app.post("/conversations/:id/members", async (request) => {
     const membership = await requireMembership(
       app,
@@ -1057,18 +1059,36 @@ export default async function conversationRoutes(app) {
     const conversation = await app.prisma.conversation.findUnique({
       where: { id: request.params.id },
     });
-    if (conversation.type === "DIRECT" || membership.role !== "OWNER")
+    // GROUP creators must match ownerId; legacy non-DIRECT conversation
+    // types keep their existing OWNER membership policy.
+    const mayAdd = conversation?.type === "GROUP"
+      ? conversation.ownerId === request.authUser.id && membership.role === "OWNER"
+      : conversation?.type !== "DIRECT" && membership.role === "OWNER";
+    if (!mayAdd)
       throw new HttpError(
         403,
         "GROUP_OWNER_REQUIRED",
-        "Only the group owner can add members",
+        "Only an authorized conversation owner can add members",
       );
-    if (
-      !(await app.prisma.user.findFirst({
-        where: { id: input.userId, status: "ACTIVE" },
-      }))
-    )
+
+    const activeUser = await app.prisma.user.findFirst({
+      where: { id: input.userId, status: "ACTIVE" },
+      select: { id: true },
+    });
+    if (!activeUser)
       throw new HttpError(400, "INVALID_MEMBER", "Choose an active user");
+
+    const existing = await app.prisma.conversationMember.findUnique({
+      where: {
+        conversationId_userId: {
+          conversationId: conversation.id,
+          userId: input.userId,
+        },
+      },
+    });
+    if (existing && !existing.leftAt)
+      throw new HttpError(409, "MEMBER_ALREADY_JOINED", "User is already a group member");
+
     await app.prisma.conversationMember.upsert({
       where: {
         conversationId_userId: {
@@ -1077,8 +1097,9 @@ export default async function conversationRoutes(app) {
         },
       },
       create: { conversationId: conversation.id, userId: input.userId },
-      update: { leftAt: null },
+      update: { leftAt: null, role: "MEMBER", joinedAt: new Date() },
     });
+
     app.io
       ?.in(`user:${input.userId}`)
       .socketsJoin(`conversation:${conversation.id}`);
@@ -1087,6 +1108,7 @@ export default async function conversationRoutes(app) {
       .emit("conversation:updated", { id: conversation.id });
     return { success: true, data: null };
   });
+
   app.delete("/conversations/:id/members/:userId", async (request) => {
     const member = await requireMembership(
       app,
@@ -1096,20 +1118,36 @@ export default async function conversationRoutes(app) {
     const conversation = await app.prisma.conversation.findUnique({
       where: { id: request.params.id },
     });
+    const removingSelf = request.params.userId === request.authUser.id;
+    const isCreator = conversation?.ownerId === request.authUser.id &&
+      member.role === "OWNER";
+    const mayRemoveOthers = conversation?.type === "GROUP"
+      ? isCreator
+      : member.role === "OWNER";
+    // Keep the regular member Leave Group action, and preserve ownership
+    // management for existing non-GROUP conversation types.
     if (
-      conversation.type === "DIRECT" ||
-      request.params.userId === conversation.ownerId ||
-      (member.role !== "OWNER" && request.params.userId !== request.authUser.id)
+      conversation?.type === "DIRECT" ||
+      request.params.userId === conversation?.ownerId ||
+      (!removingSelf && !mayRemoveOthers)
     )
       throw new HttpError(
         403,
         "MEMBER_REMOVE_DENIED",
-        "Only the owner can remove other members; owners cannot leave their group",
+        "Only the group creator can remove other members; creators cannot leave their group",
       );
-    await app.prisma.conversationMember.updateMany({
-      where: { conversationId: conversation.id, userId: request.params.userId },
+
+    const removed = await app.prisma.conversationMember.updateMany({
+      where: {
+        conversationId: conversation.id,
+        userId: request.params.userId,
+        leftAt: null,
+      },
       data: { leftAt: new Date() },
     });
+    if (!removed.count)
+      throw new HttpError(404, "MEMBER_NOT_FOUND", "User is not a current group member");
+
     app.io
       ?.in(`user:${request.params.userId}`)
       .socketsLeave(`conversation:${conversation.id}`);

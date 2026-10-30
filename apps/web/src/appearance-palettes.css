@@ -388,10 +388,7 @@ body:has(.app-theme-dark[data-appearance="slate"]) { background: #171b23; }
   background: var(--palette-panel-gradient);
   border-color: var(--app-border);
 }
-.app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .conversation-members-current-list {
-  background: var(--app-surface-raised);
-  border-color: var(--app-border);
-}
+/* Current Members rows inherit the transparent shared-list styling in every palette. */
 
 /* Drive: directory, Shared spaces, action menus and permissions. */
 .app-theme-dark:is([data-appearance="oled"], [data-appearance="slate"]) .drive-page :is(.drive-directory-list .drive-table-head, .drive-directory-summary) {

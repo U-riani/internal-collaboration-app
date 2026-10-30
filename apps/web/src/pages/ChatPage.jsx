@@ -41,6 +41,9 @@ import {
   Hash,
   Check,
   UserRound,
+  UserRoundPlus,
+  UserRoundMinus,
+  ShieldCheck,
 } from "lucide-react";
 import { api, uploadFiles } from "../lib/api.js";
 import { SelectedFiles, useSelectedFiles } from "../components/SelectedFiles.jsx";
@@ -49,6 +52,7 @@ import { useSocket } from "../hooks/useSocket.js";
 import PageHeader from "../components/PageHeader.jsx";
 import "./messages-theme.css";
 import { filterConversationMembers } from "../lib/conversation-member-search.js";
+import { filterAvailableColleagues, toggleColleagueSelection, addSelectedColleagues } from "../lib/group-member-selection.js";
 import {
   Modal,
   Field,
@@ -795,52 +799,248 @@ function NewChat({ onClose, onCreated }) {
     </dialog>
   );
 }
-function Members({ conversation, onClose }) {
+function Members({ conversation, currentUserId, onClose }) {
+  const qc = useQueryClient();
   const [memberSearch, setMemberSearch] = useState("");
+  const [colleagueSearch, setColleagueSearch] = useState("");
+  const [selectedColleagueIds, setSelectedColleagueIds] = useState([]);
+  const [confirmRemoval, setConfirmRemoval] = useState(null);
+  const [addError, setAddError] = useState("");
+  const isCreator =
+    conversation.type === "GROUP" &&
+    conversation.ownerId === currentUserId &&
+    conversation.members.some(
+      (member) => member.userId === currentUserId && member.role === "OWNER",
+    );
+  const users = useQuery({
+    queryKey: ["users"],
+    queryFn: () => api("/users").then((result) => result.data),
+    enabled: isCreator,
+  });
+  const availableColleagues = useMemo(
+    () => filterAvailableColleagues(users.data || [], conversation.members, colleagueSearch),
+    [users.data, conversation.members, colleagueSearch],
+  );
+  const availableIds = useMemo(
+    () => new Set(filterAvailableColleagues(users.data || [], conversation.members).map((person) => person.id)),
+    [users.data, conversation.members],
+  );
+  const eligibleSelectedIds = selectedColleagueIds.filter((id) => availableIds.has(id));
   const filteredMembers = useMemo(
-    () => filterConversationMembers(conversation.members, memberSearch),
-    [conversation.members, memberSearch],
+    () => filterConversationMembers(conversation.members, memberSearch)
+      .slice()
+      .sort((a, b) => Number(b.userId === conversation.ownerId) - Number(a.userId === conversation.ownerId)),
+    [conversation.members, conversation.ownerId, memberSearch],
   );
   const searching = Boolean(memberSearch.trim());
 
+  const addMember = useMutation({
+    mutationFn: (userIds) => addSelectedColleagues(userIds, (userId) =>
+      api("/conversations/" + conversation.id + "/members", {
+        method: "POST",
+        body: JSON.stringify({ userId }),
+      }),
+    ),
+    onSuccess: async ({ addedIds, failed }) => {
+      if (addedIds.length) {
+        setSelectedColleagueIds((ids) => ids.filter((id) => !addedIds.includes(id)));
+      }
+      setAddError(failed.length
+        ? failed.length + (failed.length === 1 ? " colleague could" : " colleagues could") +
+          " not be added. " + (failed[0].error?.message || "Please try again.")
+        : "");
+      await qc.invalidateQueries({ queryKey: ["conversations"] });
+    },
+  });
+  const removeMember = useMutation({
+    mutationFn: (userId) => api("/conversations/" + conversation.id + "/members/" + userId, {
+      method: "DELETE",
+    }),
+    onSuccess: async () => {
+      setConfirmRemoval(null);
+      await qc.invalidateQueries({ queryKey: ["conversations"] });
+    },
+  });
+  const busy = addMember.isPending || removeMember.isPending;
+
   return (
-    <Modal title="Conversation Members" onClose={onClose}>
-      <div className="conversation-members-modal">
-        <SearchBar
-          className="conversation-members-search"
-          ariaLabel="Search conversation members"
-          placeholder="Search members..."
-          value={memberSearch}
-          onChange={(event) => setMemberSearch(event.target.value)}
-          iconSize={18}
-        />
-        <div className="conversation-members-current-heading">
-          <span>Current members</span>
-          <span className="new-conversation-count" aria-live="polite">
-            {searching
-              ? `${filteredMembers.length} of ${conversation.members.length}`
-              : `${conversation.members.length} ${conversation.members.length === 1 ? "member" : "members"}`}
-          </span>
-        </div>
-        <div className="conversation-members-current-list" role="list" aria-label="Conversation members">
-          {filteredMembers.length ? (
-            filteredMembers.map((member) => (
-              <div key={member.userId} className="conversation-members-current-row" role="listitem">
-                <Avatar small name={member.user.displayName} />
-                <span className="conversation-members-current-name" title={member.user.displayName}>
-                  {member.user.displayName}
-                </span>
-                <span className="conversation-members-current-role">{member.role.toLowerCase()}</span>
+    <>
+      <Modal title="Conversation Members" onClose={onClose} className="conversation-members-dialog">
+        <div className="conversation-members-modal">
+          {isCreator && (
+            <section className="conversation-members-invite" aria-label="Add group members">
+              <div className="conversation-members-invite-heading">
+                <UserRoundPlus size={16} aria-hidden="true" />
+                <span>Add colleagues to group</span>
               </div>
-            ))
-          ) : (
-            <p className="conversation-members-empty" role="status">
-              {searching ? "No members found." : "No members in this conversation."}
-            </p>
+              <div className="conversation-members-picker">
+                <SearchBar
+                  className="conversation-members-search"
+                  ariaLabel="Search colleagues to add"
+                  placeholder="Search participants..."
+                  value={colleagueSearch}
+                  onChange={(event) => setColleagueSearch(event.target.value)}
+                  iconSize={18}
+                />
+                <div className="conversation-members-picker-list" role="group" aria-label="Select colleagues">
+                  {users.isPending ? (
+                    <p className="conversation-members-empty" role="status">Loading colleagues…</p>
+                  ) : users.isError ? (
+                    <p className="conversation-members-empty" role="status">Could not load colleagues.</p>
+                  ) : availableColleagues.length ? (
+                    availableColleagues.map((person) => {
+                      const checked = eligibleSelectedIds.includes(person.id);
+                      return (
+                        <label
+                          key={person.id}
+                          className={"conversation-member-card conversation-member-choice" + (checked ? " is-selected" : "")}
+                        >
+                          <Avatar small name={person.displayName} />
+                          <span className="conversation-members-person-info">
+                            <strong className="conversation-members-person-name" title={person.displayName}>
+                              {person.displayName}
+                            </strong>
+                            <small className="conversation-members-person-email" title={person.email}>
+                              {person.email}
+                            </small>
+                          </span>
+                          <input
+                            type="checkbox"
+                            className="conversation-members-checkbox"
+                            checked={checked}
+                            disabled={busy}
+                            onChange={() => {
+                              setAddError("");
+                              setSelectedColleagueIds((ids) => toggleColleagueSelection(ids, person.id));
+                            }}
+                            aria-label={"Select " + person.displayName}
+                          />
+                        </label>
+                      );
+                    })
+                  ) : (
+                    <p className="conversation-members-empty" role="status">
+                      {colleagueSearch.trim()
+                        ? "No matching colleagues found."
+                        : "All active colleagues are already in this group."}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="conversation-members-add-footer">
+                <span aria-live="polite">
+                  {eligibleSelectedIds.length} {eligibleSelectedIds.length === 1 ? "colleague" : "colleagues"} selected
+                </span>
+                <button
+                  type="button"
+                  className="btn-primary conversation-members-add-btn"
+                  disabled={!eligibleSelectedIds.length || busy}
+                  onClick={() => {
+                    setAddError("");
+                    addMember.mutate(eligibleSelectedIds);
+                  }}
+                >
+                  <Plus size={16} aria-hidden="true" />
+                  {addMember.isPending ? "Adding…" : "Add"}
+                </button>
+              </div>
+              <ErrorBox error={addError || addMember.error || users.error} />
+            </section>
+          )}
+
+          <section className="conversation-members-existing" aria-label="Current members">
+            <div className="conversation-members-current-heading">
+              <span>Current members</span>
+              <span className="new-conversation-count" aria-live="polite">
+                {searching
+                  ? filteredMembers.length + " of " + conversation.members.length
+                  : conversation.members.length + " " + (conversation.members.length === 1 ? "member" : "members")}
+              </span>
+            </div>
+            <div className="conversation-members-current-panel">
+              <SearchBar
+                className="conversation-members-search"
+                ariaLabel="Search conversation members"
+                placeholder="Search members..."
+                value={memberSearch}
+                onChange={(event) => setMemberSearch(event.target.value)}
+                iconSize={18}
+              />
+              <div className="conversation-members-current-list" role="list" aria-label="Conversation members">
+                {filteredMembers.length ? (
+                  filteredMembers.map((member) => (
+                    <div key={member.userId} className="conversation-members-current-row" role="listitem">
+                      <span className="conversation-members-person-icon" aria-hidden="true">
+                        <UserRound size={16} strokeWidth={1.8} />
+                      </span>
+                    <span className="conversation-members-person-info">
+                      <span className="conversation-members-name-line">
+                        <strong className="conversation-members-person-name" title={member.user.displayName}>
+                          {member.user.displayName}
+                        </strong>
+                        <span className={"conversation-members-role-badge" + (member.userId === conversation.ownerId ? " is-owner" : "")}>
+                          {member.userId === conversation.ownerId ? "Owner" : member.role.toLowerCase()}
+                        </span>
+                      </span>
+                      <small className="conversation-members-person-email" title={member.user.email}>
+                        {member.user.email}
+                      </small>
+                    </span>
+                    {conversation.type === "GROUP" && member.userId === conversation.ownerId ? (
+                      <span className="conversation-members-protected">
+                        <ShieldCheck size={14} aria-hidden="true" />
+                        Protected
+                      </span>
+                    ) : isCreator && (
+                      <button
+                        type="button"
+                        className="conversation-members-remove"
+                        aria-label={"Remove " + member.user.displayName + " from group"}
+                        disabled={busy}
+                        onClick={() => {
+                          removeMember.reset();
+                          setConfirmRemoval(member);
+                        }}
+                      >
+                        <UserRoundMinus size={15} aria-hidden="true" />
+                        <span>Remove</span>
+                      </button>
+                    )}
+                  </div>
+                ))
+                ) : (
+                  <p className="conversation-members-empty" role="status">
+                    {searching ? "No members found." : "No members in this conversation."}
+                  </p>
+                )}
+              </div>
+            </div>
+          </section>
+          {!isCreator && conversation.type === "GROUP" && (
+            <p className="conversation-members-note">Only the group creator can manage members.</p>
           )}
         </div>
-      </div>
-    </Modal>
+      </Modal>
+      {confirmRemoval && (
+        <Modal
+          title="Remove Group Member"
+          className="group-action-modal"
+          onClose={() => { if (!removeMember.isPending) setConfirmRemoval(null); }}
+        >
+          <div className="conversation-leave-modal">
+            <p>Remove <strong>{confirmRemoval.user.displayName}</strong> from this group?</p>
+            <p className="conversation-leave-hint">They will lose access to group messages until added again.</p>
+            <ErrorBox error={removeMember.error} />
+            <div className="conversation-group-modal-actions">
+              <button type="button" className="btn-danger" disabled={removeMember.isPending}
+                onClick={() => removeMember.mutate(confirmRemoval.userId)}>
+                {removeMember.isPending ? "Removing…" : "Remove member"}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </>
   );
 }
 
@@ -1333,6 +1533,19 @@ export default function ChatPage() {
   ]);
 
   useSocket({
+    "conversation:updated": () => {
+      qc.invalidateQueries({ queryKey: ["conversations"] });
+    },
+    "conversation:removed": ({ id }) => {
+      if (selectedId === id) {
+        selectConversation(null);
+        sessionStorage.removeItem(lastChatKey);
+      }
+      qc.setQueryData(["conversations"], (items = []) =>
+        items.filter((item) => item.id !== id),
+      );
+      qc.invalidateQueries({ queryKey: ["conversations"] });
+    },
     "message:created": (p) => {
       qc.invalidateQueries({ queryKey: ["conversations"] });
       qc.invalidateQueries({ queryKey: ["messages", p.conversationId] });
@@ -2296,7 +2509,7 @@ export default function ChatPage() {
         />
       )}{" "}
       {members && selected && (
-        <Members conversation={selected} onClose={() => setMembers(false)} />
+        <Members conversation={selected} currentUserId={user.id} onClose={() => setMembers(false)} />
       )}{" "}
       {renameGroup && selected?.type === "GROUP" && (
         <GroupRenameModal
