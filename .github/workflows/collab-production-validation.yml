@@ -11,6 +11,7 @@ permissions:
 jobs:
   integration:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     services:
       postgres:
         image: postgres:17
@@ -57,5 +58,10 @@ jobs:
         run: npm --prefix apps/web run build
       - name: Run React tests
         run: npm --prefix apps/web test
-      - name: Run backend tests
-        run: npm --prefix apps/api test
+      - name: Validate isolated Staging Compose configuration (no deployment)
+        run: |
+          cp .env.staging.example .env.staging
+          docker compose --env-file .env.staging -f compose.staging.yml config --quiet
+      - name: Run complete backend tests with bounded concurrency and timeout
+        working-directory: apps/api
+        run: timeout --signal=TERM --kill-after=15s 840s node --test --test-concurrency=1 tests/*.test.js
