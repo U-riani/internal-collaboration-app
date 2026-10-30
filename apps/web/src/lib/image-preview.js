@@ -18,3 +18,18 @@ export function safeImageMimeType(mimeType) {
 export function isInlineImage(file) {
   return Boolean(file?.id && safeImageMimeType(file?.mimeType));
 }
+
+// Keep the standard text bubble whenever a message has a caption, another
+// attachment type, a reply quote or is deleted. Only photo-only messages
+// should render as standalone media without a colored chat bubble.
+export function isImageOnlyMessage(message) {
+  return Boolean(
+    message &&
+      !message.deletedAt &&
+      !message.replyToMessage &&
+      !message.content?.trim() &&
+      Array.isArray(message.attachments) &&
+      message.attachments.length > 0 &&
+      message.attachments.every((item) => isInlineImage(item?.file || item)),
+  );
+}
