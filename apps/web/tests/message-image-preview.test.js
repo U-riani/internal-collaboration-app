@@ -21,11 +21,11 @@ describe("Messages inline images", () => {
 
   it("switches only the message bubbles to media-aware rendering", () => {
     expect(chat).toContain('import MessageAttachments from "../components/MessageAttachments.jsx"');
-    expect(chat).toContain("<MessageAttachments items={m.attachments} />");
+    expect(chat).toContain("<MessageAttachments items={m.attachments} conversationId={selectedId} messageId={m.id} />");
     expect(chat).toContain("<Attachments items={[{ file: result.file }]} />");
     expect(imageComponent).toContain("isInlineImage(file)");
     expect(imageComponent).toContain("<Attachments items={files} />");
-    expect(imageComponent).toContain("<ImageAttachment key={images[0].id} images={images} />");
+    expect(imageComponent).toContain("<ImageAttachment key={images[0].id} images={images} conversationId={conversationId} messageId={messageId} />");
   });
 
   it("uses authenticated requests, supports retrying expired access tokens and aborts offscreen loads", () => {
@@ -78,7 +78,7 @@ describe("Messages inline images", () => {
   });
 
   it("keeps exactly one thumbnail in the chat and shows +N for additional images", () => {
-    expect(imageComponent).toContain("<ImageAttachment key={images[0].id} images={images} />");
+    expect(imageComponent).toContain("<ImageAttachment key={images[0].id} images={images} conversationId={conversationId} messageId={messageId} />");
     expect(imageComponent).toContain("const remainingCount = images.length - 1;");
     expect(imageComponent).toContain("{remainingCount > 0 && (");
     expect(imageComponent).toContain('className="message-image-count"');
@@ -114,5 +114,22 @@ describe("Messages inline images", () => {
     expect(imageComponent).toContain("images={images}");
     expect(imageStyles).toContain(".chat-image-gallery-stage {");
     expect(imageStyles).toContain(".chat-image-gallery-arrow:disabled {");
+  });
+
+  it("uses the same secure ZIP action for the outer icon and gallery Download All", () => {
+    expect(api).toContain("export async function downloadMessageImages(conversationId, messageId)");
+    expect(api).toContain('/images/archive');
+    expect(api).toContain("getAccessToken()");
+    expect(api).toContain("await refreshSession()");
+    expect(api).toContain('link.download = `message-images-${messageId}.zip`');
+    expect(imageComponent).toContain("if (images.length > 1) await downloadMessageImages(conversationId, messageId)");
+    expect(imageComponent).toContain("else await downloadFile(file.id, file.originalName)");
+    expect(imageComponent).toContain("await downloadFile(selected.id, selected.originalName)");
+    expect(imageComponent).toContain("await downloadMessageImages(conversationId, messageId)");
+    expect(imageComponent).toContain("{count > 1 && (");
+    expect(imageComponent).toContain("Download All");
+    expect(imageComponent).toContain('aria-label={remainingCount > 0 ? "Download all "');
+    expect(imageStyles).toContain(".chat-image-gallery-downloads");
+    expect(imageStyles).toContain(".chat-image-lightbox-download-all");
   });
 });
