@@ -43,6 +43,7 @@ import {
   UserRound,
   UserRoundPlus,
   UserRoundMinus,
+  ShieldCheck,
 } from "lucide-react";
 import { api, uploadFiles } from "../lib/api.js";
 import { SelectedFiles, useSelectedFiles } from "../components/SelectedFiles.jsx";
@@ -51,6 +52,7 @@ import { useSocket } from "../hooks/useSocket.js";
 import PageHeader from "../components/PageHeader.jsx";
 import "./messages-theme.css";
 import { filterConversationMembers } from "../lib/conversation-member-search.js";
+import { filterAvailableColleagues, toggleColleagueSelection, addSelectedColleagues } from "../lib/group-member-selection.js";
 import {
   Modal,
   Field,
@@ -801,9 +803,10 @@ function Members({ conversation, currentUserId, onClose }) {
   const qc = useQueryClient();
   const [memberSearch, setMemberSearch] = useState("");
   const [colleagueSearch, setColleagueSearch] = useState("");
-  const [selectedColleague, setSelectedColleague] = useState(null);
+  const [selectedColleagueIds, setSelectedColleagueIds] = useState([]);
   const [confirmRemoval, setConfirmRemoval] = useState(null);
   const [successMessage, setSuccessMessage] = useState("");
+  const [addError, setAddError] = useState("");
   const isCreator =
     conversation.type === "GROUP" &&
     conversation.ownerId === currentUserId &&
@@ -815,30 +818,42 @@ function Members({ conversation, currentUserId, onClose }) {
     queryFn: () => api("/users").then((result) => result.data),
     enabled: isCreator,
   });
-  const availableColleagues = useMemo(() => {
-    const existingIds = new Set(conversation.members.map((member) => member.userId));
-    const query = colleagueSearch.trim().toLocaleLowerCase();
-    return (users.data || [])
-      .filter((person) => person.status === "ACTIVE" && !existingIds.has(person.id))
-      .filter((person) => !query || [
-        person.displayName, person.email, person.jobTitle, person.department?.name,
-      ].some((value) => value?.toLocaleLowerCase().includes(query)));
-  }, [users.data, conversation.members, colleagueSearch]);
+  const availableColleagues = useMemo(
+    () => filterAvailableColleagues(users.data || [], conversation.members, colleagueSearch),
+    [users.data, conversation.members, colleagueSearch],
+  );
+  const availableIds = useMemo(
+    () => new Set(filterAvailableColleagues(users.data || [], conversation.members).map((person) => person.id)),
+    [users.data, conversation.members],
+  );
+  const eligibleSelectedIds = selectedColleagueIds.filter((id) => availableIds.has(id));
   const filteredMembers = useMemo(
-    () => filterConversationMembers(conversation.members, memberSearch),
-    [conversation.members, memberSearch],
+    () => filterConversationMembers(conversation.members, memberSearch)
+      .slice()
+      .sort((a, b) => Number(b.userId === conversation.ownerId) - Number(a.userId === conversation.ownerId)),
+    [conversation.members, conversation.ownerId, memberSearch],
   );
   const searching = Boolean(memberSearch.trim());
 
   const addMember = useMutation({
-    mutationFn: (userId) => api("/conversations/" + conversation.id + "/members", {
-      method: "POST",
-      body: JSON.stringify({ userId }),
-    }),
-    onSuccess: async () => {
-      setColleagueSearch("");
-      setSelectedColleague(null);
-      setSuccessMessage("Colleague added to the group.");
+    mutationFn: (userIds) => addSelectedColleagues(userIds, (userId) =>
+      api("/conversations/" + conversation.id + "/members", {
+        method: "POST",
+        body: JSON.stringify({ userId }),
+      }),
+    ),
+    onSuccess: async ({ addedIds, failed }) => {
+      if (addedIds.length) {
+        setSelectedColleagueIds((ids) => ids.filter((id) => !addedIds.includes(id)));
+        setSuccessMessage(
+          addedIds.length === 1 ? "1 colleague added to the group." :
+            addedIds.length + " colleagues added to the group.",
+        );
+      }
+      setAddError(failed.length
+        ? failed.length + (failed.length === 1 ? " colleague could" : " colleagues could") +
+          " not be added. " + (failed[0].error?.message || "Please try again.")
+        : "");
       await qc.invalidateQueries({ queryKey: ["conversations"] });
     },
   });
@@ -853,6 +868,7 @@ function Members({ conversation, currentUserId, onClose }) {
     },
   });
   const busy = addMember.isPending || removeMember.isPending;
+
   return (
     <>
       <Modal title="Conversation Members" onClose={onClose} className="conversation-members-dialog">
@@ -863,120 +879,152 @@ function Members({ conversation, currentUserId, onClose }) {
                 <UserRoundPlus size={16} aria-hidden="true" />
                 <span>Add colleagues to group</span>
               </div>
-              <div className="conversation-members-add-row">
-                <div className="conversation-members-add-search-wrap">
-                  <SearchBar
-                    className="conversation-members-search"
-                    ariaLabel="Search colleagues to add"
-                    placeholder="Search colleagues..."
-                    value={colleagueSearch}
-                    onChange={(event) => {
-                      setColleagueSearch(event.target.value);
-                      setSelectedColleague(null);
-                      setSuccessMessage("");
-                    }}
-                    iconSize={18}
-                  />
-                  {colleagueSearch.trim() && !selectedColleague && (
-                    <div className="conversation-members-suggestions" role="listbox" aria-label="Available colleagues">
-                      {users.isPending ? (
-                        <p className="conversation-members-suggestion-state">Loading colleagues…</p>
-                      ) : users.isError ? (
-                        <p className="conversation-members-suggestion-state">Could not load colleagues.</p>
-                      ) : availableColleagues.length ? (
-                        availableColleagues.slice(0, 30).map((person) => (
-                          <button
-                            type="button"
-                            key={person.id}
-                            role="option"
-                            aria-selected={false}
-                            className="conversation-members-suggestion"
-                            onClick={() => {
-                              setSelectedColleague(person);
-                              setColleagueSearch(person.displayName);
+              <div className="conversation-members-picker">
+                <SearchBar
+                  className="conversation-members-search"
+                  ariaLabel="Search colleagues to add"
+                  placeholder="Search participants..."
+                  value={colleagueSearch}
+                  onChange={(event) => setColleagueSearch(event.target.value)}
+                  iconSize={18}
+                />
+                <div className="conversation-members-picker-list" role="group" aria-label="Select colleagues">
+                  {users.isPending ? (
+                    <p className="conversation-members-empty" role="status">Loading colleagues…</p>
+                  ) : users.isError ? (
+                    <p className="conversation-members-empty" role="status">Could not load colleagues.</p>
+                  ) : availableColleagues.length ? (
+                    availableColleagues.map((person) => {
+                      const checked = eligibleSelectedIds.includes(person.id);
+                      return (
+                        <label
+                          key={person.id}
+                          className={"conversation-member-card conversation-member-choice" + (checked ? " is-selected" : "")}
+                        >
+                          <Avatar small name={person.displayName} />
+                          <span className="conversation-members-person-info">
+                            <strong className="conversation-members-person-name" title={person.displayName}>
+                              {person.displayName}
+                            </strong>
+                            <small className="conversation-members-person-email" title={person.email}>
+                              {person.email}
+                            </small>
+                          </span>
+                          <input
+                            type="checkbox"
+                            className="conversation-members-checkbox"
+                            checked={checked}
+                            disabled={busy}
+                            onChange={() => {
+                              setAddError("");
+                              setSuccessMessage("");
+                              setSelectedColleagueIds((ids) => toggleColleagueSelection(ids, person.id));
                             }}
-                          >
-                            <Avatar small name={person.displayName} />
-                            <span className="conversation-members-suggestion-details">
-                              <strong>{person.displayName}</strong>
-                              <small>{person.email}</small>
-                            </span>
-                          </button>
-                        ))
-                      ) : (
-                        <p className="conversation-members-suggestion-state">No available colleagues found.</p>
-                      )}
-                    </div>
+                            aria-label={"Select " + person.displayName}
+                          />
+                        </label>
+                      );
+                    })
+                  ) : (
+                    <p className="conversation-members-empty" role="status">
+                      {colleagueSearch.trim()
+                        ? "No matching colleagues found."
+                        : "All active colleagues are already in this group."}
+                    </p>
                   )}
                 </div>
+              </div>
+              <div className="conversation-members-add-footer">
+                <span aria-live="polite">
+                  {eligibleSelectedIds.length} {eligibleSelectedIds.length === 1 ? "colleague" : "colleagues"} selected
+                </span>
                 <button
                   type="button"
                   className="btn-primary conversation-members-add-btn"
-                  disabled={!selectedColleague || busy}
+                  disabled={!eligibleSelectedIds.length || busy}
                   onClick={() => {
                     setSuccessMessage("");
-                    if (selectedColleague) addMember.mutate(selectedColleague.id);
+                    setAddError("");
+                    addMember.mutate(eligibleSelectedIds);
                   }}
                 >
                   <Plus size={16} aria-hidden="true" />
-                  {addMember.isPending ? "Adding…" : "Add"}
+                  {addMember.isPending ? "Adding…" :
+                    eligibleSelectedIds.length ? "Add (" + eligibleSelectedIds.length + ")" : "Add"}
                 </button>
               </div>
-              <ErrorBox error={addMember.error || users.error} />
-              {successMessage && <p className="conversation-members-success" role="status">{successMessage}</p>}
+              <ErrorBox error={addError || addMember.error || users.error} />
+              {successMessage && (
+                <p className="conversation-members-success" role="status">{successMessage}</p>
+              )}
             </section>
           )}
-          <SearchBar
-            className="conversation-members-search"
-            ariaLabel="Search conversation members"
-            placeholder="Search members..."
-            value={memberSearch}
-            onChange={(event) => setMemberSearch(event.target.value)}
-            iconSize={18}
-          />
-          <div className="conversation-members-current-heading">
-            <span>Current members</span>
-            <span className="new-conversation-count" aria-live="polite">
-              {searching
-                ? `${filteredMembers.length} of ${conversation.members.length}`
-                : `${conversation.members.length} ${conversation.members.length === 1 ? "member" : "members"}`}
-            </span>
-          </div>
-          <div className="conversation-members-current-list" role="list" aria-label="Conversation members">
-            {filteredMembers.length ? (
-              filteredMembers.map((member) => (
-                <div key={member.userId} className="conversation-members-current-row" role="listitem">
-                  <Avatar small name={member.user.displayName} />
-                  <span className="conversation-members-current-name" title={member.user.displayName}>
-                    {member.user.displayName}
-                  </span>
-                  <span className="conversation-members-current-role">
-                    {member.userId === conversation.ownerId ? "Owner" : member.role.toLowerCase()}
-                  </span>
-                  {isCreator && member.userId !== conversation.ownerId && (
-                    <button
-                      type="button"
-                      className="conversation-members-remove"
-                      aria-label={`Remove ${member.user.displayName} from group`}
-                      disabled={busy}
-                      onClick={() => {
-                        setSuccessMessage("");
-                        removeMember.reset();
-                        setConfirmRemoval(member);
-                      }}
-                    >
-                      <UserRoundMinus size={15} aria-hidden="true" />
-                      <span>Remove</span>
-                    </button>
-                  )}
-                </div>
-              ))
-            ) : (
-              <p className="conversation-members-empty" role="status">
-                {searching ? "No members found." : "No members in this conversation."}
-              </p>
-            )}
-          </div>
+
+          <section className="conversation-members-existing" aria-label="Current members">
+            <div className="conversation-members-current-heading">
+              <span>Current members</span>
+              <span className="new-conversation-count" aria-live="polite">
+                {searching
+                  ? filteredMembers.length + " of " + conversation.members.length
+                  : conversation.members.length + " " + (conversation.members.length === 1 ? "member" : "members")}
+              </span>
+            </div>
+            <SearchBar
+              className="conversation-members-search"
+              ariaLabel="Search conversation members"
+              placeholder="Search members..."
+              value={memberSearch}
+              onChange={(event) => setMemberSearch(event.target.value)}
+              iconSize={18}
+            />
+            <div className="conversation-members-current-list" role="list" aria-label="Conversation members">
+              {filteredMembers.length ? (
+                filteredMembers.map((member) => (
+                  <div key={member.userId} className="conversation-member-card conversation-members-current-row" role="listitem">
+                    <Avatar small name={member.user.displayName} />
+                    <span className="conversation-members-person-info">
+                      <span className="conversation-members-name-line">
+                        <strong className="conversation-members-person-name" title={member.user.displayName}>
+                          {member.user.displayName}
+                        </strong>
+                        <span className={"conversation-members-role-badge" + (member.userId === conversation.ownerId ? " is-owner" : "")}>
+                          {member.userId === conversation.ownerId ? "Owner" : member.role.toLowerCase()}
+                        </span>
+                      </span>
+                      <small className="conversation-members-person-email" title={member.user.email}>
+                        {member.user.email}
+                      </small>
+                    </span>
+                    {conversation.type === "GROUP" && member.userId === conversation.ownerId ? (
+                      <span className="conversation-members-protected">
+                        <ShieldCheck size={14} aria-hidden="true" />
+                        Protected
+                      </span>
+                    ) : isCreator && (
+                      <button
+                        type="button"
+                        className="conversation-members-remove"
+                        aria-label={"Remove " + member.user.displayName + " from group"}
+                        disabled={busy}
+                        onClick={() => {
+                          setSuccessMessage("");
+                          removeMember.reset();
+                          setConfirmRemoval(member);
+                        }}
+                      >
+                        <UserRoundMinus size={15} aria-hidden="true" />
+                        <span>Remove</span>
+                      </button>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <p className="conversation-members-empty" role="status">
+                  {searching ? "No members found." : "No members in this conversation."}
+                </p>
+              )}
+            </div>
+          </section>
           {!isCreator && conversation.type === "GROUP" && (
             <p className="conversation-members-note">Only the group creator can manage members.</p>
           )}
