@@ -1059,15 +1059,16 @@ export default async function conversationRoutes(app) {
     const conversation = await app.prisma.conversation.findUnique({
       where: { id: request.params.id },
     });
-    if (
-      conversation?.type !== "GROUP" ||
-      conversation.ownerId !== request.authUser.id ||
-      membership.role !== "OWNER"
-    )
+    // GROUP creators must match ownerId; legacy non-DIRECT conversation
+    // types keep their existing OWNER membership policy.
+    const mayAdd = conversation?.type === "GROUP"
+      ? conversation.ownerId === request.authUser.id && membership.role === "OWNER"
+      : conversation?.type !== "DIRECT" && membership.role === "OWNER";
+    if (!mayAdd)
       throw new HttpError(
         403,
         "GROUP_OWNER_REQUIRED",
-        "Only the group creator can add members",
+        "Only an authorized conversation owner can add members",
       );
 
     const activeUser = await app.prisma.user.findFirst({
@@ -1105,9 +1106,6 @@ export default async function conversationRoutes(app) {
     app.io
       ?.to(`conversation:${conversation.id}`)
       .emit("conversation:updated", { id: conversation.id });
-    app.io
-      ?.to(`user:${input.userId}`)
-      .emit("conversation:updated", { id: conversation.id });
     return { success: true, data: null };
   });
 
@@ -1123,12 +1121,15 @@ export default async function conversationRoutes(app) {
     const removingSelf = request.params.userId === request.authUser.id;
     const isCreator = conversation?.ownerId === request.authUser.id &&
       member.role === "OWNER";
-    // Keep Leave Group available to regular members, but never to its creator.
-    // Removing anyone else is restricted to the creator of a GROUP.
+    const mayRemoveOthers = conversation?.type === "GROUP"
+      ? isCreator
+      : member.role === "OWNER";
+    // Keep the regular member Leave Group action, and preserve ownership
+    // management for existing non-GROUP conversation types.
     if (
       conversation?.type === "DIRECT" ||
       request.params.userId === conversation?.ownerId ||
-      (!removingSelf && (conversation?.type !== "GROUP" || !isCreator))
+      (!removingSelf && !mayRemoveOthers)
     )
       throw new HttpError(
         403,
