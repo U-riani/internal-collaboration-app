@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Download, Image as ImageIcon, LoaderCircle } from "lucide-react";
-import { downloadFile, fetchImagePreview } from "../lib/api.js";
+import { downloadFile, downloadMessageImages, fetchImagePreview } from "../lib/api.js";
 import { isInlineImage, stepGalleryIndex } from "../lib/image-preview.js";
 import { Attachments, Modal } from "./UI.jsx";
 import "./message-image-preview.css";
@@ -50,10 +50,11 @@ function GalleryImage({ file, thumbnailUrl }) {
   );
 }
 
-function ImageGallery({ images, thumbnailUrl, onClose }) {
+function ImageGallery({ images, thumbnailUrl, conversationId, messageId, onClose }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [downloadError, setDownloadError] = useState("");
   const [downloading, setDownloading] = useState(false);
+  const [downloadingAll, setDownloadingAll] = useState(false);
   const selected = images[activeIndex];
   const count = images.length;
 
@@ -86,6 +87,18 @@ function ImageGallery({ images, thumbnailUrl, onClose }) {
       setDownloadError(error.message || "Download failed");
     } finally {
       setDownloading(false);
+    }
+  };
+
+  const downloadAll = async () => {
+    setDownloadError("");
+    setDownloadingAll(true);
+    try {
+      await downloadMessageImages(conversationId, messageId);
+    } catch (error) {
+      setDownloadError(error.message || "Could not download all photos");
+    } finally {
+      setDownloadingAll(false);
     }
   };
 
@@ -125,15 +138,28 @@ function ImageGallery({ images, thumbnailUrl, onClose }) {
           <span className="chat-image-gallery-counter" aria-live="polite">
             {activeIndex + 1} / {count}
           </span>
-          <button
-            type="button"
-            className="btn-primary chat-image-lightbox-download"
-            onClick={download}
-            disabled={downloading}
-          >
-            <Download size={16} />
-            {downloading ? "Downloading…" : "Download image"}
-          </button>
+          <div className="chat-image-gallery-downloads">
+            <button
+              type="button"
+              className="btn-primary chat-image-lightbox-download"
+              onClick={download}
+              disabled={downloading || downloadingAll}
+            >
+              <Download size={16} />
+              {downloading ? "Downloading…" : "Download image"}
+            </button>
+            {count > 1 && (
+              <button
+                type="button"
+                className="btn-secondary chat-image-lightbox-download-all"
+                onClick={downloadAll}
+                disabled={downloadingAll || downloading}
+              >
+                <Download size={16} />
+                {downloadingAll ? "Preparing ZIP…" : "Download All"}
+              </button>
+            )}
+          </div>
         </div>
         {downloadError && <p className="message-image-error" role="alert">{downloadError}</p>}
       </div>
@@ -141,7 +167,7 @@ function ImageGallery({ images, thumbnailUrl, onClose }) {
   );
 }
 
-function ImageAttachment({ images }) {
+function ImageAttachment({ images, conversationId, messageId }) {
   const file = images[0];
   const remainingCount = images.length - 1;
   const containerRef = useRef(null);
@@ -196,7 +222,8 @@ function ImageAttachment({ images }) {
     setDownloading(true);
     setDownloadError("");
     try {
-      await downloadFile(file.id, file.originalName);
+      if (images.length > 1) await downloadMessageImages(conversationId, messageId);
+      else await downloadFile(file.id, file.originalName);
     } catch (error) {
       setDownloadError(error.message || "Download failed");
     } finally {
@@ -240,8 +267,8 @@ function ImageAttachment({ images }) {
           className="message-image-download"
           onClick={download}
           disabled={downloading}
-          aria-label={"Download " + file.originalName}
-          title="Download image"
+          aria-label={remainingCount > 0 ? "Download all " + images.length + " images" : "Download " + file.originalName}
+          title={remainingCount > 0 ? "Download all photos as ZIP" : "Download image"}
         >
           {downloading ? <LoaderCircle size={16} className="message-image-loading" /> : <Download size={16} />}
         </button>
@@ -251,6 +278,8 @@ function ImageAttachment({ images }) {
         <ImageGallery
           images={images}
           thumbnailUrl={showImage ? src : null}
+          conversationId={conversationId}
+          messageId={messageId}
           onClose={() => setExpanded(false)}
         />
       )}
@@ -259,7 +288,7 @@ function ImageAttachment({ images }) {
 }
 
 /** Opt-in for Messages; other modules retain the shared download-only Attachments. */
-export default function MessageAttachments({ items = [] }) {
+export default function MessageAttachments({ items = [], conversationId, messageId }) {
   const images = [];
   const files = [];
   for (const item of items) {
@@ -271,7 +300,7 @@ export default function MessageAttachments({ items = [] }) {
     <div className="message-attachments">
       {images.length > 0 && (
         <div className="message-images-grid">
-          <ImageAttachment key={images[0].id} images={images} />
+          <ImageAttachment key={images[0].id} images={images} conversationId={conversationId} messageId={messageId} />
         </div>
       )}
       {files.length > 0 && <Attachments items={files} />}
