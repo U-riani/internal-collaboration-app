@@ -1494,6 +1494,19 @@ export default function ChatPage() {
   ]);
 
   useSocket({
+    "conversation:updated": () => {
+      qc.invalidateQueries({ queryKey: ["conversations"] });
+    },
+    "conversation:removed": ({ id }) => {
+      if (selectedId === id) {
+        selectConversation(null);
+        sessionStorage.removeItem(lastChatKey);
+      }
+      qc.setQueryData(["conversations"], (items = []) =>
+        items.filter((item) => item.id !== id),
+      );
+      qc.invalidateQueries({ queryKey: ["conversations"] });
+    },
     "message:created": (p) => {
       qc.invalidateQueries({ queryKey: ["conversations"] });
       qc.invalidateQueries({ queryKey: ["messages", p.conversationId] });
