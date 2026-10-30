@@ -235,6 +235,31 @@ export async function uploadFileWithProgress(file, { onProgress, signal } = {}) 
   }
 }
 
+// Images need a bearer-authenticated fetch: an <img src="/api/..."> cannot
+// send the in-memory access token. Return binary bytes for a short-lived blob URL.
+export async function fetchImagePreview(id, { signal } = {}) {
+  const load = () =>
+    fetch(`/api/v1/files/${encodeURIComponent(id)}/preview`, {
+      headers: { authorization: `Bearer ${getAccessToken()}` },
+      credentials: "include",
+      signal,
+    });
+  let response = await load();
+  if (response.status === 401 && !signal?.aborted) {
+    await refreshSession();
+    if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+    response = await load();
+  }
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.error?.message || "Image preview could not be loaded");
+  }
+  const type = response.headers.get("content-type")?.split(";")[0].trim().toLowerCase();
+  if (!["image/jpeg", "image/png", "image/gif", "image/webp", "image/avif"].includes(type))
+    throw new Error("The preview response was not a supported image");
+  return response.blob();
+}
+
 export async function downloadFile(id, filename) {
   try {
     const sheetLink = await api(`/drive/sheets/by-file/${id}`);
