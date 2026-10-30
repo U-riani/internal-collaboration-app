@@ -30,7 +30,7 @@ describe("Messages group actions", () => {
     expect(members).toContain("conversation.ownerId === currentUserId");
     expect(members).toContain("member.role === \"OWNER\"");
     expect(members).toContain("isCreator &&");
-    expect(members).toContain("member.userId !== conversation.ownerId");
+    expect(members).toContain("conversation-members-protected");
     expect(members).toContain("enabled: isCreator");
     expect(members).toContain("<SearchBar");
     expect(members).toContain('ariaLabel="Search conversation members"');
@@ -60,5 +60,25 @@ describe("Messages group actions", () => {
     expect(styles).toContain("var(--app-danger)");
     expect(styles).toContain(".chat-group-options-menu");
     expect(styles).toContain(".modal.group-action-modal");
+  });
+  it("renders multi-select colleague cards and rich current member cards", () => {
+    const members = chat.split("function Members(")[1].split("function GroupRenameModal(")[0];
+    expect(members).toContain('role="group" aria-label="Select colleagues"');
+    expect(members).toContain('type="checkbox"');
+    expect(members).toContain("checked={checked}");
+    expect(members).toContain("toggleColleagueSelection");
+    expect(members).toContain("addSelectedColleagues");
+    expect(members).toContain("eligibleSelectedIds");
+    expect(members).toContain("disabled={!eligibleSelectedIds.length || busy}");
+    expect(members).toContain("conversation-members-person-email");
+    expect(members).toContain("conversation-members-role-badge");
+    expect(members).toContain("<ShieldCheck");
+    expect(members).toContain("Remove Group Member");
+    expect(members).not.toContain("online-indicator");
+    expect(styles).toContain(".conversation-member-card");
+    expect(styles).toContain(".conversation-members-picker-list");
+    expect(styles).toContain(".conversation-members-checkbox:checked");
+    expect(styles).toContain(".conversation-members-add-btn:disabled:hover");
+    expect(styles).toContain("pointer-events: none");
   });
 });
