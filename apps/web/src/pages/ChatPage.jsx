@@ -805,7 +805,6 @@ function Members({ conversation, currentUserId, onClose }) {
   const [colleagueSearch, setColleagueSearch] = useState("");
   const [selectedColleagueIds, setSelectedColleagueIds] = useState([]);
   const [confirmRemoval, setConfirmRemoval] = useState(null);
-  const [successMessage, setSuccessMessage] = useState("");
   const [addError, setAddError] = useState("");
   const isCreator =
     conversation.type === "GROUP" &&
@@ -845,10 +844,6 @@ function Members({ conversation, currentUserId, onClose }) {
     onSuccess: async ({ addedIds, failed }) => {
       if (addedIds.length) {
         setSelectedColleagueIds((ids) => ids.filter((id) => !addedIds.includes(id)));
-        setSuccessMessage(
-          addedIds.length === 1 ? "1 colleague added to the group." :
-            addedIds.length + " colleagues added to the group.",
-        );
       }
       setAddError(failed.length
         ? failed.length + (failed.length === 1 ? " colleague could" : " colleagues could") +
@@ -863,7 +858,6 @@ function Members({ conversation, currentUserId, onClose }) {
     }),
     onSuccess: async () => {
       setConfirmRemoval(null);
-      setSuccessMessage("Member removed from the group.");
       await qc.invalidateQueries({ queryKey: ["conversations"] });
     },
   });
@@ -917,7 +911,6 @@ function Members({ conversation, currentUserId, onClose }) {
                             disabled={busy}
                             onChange={() => {
                               setAddError("");
-                              setSuccessMessage("");
                               setSelectedColleagueIds((ids) => toggleColleagueSelection(ids, person.id));
                             }}
                             aria-label={"Select " + person.displayName}
@@ -943,20 +936,15 @@ function Members({ conversation, currentUserId, onClose }) {
                   className="btn-primary conversation-members-add-btn"
                   disabled={!eligibleSelectedIds.length || busy}
                   onClick={() => {
-                    setSuccessMessage("");
                     setAddError("");
                     addMember.mutate(eligibleSelectedIds);
                   }}
                 >
                   <Plus size={16} aria-hidden="true" />
-                  {addMember.isPending ? "Adding…" :
-                    eligibleSelectedIds.length ? "Add (" + eligibleSelectedIds.length + ")" : "Add"}
+                  {addMember.isPending ? "Adding…" : "Add"}
                 </button>
               </div>
               <ErrorBox error={addError || addMember.error || users.error} />
-              {successMessage && (
-                <p className="conversation-members-success" role="status">{successMessage}</p>
-              )}
             </section>
           )}
 
@@ -969,19 +957,22 @@ function Members({ conversation, currentUserId, onClose }) {
                   : conversation.members.length + " " + (conversation.members.length === 1 ? "member" : "members")}
               </span>
             </div>
-            <SearchBar
-              className="conversation-members-search"
-              ariaLabel="Search conversation members"
-              placeholder="Search members..."
-              value={memberSearch}
-              onChange={(event) => setMemberSearch(event.target.value)}
-              iconSize={18}
-            />
-            <div className="conversation-members-current-list" role="list" aria-label="Conversation members">
-              {filteredMembers.length ? (
-                filteredMembers.map((member) => (
-                  <div key={member.userId} className="conversation-member-card conversation-members-current-row" role="listitem">
-                    <Avatar small name={member.user.displayName} />
+            <div className="conversation-members-current-panel">
+              <SearchBar
+                className="conversation-members-search"
+                ariaLabel="Search conversation members"
+                placeholder="Search members..."
+                value={memberSearch}
+                onChange={(event) => setMemberSearch(event.target.value)}
+                iconSize={18}
+              />
+              <div className="conversation-members-current-list" role="list" aria-label="Conversation members">
+                {filteredMembers.length ? (
+                  filteredMembers.map((member) => (
+                    <div key={member.userId} className="conversation-members-current-row" role="listitem">
+                      <span className="conversation-members-person-icon" aria-hidden="true">
+                        <UserRound size={16} strokeWidth={1.8} />
+                      </span>
                     <span className="conversation-members-person-info">
                       <span className="conversation-members-name-line">
                         <strong className="conversation-members-person-name" title={member.user.displayName}>
@@ -1007,7 +998,6 @@ function Members({ conversation, currentUserId, onClose }) {
                         aria-label={"Remove " + member.user.displayName + " from group"}
                         disabled={busy}
                         onClick={() => {
-                          setSuccessMessage("");
                           removeMember.reset();
                           setConfirmRemoval(member);
                         }}
@@ -1018,11 +1008,12 @@ function Members({ conversation, currentUserId, onClose }) {
                     )}
                   </div>
                 ))
-              ) : (
-                <p className="conversation-members-empty" role="status">
-                  {searching ? "No members found." : "No members in this conversation."}
-                </p>
-              )}
+                ) : (
+                  <p className="conversation-members-empty" role="status">
+                    {searching ? "No members found." : "No members in this conversation."}
+                  </p>
+                )}
+              </div>
             </div>
           </section>
           {!isCreator && conversation.type === "GROUP" && (
