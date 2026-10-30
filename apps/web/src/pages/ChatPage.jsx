@@ -2221,7 +2221,7 @@ export default function ChatPage() {
                                 )}
                                 {!m.deletedAt && m.attachments.length > 0 && (
                                   <div className={imageOnly ? "" : "mt-2"}>
-                                    <MessageAttachments items={m.attachments} />
+                                    <MessageAttachments items={m.attachments} conversationId={selectedId} messageId={m.id} />
                                   </div>
                                 )}
                               </div>
