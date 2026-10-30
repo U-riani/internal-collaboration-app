@@ -742,7 +742,9 @@ body:has(.app-theme-dark[data-appearance="light"]) {
 .app-theme-dark[data-appearance="light"] :is(.new-conversation-name-field input, .new-conversation-search input)::placeholder {
   color: var(--app-subtle);
 }
-.app-theme-dark[data-appearance="light"] :is(.new-conversation-people-list, .conversation-members-current-list) {
+/* Legacy New Conversation list retains its surface. Conversation Members
+   now uses a single bordered panel with transparent member rows. */
+.app-theme-dark[data-appearance="light"] .new-conversation-people-list {
   background: var(--app-surface-raised);
   border-color: var(--app-border);
 }
