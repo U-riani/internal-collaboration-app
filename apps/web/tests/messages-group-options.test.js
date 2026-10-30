@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 
 const chat = readFileSync(new URL("../src/pages/ChatPage.jsx", import.meta.url), "utf8");
 const styles = readFileSync(new URL("../src/pages/messages-theme.css", import.meta.url), "utf8");
+const lightTheme = readFileSync(new URL("../src/light-theme.css", import.meta.url), "utf8");
+const appearancePalettes = readFileSync(new URL("../src/appearance-palettes.css", import.meta.url), "utf8");
 
 describe("Messages group actions", () => {
   it("shows the menu only for GROUP and keeps its actions accessible", () => {
@@ -107,4 +109,16 @@ describe("Messages group actions", () => {
     expect(styles).toContain('var(--app-icon-soft-bg');
   });
 
+
+  it("keeps only the inner Members panels bordered across all global themes", () => {
+    expect(styles).toMatch(/\.conversation-members-invite\s*\{[^}]*border:\s*0;[^}]*background:\s*transparent;/s);
+    expect(styles).toMatch(/\.conversation-members-picker\s*\{[^}]*border:\s*1px solid var\(--app-border-strong\);/s);
+    expect(styles).toMatch(/\.conversation-members-current-panel\s*\{[^}]*border:\s*1px solid var\(--app-border-strong\);/s);
+    expect(styles).toMatch(/\.conversation-members-current-list\s*\{[^}]*border:\s*0;[^}]*background:\s*transparent;/s);
+    expect(styles).toMatch(/\.conversation-member-card\s*\{[^}]*border:\s*0;[^}]*background:\s*transparent;/s);
+    expect(styles).toContain(".conversation-member-choice.is-selected");
+    expect(styles).toContain("background: var(--app-accent-soft)");
+    expect(lightTheme).not.toMatch(/:is\([^)]*\.conversation-members-current-list/);
+    expect(appearancePalettes).not.toMatch(/\]\) \.conversation-members-current-list/);
+  });
 });
