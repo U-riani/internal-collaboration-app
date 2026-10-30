@@ -260,6 +260,34 @@ export async function fetchImagePreview(id, { signal } = {}) {
   return response.blob();
 }
 
+// One ZIP per message avoids triggering dozens of simultaneous browser
+// downloads. The server verifies membership and builds a streamed archive.
+export async function downloadMessageImages(conversationId, messageId) {
+  const load = () => fetch(
+    `/api/v1/conversations/${encodeURIComponent(conversationId)}/messages/${encodeURIComponent(messageId)}/images/archive`,
+    {
+      headers: { authorization: `Bearer ${getAccessToken()}` },
+      credentials: "include",
+    },
+  );
+  let response = await load();
+  if (response.status === 401) {
+    await refreshSession();
+    response = await load();
+  }
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.error?.message || "Could not download images");
+  }
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `message-images-${messageId}.zip`;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 export async function downloadFile(id, filename) {
   try {
     const sheetLink = await api(`/drive/sheets/by-file/${id}`);
