@@ -23,23 +23,42 @@ describe("Messages group actions", () => {
     expect(chat).toContain('qc.invalidateQueries({ queryKey: ["conversations"] })');
   });
 
-  it("keeps Members read-only and styles new controls using theme tokens", () => {
+  it("keeps Members searchable and restricts management controls to the group creator", () => {
     const members = chat.split("function Members(")[1].split("function GroupRenameModal(")[0];
     expect(members).toContain("Current members");
-    expect(members).not.toContain("conversation-members-leave");
-    expect(members).not.toContain("conversation-members-add-form");
-    expect(members).not.toContain("<button");
+    expect(members).toContain("conversation.type === \"GROUP\"");
+    expect(members).toContain("conversation.ownerId === currentUserId");
+    expect(members).toContain("member.role === \"OWNER\"");
+    expect(members).toContain("isCreator &&");
+    expect(members).toContain("member.userId !== conversation.ownerId");
+    expect(members).toContain("enabled: isCreator");
     expect(members).toContain("<SearchBar");
     expect(members).toContain('ariaLabel="Search conversation members"');
+    expect(members).toContain('ariaLabel="Search colleagues to add"');
     expect(members).toContain("filterConversationMembers");
     expect(members).toContain('role="list"');
     expect(members).toContain("No members found.");
+    expect(members).toContain("Remove Group Member");
+    expect(members).not.toContain("conversation-members-leave");
+  });
+
+  it("uses the member API, refreshes the cache, and respects global theme tokens", () => {
+    const members = chat.split("function Members(")[1].split("function GroupRenameModal(")[0];
+    expect(members).toContain('api("/conversations/" + conversation.id + "/members"');
+    expect(members).toContain('method: "POST"');
+    expect(members).toContain('method: "DELETE"');
+    expect(members).toContain('qc.invalidateQueries({ queryKey: ["conversations"] })');
+    expect(chat).toContain('"conversation:updated":');
+    expect(chat).toContain('"conversation:removed":');
     expect(styles).toContain(".conversation-members-search");
     expect(styles).toContain(".conversation-members-current-list");
+    expect(styles).toContain(".conversation-members-invite");
+    expect(styles).toContain(".conversation-members-remove");
     expect(styles).toContain("var(--app-interactive-focus)");
-    expect(styles).toContain(".chat-group-options-menu");
-    expect(styles).toContain(".modal.group-action-modal");
     expect(styles).toContain("var(--app-surface-raised)");
     expect(styles).toContain("var(--app-interactive-hover)");
+    expect(styles).toContain("var(--app-danger)");
+    expect(styles).toContain(".chat-group-options-menu");
+    expect(styles).toContain(".modal.group-action-modal");
   });
 });
