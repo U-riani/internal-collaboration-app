@@ -1,11 +1,149 @@
 import { useEffect, useRef, useState } from "react";
-import { Download, Image as ImageIcon, LoaderCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, Image as ImageIcon, LoaderCircle } from "lucide-react";
 import { downloadFile, fetchImagePreview } from "../lib/api.js";
-import { isInlineImage } from "../lib/image-preview.js";
+import { isInlineImage, stepGalleryIndex } from "../lib/image-preview.js";
 import { Attachments, Modal } from "./UI.jsx";
 import "./message-image-preview.css";
 
-function ImageAttachment({ file }) {
+function GalleryImage({ file, thumbnailUrl }) {
+  const [preview, setPreview] = useState({ url: thumbnailUrl, error: "" });
+
+  // Only the selected photo is fetched. The first photo can reuse its thumbnail
+  // object URL, which remains owned by ImageAttachment until the message unmounts.
+  useEffect(() => {
+    if (thumbnailUrl) {
+      setPreview({ url: thumbnailUrl, error: "" });
+      return;
+    }
+    const controller = new AbortController();
+    let disposed = false;
+    let objectUrl = null;
+    setPreview({ url: null, error: "" });
+    fetchImagePreview(file.id, { signal: controller.signal })
+      .then((blob) => {
+        if (disposed) return;
+        objectUrl = URL.createObjectURL(blob);
+        setPreview({ url: objectUrl, error: "" });
+      })
+      .catch((error) => {
+        if (!disposed && error.name !== "AbortError")
+          setPreview({ url: null, error: error.message || "Image preview failed" });
+      });
+    return () => {
+      disposed = true;
+      controller.abort();
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [file.id, thumbnailUrl]);
+
+  return preview.url ? (
+    <img
+      src={preview.url}
+      alt={file.originalName}
+      onError={() => setPreview({ url: null, error: "This image could not be displayed" })}
+    />
+  ) : (
+    <div className="chat-image-gallery-placeholder" role="status">
+      {preview.error ? <ImageIcon size={26} /> : <LoaderCircle size={26} className="message-image-loading" />}
+      <span>{preview.error || "Loading image…"}</span>
+    </div>
+  );
+}
+
+function ImageGallery({ images, thumbnailUrl, onClose }) {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [downloadError, setDownloadError] = useState("");
+  const [downloading, setDownloading] = useState(false);
+  const selected = images[activeIndex];
+  const count = images.length;
+
+  const move = (direction) => {
+    setDownloadError("");
+    setActiveIndex((index) => stepGalleryIndex(index, direction, count));
+  };
+
+  // The shared Modal handles Escape. Arrow keys only move inside this gallery.
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.altKey || event.ctrlKey || event.metaKey) return;
+      if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+        const tag = event.target?.tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+        event.preventDefault();
+        move(event.key === "ArrowRight" ? 1 : -1);
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [count]);
+
+  const download = async () => {
+    setDownloadError("");
+    setDownloading(true);
+    try {
+      await downloadFile(selected.id, selected.originalName);
+    } catch (error) {
+      setDownloadError(error.message || "Download failed");
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  return (
+    <Modal title={selected.originalName} wide className="chat-image-lightbox" onClose={onClose}>
+      <div className="chat-image-lightbox-content">
+        <div className="chat-image-gallery-stage">
+          {count > 1 && (
+            <button
+              type="button"
+              className="chat-image-gallery-arrow is-previous"
+              onClick={() => move(-1)}
+              disabled={activeIndex === 0}
+              aria-label="Previous image"
+            >
+              <ChevronLeft size={23} />
+            </button>
+          )}
+          <GalleryImage
+            key={selected.id}
+            file={selected}
+            thumbnailUrl={activeIndex === 0 ? thumbnailUrl : null}
+          />
+          {count > 1 && (
+            <button
+              type="button"
+              className="chat-image-gallery-arrow is-next"
+              onClick={() => move(1)}
+              disabled={activeIndex === count - 1}
+              aria-label="Next image"
+            >
+              <ChevronRight size={23} />
+            </button>
+          )}
+        </div>
+        <div className="chat-image-gallery-footer">
+          <span className="chat-image-gallery-counter" aria-live="polite">
+            {activeIndex + 1} / {count}
+          </span>
+          <button
+            type="button"
+            className="btn-primary chat-image-lightbox-download"
+            onClick={download}
+            disabled={downloading}
+          >
+            <Download size={16} />
+            {downloading ? "Downloading…" : "Download image"}
+          </button>
+        </div>
+        {downloadError && <p className="message-image-error" role="alert">{downloadError}</p>}
+      </div>
+    </Modal>
+  );
+}
+
+function ImageAttachment({ images }) {
+  const file = images[0];
+  const remainingCount = images.length - 1;
   const containerRef = useRef(null);
   const [src, setSrc] = useState(null);
   const [loadError, setLoadError] = useState("");
@@ -13,25 +151,24 @@ function ImageAttachment({ file }) {
   const [downloading, setDownloading] = useState(false);
   const [expanded, setExpanded] = useState(false);
 
-  // Only fetch thumbnails when they approach the viewport. Abort requests and
-  // revoke short-lived blob URLs as soon as a message leaves the component tree.
+  // Load only the first photo near the viewport. All remaining photos load
+  // only if the user visits them inside the full-size gallery.
   useEffect(() => {
     const controller = new AbortController();
     let observer;
-    let url;
+    let objectUrl;
     let disposed = false;
     const load = async () => {
       try {
         const blob = await fetchImagePreview(file.id, { signal: controller.signal });
         if (disposed) return;
-        url = URL.createObjectURL(blob);
-        setSrc(url);
+        objectUrl = URL.createObjectURL(blob);
+        setSrc(objectUrl);
       } catch (error) {
         if (!disposed && error.name !== "AbortError")
           setLoadError(error.message || "Unable to preview this image");
       }
     };
-
     if (typeof IntersectionObserver === "undefined") {
       load();
     } else {
@@ -51,7 +188,7 @@ function ImageAttachment({ file }) {
       disposed = true;
       observer?.disconnect();
       controller.abort();
-      if (url) URL.revokeObjectURL(url);
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
   }, [file.id]);
 
@@ -73,10 +210,12 @@ function ImageAttachment({ file }) {
       <button
         type="button"
         className="message-image-thumbnail"
-        disabled={!showImage}
+        disabled={!showImage && remainingCount === 0}
         onClick={() => setExpanded(true)}
-        aria-label={"Open image " + file.originalName}
-        title={showImage ? "Open full-size image" : file.originalName}
+        aria-label={remainingCount > 0
+          ? "Open image gallery, " + images.length + " photos"
+          : "Open image " + file.originalName}
+        title={remainingCount > 0 ? "View all " + images.length + " photos" : "Open full-size image"}
       >
         {showImage ? (
           <img
@@ -89,6 +228,9 @@ function ImageAttachment({ file }) {
             {loadError ? <ImageIcon size={20} /> : <LoaderCircle size={20} className="message-image-loading" />}
             <span>{loadError || "Loading image…"}</span>
           </span>
+        )}
+        {remainingCount > 0 && (
+          <span className="message-image-count" aria-hidden="true">+{remainingCount}</span>
         )}
       </button>
       <div className="message-image-info">
@@ -105,33 +247,18 @@ function ImageAttachment({ file }) {
         </button>
       </div>
       {downloadError && <p className="message-image-error" role="alert">{downloadError}</p>}
-      {expanded && showImage && (
-        <Modal
-          title={file.originalName}
-          wide
-          className="chat-image-lightbox"
+      {expanded && (
+        <ImageGallery
+          images={images}
+          thumbnailUrl={showImage ? src : null}
           onClose={() => setExpanded(false)}
-        >
-          <div className="chat-image-lightbox-content">
-            <img src={src} alt={file.originalName} />
-            <button
-              type="button"
-              className="btn-primary chat-image-lightbox-download"
-              onClick={download}
-              disabled={downloading}
-            >
-              <Download size={16} />
-              {downloading ? "Downloading…" : "Download image"}
-            </button>
-            {downloadError && <p className="message-image-error" role="alert">{downloadError}</p>}
-          </div>
-        </Modal>
+        />
       )}
     </div>
   );
 }
 
-/** Opt-in for Messages. Other modules still use the shared download-only Attachments. */
+/** Opt-in for Messages; other modules retain the shared download-only Attachments. */
 export default function MessageAttachments({ items = [] }) {
   const images = [];
   const files = [];
@@ -144,7 +271,7 @@ export default function MessageAttachments({ items = [] }) {
     <div className="message-attachments">
       {images.length > 0 && (
         <div className="message-images-grid">
-          {images.map((file) => <ImageAttachment key={file.id} file={file} />)}
+          <ImageAttachment key={images[0].id} images={images} />
         </div>
       )}
       {files.length > 0 && <Attachments items={files} />}
