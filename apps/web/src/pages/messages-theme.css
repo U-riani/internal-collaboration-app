@@ -913,12 +913,14 @@
   min-width: 0;
 }
 .conversation-members-modal { gap: 18px; }
+/* The add-members heading sits directly on the modal surface; only the
+   inner searchable picker keeps its outline. */
 .conversation-members-invite {
   gap: 11px;
-  padding: 13px;
-  border: 1px solid var(--app-border);
-  border-radius: 13px;
-  background: var(--app-surface-raised);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 .conversation-members-existing { gap: 11px; }
 .conversation-members-invite-heading {
@@ -1019,9 +1021,13 @@
 .conversation-members-current-panel .conversation-members-search input {
   height: 35px;
 }
+/* Unlike legacy Members layouts, this list never has a second surface.
+   The shared current-panel carries the only outline. */
 .conversation-members-current-list {
   max-height: min(300px, 38dvh);
   gap: 2px;
+  border: 0;
+  background: transparent;
 }
 .conversation-members-current-row {
   display: flex;
@@ -1047,6 +1053,7 @@
   color: var(--app-icon-accent, var(--app-focus-ring));
 }
 .conversation-members-person-icon svg { flex: 0 0 auto; }
+/* Add-member choices are frameless rows in the one bordered picker. */
 .conversation-member-card {
   display: flex;
   align-items: center;
@@ -1054,13 +1061,10 @@
   min-width: 0;
   min-height: 62px;
   padding: 10px 11px;
-  border: 1px solid var(--app-border);
-  border-radius: 11px;
-  background: var(--app-surface-raised);
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
   color: var(--app-text-strong);
-}
-.conversation-members-picker .conversation-member-card {
-  background: var(--app-surface);
 }
 .conversation-member-card .avatar {
   display: inline-flex;
@@ -1149,10 +1153,8 @@
 .conversation-member-choice:hover,
 .conversation-member-choice:focus-within {
   background: var(--app-interactive-hover);
-  border-color: var(--app-border-strong);
 }
 .conversation-member-choice.is-selected {
-  border-color: var(--app-interactive-focus);
   background: var(--app-accent-soft);
 }
 .app-theme-dark .conversation-members-checkbox {
@@ -1261,7 +1263,7 @@
   .conversation-members-current-list { max-height: min(260px, 30dvh); }
 }
 @media (max-width: 420px) {
-  .conversation-members-invite { padding: 10px; }
+  .conversation-members-invite { padding: 0; }
   .conversation-member-card { padding: 9px 8px; gap: 8px; }
   .conversation-member-card .avatar { flex-basis: 32px; width: 32px; height: 32px; }
   .conversation-members-current-panel { padding: 7px; }
