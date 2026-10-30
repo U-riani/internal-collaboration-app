@@ -81,4 +81,30 @@ describe("Messages group actions", () => {
     expect(styles).toContain(".conversation-members-add-btn:disabled:hover");
     expect(styles).toContain("pointer-events: none");
   });
+  it("keeps the Add label simple and shows errors without success notices", () => {
+    const members = chat.split("function Members(")[1].split("function GroupRenameModal(")[0];
+    expect(members).toContain('{addMember.isPending ? "Adding…" : "Add"}');
+    expect(members).toContain('colleagues selected');
+    expect(members).not.toContain('"Add ("');
+    expect(members).not.toContain('setSuccessMessage');
+    expect(members).not.toContain('conversation-members-success');
+    expect(members).toContain('<ErrorBox error={addError || addMember.error || users.error} />');
+    expect(members).toContain('<ErrorBox error={removeMember.error} />');
+  });
+
+  it("matches Task Participants: search inside one framed panel with transparent member rows", () => {
+    const members = chat.split("function Members(")[1].split("function GroupRenameModal(")[0];
+    expect(members).toContain('className="conversation-members-current-panel"');
+    expect(members).toContain('className="conversation-members-current-list"');
+    expect(members).toContain('className="conversation-members-current-row"');
+    expect(members).toContain('className="conversation-members-person-icon"');
+    expect(members).toContain('<UserRound size={16} strokeWidth={1.8} />');
+    expect(members).not.toContain('className="conversation-member-card conversation-members-current-row"');
+    expect(styles).toContain('.conversation-members-current-panel {');
+    expect(styles).toContain('.conversation-members-current-row {');
+    expect(styles).toContain('background: transparent;');
+    expect(styles).toContain('.conversation-members-person-icon {');
+    expect(styles).toContain('var(--app-icon-soft-bg');
+  });
+
 });
