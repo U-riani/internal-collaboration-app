@@ -47,6 +47,7 @@ import {
 } from "lucide-react";
 import { api, uploadFiles } from "../lib/api.js";
 import { SelectedFiles, useSelectedFiles } from "../components/SelectedFiles.jsx";
+import MessageAttachments from "../components/MessageAttachments.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useSocket } from "../hooks/useSocket.js";
 import PageHeader from "../components/PageHeader.jsx";
@@ -2216,7 +2217,7 @@ export default function ChatPage() {
                                 </p>
                                 {!m.deletedAt && m.attachments.length > 0 && (
                                   <div className="mt-2">
-                                    <Attachments items={m.attachments} />
+                                    <MessageAttachments items={m.attachments} />
                                   </div>
                                 )}
                               </div>
