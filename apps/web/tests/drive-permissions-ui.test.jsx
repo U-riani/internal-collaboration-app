@@ -41,7 +41,7 @@ describe("Drive permissions UI alignment", () => {
     expect(page).toContain("Personal items stay private unless you explicitly share them.");
     expect(page).toContain("sharing is item-only by default.");
     expect(page).toContain("<strong>Restricted access.</strong>");
-    expect(css).toContain(".drive-permission-note--personal");
+    expect(css).toContain(".drive-permission-note {");
     expect(css).toContain(".drive-permission-note--restricted");
     expect(css).toContain(".drive-permission-toolbar .drive-permission-search");
     expect(css).toContain("border-color: var(--app-ui-focus-ring, #7670dd)");
