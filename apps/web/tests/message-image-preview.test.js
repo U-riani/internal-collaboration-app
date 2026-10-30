@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { isInlineImage, safeImageMimeType } from "../src/lib/image-preview.js";
+import { isInlineImage, isImageOnlyMessage, safeImageMimeType } from "../src/lib/image-preview.js";
 
 const imageComponent = readFileSync(new URL("../src/components/MessageAttachments.jsx", import.meta.url), "utf8");
 const imageStyles = readFileSync(new URL("../src/components/message-image-preview.css", import.meta.url), "utf8");
@@ -48,5 +48,32 @@ describe("Messages inline images", () => {
     expect(imageStyles).toContain("var(--app-surface");
     expect(imageStyles).toContain("var(--app-interactive-selected)");
     expect(imageStyles).toContain("prefers-reduced-motion");
+  });
+
+  it("removes the bubble for image-only messages but retains it for text and mixed attachments", () => {
+    const picture = { file: { id: "image-1", mimeType: "image/png" } };
+    const photo2 = { file: { id: "image-2", mimeType: "image/webp" } };
+    const document = { file: { id: "doc-1", mimeType: "application/pdf" } };
+    expect(isImageOnlyMessage({ content: "", attachments: [picture] })).toBe(true);
+    expect(isImageOnlyMessage({ content: "   ", attachments: [picture, photo2] })).toBe(true);
+    expect(isImageOnlyMessage({ content: "Look at this", attachments: [picture] })).toBe(false);
+    expect(isImageOnlyMessage({ content: "", attachments: [picture, document] })).toBe(false);
+    expect(isImageOnlyMessage({ content: "", attachments: [document] })).toBe(false);
+    expect(isImageOnlyMessage({ content: "", attachments: [] })).toBe(false);
+    expect(isImageOnlyMessage({ content: "", attachments: [picture], deletedAt: "2026-10-30" })).toBe(false);
+    expect(isImageOnlyMessage({ content: "", attachments: [picture], replyToMessage: { id: "reply" } })).toBe(false);
+    expect(isImageOnlyMessage(null)).toBe(false);
+  });
+
+  it("renders photo-only content without an empty text paragraph or extra top margin", () => {
+    expect(chat).toContain('const imageOnly = isImageOnlyMessage(m);');
+    expect(chat).toContain('imageOnly ? "chat-image-only-bubble" : ""');
+    expect(chat).toContain('{!imageOnly && (');
+    expect(chat).toContain('className={imageOnly ? "" : "mt-2"}');
+    expect(imageStyles).toContain('.chat-message-bubble.chat-image-only-bubble');
+    expect(imageStyles).toContain('background: transparent;');
+    expect(imageStyles).toContain('background-image: none;');
+    expect(imageStyles).toContain('box-shadow: none;');
+    expect(imageStyles).toContain('.chat-image-only-bubble .message-image-attachment');
   });
 });
