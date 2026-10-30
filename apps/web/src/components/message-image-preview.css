@@ -1,4 +1,21 @@
 /* Messages only: media thumbnails use shared appearance and accent tokens. */
+/* Images without text should not sit inside the purple/gray message bubble.
+   Specificity intentionally beats own/incoming backgrounds in all four themes,
+   including the Light and OLED/Slate overrides. Mixed/text messages are unchanged. */
+.app-theme-dark .messages-page .chat-message-row:is(.chat-message-own, .chat-message-incoming) .chat-message-bubble.chat-image-only-bubble {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  background-image: none;
+  box-shadow: none;
+  color: var(--app-text);
+}
+.app-theme-dark .messages-page .chat-image-only-bubble .message-image-attachment {
+  border: 0;
+  background: transparent;
+}
+
 .message-attachments {
   display: flex;
   flex-direction: column;
