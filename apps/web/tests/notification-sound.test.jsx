@@ -9,7 +9,7 @@ import {
 
 describe("notification sounds", () => {
   it("routes every notification family to its own category", () => {
-    for (const type of ["MESSAGE", "MESSAGE_REACTION", "MENTION"])
+    for (const type of ["MESSAGE", "MESSAGE_REACTION", "MENTION", "GROUP_MEMBER_ADDED"])
       expect(notificationSoundCategory(type)).toBe("messages");
     for (const type of ["TASK_ASSIGNED", "TASK_COMMENT", "TASK_UPDATED", "TASK_DUE", "TASK_OVERDUE"])
       expect(notificationSoundCategory(type)).toBe("tasks");

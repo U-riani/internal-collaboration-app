@@ -30,7 +30,7 @@ const seenNotifications = new Set();
 const MAX_SEEN_NOTIFICATIONS = 400;
 
 export function notificationSoundCategory(type) {
-  if (type === "MESSAGE" || type === "MESSAGE_REACTION" || type === "MENTION")
+  if (type === "MESSAGE" || type === "MESSAGE_REACTION" || type === "MENTION" || type === "GROUP_MEMBER_ADDED")
     return "messages";
   if (typeof type === "string" && type.startsWith("TASK_")) return "tasks";
   if (typeof type === "string" && type.startsWith("APPROVAL_"))

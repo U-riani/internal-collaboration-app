@@ -10,6 +10,7 @@ import {
   FileCheck2,
   ListTodo,
   Heart,
+  UserRoundPlus,
   ChevronLeft,
   ChevronRight,
   ArrowUpDown,
@@ -42,6 +43,7 @@ function isMention(item) {
 function NotificationTypeIcon({ item }) {
   const type = String(item.type || "").toUpperCase();
   const entity = String(item.relatedEntityType || "").toUpperCase();
+  if (type === "GROUP_MEMBER_ADDED") return <UserRoundPlus size={17} />;
   if (type.includes("REACTION")) return <Heart size={17} />;
   if (type.includes("MESSAGE") || entity === "CONVERSATION" || entity === "MESSAGE")
     return <MessageSquare size={17} />;

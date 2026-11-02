@@ -92,6 +92,7 @@ enum FileScanStatus {
 enum NotificationType {
   MESSAGE
   MESSAGE_REACTION
+  GROUP_MEMBER_ADDED
   MENTION
   TASK_ASSIGNED
   TASK_COMMENT
