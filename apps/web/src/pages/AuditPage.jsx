@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Navigate } from "react-router-dom";
 import {
@@ -205,24 +205,6 @@ export default function AuditPage() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [selected, setSelected] = useState(null);
   const [exportError, setExportError] = useState("");
-  const [headerScrolled, setHeaderScrolled] = useState(false);
-
-  // Workspace-main is the desktop scroller; the window scrolls on mobile.
-  // Only show the protective backdrop when content can pass under the header.
-  useEffect(() => {
-    const main = document.querySelector(".workspace-main");
-    const syncHeader = () => {
-      setHeaderScrolled((main?.scrollTop || 0) > 2 || window.scrollY > 2);
-    };
-    main?.addEventListener("scroll", syncHeader, { passive: true });
-    window.addEventListener("scroll", syncHeader, { passive: true });
-    syncHeader();
-    return () => {
-      main?.removeEventListener("scroll", syncHeader);
-      window.removeEventListener("scroll", syncHeader);
-    };
-  }, []);
-
   const dateRange = useMemo(() => {
     if (range === "custom" && customFrom && customTo) return {
       start: new Date(customFrom + "T00:00:00").toISOString(),
@@ -305,7 +287,7 @@ export default function AuditPage() {
     { key: "security", label: "Security Logs", icon: ShieldCheck },
     ...(canDiagnostics ? [{ key: "diagnostics", label: "Diagnostics", icon: AlertCircle }] : []),
   ];
-  return <div className="audit-page" data-header-scrolled={headerScrolled ? "true" : "false"}>
+  return <div className="audit-page">
     <PageHeader title="Audit & Diagnostics"
       description="Monitor activity, investigate security events and troubleshoot system issues."
       action={<div className="audit-header-actions">

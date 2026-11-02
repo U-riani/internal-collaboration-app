@@ -11,7 +11,7 @@
   min-width: 0;
   width: 100%;
   color: var(--app-text);
-  padding-bottom: 22px;
+  padding: 25px 0 22px;
 }
 .audit-header-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; }
 .audit-header-actions .btn-secondary,
@@ -167,23 +167,33 @@
 .app-theme-dark[data-appearance="light"] .audit-page { --audit-warning: #895a12; }
 
 
-/* Keep the shared PageHeader completely integrated with the workspace
-   canvas at rest, like People/Tasks: no extra surface, border or divider.
-   Apply a protective backdrop only once content scrolls behind the header. */
+/* Mirror the existing People / Tasks header: normal document flow, shared
+   PageHeader typography, and no extra surface or divider. */
 .app-theme-dark .audit-page > .page-header {
-  position: sticky;
-  top: 0;
-  z-index: 25;
-  margin: 0 -34px 15px;
-  padding: 12px 50px 14px;
+  position: relative;
+  top: auto;
+  z-index: 10;
+  flex-wrap: wrap;
   overflow: visible;
-  background: transparent;
+  gap: 14px 22px;
+  margin: 0 0 18px;
+  padding: 4px 0 9px;
   border: 0;
+  background: transparent;
   box-shadow: none;
 }
-.app-theme-dark .audit-page[data-header-scrolled="true"] > .page-header {
-  background: color-mix(in srgb, var(--app-bg) 98%, transparent);
-  backdrop-filter: blur(16px);
+.app-theme-dark .audit-page > .page-header h1 {
+  color: var(--app-text-strong);
+  font-size: var(--app-text-heading, clamp(26px, 2.1vw, 34px));
+  line-height: 1.15;
+  letter-spacing: -.045em;
+  font-weight: 800;
+}
+.app-theme-dark .audit-page > .page-header p {
+  margin-top: 4px;
+  color: var(--app-muted);
+  font-size: var(--app-text-base, 12px);
+  line-height: var(--app-leading-body, 1.5);
 }
 .app-theme-dark .audit-page > .page-header > div:first-child {
   flex: 1 1 280px;
@@ -237,13 +247,8 @@
   box-shadow: none;
 }
 @media (max-width: 900px) {
-  /* The shared mobile workspace bar occupies the first 64px. PageHeader's
-     md:top-0 utility starts at 768px, earlier than this shell's 901px switch. */
-  .app-theme-dark .audit-page > .page-header {
-    top: 64px;
-    margin-inline: -14px;
-    padding-inline: 14px;
-  }
+  .audit-page { padding-top: 18px; }
+  .app-theme-dark .audit-page > .page-header { margin-bottom: 15px; }
 }
 @media (max-width: 700px) {
   .app-theme-dark .audit-page > .page-header {

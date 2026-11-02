@@ -6,24 +6,26 @@ const auditPage = read("../src/pages/AuditPage.jsx");
 const auditCss = read("../src/pages/audit-page.css");
 const header = read("../src/components/PageHeader.jsx");
 const layout = read("../src/components/Layout.jsx");
+const tasksCss = read("../src/pages/tasks-page.css");
 
-describe("Audit & Diagnostics — sticky header and theme-aware focus regressions", () => {
-  it("reuses the shared sticky header with no divider or painted panel at rest", () => {
+describe("Audit & Diagnostics — shared static header and theme-aware focus regressions", () => {
+  it("uses the same non-sticky PageHeader layout as People and Tasks", () => {
     expect(auditPage).toContain('<PageHeader title="Audit & Diagnostics"');
-    expect(header).toContain("page-header sticky");
-    expect(auditCss).toMatch(/\.app-theme-dark \.audit-page > \.page-header\s*\{[^}]*position: sticky;[^}]*top: 0;[^}]*z-index: 25;[^}]*background: transparent;[^}]*border: 0;[^}]*box-shadow: none;/s);
-    expect(auditCss).toContain("overflow: visible;");
-    expect(layout).toContain("workspace-mobile-header sticky top-0");
-    expect(auditCss).toMatch(/@media \(max-width: 900px\)\s*\{[^}]*\.app-theme-dark \.audit-page > \.page-header\s*\{[^}]*top: 64px;/s);
+    expect(header).toContain("page-header sticky"); // Shared primitive, locally overridden.
+    expect(tasksCss).toMatch(/\.tasks-page \.page-header\s*\{[^}]*position: relative;[^}]*top: auto;/s);
+    expect(auditCss).toMatch(/\.app-theme-dark \.audit-page > \.page-header\s*\{[^}]*position: relative;[^}]*top: auto;[^}]*background: transparent;[^}]*box-shadow: none;/s);
+    expect(auditCss).toContain("font-size: var(--app-text-heading, clamp(26px, 2.1vw, 34px));");
+    expect(auditCss).toContain("padding: 25px 0 22px;");
+    expect(auditCss).toContain("padding-top: 18px;");
   });
 
-  it("only protects the header surface when the workspace actually scrolls", () => {
-    expect(auditPage).toContain('data-header-scrolled={headerScrolled ? "true" : "false"}');
-    expect(auditPage).toContain('main?.addEventListener("scroll", syncHeader');
-    expect(auditPage).toContain('window.addEventListener("scroll", syncHeader');
-    expect(auditPage).toContain('main?.removeEventListener("scroll", syncHeader)');
-    expect(auditPage).toContain('window.removeEventListener("scroll", syncHeader)');
-    expect(auditCss).toMatch(/\.app-theme-dark \.audit-page\[data-header-scrolled="true"\] > \.page-header\s*\{[^}]*background: color-mix\(in srgb, var\(--app-bg\) 98%, transparent\);[^}]*backdrop-filter: blur\(16px\);/s);
+  it("never adds scroll listeners, a floating surface, or a special sticky offset", () => {
+    expect(auditPage).not.toContain("data-header-scrolled");
+    expect(auditPage).not.toContain("syncHeader");
+    expect(auditCss).not.toContain('data-header-scrolled="true"');
+    expect(auditCss).not.toContain("backdrop-filter: blur(16px)");
+    expect(auditCss).not.toContain("top: 64px;");
+    expect(layout).toContain("workspace-mobile-header sticky top-0");
   });
 
   it("keeps native select and date controls, without the stacked Tailwind focus ring", () => {
