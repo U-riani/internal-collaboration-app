@@ -381,6 +381,7 @@ function TaskDetail({ id, onClose }) {
   const attachmentUploads = useRef(new Map());
   const [edit, setEdit] = useState(false);
   const [createSubtask, setCreateSubtask] = useState(false);
+  const [subtaskToDelete, setSubtaskToDelete] = useState(null);
   const [childId, setChildId] = useState(null);
   const query = useQuery({
     queryKey: ["task", id],
@@ -428,6 +429,14 @@ function TaskDetail({ id, onClose }) {
     onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: ["task", id] });
       qc.invalidateQueries({ queryKey: ["task", variables.taskId] });
+      qc.invalidateQueries({ queryKey: ["tasks"] });
+    },
+  });
+  const deleteSubtask = useMutation({
+    mutationFn: (subtaskId) => api(`/tasks/${subtaskId}`, { method: "DELETE" }),
+    onSuccess: () => {
+      setSubtaskToDelete(null);
+      qc.invalidateQueries({ queryKey: ["task", id] });
       qc.invalidateQueries({ queryKey: ["tasks"] });
     },
   });
@@ -637,6 +646,12 @@ function TaskDetail({ id, onClose }) {
                       user,
                       hasPermission,
                     );
+                    const canDeleteSubtask =
+                      subtask.creatorId === user.id ||
+                      user.roles.includes("SYSTEM_ADMIN") ||
+                      (hasPermission("tasks.manage_department") &&
+                        user.departmentId &&
+                        subtask.departmentId === user.departmentId);
                     return (
                       <div
                         key={subtask.id}
@@ -682,6 +697,20 @@ function TaskDetail({ id, onClose }) {
                           {subtask.assignee?.displayName || "Unassigned"}
                         </span>
                         <Badge value={subtask.status} />
+                        {canDeleteSubtask && (
+                          <button
+                            type="button"
+                            className="task-detail-subtask-delete"
+                            aria-label={`Delete subtask ${subtask.title}`}
+                            title="Delete subtask"
+                            onClick={() => {
+                              deleteSubtask.reset();
+                              setSubtaskToDelete(subtask);
+                            }}
+                          >
+                            <Trash2 size={16} aria-hidden="true" />
+                          </button>
+                        )}
                       </div>
                     );
                   })}
@@ -782,6 +811,49 @@ function TaskDetail({ id, onClose }) {
           )}
           {childId && (
             <TaskDetail id={childId} onClose={() => setChildId(null)} />
+          )}
+          {subtaskToDelete && (
+            <Modal
+              title="Delete subtask"
+              className="task-subtask-delete-dialog"
+              onClose={() => {
+                if (!deleteSubtask.isPending) {
+                  deleteSubtask.reset();
+                  setSubtaskToDelete(null);
+                }
+              }}
+            >
+              <div className="task-subtask-delete-confirm">
+                <p>
+                  Are you sure you want to delete{" "}
+                  <strong>{subtaskToDelete.title}</strong>?
+                </p>
+                <p>This action cannot be undone.</p>
+                <ErrorBox error={deleteSubtask.error} />
+                <div className="task-subtask-delete-actions">
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    disabled={deleteSubtask.isPending}
+                    onClick={() => {
+                      deleteSubtask.reset();
+                      setSubtaskToDelete(null);
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-primary task-subtask-delete-submit"
+                    disabled={deleteSubtask.isPending}
+                    onClick={() => deleteSubtask.mutate(subtaskToDelete.id)}
+                  >
+                    <Trash2 size={15} aria-hidden="true" />
+                    {deleteSubtask.isPending ? "Deleting…" : "Delete subtask"}
+                  </button>
+                </div>
+              </div>
+            </Modal>
           )}
         </>
       ) : (

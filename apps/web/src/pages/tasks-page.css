@@ -1395,6 +1395,82 @@
 .task-detail .task-detail-subtask-title.line-through { color: var(--detail-muted); }
 .task-detail .task-detail-subtask-toggle { color: var(--detail-accent); }
 .task-detail .task-detail-subtask-toggle:hover { background: var(--detail-control); }
+/* Destructive subtask controls inherit the active workspace/accent palette. */
+.task-detail .task-detail-subtask-delete {
+  display: inline-grid;
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--app-icon-muted, var(--detail-muted));
+  transition: color .15s ease, background-color .15s ease, border-color .15s ease;
+}
+.task-detail .task-detail-subtask-delete:hover {
+  color: var(--app-icon-accent, var(--app-ui-accent-start, var(--detail-accent)));
+  background: var(--app-icon-soft-bg, var(--detail-control));
+  border-color: var(--detail-border);
+}
+.task-detail .task-detail-subtask-delete:focus-visible {
+  outline: 2px solid var(--app-ui-focus-ring, var(--detail-accent));
+  outline-offset: 2px;
+}
+.modal.task-subtask-delete-dialog,
+.modal.task-subtask-delete-dialog .modal-head {
+  color: var(--app-text-strong, #27314b);
+  background: var(--app-surface, #fff);
+  border-color: var(--app-border, #e1e6f1);
+}
+.task-subtask-delete-confirm {
+  display: grid;
+  gap: 10px;
+  color: var(--app-text, #27314b);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.task-subtask-delete-confirm strong {
+  color: var(--app-text-strong, #27314b);
+  overflow-wrap: anywhere;
+}
+.task-subtask-delete-confirm > p:nth-child(2) {
+  color: var(--app-muted, #6a7590);
+}
+.task-subtask-delete-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 14px;
+}
+.task-subtask-delete-actions :is(.btn-secondary, .btn-primary) {
+  min-height: 36px;
+  padding: 8px 13px;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.task-subtask-delete-actions .btn-secondary {
+  color: var(--app-text, #27314b);
+  background: var(--app-surface-raised, #f0f3fa);
+  border-color: var(--app-border, #e1e6f1);
+}
+.task-subtask-delete-actions .btn-secondary:hover:not(:disabled) {
+  background: var(--app-surface-hover, #edf1f8);
+}
+.task-subtask-delete-actions .task-subtask-delete-submit {
+  background: var(--app-ui-accent-selected, #716bf4);
+  color: var(--app-ui-accent-selected-text, #fff);
+}
+.task-subtask-delete-actions .task-subtask-delete-submit:hover:not(:disabled) {
+  background: var(--app-ui-accent-selected-hover, #817afa);
+  color: var(--app-ui-accent-selected-text, #fff);
+}
+.task-subtask-delete-actions :is(button):disabled {
+  cursor: not-allowed;
+  opacity: .6;
+}
 .task-detail .task-detail-discussion-title {
   margin-top: 25px;
   margin-bottom: 14px;
