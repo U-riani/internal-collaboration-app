@@ -904,6 +904,12 @@ export default async function taskRoutes(app) {
         metadata: { commentId: comment.id },
       },
     });
+    await audit(app, request, {
+      actionType: "TASK_COMMENT_ADDED",
+      entityType: "TASK",
+      entityId: task.id,
+      metadata: { commentId: comment.id, attachmentCount: input.attachmentIds.length },
+    });
     await notifyTaskCommentStakeholders(task, comment, request.authUser.id);
     await emitTaskEvent(app, task.id, "task:comment-created");
     reply.status(201);

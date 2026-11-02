@@ -156,3 +156,34 @@ test("authorized file downloads are audited without capturing file contents", as
     await h.close();
   }
 });
+
+test("task field changes and comments have an audit trail without comment text", async () => {
+  const h = await harness();
+  try {
+    const task = await h.call(h.users.admin, "POST", "/tasks", { title: "Audit task" });
+    assert.equal(task.statusCode, 201, task.body);
+    const taskId = task.json().data.id;
+    const updated = await h.call(h.users.admin, "PATCH", "/tasks/" + taskId, {
+      status: "IN_PROGRESS", priority: "HIGH",
+    });
+    assert.equal(updated.statusCode, 200, updated.body);
+    const history = await h.prisma.auditLog.findFirst({
+      where: { actionType: "TASK_UPDATED", entityId: taskId },
+    });
+    assert.equal(history?.beforeData?.status, "OPEN");
+    assert.equal(history?.afterData?.status, "IN_PROGRESS");
+    assert.equal(history?.afterData?.priority, "HIGH");
+
+    const comment = await h.call(h.users.admin, "POST", "/tasks/" + taskId + "/comments", {
+      content: "Sensitive task note for the team",
+    });
+    assert.equal(comment.statusCode, 201, comment.body);
+    const commentAudit = await h.prisma.auditLog.findFirst({
+      where: { actionType: "TASK_COMMENT_ADDED", entityId: taskId },
+    });
+    assert.ok(commentAudit);
+    assert.ok(!JSON.stringify(commentAudit).includes("Sensitive task note"));
+  } finally {
+    await h.close();
+  }
+});

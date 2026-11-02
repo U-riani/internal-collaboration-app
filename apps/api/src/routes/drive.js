@@ -406,6 +406,7 @@ export default async function driveRoutes(app) {
       request.body,
     );
 
+    let previous = null;
     const item = await mutate(async (tx, tree) => {
       const item = tree.get(request.params.id);
       if (!item)
@@ -436,6 +437,7 @@ export default async function driveRoutes(app) {
         requireDrive(request.authUser, item, tree, "EDITOR");
       }
 
+      previous = { name: item.name, parentId: item.parentId };
       return tx.driveItem.update({
         where: { id: item.id },
         data: input,
@@ -443,7 +445,13 @@ export default async function driveRoutes(app) {
       });
     });
 
-    await record(request, "DRIVE_UPDATED", item.id);
+    await audit(app, request, {
+      actionType: "DRIVE_UPDATED",
+      entityType: "DRIVE_ITEM",
+      entityId: item.id,
+      beforeData: previous,
+      afterData: { name: item.name, parentId: item.parentId },
+    });
     return { success: true, data: { id: item.id } };
   });
 
