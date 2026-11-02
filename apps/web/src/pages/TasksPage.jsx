@@ -37,6 +37,7 @@ import {
   Loading,
   Modal,
   prettyDate,
+  prettyTime,
 } from "../components/UI.jsx";
 import "./tasks-page.css";
 
@@ -533,7 +534,14 @@ function TaskDetail({ id, onClose }) {
             </div>
             <div className="task-detail-meta-item">
               <p className="task-detail-meta-label text-xs text-slate-400 mb-2">Due date</p>
-              <span className="task-detail-meta-value task-detail-due">{prettyDate(task.dueDate)}</span>
+              <span className="task-detail-meta-value task-detail-due">
+                <span>{prettyDate(task.dueDate)}</span>
+                {task.dueDate && (
+                  <time className="task-detail-due-time" dateTime={task.dueDate}>
+                    {prettyTime(task.dueDate)}
+                  </time>
+                )}
+              </span>
             </div>
             <div className="task-detail-meta-item">
               <p className="task-detail-meta-label text-xs text-slate-400 mb-2">Status</p>

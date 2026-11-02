@@ -1263,6 +1263,14 @@
   line-height: 1.4;
   overflow-wrap: anywhere;
 }
+.task-detail .task-detail-due-time {
+  display: block;
+  margin-top: 3px;
+  color: var(--detail-muted);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
 .task-detail select.task-detail-select,
 .app-theme-dark .task-detail select.task-detail-select {
   display: block;

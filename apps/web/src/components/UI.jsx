@@ -179,6 +179,16 @@ export function prettyDate(value) {
       })
     : "No deadline";
 }
+
+export function prettyTime(value) {
+  return value
+    ? new Date(value).toLocaleTimeString(undefined, {
+        hour: "2-digit",
+        minute: "2-digit",
+        hourCycle: "h23",
+      })
+    : "";
+}
 export function fileSize(n = 0) {
   return !n
     ? "0 B"
