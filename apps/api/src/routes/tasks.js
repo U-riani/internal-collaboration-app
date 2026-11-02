@@ -731,7 +731,8 @@ export default async function taskRoutes(app) {
       dueDate: existing.dueDate,
       priority: existing.priority,
     };
-    const task = await app.prisma.task.update({
+    const task = await app.prisma.$transaction(async (tx) => {
+      const updated = await tx.task.update({
       where: { id: existing.id },
       data: {
         title: input.title,
@@ -771,6 +772,15 @@ export default async function taskRoutes(app) {
         },
       },
       include: taskIncludeFor(request.authUser.id),
+      });
+      await audit(app, request, {
+        actionType: "TASK_UPDATED",
+        entityType: "TASK",
+        entityId: updated.id,
+        beforeData: before,
+        afterData: { title: updated.title, status: updated.status, assigneeId: updated.assigneeId, dueDate: updated.dueDate, priority: updated.priority },
+      }, tx);
+      return updated;
     });
 
     if (

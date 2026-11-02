@@ -5,6 +5,7 @@ import { z } from "zod";
 import { parse } from "../lib/validation.js";
 import { hasPermission, hasRole } from "../lib/authz.js";
 import { HttpError } from "../lib/http-error.js";
+import { audit } from "../lib/audit.js";
 import { createNotification } from "../lib/notifications.js";
 import { queuePushNotification } from "../lib/push-notifications.js";
 
@@ -460,6 +461,12 @@ export default async function conversationRoutes(app) {
       app.io
         ?.to(memberIds.map((id) => `user:${id}`))
         .emit("conversation:updated", { id: conversation.id });
+      await audit(app, request, {
+        actionType: "CONVERSATION_CREATED",
+        entityType: "CONVERSATION",
+        entityId: conversation.id,
+        afterData: { type: "DIRECT", memberCount: memberIds.length },
+      });
       reply.status(201);
       return { success: true, data: conversation };
     }
@@ -493,6 +500,12 @@ export default async function conversationRoutes(app) {
     app.io
       ?.to(memberIds.map((id) => `user:${id}`))
       .emit("conversation:updated", { id: conversation.id });
+    await audit(app, request, {
+      actionType: "GROUP_CREATED",
+      entityType: "CONVERSATION",
+      entityId: conversation.id,
+      afterData: { name: conversation.name, type: conversation.type, memberCount: memberIds.length },
+    });
     await notifyAddedGroupMembers(app, conversation, conversation.members, request.authUser);
     reply.status(201);
     return { success: true, data: conversation };
@@ -520,6 +533,13 @@ export default async function conversationRoutes(app) {
       where: { id: conversation.id },
       data: { name: input.name },
       select: { id: true, type: true, name: true },
+    });
+    await audit(app, request, {
+      actionType: "GROUP_RENAMED",
+      entityType: "CONVERSATION",
+      entityId: conversation.id,
+      beforeData: { name: conversation.name },
+      afterData: { name: updated.name },
     });
     app.io
       ?.to(`conversation:${conversation.id}`)
@@ -943,6 +963,12 @@ export default async function conversationRoutes(app) {
       data: { content: input.content, editedAt: new Date() },
       include: messageInclude,
     });
+    await audit(app, request, {
+      actionType: "MESSAGE_EDITED",
+      entityType: "MESSAGE",
+      entityId: message.id,
+      metadata: { conversationId: message.conversationId },
+    });
     app.io
       ?.to(`conversation:${message.conversationId}`)
       .emit("message:updated", updated);
@@ -978,6 +1004,12 @@ export default async function conversationRoutes(app) {
         include: messageInclude,
       }),
     ]);
+    await audit(app, request, {
+      actionType: "MESSAGE_DELETED",
+      entityType: "MESSAGE",
+      entityId: message.id,
+      metadata: { conversationId: message.conversationId },
+    });
     app.io
       ?.to(`conversation:${message.conversationId}`)
       .emit("message:deleted", {
@@ -1179,6 +1211,13 @@ export default async function conversationRoutes(app) {
     app.io
       ?.to(`conversation:${conversation.id}`)
       .emit("conversation:updated", { id: conversation.id });
+    await audit(app, request, {
+      actionType: "GROUP_MEMBER_ADDED",
+      entityType: "CONVERSATION",
+      entityId: conversation.id,
+      metadata: { memberId: input.userId },
+      afterData: { memberId: input.userId, name: conversation.name },
+    });
     await notifyAddedGroupMembers(app, conversation, [{ userId: input.userId }], request.authUser);
     return { success: true, data: null };
   });
@@ -1225,6 +1264,13 @@ export default async function conversationRoutes(app) {
     app.io
       ?.in(`user:${request.params.userId}`)
       .socketsLeave(`conversation:${conversation.id}`);
+    await audit(app, request, {
+      actionType: "GROUP_MEMBER_REMOVED",
+      entityType: "CONVERSATION",
+      entityId: conversation.id,
+      metadata: { memberId: request.params.userId, selfLeave: removingSelf },
+      beforeData: { memberId: request.params.userId, name: conversation.name },
+    });
     app.io
       ?.to(`user:${request.params.userId}`)
       .emit("conversation:removed", { id: conversation.id });
