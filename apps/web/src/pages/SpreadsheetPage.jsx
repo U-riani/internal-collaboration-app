@@ -12,6 +12,7 @@ import {
 import { useAuth } from "../context/AuthContext.jsx";
 import { getThemePreference } from "../lib/appearance.js";
 import { api } from "../lib/api.js";
+import { Avatar } from "../components/UI.jsx";
 import { useSocket } from "../hooks/useSocket.js";
 import {
   cloneSpreadsheetSnapshot,
@@ -95,15 +96,6 @@ function loadUniver() {
     );
   }
   return univerLoader;
-}
-
-function userInitials(displayName) {
-  const parts = String(displayName || "User")
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2);
-  return (parts.map((part) => part[0]).join("") || "U").toUpperCase();
 }
 
 function SheetCreate() {
@@ -800,9 +792,13 @@ function SheetEditor({ id, mobile = false }) {
                     className="flex max-w-[150px] items-center gap-1 rounded-full border border-slate-200 bg-slate-50 py-0.5 pl-0.5 pr-2"
                     title={`${user.displayName} is in this spreadsheet`}
                   >
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-[10px] font-bold text-emerald-700">
-                      {userInitials(user.displayName)}
-                    </span>
+                    <Avatar
+                      small
+                      name={user.displayName}
+                      userId={user.id}
+                      className="bg-emerald-100 text-emerald-700"
+                      style={{ width: 24, height: 24, fontSize: 10 }}
+                    />
                     <span className="max-w-24 truncate text-[11px] font-medium text-slate-600">
                       {user.displayName}
                     </span>
@@ -828,12 +824,13 @@ function SheetEditor({ id, mobile = false }) {
                 aria-label={`${activeUsers.length} people currently in this spreadsheet`}
               >
                 {activeUsers.slice(0, 3).map((user) => (
-                  <span
+                  <Avatar
                     key={user.id}
-                    className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-emerald-100 text-[10px] font-bold text-emerald-700"
-                  >
-                    {userInitials(user.displayName)}
-                  </span>
+                    small
+                    name={user.displayName}
+                    userId={user.id}
+                    className="border-2 border-white bg-emerald-100 text-emerald-700"
+                  />
                 ))}
                 {activeUsers.length > 3 && (
                   <span className="flex h-7 min-w-7 items-center justify-center rounded-full border-2 border-white bg-slate-100 px-1 text-[9px] font-bold text-slate-600">

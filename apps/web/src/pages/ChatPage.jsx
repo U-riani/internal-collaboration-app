@@ -70,6 +70,10 @@ const displayName = (c, me) =>
     ? c.members.find((m) => m.userId !== me)?.user.displayName ||
       "Direct message"
     : c?.name;
+const directPartnerId = (conversation, me) =>
+  conversation?.type === "DIRECT"
+    ? conversation.members.find((member) => member.userId !== me)?.userId
+    : undefined;
 
 const LAST_CHAT_KEY = "collab:last-selected-chat";
 const CONVERSATION_FILTERS = [
@@ -306,7 +310,7 @@ function ReactionDetailsMenu({ groups, align = "left" }) {
                   key={reactedUser.id || `${selectedGroup.emoji}-${index}`}
                   className="flex items-center gap-2 rounded-lg px-2 py-2"
                 >
-                  <Avatar small name={reactedUser.displayName} />
+                  <Avatar small name={reactedUser.displayName} userId={reactedUser.id} />
                   <span className="min-w-0 flex-1 truncate text-sm font-medium text-slate-700">
                     {reactedUser.displayName}
                   </span>
@@ -553,7 +557,7 @@ function ReceiptDetails({ details, onClose }) {
             const timestamp = isRead ? receipt.readAt : receipt.deliveredAt;
             return (
               <div key={receipt.userId} className="flex items-center gap-3">
-                <Avatar small name={receipt.user.displayName} />
+                <Avatar small name={receipt.user.displayName} userId={receipt.userId} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">
                     {receipt.user.displayName}
@@ -743,13 +747,6 @@ function NewChat({ onClose, onCreated }) {
               ) : (
                 filteredColleagues.map((person, index) => {
                   const isSelected = members.includes(person.id);
-                  const initials = (person.displayName || "Colleague")
-                    .trim()
-                    .split(/\s+/)
-                    .slice(0, 2)
-                    .map((part) => part[0] || "")
-                    .join("")
-                    .toUpperCase();
                   return (
                     <button
                       key={person.id}
@@ -759,9 +756,12 @@ function NewChat({ onClose, onCreated }) {
                       className={"new-conversation-person" + (isSelected ? " is-selected" : "")}
                       onClick={() => toggleMember(person.id)}
                     >
-                      <span className={"new-conversation-person-avatar avatar-tone-" + (index % 4)} aria-hidden="true">
-                        {initials}
-                      </span>
+                      <Avatar
+                        name={person.displayName}
+                        userId={person.id}
+                        photoUrl={person.avatarUrl}
+                        className={"new-conversation-person-avatar avatar-tone-" + (index % 4)}
+                      />
                       <span className="new-conversation-person-details">
                         <span className="new-conversation-person-name">
                           {person.displayName}
@@ -897,7 +897,7 @@ function Members({ conversation, currentUserId, onClose }) {
                           key={person.id}
                           className={"conversation-member-card conversation-member-choice" + (checked ? " is-selected" : "")}
                         >
-                          <Avatar small name={person.displayName} />
+                          <Avatar small name={person.displayName} userId={person.id} photoUrl={person.avatarUrl} />
                           <span className="conversation-members-person-info">
                             <strong className="conversation-members-person-name" title={person.displayName}>
                               {person.displayName}
@@ -972,9 +972,11 @@ function Members({ conversation, currentUserId, onClose }) {
                 {filteredMembers.length ? (
                   filteredMembers.map((member) => (
                     <div key={member.userId} className="conversation-members-current-row" role="listitem">
-                      <span className="conversation-members-person-icon" aria-hidden="true">
-                        <UserRound size={16} strokeWidth={1.8} />
-                      </span>
+                      <Avatar
+                        name={member.user.displayName}
+                        userId={member.userId}
+                        className="conversation-members-person-icon"
+                      />
                     <span className="conversation-members-person-info">
                       <span className="conversation-members-name-line">
                         <strong className="conversation-members-person-name" title={member.user.displayName}>
@@ -1738,7 +1740,7 @@ export default function ChatPage() {
                   className={`chat-conversation-item ${c.id === selectedId ? "is-selected" : ""}`}
                 >
                   <div className="chat-conversation-avatar">
-                    <Avatar name={displayName(c, user.id)} />
+                    <Avatar name={displayName(c, user.id)} userId={directPartnerId(c, user.id)} />
                     {(c.unreadMessageCount || 0) > 0 && <span className="chat-unread-indicator" aria-hidden="true" />}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -1793,7 +1795,7 @@ export default function ChatPage() {
                   <ArrowLeft size={19} />
                 </button>
                 <div className="chat-conversation-header-avatar">
-                  <Avatar name={displayName(selected, user.id)} />
+                  <Avatar name={displayName(selected, user.id)} userId={directPartnerId(selected, user.id)} />
                 </div>
                 <div className="chat-conversation-header-identity flex-1 min-w-0">
                   <h2 className="font-semibold text-sm truncate">
@@ -2185,7 +2187,7 @@ export default function ChatPage() {
                             className={`chat-message-row flex gap-2 ${own ? "chat-message-own flex-row-reverse" : "chat-message-incoming"} ${focusMessageId === m.id ? "rounded-xl ring-2 ring-blue-300 ring-offset-2" : ""}`}
                           >
                             {!own && (
-                              <Avatar small name={m.sender.displayName} />
+                              <Avatar small name={m.sender.displayName} userId={m.sender.id} />
                             )}
                             <div className="max-w-[90%] sm:max-w-[78%] min-w-0">
                               <div

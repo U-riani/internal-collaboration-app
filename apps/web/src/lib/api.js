@@ -277,7 +277,11 @@ export async function fetchAvatarImage(avatarUrl, { signal } = {}) {
     if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
     response = await load();
   }
-  if (!response.ok) throw new Error("Profile photo could not be loaded");
+  if (!response.ok) {
+    const error = new Error("Profile photo could not be loaded");
+    error.status = response.status;
+    throw error;
+  }
   const type = response.headers.get("content-type")?.split(";")[0].trim().toLowerCase();
   if (!["image/jpeg", "image/png", "image/webp"].includes(type))
     throw new Error("Unexpected profile photo type");

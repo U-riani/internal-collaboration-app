@@ -595,7 +595,7 @@ function AccountProfile({ user, displayName, photoUrl, onAvatarChange }) {
             }}
           />
           <div className="account-profile-portrait" aria-hidden="true">
-            <Avatar name={displayName} photoUrl={photoUrl} />
+            <Avatar name={displayName} photoUrl={photoUrl ?? null} userId={user.id} />
             {previewUrl && <img className="account-profile-pending-preview" src={previewUrl} alt="" />}
           </div>
           <span className="account-profile-dropzone-caption">
@@ -804,7 +804,7 @@ export default function AccountPage() {
         <div className="account-hero-top">
           <div className="account-identity">
             <div className="account-hero-avatar">
-              <Avatar name={displayName} photoUrl={photoUrl} />
+              <Avatar name={displayName} photoUrl={photoUrl ?? null} userId={user.id} />
             </div>
             <div className="account-identity-copy">
               <div className="account-identity-title">

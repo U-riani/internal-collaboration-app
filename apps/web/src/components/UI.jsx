@@ -7,7 +7,8 @@ import {
   isValidElement,
 } from "react";
 import { X, File, Download, LoaderCircle, Search } from "lucide-react";
-import { downloadFile, fetchAvatarImage } from "../lib/api.js";
+import { downloadFile } from "../lib/api.js";
+import { cachedAvatarImage } from "../lib/avatar-cache.js";
 export function Modal({ title, children, onClose, wide = false, headerIcon = null, subtitle = null, badge = null, className = "" }) {
   const ref = useRef(null);
   const id = useId();
@@ -119,33 +120,50 @@ export function Badge({ value }) {
     </span>
   );
 }
-export function Avatar({ name = "", small = false, photoUrl = null }) {
+export function Avatar({ name = "", small = false, photoUrl, userId, className = "", style }) {
   const [imageUrl, setImageUrl] = useState(null);
+  const [revision, setRevision] = useState(0);
+  // A null photoUrl means the caller knows the user has no photo.
+  // When only an ID is available, request the protected image on demand.
+  const source = photoUrl === undefined && userId
+    ? "/api/v1/users/" + userId + "/avatar?v=0"
+    : photoUrl;
+
   useEffect(() => {
-    setImageUrl(null);
-    if (!photoUrl) return;
-    const controller = new AbortController();
+    if (!userId) return;
+    const onUpdated = (event) => {
+      if (event.detail?.userId === userId) setRevision((value) => value + 1);
+    };
+    window.addEventListener("collab:avatar-updated", onUpdated);
+    return () => window.removeEventListener("collab:avatar-updated", onUpdated);
+  }, [userId]);
+
+  useEffect(() => {
+    let active = true;
     let objectUrl = null;
-    fetchAvatarImage(photoUrl, { signal: controller.signal })
-      .then((image) => {
-        if (controller.signal.aborted) return;
-        objectUrl = URL.createObjectURL(image);
-        setImageUrl(objectUrl);
-      })
-      .catch(() => {
-        if (!controller.signal.aborted) setImageUrl(null);
-      });
+    setImageUrl(null);
+    if (source) {
+      cachedAvatarImage(source)
+        .then((blob) => {
+          if (!active || !blob) return;
+          objectUrl = URL.createObjectURL(blob);
+          setImageUrl(objectUrl);
+        })
+        .catch(() => {
+          if (active) setImageUrl(null);
+        });
+    }
     return () => {
-      controller.abort();
+      active = false;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [photoUrl]);
+  }, [source, revision]);
 
   return (
-    <span className={`avatar ${small ? "avatar-small" : ""}`}>
+    <span className={["avatar", small ? "avatar-small" : "", className].filter(Boolean).join(" ")} style={style}>
       {name
         .split(" ")
-        .map((x) => x[0])
+        .map((part) => part[0])
         .slice(0, 2)
         .join("")}
       {imageUrl && <img className="avatar-image" src={imageUrl} alt="" />}

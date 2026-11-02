@@ -672,6 +672,7 @@ function TaskDetail({ id, onClose }) {
                           <Avatar
                             small
                             name={subtask.assignee?.displayName || "?"}
+                            userId={subtask.assignee?.id}
                           />
                           {subtask.assignee?.displayName || "Unassigned"}
                         </span>
@@ -698,7 +699,7 @@ function TaskDetail({ id, onClose }) {
           <div className="task-detail-comments space-y-5">
             {task.comments.map((entry) => (
               <div className="task-detail-comment flex gap-3" key={entry.id}>
-                <Avatar small name={entry.author.displayName} />
+                <Avatar small name={entry.author.displayName} userId={entry.author.id} />
                 <div className="min-w-0 flex-1">
                   <div className="text-xs font-semibold">
                     {entry.author.displayName}
@@ -1236,7 +1237,7 @@ export default function TasksPage() {
           </p>
         )}
         <div className="mt-4 flex items-center gap-2 text-xs text-slate-400">
-          <Avatar small name={task.assignee?.displayName || "?"} />
+          <Avatar small name={task.assignee?.displayName || "?"} userId={task.assignee?.id} />
           <span className="flex-1 truncate">
             {task.assignee?.displayName || "Unassigned"}
           </span>
@@ -1357,7 +1358,7 @@ export default function TasksPage() {
             </div>
           </div>
           <div className="flex min-w-0 items-center gap-2 text-sm text-slate-600">
-            <Avatar small name={task.assignee?.displayName || "?"} />
+            <Avatar small name={task.assignee?.displayName || "?"} userId={task.assignee?.id} />
             <span className="truncate">
               {task.assignee?.displayName || "Unassigned"}
             </span>

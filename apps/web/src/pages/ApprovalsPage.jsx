@@ -1260,7 +1260,7 @@ export function RequestDetail({ item, onClose }) {
             <div className="task-detail-comments approval-detail-comments">
               {item.comments.map((entry) => (
                 <div className="task-detail-comment approval-detail-comment" key={entry.id}>
-                  <Avatar small name={entry.author.displayName} />
+                  <Avatar small name={entry.author.displayName} userId={entry.author.id} />
                   <div className="approval-detail-comment-copy">
                     <div className="approval-detail-comment-byline">
                       <span>{entry.author.displayName}</span>

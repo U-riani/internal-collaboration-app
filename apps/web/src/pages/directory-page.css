@@ -103,3 +103,12 @@
     gap: 10px;
   }
 }
+
+/* Directory uses the shared authenticated profile avatar for colleagues. */
+.directory-person-avatar.avatar {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  border-radius: 50%;
+  font-size: 16px;
+}

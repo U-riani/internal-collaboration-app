@@ -426,11 +426,8 @@ function SpaceMembers({ space, onClose, reload }) {
               className={`drive-member-person flex items-center gap-3 border-b border-slate-100 px-3 py-2 last:border-0 ${systemAdmin ? "drive-member-person--admin" : ""}`}
             >
               <div className={`drive-member-avatar ${systemAdmin ? "drive-member-avatar--admin" : ""}`} aria-hidden="true">
-                {systemAdmin ? (
-                  <ShieldCheck size={19} strokeWidth={2} />
-                ) : (
-                  (person.displayName || "?").trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase()
-                )}
+                <Avatar name={person.displayName} userId={person.id} photoUrl={person.avatarUrl} />
+                {systemAdmin && <ShieldCheck className="drive-admin-avatar-badge" size={13} strokeWidth={2} />}
               </div>
               <div className="min-w-0 flex-1">
                 <span className="drive-member-display-name block truncate text-sm font-medium">
@@ -1043,7 +1040,7 @@ export default function DrivePage() {
                     </button>
                     {unifiedDirectoryView && (
                       <span className="drive-owner-cell">
-                        <Avatar small name={item.owner?.displayName || "User"} />
+                        <Avatar small name={item.owner?.displayName || "User"} userId={item.owner?.id} />
                         <span className="drive-owner-name" title={item.owner?.displayName || ""}>
                           {item.owner?.displayName || "Unknown"}
                         </span>

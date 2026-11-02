@@ -591,11 +591,26 @@
   flex:0 0 32px;
   width:32px;
   height:32px;
-  border-radius:10px;
+  border-radius:50%;
   color:#b5c5ff;
   background:#2a405b;
   font-size:11px;
   font-weight:800;
+}
+.drive-member-avatar { position: relative; }
+.drive-member-avatar > .avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+.drive-admin-avatar-badge {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  padding: 1px;
+  border-radius: 50%;
+  background: var(--app-panel, #252d3d);
+  color: var(--app-focus-ring, #c2c6ff);
 }
 .drive-member-person:nth-child(3n+2) .drive-member-avatar { background:#294656; color:#90e2f0; }
 .drive-member-person:nth-child(3n+3) .drive-member-avatar { background:#403452; color:#ddb8ff; }
