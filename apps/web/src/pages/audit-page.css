@@ -165,3 +165,95 @@
 .audit-user-selector select { flex: 1; min-width: 0; }
 
 .app-theme-dark[data-appearance="light"] .audit-page { --audit-warning: #895a12; }
+
+
+/* Keep the reusable PageHeader above Audit content when the workspace scrolls.
+   Its normal transparent canvas must become opaque only while used in this
+   sticky Audit context; the global PageHeader stays unchanged. */
+.app-theme-dark .audit-page > .page-header {
+  position: sticky;
+  top: 0;
+  z-index: 25;
+  margin: 0 -34px 15px;
+  padding: 12px 50px 14px;
+  overflow: visible;
+  background: var(--app-bg);
+  box-shadow: 0 1px 0 var(--audit-border);
+}
+.app-theme-dark .audit-page > .page-header > div:first-child {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+.app-theme-dark .audit-page > .page-header .page-header-action {
+  flex: 0 1 auto;
+  max-width: 100%;
+  min-width: 0;
+}
+
+/* The shared .input Tailwind focus:ring and native select focus outline were
+   stacking on repeated pointer interactions. Keep the common select/date
+   widgets and palette tokens, but paint exactly one subtle keyboard focus. */
+.app-theme-dark .audit-page :is(select.input.app-modern-select, input.input[type="date"]) {
+  border: 1px solid var(--audit-border);
+  background: var(--audit-input);
+  color: var(--audit-text);
+  color-scheme: dark;
+  outline: none;
+  box-shadow: none;
+  --tw-ring-offset-shadow: 0 0 #0000;
+  --tw-ring-shadow: 0 0 #0000;
+  transition: border-color .15s ease, background-color .15s ease;
+}
+.app-theme-dark .audit-page :is(select.input.app-modern-select, input.input[type="date"]):hover:not(:disabled) {
+  border-color: var(--app-border-strong);
+  background: var(--app-surface-hover);
+}
+.app-theme-dark .audit-page :is(select.input.app-modern-select, input.input[type="date"]):focus {
+  border-color: var(--audit-border);
+  outline: none;
+  box-shadow: none;
+  --tw-ring-offset-shadow: 0 0 #0000;
+  --tw-ring-shadow: 0 0 #0000;
+}
+.app-theme-dark .audit-page :is(select.input.app-modern-select, input.input[type="date"]):focus-visible {
+  border-color: var(--app-ui-focus-ring);
+  outline: 1px solid var(--app-ui-focus-ring);
+  outline-offset: 1px;
+}
+.app-theme-dark[data-appearance="light"] .audit-page :is(select.input.app-modern-select, input.input[type="date"]) {
+  color-scheme: light;
+}
+.app-theme-dark .audit-page :is(button, .audit-technical summary):focus-visible {
+  outline: 2px solid var(--app-ui-focus-ring);
+  outline-offset: 2px;
+}
+.app-theme-dark .audit-page .audit-search:focus-within {
+  border-color: var(--app-ui-focus-ring);
+  box-shadow: none;
+}
+@media (max-width: 900px) {
+  /* The shared mobile workspace bar occupies the first 64px. PageHeader's
+     md:top-0 utility starts at 768px, earlier than this shell's 901px switch. */
+  .app-theme-dark .audit-page > .page-header {
+    top: 64px;
+    margin-inline: -14px;
+    padding-inline: 14px;
+  }
+}
+@media (max-width: 700px) {
+  .app-theme-dark .audit-page > .page-header {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .app-theme-dark .audit-page > .page-header .page-header-action {
+    flex: 1 1 100%;
+    justify-content: flex-start;
+    overflow-x: visible;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-theme-dark .audit-page :is(select.input.app-modern-select, input.input[type="date"]) {
+    transition: none;
+  }
+}
