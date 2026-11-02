@@ -62,6 +62,8 @@ function labelFor(entityType, entityId, beforeData, afterData) {
 function humanValue(value) {
   if (value === undefined || value === null || value === "") return "—";
   if (typeof value === "object") return JSON.stringify(value, null, 2);
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}T/.test(value) && !Number.isNaN(Date.parse(value)))
+    return formatTime(value);
   return String(value);
 }
 
@@ -240,6 +242,12 @@ export default function AuditPage() {
     queryFn: () => api("/audit/summary?start=" + encodeURIComponent(dateRange.start) + "&end=" + encodeURIComponent(dateRange.end)).then((r) => r.data),
   });
 
+  const actorOptions = useQuery({
+    queryKey: ["audit-actors"],
+    enabled: allowed && filterOpen,
+    queryFn: () => api("/audit/actors").then((response) => response.data),
+  });
+
   const update = (setter, value) => { setter(value); setPage(1); };
   const clearFilters = () => {
     setModule(""); setOutcome(""); setSeverity(""); setSource(""); setActorId(""); setSearch(""); setPage(1);
@@ -386,8 +394,18 @@ export default function AuditPage() {
         <label>Source<select className="input app-modern-select" value={source} onChange={(e) => update(setSource, e.target.value)}>
           <option value="">All sources</option>{["WEB", "MOBILE", "SYSTEM"].map((m) => <option value={m} key={m}>{m}</option>)}
         </select></label>
-        <label>User ID (optional)<input className="input" value={actorId}
-          onChange={(e) => update(setActorId, e.target.value)} placeholder="UUID"/></label>
+        <label>User
+          <span className="audit-user-selector">
+            {actorId && <Avatar small userId={actorId}
+              name={actorOptions.data?.find((item) => item.id === actorId)?.displayName || ""}/>}
+            <select className="input app-modern-select" value={actorId}
+              onChange={(e) => update(setActorId, e.target.value)}>
+              <option value="">All users</option>
+              {(actorOptions.data || []).map((item) =>
+                <option value={item.id} key={item.id}>{item.displayName}</option>)}
+            </select>
+          </span>
+        </label>
       </div>
       <div className="audit-filter-footer">
         <button className="btn-secondary" type="button" onClick={clearFilters}><X size={15}/> Clear all</button>

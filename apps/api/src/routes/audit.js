@@ -36,12 +36,26 @@ function getFilters(request) {
 }
 function auditWhere(f) {
   const where = { createdAt: { gte: f.start, lte: f.end } };
-  if (f.module) where.module = f.module;
+  if (f.module) {
+    const legacyEntities = {
+      MESSAGES: ["MESSAGE", "CONVERSATION"],
+      TASKS: ["TASK"],
+      APPROVALS: ["APPROVAL_REQUEST", "APPROVAL_TYPE"],
+      DRIVE: ["DRIVE_ITEM", "DRIVE_SPACE", "FILE_OBJECT", "DRIVE_SHEET"],
+      ADMINISTRATION: ["USER", "ROLE", "DEPARTMENT"],
+      NOTIFICATIONS: ["NOTIFICATION"],
+    };
+    where.AND = [{ OR: [
+      { module: f.module },
+      { module: null, entityType: { in: legacyEntities[f.module] || [] } },
+      ...(f.module === "AUTHENTICATION" ? [{ module: null, actionType: { startsWith: "AUTH_" } }] : []),
+    ] }];
+  }
   if (f.outcome) where.outcome = f.outcome;
   if (f.severity) where.severity = f.severity;
   if (f.actorId) where.actorId = f.actorId;
   if (f.source) where.source = f.source;
-  if (f.category === "security") where.AND = [{ OR: [
+  if (f.category === "security") where.AND = [...(where.AND || []), { OR: [
     { actionType: { startsWith: "AUTH_" } },
     { actionType: { startsWith: "ROLE_" } },
     { actionType: { startsWith: "USER_PASSWORD_" } },
@@ -88,6 +102,16 @@ function csvCell(value) {
 }
 export default async function auditRoutes(app) {
   app.addHook("preHandler", app.authenticate);
+
+  app.get("/actors", async (request) => {
+    requirePermission(request.authUser, "system.audit.read");
+    const users = await app.prisma.user.findMany({
+      where: { auditLogs: { some: {} } },
+      select: { id: true, displayName: true, department: { select: { name: true } } },
+      orderBy: { displayName: "asc" }, take: 300,
+    });
+    return { success: true, data: users };
+  });
 
   app.get("/events", async (request) => {
     requirePermission(request.authUser, "system.audit.read");

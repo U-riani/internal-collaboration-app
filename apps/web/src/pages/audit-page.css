@@ -159,3 +159,6 @@
   .audit-filter-grid { grid-template-columns: 1fr; }
   .audit-pagination { align-items: stretch; }
 }
+
+.audit-user-selector { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.audit-user-selector select { flex: 1; min-width: 0; }

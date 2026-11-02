@@ -128,3 +128,21 @@ test("denied access creates a correlated diagnostic incident without exposing se
     await h.close();
   }
 });
+
+test("authorized file downloads are audited without capturing file contents", async () => {
+  const h = await harness();
+  try {
+    const upload = await h.upload(h.users.employee, "sample-report.txt", "confidential body must not enter the audit log");
+    assert.equal(upload.statusCode, 201, upload.body);
+    const fileId = upload.json().data.id;
+    const download = await h.call(h.users.employee, "GET", "/files/" + fileId + "/download");
+    assert.equal(download.statusCode, 200, download.body);
+    const events = await h.prisma.auditLog.findMany({
+      where: { entityId: fileId, actionType: "FILE_DOWNLOAD_STARTED" },
+    });
+    assert.equal(events.length, 1);
+    assert.ok(!JSON.stringify(events).includes("confidential body"));
+  } finally {
+    await h.close();
+  }
+});
