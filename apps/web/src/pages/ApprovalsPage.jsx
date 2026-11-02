@@ -1101,7 +1101,10 @@ export function RequestDetail({ item, onClose }) {
               <FileCheck2 size={18} />
             </span>
             <div className="approval-detail-request-copy">
-              <span className="approval-detail-requester">{item.requester.displayName}</span>
+              <span className="approval-detail-requester-identity">
+                <Avatar small name={item.requester.displayName} userId={item.requester.id} photoUrl={item.requester.avatarUrl} />
+                <span className="approval-detail-requester">{item.requester.displayName}</span>
+              </span>
               <span className="approval-detail-meta-separator" aria-hidden="true">·</span>
               <span>{item.workflowSnapshot?.type?.name || item.approvalType.name}</span>
               <span className="approval-detail-version">
@@ -1665,9 +1668,10 @@ export default function ApprovalsPage() {
         <p className="mt-2 truncate text-xs font-medium text-slate-500">
           {typeName}
         </p>
-        <p className="mt-3 text-xs text-slate-400">
-          Requested by {request.requester.displayName}
-        </p>
+        <div className="mt-3 flex min-w-0 items-center gap-2 text-xs text-slate-400">
+          <Avatar small name={request.requester.displayName} userId={request.requester.id} photoUrl={request.requester.avatarUrl} />
+          <span className="min-w-0 truncate">Requested by {request.requester.displayName}</span>
+        </div>
         {current && (
           <p className="mt-2 truncate text-[11px] text-slate-400">
             Current review · {current.approver.displayName}
@@ -1714,8 +1718,9 @@ export default function ApprovalsPage() {
             <ApprovalStepProgress steps={request.steps} />
           </div>
         </div>
-        <span className="truncate text-sm text-slate-600">
-          {request.requester.displayName}
+        <span className="flex min-w-0 items-center gap-2 text-sm text-slate-600">
+          <Avatar small name={request.requester.displayName} userId={request.requester.id} photoUrl={request.requester.avatarUrl} />
+          <span className="truncate">{request.requester.displayName}</span>
         </span>
         <span className="truncate text-sm text-slate-500">{typeName}</span>
         <span>
@@ -1899,6 +1904,8 @@ export default function ApprovalsPage() {
                       options={requesterOptions.map((requester) => ({
                         value: requester.id,
                         label: requester.displayName,
+                        userId: requester.id,
+                        photoUrl: requester.avatarUrl,
                       }))}
                       values={advancedFilters.requesterIds}
                       onToggle={(value) => toggleAdvancedValue("requesterIds", value)}

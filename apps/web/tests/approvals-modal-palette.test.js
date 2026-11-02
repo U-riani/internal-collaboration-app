@@ -99,4 +99,20 @@ describe("Approvals and Approval Bases shared filters", () => {
     expect(bases).toContain('onClick={() => navigate("/approvals")}');
     expect(approvals).toContain("changeStatus.mutate({");
   });
+
+  it("shows real user avatars in approval requester surfaces and base filters", () => {
+    const select = load("../src/components/FilterMultiSelect.jsx");
+    expect(select).toContain('kind === "person" && option.userId');
+    expect(select).toContain('className="filter-multiselect-avatar"');
+
+    expect(approvals).toContain('className="approval-detail-requester-identity"');
+    expect(approvals).toContain('userId={item.requester.id}');
+    expect(approvals).toContain('userId={request.requester.id}');
+    expect(approvals).toContain('userId: requester.id');
+
+    expect(bases).toContain('userId={record.requester.id}');
+    expect(bases).toContain('userId: requester.id');
+    expect(bases).toContain('userId: approver.id');
+    expect(bases).toContain('{ value: NO_APPROVER, label: "No current approver" }');
+  });
 });

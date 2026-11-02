@@ -14,6 +14,7 @@ import FilterMultiSelect from "../components/FilterMultiSelect.jsx";
 import {
   Modal,
   Badge,
+  Avatar,
   Empty,
   ErrorBox,
   Loading,
@@ -586,6 +587,8 @@ export default function ApprovalBasesPage() {
                             options={filterOptions.requesters.map((requester) => ({
                               value: requester.id,
                               label: requester.displayName,
+                              userId: requester.id,
+                              photoUrl: requester.avatarUrl,
                             }))}
                             onToggle={(value) => toggleFilterValue("requesterIds", value)}
                           />
@@ -613,6 +616,8 @@ export default function ApprovalBasesPage() {
                                 ...filterOptions.approvers.map((approver) => ({
                                   value: approver.id,
                                   label: approver.displayName,
+                                  userId: approver.id,
+                                  photoUrl: approver.avatarUrl,
                                 })),
                               ]}
                               onToggle={(value) => toggleFilterValue("approverIds", value)}
@@ -777,7 +782,10 @@ export default function ApprovalBasesPage() {
                                 </p>
                               </td>
                               <td className="approval-base-requester-cell sticky left-[260px] z-10 min-w-[180px] border-b border-r border-slate-100 bg-white px-4 py-3 text-slate-600 transition group-hover:bg-slate-50">
-                                {record.requester.displayName}
+                                <span className="flex min-w-0 items-center gap-2">
+                                  <Avatar small name={record.requester.displayName} userId={record.requester.id} photoUrl={record.requester.avatarUrl} />
+                                  <span className="min-w-0 truncate" title={record.requester.displayName}>{record.requester.displayName}</span>
+                                </span>
                               </td>
                               <td className="border-b border-slate-100 px-4 py-3 text-slate-500 transition group-hover:bg-slate-50">
                                 {record.department?.name || "—"}
