@@ -95,3 +95,36 @@ test("audit writer removes sensitive fields from snapshots and metadata", async 
     await h.close();
   }
 });
+
+test("denied access creates a correlated diagnostic incident without exposing secrets", async () => {
+  const h = await harness();
+  try {
+    const response = await h.call(h.users.employee, "GET", "/audit/events");
+    assert.equal(response.statusCode, 403, response.body);
+    const requestId = response.headers["x-request-id"];
+    let incident = null;
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      incident = await h.prisma.diagnosticEvent.findFirst({ where: { requestId } });
+      if (incident) break;
+      await new Promise((resolve) => setTimeout(resolve, 30));
+    }
+    assert.ok(incident, "diagnostic record should be correlated by request ID");
+    assert.equal(incident.eventType, "PERMISSION_DENIED");
+    assert.equal(incident.httpStatus, 403);
+    assert.equal(incident.severity, "WARNING");
+    assert.ok(!JSON.stringify(incident).includes(h.users.employee.accessToken));
+
+    const deniedLogin = await h.app.inject({
+      method: "POST", url: "/api/v1/auth/login",
+      payload: { email: "employee@example.com", password: "WrongPassword!" },
+    });
+    assert.equal(deniedLogin.statusCode, 401);
+    const event = await h.prisma.auditLog.findFirst({
+      where: { actionType: "AUTH_LOGIN_FAILED", requestId: deniedLogin.headers["x-request-id"] },
+    });
+    assert.equal(event?.outcome, "DENIED");
+    assert.ok(!JSON.stringify(event).includes("WrongPassword!"));
+  } finally {
+    await h.close();
+  }
+});

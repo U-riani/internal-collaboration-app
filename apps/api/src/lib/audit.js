@@ -1,18 +1,18 @@
 // Centralized, privacy-aware audit writer. Keep business changes and required
 // audit records in the same Prisma transaction by passing the transaction client.
-const PRIVATE_KEYS = /password|hash|token|secret|authorization|cookie|credential|privatekey|refresh|messagecontent|formdata|rawpayload|stack|attachmentcontent|^content$|^body$|^data$|^comment$|^reason$/i;
-function safeValue(value, depth = 0) {
+const PRIVATE_KEYS = /password|hash|token|secret|authorization|cookie|credential|privatekey|refresh|messagecontent|formdata|rawpayload|previousdata|data$|stack|attachmentcontent|^content$|^body$|^data$|^comment$|^reason$/i;
+export function scrubAuditData(value, depth = 0) {
   if (value === undefined || value === null) return undefined;
   if (value instanceof Date) return value.toISOString();
   if (typeof value === "string") return value.slice(0, 350);
   if (typeof value === "number" || typeof value === "boolean") return value;
   if (depth >= 4) return "[truncated]";
-  if (Array.isArray(value)) return value.slice(0, 30).map((item) => safeValue(item, depth + 1) ?? null);
+  if (Array.isArray(value)) return value.slice(0, 30).map((item) => scrubAuditData(item, depth + 1) ?? null);
   if (typeof value === "object") {
     const result = {};
     for (const [key, item] of Object.entries(value).slice(0, 45)) {
       if (PRIVATE_KEYS.test(key)) continue;
-      const sanitized = safeValue(item, depth + 1);
+      const sanitized = scrubAuditData(item, depth + 1);
       if (sanitized !== undefined) result[key] = sanitized;
     }
     return result;
@@ -50,9 +50,9 @@ export async function audit(app, request, input, db = app.prisma) {
       requestId: request.id || null,
       ipAddress: request.ip || null,
       userAgent: request.headers?.["user-agent"]?.slice(0, 255) || null,
-      beforeData: safeValue(input.beforeData),
-      afterData: safeValue(input.afterData),
-      metadata: safeValue(input.metadata),
+      beforeData: scrubAuditData(input.beforeData),
+      afterData: scrubAuditData(input.afterData),
+      metadata: scrubAuditData(input.metadata),
     },
   });
 }
