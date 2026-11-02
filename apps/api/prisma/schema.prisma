@@ -175,6 +175,7 @@ model User {
   pushSubscriptions         PushSubscription[]
   nativePushDevices         NativePushDevice[]
   auditLogs                 AuditLog[]
+  diagnosticEvents          DiagnosticEvent[]
   createdAt                 DateTime                  @default(now())
   updatedAt                 DateTime                  @updatedAt
 
@@ -691,6 +692,7 @@ model Notification {
   relatedEntityType String?
   relatedEntityId   String?
   isRead            Boolean          @default(false)
+  priority          String           @default("NORMAL")
   readAt            DateTime?
   deduplicationKey  String?          @unique
   createdAt         DateTime         @default(now())
@@ -707,6 +709,10 @@ model AuditLog {
   actionType String
   entityType String
   entityId   String?
+  module     String?
+  outcome    String   @default("SUCCESS")
+  severity   String   @default("INFO")
+  source     String?
   requestId  String?
   ipAddress  String?
   userAgent  String?
@@ -715,7 +721,34 @@ model AuditLog {
   metadata   Json?
   createdAt  DateTime @default(now())
 
+  @@index([createdAt(sort: Desc), id(sort: Desc)])
   @@index([entityType, entityId, createdAt(sort: Desc)])
+  @@index([actorId, createdAt(sort: Desc)])
+  @@index([module, createdAt(sort: Desc)])
+  @@index([requestId])
+}
+
+model DiagnosticEvent {
+  id          String    @id @default(uuid()) @db.Uuid
+  actorId     String?   @db.Uuid
+  actor       User?     @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  eventType   String
+  module      String?
+  severity    String    @default("ERROR")
+  message     String
+  requestId   String?
+  httpStatus  Int?
+  method      String?
+  path        String?
+  source      String?
+  ipAddress   String?
+  userAgent   String?
+  metadata    Json?
+  createdAt   DateTime  @default(now())
+
+  @@index([createdAt(sort: Desc), id(sort: Desc)])
+  @@index([module, createdAt(sort: Desc)])
+  @@index([requestId])
   @@index([actorId, createdAt(sort: Desc)])
 }
 

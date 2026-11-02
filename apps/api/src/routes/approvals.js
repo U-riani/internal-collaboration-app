@@ -2,6 +2,7 @@ import { z } from "zod";
 import { parse } from "../lib/validation.js";
 import { hasRole, hasPermission, requirePermission } from "../lib/authz.js";
 import { HttpError } from "../lib/http-error.js";
+import { scrubAuditData } from "../lib/audit.js";
 import { resolveApprover, requireResolvedApprover } from "../lib/approval.js";
 import { createNotification } from "../lib/notifications.js";
 import { requireOwnUploads } from "../lib/file-access.js";
@@ -190,7 +191,10 @@ async function log(tx, user, id, action, metadata = {}) {
       entityType: "APPROVAL_REQUEST",
       entityId: id,
       actionType: action,
-      metadata,
+      module: "APPROVALS",
+      outcome: "SUCCESS",
+      severity: "INFO",
+      metadata: scrubAuditData(metadata),
     },
   });
 }
@@ -201,7 +205,10 @@ async function logType(tx, user, id, action, metadata = {}) {
       entityType: "APPROVAL_TYPE",
       entityId: id,
       actionType: action,
-      metadata,
+      module: "APPROVALS",
+      outcome: "SUCCESS",
+      severity: "INFO",
+      metadata: scrubAuditData(metadata),
     },
   });
 }
@@ -781,6 +788,19 @@ export default async function approvalRoutes(app) {
         },
         include: requestIncludeFor(request.authUser.id),
       });
+      await tx.auditLog.create({
+        data: {
+          actorId: request.authUser.id,
+          actionType: "APPROVAL_CREATED",
+          entityType: "APPROVAL_REQUEST",
+          entityId: item.id,
+          module: "APPROVALS",
+          requestId: request.id,
+          ipAddress: request.ip,
+          userAgent: request.headers?.["user-agent"],
+          afterData: { title: item.title, status: item.status },
+        },
+      });
       return input.submit
         ? submit(tx, item.id, request.authUser, item.revision)
         : item;
@@ -1047,12 +1067,26 @@ export default async function approvalRoutes(app) {
         "APPROVAL_ACCESS_DENIED",
         "You cannot comment on this request",
       );
-    const data = await app.prisma.approvalComment.create({
-      data: {
-        approvalRequestId: item.id,
-        authorId: request.authUser.id,
-        content,
-      },
+    const data = await app.prisma.$transaction(async (tx) => {
+      const comment = await tx.approvalComment.create({
+        data: {
+          approvalRequestId: item.id,
+          authorId: request.authUser.id,
+          content,
+        },
+      });
+      await tx.auditLog.create({
+        data: {
+          actorId: request.authUser.id,
+          actionType: "APPROVAL_COMMENT_ADDED",
+          entityType: "APPROVAL_REQUEST",
+          entityId: item.id,
+          module: "APPROVALS",
+          requestId: request.id,
+          metadata: { commentId: comment.id },
+        },
+      });
+      return comment;
     });
 
     const recipientIds = [

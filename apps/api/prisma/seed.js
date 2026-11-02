@@ -31,6 +31,7 @@ const permissions = [
   ['approvals.configure', 'Configure approval workflows'],
   ['approvals.audit', 'Read approval audit information'],
   ['system.audit.read', 'Read system audit logs'],
+  ['system.diagnostics.read', 'Read technical diagnostic incidents'],
 ];
 
 const roleNames = {

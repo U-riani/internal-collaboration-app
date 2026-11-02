@@ -14,6 +14,7 @@ import {
 } from "../lib/file-access.js";
 import { hasPermission } from "../lib/authz.js";
 import registerChunkedUploads from "../lib/chunked-upload.js";
+import { audit } from "../lib/audit.js";
 
 const blockedExtensions = new Set([
   ".exe",
@@ -197,6 +198,12 @@ export default async function fileRoutes(app) {
   app.get("/:id/download", async (request, reply) => {
     const file = await getFile(request);
     const stream = await app.minio.getObject(file.bucket, file.objectKey);
+    await audit(app, request, {
+      actionType: "FILE_DOWNLOAD_STARTED",
+      entityType: "FILE_OBJECT",
+      entityId: file.id,
+      metadata: { sizeBytes: file.sizeBytes, mimeType: file.mimeType },
+    });
     return reply
       .header("cache-control", "private, no-store")
       .header("x-content-type-options", "nosniff")
@@ -215,9 +222,17 @@ export default async function fileRoutes(app) {
         "FILE_IN_USE",
         "Remove a shared file through its Drive folder or owning item",
       );
-    await app.prisma.fileObject.update({
-      where: { id: file.id },
-      data: { deletedAt: new Date() },
+    await app.prisma.$transaction(async (tx) => {
+      await tx.fileObject.update({
+        where: { id: file.id },
+        data: { deletedAt: new Date() },
+      });
+      await audit(app, request, {
+        actionType: "FILE_DELETED",
+        entityType: "FILE_OBJECT",
+        entityId: file.id,
+        beforeData: { sizeBytes: file.sizeBytes, mimeType: file.mimeType },
+      }, tx);
     });
     return { success: true, data: null };
   });

@@ -29,6 +29,9 @@ import approvalRoutes from "./routes/approvals.js";
 import conversationRoutes from "./routes/conversations.js";
 import fileRoutes from "./routes/files.js";
 import notificationRoutes from "./routes/notifications.js";
+import auditRoutes from "./routes/audit.js";
+import { recordDiagnostic } from "./lib/diagnostics.js";
+import { audit } from "./lib/audit.js";
 import pushRoutes from "./routes/push.js";
 import nativePushRoutes from "./routes/native-push.js";
 
@@ -166,6 +169,24 @@ export async function buildApp(dependencies = {}) {
       error.code || (statusCode === 500 ? "INTERNAL_ERROR" : "REQUEST_ERROR");
     if (statusCode >= 500)
       request.log.error({ err: error }, "Unhandled request error");
+    if (statusCode === 403) {
+      const path = request.raw?.url?.split("?")[0] || "";
+      const module = /\/tasks/.test(path) ? "TASKS"
+        : /\/approval/.test(path) ? "APPROVALS"
+        : /\/drive|\/files/.test(path) ? "DRIVE"
+        : /\/conversation|\/messages/.test(path) ? "MESSAGES"
+        : /\/users|\/roles/.test(path) ? "ADMINISTRATION" : "SYSTEM";
+      void audit(app, request, {
+        actionType: "ACCESS_DENIED", entityType: "HTTP_REQUEST",
+        module, outcome: "DENIED", severity: "WARNING",
+        metadata: { method: request.method, path, errorCode: code },
+      }).catch((auditError) => request.log.warn({ err: auditError }, "Unable to persist denied access audit"));
+    }
+    if (statusCode >= 500 || statusCode === 403 || statusCode === 413 || statusCode === 429) {
+      void recordDiagnostic(app, request, error, statusCode).catch((diagnosticError) => {
+        request.log.warn({ err: diagnosticError, reqId: request.id }, "Unable to persist diagnostic incident");
+      });
+    }
     reply.status(statusCode).send({
       success: false,
       error: {
@@ -190,6 +211,7 @@ export async function buildApp(dependencies = {}) {
   await app.register(roleRoutes, { prefix: "/api/v1" });
   await app.register(fileRoutes, { prefix: "/api/v1/files" });
   await app.register(notificationRoutes, { prefix: "/api/v1/notifications" });
+  await app.register(auditRoutes, { prefix: "/api/v1/audit" });
   await app.register(pushRoutes, { prefix: "/api/v1/push" });
   await app.register(nativePushRoutes, { prefix: "/api/v1/mobile-push" });
 

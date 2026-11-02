@@ -731,7 +731,8 @@ export default async function taskRoutes(app) {
       dueDate: existing.dueDate,
       priority: existing.priority,
     };
-    const task = await app.prisma.task.update({
+    const task = await app.prisma.$transaction(async (tx) => {
+      const updated = await tx.task.update({
       where: { id: existing.id },
       data: {
         title: input.title,
@@ -771,6 +772,15 @@ export default async function taskRoutes(app) {
         },
       },
       include: taskIncludeFor(request.authUser.id),
+      });
+      await audit(app, request, {
+        actionType: "TASK_UPDATED",
+        entityType: "TASK",
+        entityId: updated.id,
+        beforeData: before,
+        afterData: { title: updated.title, status: updated.status, assigneeId: updated.assigneeId, dueDate: updated.dueDate, priority: updated.priority },
+      }, tx);
+      return updated;
     });
 
     if (
@@ -893,6 +903,12 @@ export default async function taskRoutes(app) {
         actionType: "COMMENT_ADDED",
         metadata: { commentId: comment.id },
       },
+    });
+    await audit(app, request, {
+      actionType: "TASK_COMMENT_ADDED",
+      entityType: "TASK",
+      entityId: task.id,
+      metadata: { commentId: comment.id, attachmentCount: input.attachmentIds.length },
     });
     await notifyTaskCommentStakeholders(task, comment, request.authUser.id);
     await emitTaskEvent(app, task.id, "task:comment-created");

@@ -1,0 +1,259 @@
+/* Audit & Diagnostics: surfaces and accents always inherit the workspace
+   palette, including Midnight, OLED, Slate and Light + accent variants. */
+.audit-page {
+  --audit-panel: var(--app-surface);
+  --audit-raised: var(--app-surface-raised);
+  --audit-input: var(--app-surface-input);
+  --audit-border: var(--app-border);
+  --audit-text: var(--app-text-strong);
+  --audit-muted: var(--app-muted);
+  --audit-warning: #c7943b;
+  min-width: 0;
+  width: 100%;
+  color: var(--app-text);
+  padding-bottom: 22px;
+}
+.audit-header-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; }
+.audit-header-actions .btn-secondary,
+.audit-toolbar .btn-secondary,
+.audit-pagination .btn-secondary,
+.audit-filter-footer button { display: inline-flex; align-items: center; gap: 7px; }
+.audit-date-control { display: inline-flex; align-items: center; gap: 8px; color: var(--audit-muted); }
+.audit-date-control .input { width: auto; min-width: 142px; }
+.audit-custom-range { display: flex; gap: 10px; padding: 0 0 14px; flex-wrap: wrap; }
+.audit-custom-range label { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--audit-muted); }
+.audit-custom-range .input { width: auto; }
+.audit-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 16px 0 20px; }
+.audit-stat {
+  position: relative; min-width: 0; min-height: 122px; display: flex;
+  flex-direction: column; gap: 9px; padding: 18px; border: 1px solid var(--audit-border);
+  border-radius: 15px; background: var(--audit-panel);
+}
+.audit-stat-icon { position: absolute; right: 14px; top: 14px; display: grid; place-items: center;
+  width: 33px; height: 33px; border-radius: 10px;
+  color: var(--app-accent); background: var(--app-accent-soft); }
+.audit-stat-icon.danger { color: var(--app-danger); background: color-mix(in srgb, var(--app-danger) 13%, transparent); }
+.audit-stat-label { color: var(--audit-muted); font-size: 12px; font-weight: 650; padding-right: 34px; }
+.audit-stat strong { color: var(--audit-text); font-size: clamp(21px, 2.5vw, 29px); letter-spacing: -.025em; line-height: 1.1; font-weight: 750; }
+.audit-stat-description { color: var(--audit-muted); font-size: 11px; }
+.audit-tabs { display: flex; gap: 6px; align-items: center; overflow-x: auto; margin-bottom: 13px; padding: 2px 0; }
+.audit-tabs button { flex: 0 0 auto; min-height: 38px; border-radius: 10px; padding: 9px 13px;
+  color: var(--audit-muted); display: inline-flex; align-items: center; gap: 8px;
+  font-size: 12px; font-weight: 700; transition: background .15s ease, color .15s ease; }
+.audit-tabs button:hover:not(.active) { background: var(--app-interactive-hover); color: var(--app-interactive-hover-text); }
+.audit-tabs button.active { background: var(--app-accent-soft); color: var(--app-accent); }
+.audit-toolbar { display: flex; gap: 9px; align-items: center; flex-wrap: wrap; border: 1px solid var(--audit-border);
+  border-radius: 14px; padding: 12px; background: var(--audit-panel); margin-bottom: 14px; }
+.audit-search { display: flex; flex: 1 1 250px; min-width: 180px; max-width: 440px; align-items: center; gap: 8px;
+  padding: 0 12px; height: 39px; border-radius: 10px; background: var(--audit-input);
+  border: 1px solid var(--audit-border); color: var(--audit-muted); }
+.audit-search:focus-within { border-color: var(--app-focus-ring); }
+.audit-search-input { min-width: 0; width: 100%; height: 100%; border: none; outline: none;
+  background: transparent; color: var(--audit-text); font-size: 12px; }
+.audit-search-input::placeholder { color: var(--audit-muted); }
+.audit-filter-count { display: grid; place-items: center; width: 19px; height: 19px;
+  border-radius: 100%; background: var(--app-accent-soft); color: var(--app-accent); font-size: 10px; }
+.audit-toolbar-spacer { flex: 1 1 0; }
+.audit-inline-filter { display: flex; align-items: center; gap: 6px; color: var(--audit-muted); font-size: 11px; font-weight: 700; }
+.audit-inline-filter .input { min-width: 112px; max-width: 156px; font-size: 11px; }
+.audit-toolbar .icon-btn { height: 36px; width: 36px; }
+.audit-table-card { min-width: 0; border: 1px solid var(--audit-border); border-radius: 15px;
+  overflow: hidden; background: var(--audit-panel); }
+.audit-table-scroll { overflow-x: auto; width: 100%; }
+.audit-table { width: 100%; min-width: 850px; border-collapse: collapse; table-layout: auto; }
+.audit-table th { text-align: left; color: var(--audit-muted); font-size: 10px; font-weight: 750;
+  text-transform: uppercase; letter-spacing: .035em; border-bottom: 1px solid var(--audit-border);
+  padding: 13px 14px; white-space: nowrap; }
+.audit-table td { padding: 13px 14px; color: var(--app-text); font-size: 12px;
+  border-bottom: 1px solid var(--audit-border); vertical-align: middle; }
+.audit-table tbody tr:last-child td { border-bottom: 0; }
+.audit-table tbody tr:hover { background: var(--app-interactive-hover); }
+.audit-timestamp { width: 140px; white-space: nowrap; color: var(--audit-muted)!important; font-size: 11px!important; }
+.audit-table-user { display: flex; align-items: center; gap: 9px; min-width: 150px; }
+.audit-table-user > span:last-child { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.audit-table-user strong { color: var(--audit-text); font-weight: 650; font-size: 12px; }
+.audit-table-user small { color: var(--audit-muted); font-size: 10px; }
+.audit-module { display: inline-flex; align-items: center; border-radius: 7px; padding: 5px 8px;
+  color: var(--app-text); background: var(--audit-raised); font-size: 10px; font-weight: 650; }
+.audit-action { font-weight: 650; color: var(--audit-text)!important; min-width: 130px; }
+.audit-target-cell { color: var(--audit-muted)!important; max-width: 220px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.audit-view { display: grid; place-items: center; height: 30px; width: 30px;
+  border-radius: 8px; color: var(--audit-muted); }
+.audit-view:hover { background: var(--app-accent-soft); color: var(--app-accent); }
+.audit-system-avatar { flex: 0 0 28px; display: grid; place-items: center; width: 28px;
+  height: 28px; border-radius: 50%; background: var(--audit-raised); color: var(--audit-muted); }
+.audit-badge { display: inline-flex; align-items: center; width: max-content; border-radius: 999px; padding: 4px 9px;
+  font-size: 10px; font-weight: 750; letter-spacing: .005em; text-transform: capitalize; }
+.audit-badge-success, .audit-badge-info { color: var(--app-success); background: color-mix(in srgb, var(--app-success) 13%, transparent); }
+.audit-badge-failed, .audit-badge-error, .audit-badge-critical { color: var(--app-danger); background: color-mix(in srgb, var(--app-danger) 13%, transparent); }
+.audit-badge-denied, .audit-badge-warning { color: var(--audit-warning); background: color-mix(in srgb, var(--audit-warning) 14%, transparent); }
+.audit-pagination { display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  flex-wrap: wrap; margin-top: 12px; font-size: 12px; color: var(--audit-muted); }
+.audit-pagination > div { display: flex; gap: 7px; }
+.audit-pagination .btn-secondary { padding: 7px 10px; font-size: 11px; }
+.audit-filter-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.audit-filter-grid label { display: flex; flex-direction: column; gap: 8px; color: var(--app-text);
+  font-size: 12px; font-weight: 650; min-width: 0; }
+.audit-filter-grid .input { width: 100%; }
+.audit-filter-footer { display: flex; justify-content: flex-end; gap: 9px; padding-top: 20px; margin-top: 18px;
+  border-top: 1px solid var(--audit-border); }
+.audit-details-modal.modal-wide { width: min(940px, calc(100vw - 32px)); }
+.audit-details-modal .modal-body { padding: 0; }
+.audit-details-modal .modal-head, .audit-filters-modal .modal-head { background: var(--audit-panel); border-color: var(--audit-border); }
+.audit-details-body { display: flex; flex-direction: column; gap: 13px; padding: 18px; background: var(--audit-panel); }
+.audit-detail-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 11px; }
+.audit-detail-summary p { color: var(--audit-muted); font-size: 12px; line-height: 1.5; }
+.audit-detail-section { min-width: 0; background: var(--audit-raised); border: 1px solid var(--audit-border);
+  border-radius: 12px; padding: 16px; color: var(--app-text); }
+.audit-detail-section h3 { display: flex; align-items: center; gap: 8px; color: var(--audit-text);
+  font-size: 13px; font-weight: 750; margin: 0 0 13px; }
+.audit-info-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.audit-info { min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.audit-info-label { color: var(--audit-muted); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
+.audit-info-value { color: var(--audit-text); font-size: 11px; overflow-wrap: anywhere; line-height: 1.45; white-space: pre-wrap; }
+.audit-copy { display: inline-flex; vertical-align: middle; padding: 3px; color: var(--audit-muted); border-radius: 5px; }
+.audit-copy:hover { background: var(--app-interactive-hover); color: var(--app-accent); }
+.audit-detail-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; }
+.audit-actor, .audit-target { display: flex; align-items: center; gap: 10px; }
+.audit-actor > div:last-child, .audit-target > div { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.audit-actor strong, .audit-target strong { color: var(--audit-text); font-size: 12px; overflow-wrap: anywhere; }
+.audit-actor small, .audit-target small { color: var(--audit-muted); font-size: 11px; }
+.audit-target > svg { flex: none; color: var(--app-accent); }
+.audit-person-meta { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+.audit-change-count { color: var(--app-accent); background: var(--app-accent-soft);
+  border-radius: 999px; padding: 3px 7px; font-size: 10px; }
+.audit-changes { display: flex; flex-direction: column; gap: 8px; }
+.audit-change-row { display: grid; grid-template-columns: minmax(95px, .8fr) minmax(0, 1fr) 15px minmax(0, 1fr);
+  gap: 10px; align-items: center; font-size: 11px; }
+.audit-change-row strong { color: var(--audit-text); font-weight: 650; overflow-wrap: anywhere; text-transform: capitalize; }
+.audit-old-value, .audit-new-value { padding: 9px; border-radius: 8px; overflow-wrap: anywhere;
+  white-space: pre-wrap; max-height: 145px; overflow-y: auto; }
+.audit-old-value { color: var(--app-danger); background: color-mix(in srgb, var(--app-danger) 10%, transparent); }
+.audit-new-value { color: var(--app-success); background: color-mix(in srgb, var(--app-success) 10%, transparent); }
+.audit-change-arrow { color: var(--audit-muted); }
+.audit-technical summary { font-size: 12px; font-weight: 750; color: var(--audit-text); cursor: pointer; }
+.audit-technical[open] summary { margin-bottom: 14px; }
+.audit-raw { color: var(--app-text); background: var(--audit-input); border: 1px solid var(--audit-border);
+  padding: 12px; border-radius: 9px; margin: 14px 0 0; max-height: 250px;
+  overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 11px; }
+.audit-filters-modal .modal-body { background: var(--audit-panel); }
+@media (max-width: 1120px) {
+  .audit-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .audit-toolbar-spacer { display: none; }
+}
+@media (max-width: 650px) {
+  .audit-stats { gap: 8px; }
+  .audit-stat { min-height: 112px; padding: 13px; }
+  .audit-stat strong { font-size: 22px; }
+  .audit-header-actions, .audit-header-actions .btn-secondary { width: 100%; }
+  .audit-header-actions > * { flex: 1; }
+  .audit-toolbar { gap: 8px; }
+  .audit-search { flex-basis: 100%; max-width: none; }
+  .audit-tabs { gap: 2px; }
+  .audit-tabs button { padding: 9px 10px; font-size: 11px; }
+  .audit-info-grid, .audit-detail-columns { grid-template-columns: 1fr; }
+  .audit-detail-columns { gap: 10px; }
+  .audit-change-row { grid-template-columns: 1fr 1fr; gap: 6px; }
+  .audit-change-row strong { grid-column: 1 / -1; }
+  .audit-change-arrow { display: none; }
+  .audit-detail-section { padding: 12px; }
+  .audit-filter-grid { grid-template-columns: 1fr; }
+  .audit-pagination { align-items: stretch; }
+}
+
+.audit-user-selector { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.audit-user-selector select { flex: 1; min-width: 0; }
+
+.app-theme-dark[data-appearance="light"] .audit-page { --audit-warning: #895a12; }
+
+
+/* Keep the reusable PageHeader above Audit content when the workspace scrolls.
+   Its normal transparent canvas must become opaque only while used in this
+   sticky Audit context; the global PageHeader stays unchanged. */
+.app-theme-dark .audit-page > .page-header {
+  position: sticky;
+  top: 0;
+  z-index: 25;
+  margin: 0 -34px 15px;
+  padding: 12px 50px 14px;
+  overflow: visible;
+  background: var(--app-bg);
+  box-shadow: 0 1px 0 var(--audit-border);
+}
+.app-theme-dark .audit-page > .page-header > div:first-child {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+.app-theme-dark .audit-page > .page-header .page-header-action {
+  flex: 0 1 auto;
+  max-width: 100%;
+  min-width: 0;
+}
+
+/* The shared .input Tailwind focus:ring and native select focus outline were
+   stacking on repeated pointer interactions. Keep the common select/date
+   widgets and palette tokens, but paint exactly one subtle keyboard focus. */
+.app-theme-dark .audit-page :is(select.input.app-modern-select, input.input[type="date"]) {
+  border: 1px solid var(--audit-border);
+  background: var(--audit-input);
+  color: var(--audit-text);
+  color-scheme: dark;
+  outline: none;
+  box-shadow: none;
+  --tw-ring-offset-shadow: 0 0 #0000;
+  --tw-ring-shadow: 0 0 #0000;
+  transition: border-color .15s ease, background-color .15s ease;
+}
+.app-theme-dark .audit-page :is(select.input.app-modern-select, input.input[type="date"]):hover:not(:disabled) {
+  border-color: var(--app-border-strong);
+  background: var(--app-surface-hover);
+}
+.app-theme-dark .audit-page :is(select.input.app-modern-select, input.input[type="date"]):focus {
+  border-color: var(--audit-border);
+  outline: none;
+  box-shadow: none;
+  --tw-ring-offset-shadow: 0 0 #0000;
+  --tw-ring-shadow: 0 0 #0000;
+}
+.app-theme-dark .audit-page :is(select.input.app-modern-select, input.input[type="date"]):focus-visible {
+  border-color: var(--app-ui-focus-ring);
+  outline: 1px solid var(--app-ui-focus-ring);
+  outline-offset: 1px;
+}
+.app-theme-dark[data-appearance="light"] .audit-page :is(select.input.app-modern-select, input.input[type="date"]) {
+  color-scheme: light;
+}
+.app-theme-dark .audit-page :is(button, .audit-technical summary):focus-visible {
+  outline: 2px solid var(--app-ui-focus-ring);
+  outline-offset: 2px;
+}
+.app-theme-dark .audit-page .audit-search:focus-within {
+  border-color: var(--app-ui-focus-ring);
+  box-shadow: none;
+}
+@media (max-width: 900px) {
+  /* The shared mobile workspace bar occupies the first 64px. PageHeader's
+     md:top-0 utility starts at 768px, earlier than this shell's 901px switch. */
+  .app-theme-dark .audit-page > .page-header {
+    top: 64px;
+    margin-inline: -14px;
+    padding-inline: 14px;
+  }
+}
+@media (max-width: 700px) {
+  .app-theme-dark .audit-page > .page-header {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .app-theme-dark .audit-page > .page-header .page-header-action {
+    flex: 1 1 100%;
+    justify-content: flex-start;
+    overflow-x: visible;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-theme-dark .audit-page :is(select.input.app-modern-select, input.input[type="date"]) {
+    transition: none;
+  }
+}

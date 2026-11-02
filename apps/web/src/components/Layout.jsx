@@ -219,7 +219,7 @@ export default function Layout() {
               ([path]) => path !== "/drive" || hasPermission("drive.use"),
             ),
             ...(hasPermission("system.audit.read")
-              ? [["/audit", "Audit log", ShieldCheck]]
+              ? [["/audit", "Audit & Diagnostics", ShieldCheck]]
               : []),
             ...(hasPermission("users.manage")
               ? [["/admin", "Administration", Settings]]
