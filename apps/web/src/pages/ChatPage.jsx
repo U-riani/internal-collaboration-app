@@ -973,8 +973,10 @@ function Members({ conversation, currentUserId, onClose }) {
                   filteredMembers.map((member) => (
                     <div key={member.userId} className="conversation-members-current-row" role="listitem">
                       <Avatar
+                        small
                         name={member.user.displayName}
                         userId={member.userId}
+                        photoUrl={member.user.avatarUrl}
                         className="conversation-members-person-icon"
                       />
                     <span className="conversation-members-person-info">

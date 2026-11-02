@@ -17,7 +17,6 @@ import {
   ListFilter,
   MessageSquare,
   Paperclip,
-  UserRound,
   Pencil,
   Plus,
   Search,
@@ -332,6 +331,8 @@ function TaskForm({ existing, parentTask, defaultGroupId = "", onClose }) {
             .map((member) => ({
               value: member.id,
               label: member.displayName || member.email || "Unknown",
+              userId: member.id,
+              photoUrl: member.avatarUrl,
             }))}
           values={form.participantIds}
           onToggle={(value) =>
@@ -586,9 +587,13 @@ function TaskDetail({ id, onClose }) {
               <div className="task-detail-participants-list">
                 {task.participants.map((participant) => (
                   <div key={participant.userId} className="task-detail-person">
-                    <span className="task-detail-person-icon" aria-hidden="true">
-                      <UserRound size={17} strokeWidth={1.8} />
-                    </span>
+                    <Avatar
+                      small
+                      name={participant.user?.displayName || "Unknown"}
+                      userId={participant.userId}
+                      photoUrl={participant.user?.avatarUrl}
+                      className="task-detail-person-icon"
+                    />
                     <span className="task-detail-person-name">
                       {participant.user?.displayName || "Unknown"}
                     </span>
@@ -1595,6 +1600,8 @@ export default function TasksPage() {
                       ...filterPeople.map((person) => ({
                         value: person.id,
                         label: person.displayName || person.email || "Unknown",
+                        userId: person.id,
+                        photoUrl: person.avatarUrl,
                       })),
                     ]}
                     values={advancedFilters.assigneeIds}
@@ -1606,6 +1613,8 @@ export default function TasksPage() {
                     options={filterPeople.map((person) => ({
                       value: person.id,
                       label: person.displayName || person.email || "Unknown",
+                      userId: person.id,
+                      photoUrl: person.avatarUrl,
                     }))}
                     values={advancedFilters.creatorIds}
                     onToggle={(value) => toggleAdvancedValue("creatorIds", value)}
@@ -1616,6 +1625,8 @@ export default function TasksPage() {
                     options={filterPeople.map((person) => ({
                       value: person.id,
                       label: person.displayName || person.email || "Unknown",
+                      userId: person.id,
+                      photoUrl: person.avatarUrl,
                     }))}
                     values={advancedFilters.participantIds}
                     onToggle={(value) => toggleAdvancedValue("participantIds", value)}

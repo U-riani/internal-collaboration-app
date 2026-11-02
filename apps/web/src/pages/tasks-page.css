@@ -783,6 +783,13 @@
   background: var(--app-icon-soft-bg, var(--app-accent-soft, #e6eaff));
   color: var(--app-icon-accent, var(--app-focus-ring, #817cf0));
 }
+:is(.tasks-page, .task-form) .filter-multiselect-option .avatar.filter-multiselect-avatar {
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+}
 :is(.tasks-page, .task-form) .filter-multiselect-search > svg {
   color: var(--app-icon-muted, var(--task-muted));
 }
@@ -1356,7 +1363,8 @@
   flex: 0 0 30px;
   width: 30px;
   height: 30px;
-  border-radius: 25%;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
   color: #84b1ff;
   background: #243b57;
 }
