@@ -2009,7 +2009,7 @@ export default function ApprovalsPage() {
             </span>
             <button
               type="button"
-              className="font-semibold text-slate-500 hover:text-slate-800"
+              className="font-semibold text-slate-500"
               onClick={resetFilters}
             >
               Clear

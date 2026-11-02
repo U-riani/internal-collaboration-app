@@ -1389,32 +1389,40 @@
 .task-detail .task-detail-subtask-row:hover { background: var(--detail-hover); }
 .task-detail .task-detail-subtask-title {
   color: var(--detail-text);
-  transition: color .15s ease;
 }
-.task-detail .task-detail-subtask-title:hover { color: var(--detail-accent); }
 .task-detail .task-detail-subtask-title.line-through { color: var(--detail-muted); }
 .task-detail .task-detail-subtask-toggle { color: var(--detail-accent); }
 .task-detail .task-detail-subtask-toggle:hover { background: var(--detail-control); }
 /* A cancelled task is not a completion toggle. X and its frame adapt to all
    workspace appearance palettes, while the status dropdown remains editable. */
 .task-cancelled-checkbox {
-  display: grid;
-  place-items: center;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 19px;
   width: 19px;
   height: 19px;
-  border: 1.5px solid currentColor;
+  box-sizing: border-box;
+  padding: 0;
+  border: 1.5px solid color-mix(in srgb, var(--app-danger, #c56c7d) 48%, var(--app-border, #e1e6f1));
   border-radius: 5px;
-  color: var(--app-icon-muted, var(--app-muted, #8590a7));
-  background: var(--app-surface-raised, #f0f3fa);
+  color: var(--app-danger, #c56c7d);
+  background: color-mix(in srgb, var(--app-danger, #c56c7d) 13%, var(--app-surface-raised, #f0f3fa));
+  line-height: 0;
 }
 .task-cancelled-checkbox svg {
+  position: absolute;
+  top: 50%;
+  left: 50%;
   display: block;
   width: 12px;
   height: 12px;
+  transform: translate(-50%, -50%);
 }
 .tasks-page .task-list-row .task-status-toggle--cancelled:disabled,
 .task-detail .task-detail-subtask-toggle.task-status-toggle--cancelled:disabled {
-  color: var(--app-icon-muted, var(--app-muted, #8590a7));
+  color: var(--app-danger, #c56c7d);
   cursor: not-allowed;
   opacity: 1;
 }
@@ -1544,7 +1552,6 @@
   font-size: 12px;
   font-weight: 600;
 }
-.task-detail .task-detail-file-label:hover { color: var(--detail-text); }
 .task-detail .task-detail-comment-submit,
 .app-theme-dark .task-detail .task-detail-comment-submit {
   min-height: 37px;

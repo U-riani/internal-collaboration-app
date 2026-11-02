@@ -24,7 +24,10 @@ describe("Cancelled task checkbox behavior", () => {
     "keeps the disabled X box visible in the %s appearance",
     () => {
       expect(css).toContain(".task-cancelled-checkbox");
-      expect(css).toContain("border: 1.5px solid currentColor;");
+      expect(css).toContain("top: 50%;");
+      expect(css).toContain("left: 50%;");
+      expect(css).toContain("transform: translate(-50%, -50%);");
+      expect(css).toContain("line-height: 0;");
       expect(css).toContain(".task-status-toggle--cancelled:disabled");
       expect(css).toContain("opacity: 1;");
     },
@@ -33,7 +36,8 @@ describe("Cancelled task checkbox behavior", () => {
   it.each(ACCENT_OPTIONS.map(({ id }) => [id]))(
     "uses palette tokens for the cancelled mark with accent %s",
     () => {
-      expect(css).toContain("var(--app-icon-muted");
+      expect(css).toContain("var(--app-danger"); 
+      expect(css).toContain("color-mix(in srgb, var(--app-danger");
       expect(css).toContain("var(--app-surface-raised");
       expect(css).toContain(".task-detail .task-detail-subtask-toggle.task-status-toggle--cancelled:hover");
     },

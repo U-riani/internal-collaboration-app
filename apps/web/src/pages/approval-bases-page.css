@@ -374,9 +374,6 @@
   font-size: 11px;
   font-weight: 700;
 }
-.approval-bases-active-filters button:hover {
-  color: var(--base-text);
-}
 .approval-bases-page .approval-bases-filter-panel {
   color: var(--base-text);
   background: var(--base-surface);
