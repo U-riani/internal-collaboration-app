@@ -52,7 +52,19 @@ export async function markRelatedNotificationsRead(
       conversationMessageIds = new Set(messages.map((item) => item.id));
     }
 
+    const membershipNotifications = await app.prisma.notification.findMany({
+      where: {
+        userId,
+        isRead: false,
+        type: "GROUP_MEMBER_ADDED",
+        relatedEntityType: "CONVERSATION",
+        relatedEntityId: entityId,
+      },
+      select: { id: true },
+    });
+
     notificationIds = [
+      ...membershipNotifications.map((item) => item.id),
       ...legacyIds,
       ...messageNotifications
         .filter((item) => conversationMessageIds.has(item.relatedEntityId))

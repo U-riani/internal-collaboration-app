@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { requireOwnUploads } from "../lib/file-access.js";
 import { createImageZipStream } from "../lib/image-zip.js";
 import { z } from "zod";
@@ -18,6 +19,31 @@ const createSchema = z.object({
 const renameGroupSchema = z.object({
   name: z.string().trim().min(2).max(200),
 });
+
+// Group membership is a separate activity from message delivery. A fresh event
+// ID makes a legitimate leave/rejoin produce a new notification, while the
+// existing-member guard prevents duplicates for an unchanged membership.
+async function notifyAddedGroupMembers(app, conversation, members, actor) {
+  if (conversation.type !== "GROUP") return;
+  const eventId = randomUUID();
+  const actorName = actor.displayName || "A colleague";
+  const groupName = conversation.name || "Unnamed group";
+  await Promise.all(
+    members
+      .filter(({ userId }) => userId !== actor.id)
+      .map(({ userId }) =>
+        createNotification(app, {
+          userId,
+          type: "GROUP_MEMBER_ADDED",
+          title: "Added to a group",
+          body: `${actorName} added you to the group "${groupName}".`,
+          relatedEntityType: "CONVERSATION",
+          relatedEntityId: conversation.id,
+          deduplicationKey: `group-member-added:${conversation.id}:${userId}:${eventId}`,
+        }),
+      ),
+  );
+}
 
 const messageSchema = z
   .object({
@@ -467,6 +493,7 @@ export default async function conversationRoutes(app) {
     app.io
       ?.to(memberIds.map((id) => `user:${id}`))
       .emit("conversation:updated", { id: conversation.id });
+    await notifyAddedGroupMembers(app, conversation, conversation.members, request.authUser);
     reply.status(201);
     return { success: true, data: conversation };
   });
@@ -1152,6 +1179,7 @@ export default async function conversationRoutes(app) {
     app.io
       ?.to(`conversation:${conversation.id}`)
       .emit("conversation:updated", { id: conversation.id });
+    await notifyAddedGroupMembers(app, conversation, [{ userId: input.userId }], request.authUser);
     return { success: true, data: null };
   });
 

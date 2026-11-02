@@ -109,6 +109,18 @@ export async function targetUrl(app, notification, userId) {
     return `/tasks?task=${encodeURIComponent(id)}`;
   if (notification.relatedEntityType === "APPROVAL_REQUEST")
     return `/approvals?request=${encodeURIComponent(id)}`;
+  if (
+    notification.type === "GROUP_MEMBER_ADDED" &&
+    notification.relatedEntityType === "CONVERSATION"
+  ) {
+    const membership = await app.prisma.conversationMember.findUnique({
+      where: { conversationId_userId: { conversationId: id, userId } },
+      select: { leftAt: true },
+    });
+    return membership && !membership.leftAt
+      ? `/chat?conversation=${encodeURIComponent(id)}`
+      : null;
+  }
 
   const message = await resolveMessageTarget(app, notification, userId);
   if (message)
@@ -160,7 +172,7 @@ export default async function notificationRoutes(app) {
       app.prisma.notification.count({
         where: {
           ...unreadWhere,
-          type: { in: ["MESSAGE", "MESSAGE_REACTION"] },
+          type: { in: ["MESSAGE", "MESSAGE_REACTION", "GROUP_MEMBER_ADDED"] },
         },
       }),
       app.prisma.notification.count({
