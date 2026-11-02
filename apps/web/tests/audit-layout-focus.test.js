@@ -8,13 +8,22 @@ const header = read("../src/components/PageHeader.jsx");
 const layout = read("../src/components/Layout.jsx");
 
 describe("Audit & Diagnostics — sticky header and theme-aware focus regressions", () => {
-  it("reuses the shared header but paints an opaque sticky canvas for the Audit scroll context", () => {
-    expect(auditPage).toContain("<PageHeader title=\"Audit & Diagnostics\"");
+  it("reuses the shared sticky header with no divider or painted panel at rest", () => {
+    expect(auditPage).toContain('<PageHeader title="Audit & Diagnostics"');
     expect(header).toContain("page-header sticky");
-    expect(auditCss).toMatch(/\.app-theme-dark \.audit-page > \.page-header\s*\{[^}]*position: sticky;[^}]*top: 0;[^}]*z-index: 25;[^}]*background: var\(--app-bg\);/s);
+    expect(auditCss).toMatch(/\.app-theme-dark \.audit-page > \.page-header\s*\{[^}]*position: sticky;[^}]*top: 0;[^}]*z-index: 25;[^}]*background: transparent;[^}]*border: 0;[^}]*box-shadow: none;/s);
     expect(auditCss).toContain("overflow: visible;");
     expect(layout).toContain("workspace-mobile-header sticky top-0");
     expect(auditCss).toMatch(/@media \(max-width: 900px\)\s*\{[^}]*\.app-theme-dark \.audit-page > \.page-header\s*\{[^}]*top: 64px;/s);
+  });
+
+  it("only protects the header surface when the workspace actually scrolls", () => {
+    expect(auditPage).toContain('data-header-scrolled={headerScrolled ? "true" : "false"}');
+    expect(auditPage).toContain('main?.addEventListener("scroll", syncHeader');
+    expect(auditPage).toContain('window.addEventListener("scroll", syncHeader');
+    expect(auditPage).toContain('main?.removeEventListener("scroll", syncHeader)');
+    expect(auditPage).toContain('window.removeEventListener("scroll", syncHeader)');
+    expect(auditCss).toMatch(/\.app-theme-dark \.audit-page\[data-header-scrolled="true"\] > \.page-header\s*\{[^}]*background: color-mix\(in srgb, var\(--app-bg\) 98%, transparent\);[^}]*backdrop-filter: blur\(16px\);/s);
   });
 
   it("keeps native select and date controls, without the stacked Tailwind focus ring", () => {

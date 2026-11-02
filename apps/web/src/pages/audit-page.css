@@ -167,9 +167,9 @@
 .app-theme-dark[data-appearance="light"] .audit-page { --audit-warning: #895a12; }
 
 
-/* Keep the reusable PageHeader above Audit content when the workspace scrolls.
-   Its normal transparent canvas must become opaque only while used in this
-   sticky Audit context; the global PageHeader stays unchanged. */
+/* Keep the shared PageHeader completely integrated with the workspace
+   canvas at rest, like People/Tasks: no extra surface, border or divider.
+   Apply a protective backdrop only once content scrolls behind the header. */
 .app-theme-dark .audit-page > .page-header {
   position: sticky;
   top: 0;
@@ -177,8 +177,13 @@
   margin: 0 -34px 15px;
   padding: 12px 50px 14px;
   overflow: visible;
-  background: var(--app-bg);
-  box-shadow: 0 1px 0 var(--audit-border);
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+.app-theme-dark .audit-page[data-header-scrolled="true"] > .page-header {
+  background: color-mix(in srgb, var(--app-bg) 98%, transparent);
+  backdrop-filter: blur(16px);
 }
 .app-theme-dark .audit-page > .page-header > div:first-child {
   flex: 1 1 280px;
