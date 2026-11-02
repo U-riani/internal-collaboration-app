@@ -130,6 +130,9 @@ model User {
   displayName               String
   phone                     String?
   jobTitle                  String?
+  avatarObjectKey           String?
+  avatarMimeType            String?
+  avatarUpdatedAt           DateTime?
   status                    UserStatus                @default(ACTIVE)
   departmentId              String?                   @db.Uuid
   department                Department?               @relation("UserDepartment", fields: [departmentId], references: [id], onDelete: SetNull)

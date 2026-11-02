@@ -71,6 +71,12 @@ export function AuthProvider({ children }) {
     () => ({
       user,
       loading,
+      updateCurrentUser(nextUser) {
+        if (nextUser?.id !== user?.id) return;
+        setUser(nextUser);
+        // Refresh directory queries that may render this colleague's avatar.
+        void queryClient.invalidateQueries({ queryKey: ["users"] });
+      },
       async login(email, password) {
         const result = await api(
           "/auth/login",

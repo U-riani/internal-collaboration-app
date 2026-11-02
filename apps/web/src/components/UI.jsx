@@ -7,7 +7,7 @@ import {
   isValidElement,
 } from "react";
 import { X, File, Download, LoaderCircle, Search } from "lucide-react";
-import { downloadFile } from "../lib/api.js";
+import { downloadFile, fetchAvatarImage } from "../lib/api.js";
 export function Modal({ title, children, onClose, wide = false, headerIcon = null, subtitle = null, badge = null, className = "" }) {
   const ref = useRef(null);
   const id = useId();
@@ -119,7 +119,28 @@ export function Badge({ value }) {
     </span>
   );
 }
-export function Avatar({ name = "", small = false }) {
+export function Avatar({ name = "", small = false, photoUrl = null }) {
+  const [imageUrl, setImageUrl] = useState(null);
+  useEffect(() => {
+    setImageUrl(null);
+    if (!photoUrl) return;
+    const controller = new AbortController();
+    let objectUrl = null;
+    fetchAvatarImage(photoUrl, { signal: controller.signal })
+      .then((image) => {
+        if (controller.signal.aborted) return;
+        objectUrl = URL.createObjectURL(image);
+        setImageUrl(objectUrl);
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setImageUrl(null);
+      });
+    return () => {
+      controller.abort();
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [photoUrl]);
+
   return (
     <span className={`avatar ${small ? "avatar-small" : ""}`}>
       {name
@@ -127,6 +148,7 @@ export function Avatar({ name = "", small = false }) {
         .map((x) => x[0])
         .slice(0, 2)
         .join("")}
+      {imageUrl && <img className="avatar-image" src={imageUrl} alt="" />}
     </span>
   );
 }

@@ -4,6 +4,7 @@ import { requirePermission, publicUser, userWithAccess } from "../lib/authz.js";
 import { hashPassword } from "../lib/security.js";
 import { HttpError } from "../lib/http-error.js";
 import { audit } from "../lib/audit.js";
+import userAvatarRoutes from "./user-avatar.js";
 
 const createSchema = z.object({
   email: z.email().transform((value) => value.toLowerCase()),
@@ -50,6 +51,7 @@ const updateSchema = z.object({
 
 export default async function userRoutes(app) {
   app.addHook("preHandler", app.authenticate);
+  await userAvatarRoutes(app);
 
   app.get("/", async (request) => {
     requirePermission(request.authUser, "users.read");

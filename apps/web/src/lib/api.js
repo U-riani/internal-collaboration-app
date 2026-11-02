@@ -260,6 +260,30 @@ export async function fetchImagePreview(id, { signal } = {}) {
   return response.blob();
 }
 
+// Profile pictures live behind authenticated API routes, just like attachment
+// previews. Never put the in-memory bearer token into an image URL.
+export async function fetchAvatarImage(avatarUrl, { signal } = {}) {
+  if (!/^\/api\/v1\/users\/[0-9a-f-]+\/avatar\?v=\d+$/i.test(avatarUrl))
+    throw new Error("Unexpected profile photo URL");
+  const load = () =>
+    fetch(avatarUrl, {
+      headers: accessToken ? { authorization: "Bearer " + accessToken } : {},
+      credentials: "include",
+      signal,
+    });
+  let response = await load();
+  if (response.status === 401 && !signal?.aborted) {
+    await refreshSession();
+    if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+    response = await load();
+  }
+  if (!response.ok) throw new Error("Profile photo could not be loaded");
+  const type = response.headers.get("content-type")?.split(";")[0].trim().toLowerCase();
+  if (!["image/jpeg", "image/png", "image/webp"].includes(type))
+    throw new Error("Unexpected profile photo type");
+  return response.blob();
+}
+
 // One ZIP per message avoids triggering dozens of simultaneous browser
 // downloads. The server verifies membership and builds a streamed archive.
 export async function downloadMessageImages(conversationId, messageId) {

@@ -255,7 +255,7 @@ export default function Layout() {
               title="My account"
               aria-label={`Open account for ${user.displayName || user.firstName || "user"}`}
             >
-              <Avatar name={user.displayName || user.firstName || "User"} />
+              <Avatar name={user.displayName || user.firstName || "User"} photoUrl={user.avatarUrl} />
               <span className="sidebar-profile-details">
                 <strong className="sidebar-profile-name">
                   {user.displayName || user.firstName || "User"}
