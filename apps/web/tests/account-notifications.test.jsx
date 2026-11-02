@@ -186,7 +186,9 @@ describe("My Account notification design", () => {
     const contactRow = department.closest(".account-profile-contact-row");
     expect(contactRow).not.toBeNull();
     expect(contactRow.contains(phone)).toBe(true);
-    expect(screen.getByRole("button", { name: "Upload photo" }).disabled).toBe(false);
+    const uploadButton = screen.getByRole("button", { name: "Upload" });
+    expect(uploadButton.disabled).toBe(true);
+    expect(screen.getByText("Drop image here or click to choose a photo")).not.toBeNull();
     expect(screen.getByRole("button", { name: "Remove" }).disabled).toBe(true);
     expect(screen.getByRole("button", { name: "Choose profile photo" })).not.toBeNull();
     expect(screen.queryByRole("button", { name: "Save profile" })).toBeNull();
@@ -206,7 +208,8 @@ describe("My Account notification design", () => {
     await user.upload(input, image);
     expect(screen.getByText("new-avatar.png")).not.toBeNull();
     expect(container.querySelector(".account-profile-pending-preview")).not.toBeNull();
-    await user.click(screen.getByRole("button", { name: "Upload photo" }));
+    expect(screen.getByRole("button", { name: "Upload" }).disabled).toBe(false);
+    await user.click(screen.getByRole("button", { name: "Upload" }));
     await waitFor(() => expect(mockUpdateCurrentUser).toHaveBeenCalledWith(updated));
     const [path, options] = vi.mocked(api).mock.calls.find(([path]) => path === "/users/me/avatar");
     expect(path).toBe("/users/me/avatar");
@@ -232,6 +235,7 @@ describe("My Account notification design", () => {
     expect(container.querySelector(".account-profile-pending-preview")).toBeNull();
     await user.click(screen.getByRole("button", { name: "Remove" }));
     await waitFor(() => expect(api).toHaveBeenCalledWith("/users/me/avatar", { method: "DELETE" }));
+    expect(screen.queryByText("Profile photo removed.")).toBeNull();
   });
 
   it("shows the actual server password policy and toggles password visibility", async () => {

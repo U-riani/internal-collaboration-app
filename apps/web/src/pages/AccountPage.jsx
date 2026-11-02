@@ -508,11 +508,7 @@ function AccountProfile({ user, displayName, photoUrl, onAvatarChange }) {
   }
 
   async function uploadPhoto() {
-    if (saving) return;
-    if (!selectedFile) {
-      fileInputRef.current?.click();
-      return;
-    }
+    if (saving || !selectedFile) return;
     setSaving(true);
     setPhotoError("");
     setPhotoNotice("");
@@ -544,7 +540,6 @@ function AccountProfile({ user, displayName, photoUrl, onAvatarChange }) {
     try {
       const result = await api("/users/me/avatar", { method: "DELETE" });
       onAvatarChange(result.data);
-      setPhotoNotice("Profile photo removed.");
     } catch (error) {
       setPhotoError(error.message || "The photo could not be removed.");
     } finally {
@@ -604,7 +599,7 @@ function AccountProfile({ user, displayName, photoUrl, onAvatarChange }) {
             {previewUrl && <img className="account-profile-pending-preview" src={previewUrl} alt="" />}
           </div>
           <span className="account-profile-dropzone-caption">
-            Drop image here or click to Upload photo
+            Drop image here or click to choose a photo
           </span>
           <span className="account-profile-dropzone-hint">
             {selectedFile ? selectedFile.name : "JPG, PNG or WebP • Max 5 MB"}
@@ -618,10 +613,10 @@ function AccountProfile({ user, displayName, photoUrl, onAvatarChange }) {
             type="button"
             className="btn-primary account-profile-upload"
             onClick={uploadPhoto}
-            disabled={saving}
+            disabled={saving || !selectedFile}
           >
             <Upload size={15} aria-hidden="true" />
-            {saving ? "Uploading..." : "Upload photo"}
+            {saving ? "Uploading..." : "Upload"}
           </button>
           <button
             type="button"
