@@ -7,6 +7,7 @@
   --audit-border: var(--app-border);
   --audit-text: var(--app-text-strong);
   --audit-muted: var(--app-muted);
+  --audit-warning: #c7943b;
   min-width: 0;
   width: 100%;
   color: var(--app-text);
@@ -85,7 +86,7 @@
   font-size: 10px; font-weight: 750; letter-spacing: .005em; text-transform: capitalize; }
 .audit-badge-success, .audit-badge-info { color: var(--app-success); background: color-mix(in srgb, var(--app-success) 13%, transparent); }
 .audit-badge-failed, .audit-badge-error, .audit-badge-critical { color: var(--app-danger); background: color-mix(in srgb, var(--app-danger) 13%, transparent); }
-.audit-badge-denied, .audit-badge-warning { color: #c7943b; background: color-mix(in srgb, #c7943b 14%, transparent); }
+.audit-badge-denied, .audit-badge-warning { color: var(--audit-warning); background: color-mix(in srgb, var(--audit-warning) 14%, transparent); }
 .audit-pagination { display: flex; justify-content: space-between; align-items: center; gap: 12px;
   flex-wrap: wrap; margin-top: 12px; font-size: 12px; color: var(--audit-muted); }
 .audit-pagination > div { display: flex; gap: 7px; }
@@ -162,3 +163,5 @@
 
 .audit-user-selector { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .audit-user-selector select { flex: 1; min-width: 0; }
+
+.app-theme-dark[data-appearance="light"] .audit-page { --audit-warning: #895a12; }

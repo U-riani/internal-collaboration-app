@@ -664,6 +664,14 @@ export default async function conversationRoutes(app) {
       where: { id: request.params.id },
       data: { updatedAt: new Date() },
     });
+    if (input.attachmentIds.length) {
+      await audit(app, request, {
+        actionType: "MESSAGE_FILES_SENT",
+        entityType: "MESSAGE",
+        entityId: message.id,
+        metadata: { conversationId: request.params.id, attachmentCount: input.attachmentIds.length },
+      });
+    }
 
     const members = await app.prisma.conversationMember.findMany({
       where: {

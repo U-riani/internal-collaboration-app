@@ -187,3 +187,26 @@ test("task field changes and comments have an audit trail without comment text",
     await h.close();
   }
 });
+
+test("message attachment activity is audited without storing message text or file content", async () => {
+  const h = await harness();
+  try {
+    const group = await h.call(h.users.employee, "POST", "/conversations", {
+      type: "GROUP", name: "Files testing", memberIds: [h.users.admin.user.id],
+    });
+    assert.equal(group.statusCode, 201, group.body);
+    const upload = await h.upload(h.users.employee, "example.txt", "do not copy attachment body");
+    assert.equal(upload.statusCode, 201, upload.body);
+    const message = await h.call(h.users.employee, "POST",
+      "/conversations/" + group.json().data.id + "/messages",
+      { content: "", attachmentIds: [upload.json().data.id] });
+    assert.equal(message.statusCode, 201, message.body);
+    const event = await h.prisma.auditLog.findFirst({
+      where: { entityId: message.json().data.id, actionType: "MESSAGE_FILES_SENT" },
+    });
+    assert.equal(event?.metadata?.attachmentCount, 1);
+    assert.ok(!JSON.stringify(event).includes("do not copy attachment body"));
+  } finally {
+    await h.close();
+  }
+});
