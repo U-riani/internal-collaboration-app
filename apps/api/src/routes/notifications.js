@@ -23,27 +23,6 @@ async function requireNotification(app, userId, id) {
   return notification;
 }
 
-async function currentPriorities(app, userId, notificationIds) {
-  if (!notificationIds.length) return new Map();
-  const logs = await app.prisma.auditLog.findMany({
-    where: {
-      actorId: userId,
-      actionType: "NOTIFICATION_PRIORITY_SET",
-      entityType: "NOTIFICATION",
-      entityId: { in: notificationIds },
-    },
-    select: { entityId: true, metadata: true },
-    orderBy: { createdAt: "desc" },
-  });
-  const result = new Map();
-  for (const log of logs) {
-    if (result.has(log.entityId)) continue;
-    const value = log.metadata?.priority;
-    if (priorities.includes(value)) result.set(log.entityId, value);
-  }
-  return result;
-}
-
 async function resolveMessageTarget(app, notification, userId) {
   const id = notification.relatedEntityId;
   if (!id) return null;
@@ -146,15 +125,10 @@ export default async function notificationRoutes(app) {
       orderBy: { createdAt: "desc" },
       take: 100,
     });
-    const priorityById = await currentPriorities(
-      app,
-      request.authUser.id,
-      data.map((item) => item.id),
-    );
     const enriched = await Promise.all(
       data.map(async (item) => ({
         ...item,
-        priority: priorityById.get(item.id) || "NORMAL",
+        priority: item.priority || "NORMAL",
         targetUrl: await targetUrl(app, item, request.authUser.id),
       })),
     );
@@ -239,19 +213,30 @@ export default async function notificationRoutes(app) {
       request.authUser.id,
       request.params.id,
     );
-    await app.prisma.auditLog.create({
-      data: {
-        actorId: request.authUser.id,
-        actionType: "NOTIFICATION_PRIORITY_SET",
-        entityType: "NOTIFICATION",
-        entityId: notification.id,
-        requestId: request.id,
-        ipAddress: request.ip,
-        userAgent: request.headers["user-agent"],
-        metadata: { priority },
-      },
+    const data = await app.prisma.$transaction(async (tx) => {
+      const updated = await tx.notification.update({
+        where: { id: notification.id },
+        data: { priority },
+      });
+      await tx.auditLog.create({
+        data: {
+          actorId: request.authUser.id,
+          actionType: "NOTIFICATION_PRIORITY_SET",
+          entityType: "NOTIFICATION",
+          entityId: notification.id,
+          module: "NOTIFICATIONS",
+          outcome: "SUCCESS",
+          severity: "INFO",
+          source: "WEB",
+          requestId: request.id,
+          ipAddress: request.ip,
+          userAgent: request.headers["user-agent"],
+          beforeData: { priority: notification.priority },
+          afterData: { priority },
+        },
+      });
+      return updated;
     });
-    const data = { ...notification, priority };
     app.io?.to(`user:${request.authUser.id}`).emit("notification:updated", data);
     return { success: true, data };
   });

@@ -108,6 +108,13 @@ export default async function authRoutes(app) {
         user.status !== "ACTIVE" ||
         !(await verifyPassword(user.passwordHash, input.password))
       ) {
+        await audit(app, request, {
+          actionType: "AUTH_LOGIN_FAILED",
+          entityType: "AUTH",
+          outcome: "DENIED",
+          severity: "WARNING",
+          metadata: { errorCode: "AUTH_INVALID_CREDENTIALS" },
+        });
         throw new HttpError(
           401,
           "AUTH_INVALID_CREDENTIALS",
@@ -161,8 +168,17 @@ export default async function authRoutes(app) {
         !user ||
         user.status !== "ACTIVE" ||
         !(await verifyPassword(user.passwordHash, input.password))
-      )
+      ) {
+        await audit(app, request, {
+          actionType: "AUTH_LOGIN_FAILED",
+          entityType: "AUTH",
+          outcome: "DENIED",
+          severity: "WARNING",
+          source: "MOBILE",
+          metadata: { errorCode: "AUTH_INVALID_CREDENTIALS" },
+        });
         throw new HttpError(401, "AUTH_INVALID_CREDENTIALS", "Email or password is incorrect");
+      }
 
       const refreshToken = createRefreshToken();
       const session = await app.prisma.session.create({

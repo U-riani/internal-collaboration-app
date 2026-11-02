@@ -86,6 +86,7 @@ export async function api(path, options = {}, retry = true) {
     const error = new Error(body.error?.message || "Request failed");
     error.code = body.error?.code;
     error.details = body.error?.details;
+    error.requestId = body.requestId || response.headers.get("x-request-id") || null;
     throw error;
   }
   return body;
