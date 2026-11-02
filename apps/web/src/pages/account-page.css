@@ -96,7 +96,7 @@
   place-items: center;
   width: 61px;
   height: 61px;
-  border-radius: 12px;
+  border-radius: 50%;
   overflow: hidden;
   flex: 0 0 auto;
   background: linear-gradient(135deg, #535dba, #232e68);
@@ -478,12 +478,25 @@
   min-height: 151px;
   margin-top: 18px;
   padding: 15px 10px 12px;
+  border: 1px solid transparent;
   border-radius: 15px;
   background: var(--account-deep);
   color: var(--account-text);
   text-align: center;
   user-select: none;
-  cursor: default;
+  cursor: pointer;
+  transition: border-color 140ms ease, outline-color 140ms ease;
+}
+.account-profile-dropzone:is(:focus-visible, .is-dragging) {
+  outline: 2px solid var(--app-ui-accent-start, #8880ff);
+  outline-offset: 2px;
+}
+.account-profile-dropzone.is-dragging {
+  border-color: var(--app-ui-accent-start, #8880ff);
+}
+.account-profile-dropzone.is-busy {
+  cursor: wait;
+  opacity: .78;
 }
 .account-profile-portrait {
   display: grid;
@@ -524,6 +537,15 @@
   color: var(--account-muted);
   font-size: 10px;
   font-weight: 550;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.account-profile-status {
+  font-size: 11px;
+  color: var(--account-text);
+  margin-top: 10px;
 }
 .account-profile-photo-actions {
   display: grid;

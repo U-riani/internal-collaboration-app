@@ -8,12 +8,13 @@ import DrivePage from "../src/pages/DrivePage.jsx";
 import ChatPage from "../src/pages/ChatPage.jsx";
 import TasksPage from "../src/pages/TasksPage.jsx";
 import ApprovalsPage from "../src/pages/ApprovalsPage.jsx";
-import { api, uploadFiles } from "../src/lib/api.js";
+import { api, uploadFiles, fetchAvatarImage } from "../src/lib/api.js";
 vi.mock("../src/lib/api.js", () => ({
   api: vi.fn(),
   uploadFile: vi.fn(),
   uploadFiles: vi.fn(),
   downloadFile: vi.fn(),
+  fetchAvatarImage: vi.fn(),
 }));
 vi.mock("../src/hooks/useSocket.js", () => ({
   useSocket: () => ({ current: null }),
@@ -50,6 +51,7 @@ function mount(Page) {
 beforeEach(() => {
   vi.resetAllMocks();
   uploadFiles.mockResolvedValue([]);
+  fetchAvatarImage.mockRejectedValue(Object.assign(new Error("Photo not found"), { status: 404 }));
   sessionStorage.clear();
 });
 

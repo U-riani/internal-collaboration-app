@@ -164,7 +164,7 @@
 .messages-page .chat-conversation-avatar .avatar {
   width: 41px;
   height: 41px;
-  border-radius: 11px;
+  border-radius: 50%;
   color: #d7d7ff;
   background: #333a58;
 }
@@ -223,7 +223,8 @@
 .messages-page .chat-conversation-header-avatar .avatar {
   width: 37px;
   height: 37px;
-  border-radius: 11px;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
   background: #373852;
   color: #dfdeff;
 }
@@ -322,7 +323,8 @@
 .messages-page .chat-message-row .avatar-small {
   width: 30px;
   height: 30px;
-  border-radius: 10px;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
   background: #303751;
   color: #bbc5e7;
   font-size: 10px;
@@ -740,11 +742,21 @@
   place-items: center;
   width: 31px;
   height: 31px;
-  border-radius: 9px;
+  min-width: 31px;
+  min-height: 31px;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
   color: #b9bbff;
   background: #343d7b;
   font-size: 11px;
   font-weight: 750;
+}
+.new-conversation-person .avatar.new-conversation-person-avatar {
+  flex: 0 0 31px;
+  width: 31px;
+  height: 31px;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
 }
 .new-conversation-person-avatar.avatar-tone-1 { color: #b6c6de; background: #313b4d; }
 .new-conversation-person-avatar.avatar-tone-2 { color: #f9d36e; background: #514229; }
@@ -1048,9 +1060,17 @@
   flex: 0 0 28px;
   width: 28px;
   height: 28px;
-  border-radius: 8px;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
   background: var(--app-icon-soft-bg, var(--app-accent-soft));
   color: var(--app-icon-accent, var(--app-focus-ring));
+}
+.conversation-members-current-row .avatar.conversation-members-person-icon {
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
 }
 .conversation-members-person-icon svg { flex: 0 0 auto; }
 /* Add-member choices are frameless rows in the one bordered picker. */
@@ -1073,6 +1093,7 @@
   flex: 0 0 37px;
   width: 37px;
   height: 37px;
+  aspect-ratio: 1 / 1;
   border-radius: 50%;
   background: var(--app-accent-soft);
   color: var(--app-focus-ring);

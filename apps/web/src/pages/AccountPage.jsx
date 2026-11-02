@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import {
   BellRing,
@@ -467,8 +467,85 @@ function AccountNotifications({ userId }) {
   );
 }
 
-function AccountProfile({ user, displayName, photoUrl }) {
+const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
+const ACCEPTED_AVATAR_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+function AccountProfile({ user, displayName, photoUrl, onAvatarChange }) {
   const departmentName = user.department?.name || "Not assigned";
+  const fileInputRef = useRef(null);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
+  const [dragging, setDragging] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [photoError, setPhotoError] = useState("");
+  const [photoNotice, setPhotoNotice] = useState("");
+
+  useEffect(() => {
+    if (!selectedFile) {
+      setPreviewUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(selectedFile);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [selectedFile]);
+
+  function selectPhoto(file) {
+    if (!file) return;
+    setPhotoError("");
+    setPhotoNotice("");
+    if (!ACCEPTED_AVATAR_TYPES.has(file.type.toLowerCase())) {
+      setSelectedFile(null);
+      setPhotoError("Choose a JPG, PNG or WebP image.");
+      return;
+    }
+    if (!file.size || file.size > MAX_AVATAR_BYTES) {
+      setSelectedFile(null);
+      setPhotoError("Profile photos must be 5 MB or smaller.");
+      return;
+    }
+    setSelectedFile(file);
+  }
+
+  async function uploadPhoto() {
+    if (saving || !selectedFile) return;
+    setSaving(true);
+    setPhotoError("");
+    setPhotoNotice("");
+    try {
+      const form = new FormData();
+      form.append("file", selectedFile);
+      const result = await api("/users/me/avatar", { method: "POST", body: form });
+      onAvatarChange(result.data);
+      setSelectedFile(null);
+      setPhotoNotice("Profile photo updated.");
+    } catch (error) {
+      setPhotoError(error.message || "The photo could not be uploaded.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function removePhoto() {
+    if (saving) return;
+    if (selectedFile) {
+      setSelectedFile(null);
+      setPhotoNotice("Photo selection cleared.");
+      return;
+    }
+    if (!photoUrl) return;
+    setSaving(true);
+    setPhotoError("");
+    setPhotoNotice("");
+    try {
+      const result = await api("/users/me/avatar", { method: "DELETE" });
+      onAvatarChange(result.data);
+    } catch (error) {
+      setPhotoError(error.message || "The photo could not be removed.");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <div className="account-profile-grid">
@@ -484,43 +561,68 @@ function AccountProfile({ user, displayName, photoUrl }) {
         </div>
 
         <div
-          className="account-profile-dropzone"
-          aria-disabled="true"
-          title="Profile photo uploads are coming soon"
-          onDragOver={(event) => event.preventDefault()}
-          onDrop={(event) => event.preventDefault()}
+          className={`account-profile-dropzone ${dragging ? "is-dragging" : ""} ${saving ? "is-busy" : ""}`}
+          role="button"
+          tabIndex={saving ? -1 : 0}
+          aria-label="Choose profile photo"
+          aria-disabled={saving}
+          onClick={() => { if (!saving) fileInputRef.current?.click(); }}
+          onKeyDown={(event) => {
+            if (!saving && (event.key === "Enter" || event.key === " ")) {
+              event.preventDefault();
+              fileInputRef.current?.click();
+            }
+          }}
+          onDragEnter={(event) => { event.preventDefault(); if (!saving) setDragging(true); }}
+          onDragOver={(event) => { event.preventDefault(); if (!saving) setDragging(true); }}
+          onDragLeave={(event) => { event.preventDefault(); setDragging(false); }}
+          onDrop={(event) => {
+            event.preventDefault();
+            setDragging(false);
+            if (!saving) selectPhoto(event.dataTransfer.files?.[0]);
+          }}
         >
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            hidden
+            tabIndex={-1}
+            onClick={(event) => event.stopPropagation()}
+            onChange={(event) => {
+              selectPhoto(event.target.files?.[0]);
+              event.target.value = "";
+            }}
+          />
           <div className="account-profile-portrait" aria-hidden="true">
-            <Avatar name={displayName} />
-            {photoUrl && (
-              <img
-                src={photoUrl}
-                alt=""
-                onError={(event) => { event.currentTarget.style.display = "none"; }}
-              />
-            )}
+            <Avatar name={displayName} photoUrl={photoUrl ?? null} userId={user.id} />
+            {previewUrl && <img className="account-profile-pending-preview" src={previewUrl} alt="" />}
           </div>
           <span className="account-profile-dropzone-caption">
-            Drop image here or click to browse
+            Drop image here or click to choose a photo
           </span>
-          <span className="account-profile-dropzone-hint">Photo changes coming soon</span>
+          <span className="account-profile-dropzone-hint">
+            {selectedFile ? selectedFile.name : "JPG, PNG or WebP • Max 5 MB"}
+          </span>
         </div>
 
+        <ErrorBox error={photoError} />
+        {photoNotice && <p className="account-profile-status" role="status">{photoNotice}</p>}
         <div className="account-profile-photo-actions">
           <button
             type="button"
             className="btn-primary account-profile-upload"
-            disabled
-            title="Photo upload will be available in a future update"
+            onClick={uploadPhoto}
+            disabled={saving || !selectedFile}
           >
             <Upload size={15} aria-hidden="true" />
-            Upload new photo
+            {saving ? "Uploading..." : "Upload"}
           </button>
           <button
             type="button"
             className="btn-secondary account-profile-remove"
-            disabled
-            title="Photo removal will be available in a future update"
+            onClick={removePhoto}
+            disabled={saving || (!photoUrl && !selectedFile)}
           >
             <Trash2 size={15} aria-hidden="true" />
             Remove
@@ -690,7 +792,7 @@ function AccountAppearance({ userId }) {
 }
 
 export default function AccountPage() {
-  const { user, logout } = useAuth();
+  const { user, logout, updateCurrentUser } = useAuth();
   const [activeTab, setActiveTab] = useState("notifications");
   const displayName = user.displayName || user.firstName || user.email || "Workspace member";
   const role = roleLabel(user.roles);
@@ -702,10 +804,7 @@ export default function AccountPage() {
         <div className="account-hero-top">
           <div className="account-identity">
             <div className="account-hero-avatar">
-              <Avatar name={displayName} />
-              {photoUrl && (
-                <img src={photoUrl} alt="" onError={(event) => { event.currentTarget.style.display = "none"; }} />
-              )}
+              <Avatar name={displayName} photoUrl={photoUrl ?? null} userId={user.id} />
             </div>
             <div className="account-identity-copy">
               <div className="account-identity-title">
@@ -744,7 +843,7 @@ export default function AccountPage() {
       {activeTab === "notifications" && <AccountNotifications userId={user.id} />}
       {activeTab === "security" && <AccountSecurity />}
       {activeTab === "profile" && (
-        <AccountProfile user={user} displayName={displayName} photoUrl={photoUrl} />
+        <AccountProfile user={user} displayName={displayName} photoUrl={photoUrl} onAvatarChange={updateCurrentUser} />
       )}
       {activeTab === "appearance" && <AccountAppearance userId={user.id} />}
     </div>

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Mail, Phone, Search, UserRound } from "lucide-react";
+import { Mail, Phone, Search } from "lucide-react";
+import { Avatar } from "../components/UI.jsx";
 import { api } from "../lib/api.js";
 import PageHeader from "../components/PageHeader.jsx";
 import "./tasks-page.css";
@@ -99,9 +100,7 @@ export default function DirectoryPage() {
             data.map((user) => (
               <article key={user.id} className="card p-5">
                 <div className="flex items-start gap-4">
-                  <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-blue-100 text-blue-700">
-                    <UserRound />
-                  </div>
+                  <Avatar className="directory-person-avatar" name={user.displayName} userId={user.id} photoUrl={user.avatarUrl} />
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <h2 className="font-bold">{user.displayName}</h2>

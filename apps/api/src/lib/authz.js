@@ -39,6 +39,9 @@ export function publicUser(user) {
     firstName: user.firstName,
     lastName: user.lastName,
     displayName: user.displayName,
+    avatarUrl: user.avatarObjectKey
+      ? "/api/v1/users/" + user.id + "/avatar?v=" + user.avatarUpdatedAt.getTime()
+      : null,
     phone: user.phone,
     jobTitle: user.jobTitle,
     status: user.status,

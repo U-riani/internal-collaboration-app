@@ -1,5 +1,6 @@
 import { useId, useMemo, useState } from "react";
 import { Building2, FolderClosed, Search, UserRound } from "lucide-react";
+import { Avatar } from "./UI.jsx";
 
 /**
  * A checkbox multi-select with built-in search. Unlike a native multiple select,
@@ -53,9 +54,19 @@ export default function FilterMultiSelect({
                 key={option.value}
                 className={`filter-multiselect-option ${selected ? "is-selected" : ""}`}
               >
-                <span className="filter-multiselect-icon" aria-hidden="true">
-                  <Icon size={16} strokeWidth={1.8} />
-                </span>
+                {kind === "person" && option.userId ? (
+                  <Avatar
+                    small
+                    name={option.label}
+                    userId={option.userId}
+                    photoUrl={option.photoUrl}
+                    className="filter-multiselect-avatar"
+                  />
+                ) : (
+                  <span className="filter-multiselect-icon" aria-hidden="true">
+                    <Icon size={16} strokeWidth={1.8} />
+                  </span>
+                )}
                 <span className="filter-multiselect-name" title={option.label}>
                   {option.label}
                 </span>

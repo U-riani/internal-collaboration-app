@@ -1519,6 +1519,20 @@
   overflow-wrap: anywhere;
 }
 
+.approval-detail-requester-identity {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+.approval-detail-requester-identity .avatar {
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+}
+
 .approval-detail-requester {
   color: var(--detail-text);
   font-weight: 700;

@@ -17,7 +17,6 @@ import {
   ListFilter,
   MessageSquare,
   Paperclip,
-  UserRound,
   Pencil,
   Plus,
   Search,
@@ -332,6 +331,8 @@ function TaskForm({ existing, parentTask, defaultGroupId = "", onClose }) {
             .map((member) => ({
               value: member.id,
               label: member.displayName || member.email || "Unknown",
+              userId: member.id,
+              photoUrl: member.avatarUrl,
             }))}
           values={form.participantIds}
           onToggle={(value) =>
@@ -586,9 +587,13 @@ function TaskDetail({ id, onClose }) {
               <div className="task-detail-participants-list">
                 {task.participants.map((participant) => (
                   <div key={participant.userId} className="task-detail-person">
-                    <span className="task-detail-person-icon" aria-hidden="true">
-                      <UserRound size={17} strokeWidth={1.8} />
-                    </span>
+                    <Avatar
+                      small
+                      name={participant.user?.displayName || "Unknown"}
+                      userId={participant.userId}
+                      photoUrl={participant.user?.avatarUrl}
+                      className="task-detail-person-icon"
+                    />
                     <span className="task-detail-person-name">
                       {participant.user?.displayName || "Unknown"}
                     </span>
@@ -672,6 +677,7 @@ function TaskDetail({ id, onClose }) {
                           <Avatar
                             small
                             name={subtask.assignee?.displayName || "?"}
+                            userId={subtask.assignee?.id}
                           />
                           {subtask.assignee?.displayName || "Unassigned"}
                         </span>
@@ -698,7 +704,7 @@ function TaskDetail({ id, onClose }) {
           <div className="task-detail-comments space-y-5">
             {task.comments.map((entry) => (
               <div className="task-detail-comment flex gap-3" key={entry.id}>
-                <Avatar small name={entry.author.displayName} />
+                <Avatar small name={entry.author.displayName} userId={entry.author.id} />
                 <div className="min-w-0 flex-1">
                   <div className="text-xs font-semibold">
                     {entry.author.displayName}
@@ -1236,7 +1242,7 @@ export default function TasksPage() {
           </p>
         )}
         <div className="mt-4 flex items-center gap-2 text-xs text-slate-400">
-          <Avatar small name={task.assignee?.displayName || "?"} />
+          <Avatar small name={task.assignee?.displayName || "?"} userId={task.assignee?.id} />
           <span className="flex-1 truncate">
             {task.assignee?.displayName || "Unassigned"}
           </span>
@@ -1357,7 +1363,7 @@ export default function TasksPage() {
             </div>
           </div>
           <div className="flex min-w-0 items-center gap-2 text-sm text-slate-600">
-            <Avatar small name={task.assignee?.displayName || "?"} />
+            <Avatar small name={task.assignee?.displayName || "?"} userId={task.assignee?.id} />
             <span className="truncate">
               {task.assignee?.displayName || "Unassigned"}
             </span>
@@ -1594,6 +1600,8 @@ export default function TasksPage() {
                       ...filterPeople.map((person) => ({
                         value: person.id,
                         label: person.displayName || person.email || "Unknown",
+                        userId: person.id,
+                        photoUrl: person.avatarUrl,
                       })),
                     ]}
                     values={advancedFilters.assigneeIds}
@@ -1605,6 +1613,8 @@ export default function TasksPage() {
                     options={filterPeople.map((person) => ({
                       value: person.id,
                       label: person.displayName || person.email || "Unknown",
+                      userId: person.id,
+                      photoUrl: person.avatarUrl,
                     }))}
                     values={advancedFilters.creatorIds}
                     onToggle={(value) => toggleAdvancedValue("creatorIds", value)}
@@ -1615,6 +1625,8 @@ export default function TasksPage() {
                     options={filterPeople.map((person) => ({
                       value: person.id,
                       label: person.displayName || person.email || "Unknown",
+                      userId: person.id,
+                      photoUrl: person.avatarUrl,
                     }))}
                     values={advancedFilters.participantIds}
                     onToggle={(value) => toggleAdvancedValue("participantIds", value)}

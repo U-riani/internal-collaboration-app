@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import AccountPage from "../src/pages/AccountPage.jsx";
@@ -11,11 +11,14 @@ import { api } from "../src/lib/api.js";
 import { ACCENT_EVENT, accentStorageKey, THEME_EVENT, themeStorageKey } from "../src/lib/appearance.js";
 
 const mockLogout = vi.hoisted(() => vi.fn());
+const mockUpdateCurrentUser = vi.hoisted(() => vi.fn());
+const mockAvatarState = vi.hoisted(() => ({ avatarUrl: null }));
 
 vi.mock("../src/context/AuthContext.jsx", () => ({
   useAuth: () => ({
     user: {
       id: "profile-1",
+      avatarUrl: mockAvatarState.avatarUrl,
       displayName: "Test Employee",
       email: "employee@example.com",
       phone: "+995 555 12 34 56",
@@ -23,9 +26,10 @@ vi.mock("../src/context/AuthContext.jsx", () => ({
       roles: ["SYSTEM_ADMIN"],
     },
     logout: mockLogout,
+    updateCurrentUser: mockUpdateCurrentUser,
   }),
 }));
-vi.mock("../src/lib/api.js", () => ({ api: vi.fn() }));
+vi.mock("../src/lib/api.js", () => ({ api: vi.fn(), fetchAvatarImage: vi.fn(async () => new Blob(["avatar"], { type: "image/png" })) }));
 vi.mock("../src/lib/notificationSounds.js", () => ({
   getNotificationSoundsEnabled: vi.fn(() => true),
   setNotificationSoundsEnabled: vi.fn(),
@@ -51,6 +55,7 @@ function mountAccount() {
 }
 
 beforeEach(() => {
+  mockAvatarState.avatarUrl = null;
   vi.clearAllMocks();
   vi.stubGlobal("Notification", { permission: "granted" });
 });
@@ -159,7 +164,7 @@ describe("My Account notification design", () => {
     expect(screen.getByText(/Gateway accepted the push/)).not.toBeNull();
   });
 
-  it("shows only read-only profile information and inactive photo controls", async () => {
+  it("keeps profile information read-only while allowing photo upload", async () => {
     const user = userEvent.setup();
     mountAccount();
     await user.click(screen.getByRole("button", { name: "Profile" }));
@@ -181,10 +186,56 @@ describe("My Account notification design", () => {
     const contactRow = department.closest(".account-profile-contact-row");
     expect(contactRow).not.toBeNull();
     expect(contactRow.contains(phone)).toBe(true);
-    expect(screen.getByRole("button", { name: "Upload new photo" }).disabled).toBe(true);
+    const uploadButton = screen.getByRole("button", { name: "Upload" });
+    expect(uploadButton.disabled).toBe(true);
+    expect(screen.getByText("Drop image here or click to choose a photo")).not.toBeNull();
     expect(screen.getByRole("button", { name: "Remove" }).disabled).toBe(true);
+    expect(screen.getByRole("button", { name: "Choose profile photo" })).not.toBeNull();
     expect(screen.queryByRole("button", { name: "Save profile" })).toBeNull();
-    expect(screen.queryByLabelText("Upload profile photo")).toBeNull();
+  });
+
+  it("previews a selected image, uploads it and updates the logged-in user", async () => {
+    const user = userEvent.setup();
+    Object.defineProperty(URL, "createObjectURL", { configurable: true, value: vi.fn(() => "blob:avatar-preview") });
+    Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: vi.fn() });
+    const updated = { id: "profile-1", avatarUrl: "/api/v1/users/profile-1/avatar?v=123" };
+    vi.mocked(api).mockResolvedValue({ success: true, data: updated });
+    const { container } = mountAccount();
+    await user.click(screen.getByRole("button", { name: "Profile" }));
+
+    const input = container.querySelector('input[type="file"]');
+    const image = new File(["image bytes"], "new-avatar.png", { type: "image/png" });
+    await user.upload(input, image);
+    expect(screen.getByText("new-avatar.png")).not.toBeNull();
+    expect(container.querySelector(".account-profile-pending-preview")).not.toBeNull();
+    expect(screen.getByRole("button", { name: "Upload" }).disabled).toBe(false);
+    await user.click(screen.getByRole("button", { name: "Upload" }));
+    await waitFor(() => expect(mockUpdateCurrentUser).toHaveBeenCalledWith(updated));
+    const [path, options] = vi.mocked(api).mock.calls.find(([path]) => path === "/users/me/avatar");
+    expect(path).toBe("/users/me/avatar");
+    expect(options.method).toBe("POST");
+    expect(options.body.get("file").name).toBe("new-avatar.png");
+    expect(screen.getByText("Profile photo updated.")).not.toBeNull();
+  });
+
+  it("accepts dragged photos and allows removing an existing avatar", async () => {
+    const user = userEvent.setup();
+    mockAvatarState.avatarUrl = "/api/v1/users/profile-1/avatar?v=123";
+    Object.defineProperty(URL, "createObjectURL", { configurable: true, value: vi.fn(() => "blob:avatar") });
+    Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: vi.fn() });
+    vi.mocked(api).mockResolvedValue({ success: true, data: { id: "profile-1", avatarUrl: null } });
+    const { container } = mountAccount();
+    await user.click(screen.getByRole("button", { name: "Profile" }));
+
+    const dropzone = screen.getByRole("button", { name: "Choose profile photo" });
+    const image = new File(["image bytes"], "dropped.png", { type: "image/png" });
+    fireEvent.drop(dropzone, { dataTransfer: { files: [image] } });
+    expect(screen.getByText("dropped.png")).not.toBeNull();
+    await user.click(screen.getByRole("button", { name: "Remove" }));
+    expect(container.querySelector(".account-profile-pending-preview")).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Remove" }));
+    await waitFor(() => expect(api).toHaveBeenCalledWith("/users/me/avatar", { method: "DELETE" }));
+    expect(screen.queryByText("Profile photo removed.")).toBeNull();
   });
 
   it("shows the actual server password policy and toggles password visibility", async () => {

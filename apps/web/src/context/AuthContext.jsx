@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { api, setAccessToken, refreshSession } from "../lib/api.js";
+import { clearAvatarImageCache, invalidateUserAvatarCache } from "../lib/avatar-cache.js";
 import { disableBrowserPush, clearForeignBrowserSubscription } from "../lib/pushNotifications.js";
 const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
@@ -28,7 +29,10 @@ export function AuthProvider({ children }) {
             method: "POST",
           }, false);
           setAccessToken(result.data.accessToken);
-          if (active) setUser(result.data.user);
+          if (active) {
+            clearAvatarImageCache();
+            setUser(result.data.user);
+          }
         } catch {
           setAccessToken(null);
           if (active) setUser(null);
@@ -46,7 +50,10 @@ export function AuthProvider({ children }) {
 
     refreshSession()
       .then((data) => {
-        if (active) setUser(data.user);
+        if (active) {
+          clearAvatarImageCache();
+          setUser(data.user);
+        }
       })
       .catch(() => {
         if (active) setAccessToken(null);
@@ -62,6 +69,7 @@ export function AuthProvider({ children }) {
     const end = () => {
       setAccessToken(null);
       setUser(null);
+      clearAvatarImageCache();
       queryClient.clear();
     };
     window.addEventListener("collab:session-ended", end);
@@ -71,6 +79,16 @@ export function AuthProvider({ children }) {
     () => ({
       user,
       loading,
+      updateCurrentUser(nextUser) {
+        if (nextUser?.id !== user?.id) return;
+        setUser(nextUser);
+        invalidateUserAvatarCache(nextUser.id);
+        window.dispatchEvent(new CustomEvent("collab:avatar-updated", {
+          detail: { userId: nextUser.id },
+        }));
+        // Refresh directory queries that may render this colleague's avatar.
+        void queryClient.invalidateQueries({ queryKey: ["users"] });
+      },
       async login(email, password) {
         const result = await api(
           "/auth/login",
@@ -78,6 +96,7 @@ export function AuthProvider({ children }) {
           false,
         );
         queryClient.clear();
+        clearAvatarImageCache();
         setAccessToken(result.data.accessToken);
         setUser(result.data.user);
         // A shared browser must not keep delivering a different account's push.
@@ -90,6 +109,7 @@ export function AuthProvider({ children }) {
         } finally {
           setAccessToken(null);
           setUser(null);
+          clearAvatarImageCache();
           queryClient.clear();
         }
       },

@@ -1,9 +1,16 @@
 // @vitest-environment jsdom
 import React, { useState } from "react";
-import { describe, expect, it } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import FilterMultiSelect from "../src/components/FilterMultiSelect.jsx";
+import { fetchAvatarImage } from "../src/lib/api.js";
+import { clearAvatarImageCache } from "../src/lib/avatar-cache.js";
+
+vi.mock("../src/lib/api.js", () => ({
+  downloadFile: vi.fn(),
+  fetchAvatarImage: vi.fn(),
+}));
 
 const people = [
   { value: "alice", label: "Alice Example" },
@@ -32,6 +39,20 @@ function Harness({ options = people }) {
     </>
   );
 }
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  clearAvatarImageCache();
+  vi.mocked(fetchAvatarImage).mockResolvedValue(new Blob(["test photo"], { type: "image/png" }));
+  Object.defineProperty(URL, "createObjectURL", {
+    configurable: true,
+    value: vi.fn(() => "blob:task-avatar"),
+  });
+  Object.defineProperty(URL, "revokeObjectURL", {
+    configurable: true,
+    value: vi.fn(),
+  });
+});
 
 describe("searchable task filter multi-select", () => {
   it("keeps multiple selections without Ctrl/Cmd and clears them", async () => {
@@ -73,5 +94,18 @@ describe("searchable task filter multi-select", () => {
 
     await user.type(search, "no matching colleague");
     expect(screen.getByText("No matches found")).not.toBeNull();
+  });
+
+  it("renders real photos in user rows and keeps the Unassigned option as an icon", async () => {
+    const id = "af46bebe-a963-4eb0-a54e-7e7f9792b31f";
+    const { container } = render(<Harness options={[
+      { value: "unassigned", label: "Unassigned" },
+      { value: id, label: "Alice Example", userId: id },
+    ]} />);
+
+    await waitFor(() => expect(container.querySelectorAll(".filter-multiselect-avatar .avatar-image")).toHaveLength(1));
+    expect(fetchAvatarImage).toHaveBeenCalledWith("/api/v1/users/" + id + "/avatar?v=0");
+    expect(screen.getByRole("checkbox", { name: "Assigned to: Alice Example" })).not.toBeNull();
+    expect(screen.getByText("Unassigned").closest("label").querySelector(".filter-multiselect-icon svg")).not.toBeNull();
   });
 });
