@@ -37,6 +37,8 @@ export async function audit(app, request, input, db = app.prisma) {
   const actionType = String(input.actionType);
   const entityType = String(input.entityType);
   const path = request.raw?.url || "";
+  const userAgent = request.headers?.["user-agent"] || "";
+  const source = input.source || (/\/mobile\//.test(path) || /dart|flutter|okhttp/i.test(userAgent) ? "MOBILE" : "WEB");
   return db.auditLog.create({
     data: {
       actorId: input.actorId !== undefined ? input.actorId : (request.authUser?.id ?? null),
@@ -46,7 +48,7 @@ export async function audit(app, request, input, db = app.prisma) {
       module: input.module || auditModule(entityType, actionType),
       outcome: input.outcome || "SUCCESS",
       severity: input.severity || "INFO",
-      source: input.source || (/\/mobile\//.test(path) ? "MOBILE" : "WEB"),
+      source,
       requestId: request.id || null,
       ipAddress: request.ip || null,
       userAgent: request.headers?.["user-agent"]?.slice(0, 255) || null,

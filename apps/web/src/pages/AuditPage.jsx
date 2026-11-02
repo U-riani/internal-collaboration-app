@@ -21,6 +21,7 @@ function displayAction(code) {
   const explicit = {
     AUTH_LOGIN: "Signed in",
     AUTH_LOGIN_FAILED: "Sign-in attempt denied",
+    ACCESS_DENIED: "Access denied",
     AUTH_MOBILE_WEBVIEW_SESSION: "Mobile session created",
     USER_PASSWORD_RESET: "User password reset",
     USER_CREATED: "User created",
@@ -203,6 +204,7 @@ export default function AuditPage() {
   const [page, setPage] = useState(1);
   const [filterOpen, setFilterOpen] = useState(false);
   const [selected, setSelected] = useState(null);
+  const [exportError, setExportError] = useState("");
 
   const dateRange = useMemo(() => {
     if (range === "custom" && customFrom && customTo) return {
@@ -253,6 +255,7 @@ export default function AuditPage() {
     setModule(""); setOutcome(""); setSeverity(""); setSource(""); setActorId(""); setSearch(""); setPage(1);
   };
   const exportCsv = async () => {
+    setExportError("");
     const params = new URLSearchParams(filters);
     params.delete("page");
     params.delete("limit");
@@ -261,14 +264,17 @@ export default function AuditPage() {
         credentials: "include",
         headers: getAccessToken() ? { authorization: "Bearer " + getAccessToken() } : {},
       });
-      if (!response.ok) throw new Error("Unable to export audit events");
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.error?.message || "Unable to export audit events");
+      }
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url; link.download = "audit-events.csv"; link.click();
       URL.revokeObjectURL(url);
     } catch (error) {
-      window.alert(error.message);
+      setExportError(error.message);
     }
   };
 
@@ -347,7 +353,7 @@ export default function AuditPage() {
         onClick={() => { void logs.refetch(); void stats.refetch(); }}><RefreshCw size={16}/></button>
     </div>
 
-    <ErrorBox error={logs.error || stats.error}/>
+    <ErrorBox error={exportError || logs.error || stats.error}/>
     <div className="audit-table-card">
       {logs.isLoading ? <Loading/> : data.length === 0 ? <Empty title="No matching events" text="Try another date range or adjust the filters."/> :
         <div className="audit-table-scroll"><table className="audit-table">

@@ -154,7 +154,7 @@ export default async function auditRoutes(app) {
       app.prisma.auditLog.count({ where: security }),
       app.prisma.auditLog.groupBy({ by: ["actorId"], where: { ...where, actorId: { not: null } } }),
       hasPermission(request.authUser, "system.diagnostics.read")
-        ? app.prisma.diagnosticEvent.count({ where }) : Promise.resolve(0),
+        ? app.prisma.diagnosticEvent.count({ where: { ...where, httpStatus: { not: 403 } } }) : Promise.resolve(0),
     ]);
     return { success: true, data: {
       totalEvents, failedActions: failedAudit + failedDiagnostics,
@@ -187,8 +187,12 @@ export default async function auditRoutes(app) {
   app.get("/export", async (request, reply) => {
     requirePermission(request.authUser, "system.audit.read");
     const f = getFilters(request);
+    const where = auditWhere(f);
+    const count = await app.prisma.auditLog.count({ where });
+    if (count > 5000)
+      throw new HttpError(422, "EXPORT_TOO_LARGE", "Narrow your filters to export no more than 5,000 events");
     const rows = await app.prisma.auditLog.findMany({
-      where: auditWhere(f), include: { actor },
+      where, include: { actor },
       orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: 5000,
     });
     const lines = [

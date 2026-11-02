@@ -24,7 +24,7 @@ export async function recordDiagnostic(app, request, error, statusCode) {
       httpStatus: statusCode,
       method: request.method,
       path: path.slice(0, 300),
-      source: /\/mobile\//.test(path) ? "MOBILE" : "WEB",
+      source: /\/mobile\//.test(path) || /dart|flutter|okhttp/i.test(request.headers?.["user-agent"] || "") ? "MOBILE" : "WEB",
       ipAddress: request.ip,
       userAgent: request.headers?.["user-agent"]?.slice(0, 255),
       metadata: { errorCode: eventType },

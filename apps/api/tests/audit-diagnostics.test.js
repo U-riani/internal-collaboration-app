@@ -114,6 +114,16 @@ test("denied access creates a correlated diagnostic incident without exposing se
     assert.equal(incident.severity, "WARNING");
     assert.ok(!JSON.stringify(incident).includes(h.users.employee.accessToken));
 
+    let securityAudit = null;
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      securityAudit = await h.prisma.auditLog.findFirst({
+        where: { requestId, actionType: "ACCESS_DENIED" },
+      });
+      if (securityAudit) break;
+      await new Promise((resolve) => setTimeout(resolve, 30));
+    }
+    assert.equal(securityAudit?.outcome, "DENIED");
+
     const deniedLogin = await h.app.inject({
       method: "POST", url: "/api/v1/auth/login",
       payload: { email: "employee@example.com", password: "WrongPassword!" },
