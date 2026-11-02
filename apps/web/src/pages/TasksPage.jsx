@@ -37,6 +37,7 @@ import {
   Loading,
   Modal,
   prettyDate,
+  prettyTime,
 } from "../components/UI.jsx";
 import "./tasks-page.css";
 
@@ -83,6 +84,14 @@ const SORT_OPTIONS = [
 
 function completedCount(items = []) {
   return items.filter((item) => item.status === "COMPLETED").length;
+}
+
+function CancelledCheckbox() {
+  return (
+    <span className="task-cancelled-checkbox" aria-hidden="true">
+      <X size={12} strokeWidth={2.5} />
+    </span>
+  );
 }
 
 function canUserChangeTaskStatus(task, user, hasPermission) {
@@ -381,6 +390,7 @@ function TaskDetail({ id, onClose }) {
   const attachmentUploads = useRef(new Map());
   const [edit, setEdit] = useState(false);
   const [createSubtask, setCreateSubtask] = useState(false);
+  const [subtaskToDelete, setSubtaskToDelete] = useState(null);
   const [childId, setChildId] = useState(null);
   const query = useQuery({
     queryKey: ["task", id],
@@ -428,6 +438,14 @@ function TaskDetail({ id, onClose }) {
     onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: ["task", id] });
       qc.invalidateQueries({ queryKey: ["task", variables.taskId] });
+      qc.invalidateQueries({ queryKey: ["tasks"] });
+    },
+  });
+  const deleteSubtask = useMutation({
+    mutationFn: (subtaskId) => api(`/tasks/${subtaskId}`, { method: "DELETE" }),
+    onSuccess: () => {
+      setSubtaskToDelete(null);
+      qc.invalidateQueries({ queryKey: ["task", id] });
       qc.invalidateQueries({ queryKey: ["tasks"] });
     },
   });
@@ -516,7 +534,14 @@ function TaskDetail({ id, onClose }) {
             </div>
             <div className="task-detail-meta-item">
               <p className="task-detail-meta-label text-xs text-slate-400 mb-2">Due date</p>
-              <span className="task-detail-meta-value task-detail-due">{prettyDate(task.dueDate)}</span>
+              <span className="task-detail-meta-value task-detail-due">
+                <span>{prettyDate(task.dueDate)}</span>
+                {task.dueDate && (
+                  <time className="task-detail-due-time" dateTime={task.dueDate}>
+                    {prettyTime(task.dueDate)}
+                  </time>
+                )}
+              </span>
             </div>
             <div className="task-detail-meta-item">
               <p className="task-detail-meta-label text-xs text-slate-400 mb-2">Status</p>
@@ -632,11 +657,18 @@ function TaskDetail({ id, onClose }) {
                 <div>
                   {subtasks.map((subtask) => {
                     const completed = subtask.status === "COMPLETED";
+                    const cancelled = subtask.status === "CANCELLED";
                     const canChangeSubtaskStatus = canUserChangeTaskStatus(
                       subtask,
                       user,
                       hasPermission,
                     );
+                    const canDeleteSubtask =
+                      subtask.creatorId === user.id ||
+                      user.roles.includes("SYSTEM_ADMIN") ||
+                      (hasPermission("tasks.manage_department") &&
+                        user.departmentId &&
+                        subtask.departmentId === user.departmentId);
                     return (
                       <div
                         key={subtask.id}
@@ -645,22 +677,28 @@ function TaskDetail({ id, onClose }) {
                         <button
                           type="button"
                           aria-label={
-                            completed
-                              ? `Reopen ${subtask.title}`
-                              : `Complete ${subtask.title}`
+                            cancelled
+                              ? `Cancelled subtask ${subtask.title}`
+                              : completed
+                                ? `Reopen ${subtask.title}`
+                                : `Complete ${subtask.title}`
                           }
-                          className="task-detail-subtask-toggle grid h-6 w-6 shrink-0 place-items-center rounded-md text-blue-600 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-40"
+                          title={cancelled ? "Cancelled — change status in task details" : undefined}
+                          className={`task-detail-subtask-toggle grid h-6 w-6 shrink-0 place-items-center rounded-md text-blue-600 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-40 ${cancelled ? "task-status-toggle--cancelled" : ""}`}
                           disabled={
-                            updateStatus.isPending || !canChangeSubtaskStatus
+                            cancelled || updateStatus.isPending || !canChangeSubtaskStatus
                           }
-                          onClick={() =>
+                          onClick={() => {
+                            if (cancelled) return;
                             updateStatus.mutate({
                               taskId: subtask.id,
                               status: completed ? "OPEN" : "COMPLETED",
-                            })
-                          }
+                            });
+                          }}
                         >
-                          {completed ? (
+                          {cancelled ? (
+                            <CancelledCheckbox />
+                          ) : completed ? (
                             <CheckSquare size={18} />
                           ) : (
                             <span className="h-[17px] w-[17px] rounded-[5px] border-2 border-slate-300" />
@@ -682,6 +720,20 @@ function TaskDetail({ id, onClose }) {
                           {subtask.assignee?.displayName || "Unassigned"}
                         </span>
                         <Badge value={subtask.status} />
+                        {canDeleteSubtask && (
+                          <button
+                            type="button"
+                            className="task-detail-subtask-delete"
+                            aria-label={`Delete subtask ${subtask.title}`}
+                            title="Delete subtask"
+                            onClick={() => {
+                              deleteSubtask.reset();
+                              setSubtaskToDelete(subtask);
+                            }}
+                          >
+                            <Trash2 size={16} aria-hidden="true" />
+                          </button>
+                        )}
                       </div>
                     );
                   })}
@@ -782,6 +834,49 @@ function TaskDetail({ id, onClose }) {
           )}
           {childId && (
             <TaskDetail id={childId} onClose={() => setChildId(null)} />
+          )}
+          {subtaskToDelete && (
+            <Modal
+              title="Delete subtask"
+              className="task-subtask-delete-dialog"
+              onClose={() => {
+                if (!deleteSubtask.isPending) {
+                  deleteSubtask.reset();
+                  setSubtaskToDelete(null);
+                }
+              }}
+            >
+              <div className="task-subtask-delete-confirm">
+                <p>
+                  Are you sure you want to delete{" "}
+                  <strong>{subtaskToDelete.title}</strong>?
+                </p>
+                <p>This action cannot be undone.</p>
+                <ErrorBox error={deleteSubtask.error} />
+                <div className="task-subtask-delete-actions">
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    disabled={deleteSubtask.isPending}
+                    onClick={() => {
+                      deleteSubtask.reset();
+                      setSubtaskToDelete(null);
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-primary task-subtask-delete-submit"
+                    disabled={deleteSubtask.isPending}
+                    onClick={() => deleteSubtask.mutate(subtaskToDelete.id)}
+                  >
+                    <Trash2 size={15} aria-hidden="true" />
+                    {deleteSubtask.isPending ? "Deleting…" : "Delete subtask"}
+                  </button>
+                </div>
+              </div>
+            </Modal>
           )}
         </>
       ) : (
@@ -1093,6 +1188,7 @@ export default function TasksPage() {
 
   const toggleCompleted = (event, task) => {
     event.stopPropagation();
+    if (task.status === "CANCELLED") return;
     const nextStatus = task.status === "COMPLETED" ? "OPEN" : "COMPLETED";
     const incomplete = task.parentTaskId ? [] : incompleteChildren(task);
     if (
@@ -1268,6 +1364,7 @@ export default function TasksPage() {
 
   const listRow = (task, { subtask = false } = {}) => {
     const completed = task.status === "COMPLETED";
+    const cancelled = task.status === "CANCELLED";
     const overdue = isOverdue(task);
     const children = childrenByParent.get(task.id) || [];
     const shownChildren = children.filter(
@@ -1327,14 +1424,20 @@ export default function TasksPage() {
             <button
               type="button"
               aria-label={
-                completed ? `Reopen ${task.title}` : `Complete ${task.title}`
+                cancelled
+                  ? `Cancelled task ${task.title}`
+                  : completed
+                    ? `Reopen ${task.title}`
+                    : `Complete ${task.title}`
               }
-              title={completed ? "Mark as open" : "Mark as completed"}
-              className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-md text-blue-600 transition hover:bg-blue-50 disabled:opacity-50"
-              disabled={updating || !canChangeStatus}
+              title={cancelled ? "Cancelled — change status in task details" : completed ? "Mark as open" : "Mark as completed"}
+              className={`task-status-toggle mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-md text-blue-600 transition hover:bg-blue-50 disabled:opacity-50 ${cancelled ? "task-status-toggle--cancelled" : ""}`}
+              disabled={cancelled || updating || !canChangeStatus}
               onClick={(event) => toggleCompleted(event, task)}
             >
-              {completed ? (
+              {cancelled ? (
+                <CancelledCheckbox />
+              ) : completed ? (
                 <CheckSquare size={19} />
               ) : (
                 <span className="h-[18px] w-[18px] rounded-[5px] border-2 border-slate-300 bg-white" />
@@ -1770,7 +1873,7 @@ export default function TasksPage() {
           </span>
           <button
             type="button"
-            className="font-semibold text-slate-500 hover:text-slate-800"
+            className="font-semibold text-slate-500"
             onClick={clearAdvancedFilters}
           >
             Clear

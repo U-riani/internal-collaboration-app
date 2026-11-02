@@ -534,7 +534,6 @@ body:has(.app-theme-dark[data-appearance="light"]) {
   color: var(--app-muted);
 }
 .app-theme-dark[data-appearance="light"] .overview-update-link:hover {
-  color: var(--app-focus-ring);
   background: var(--app-accent-soft);
 }
 @media (max-width: 700px) {
@@ -1737,9 +1736,6 @@ body:has(.app-theme-dark[data-appearance="light"]) {
 }
 .app-theme-dark[data-appearance="light"] .directory-page article.card :is(a[href^="tel:"], a[href^="mailto:"]) {
   color: var(--app-focus-ring);
-}
-.app-theme-dark[data-appearance="light"] .directory-page article.card :is(a[href^="tel:"], a[href^="mailto:"]):hover {
-  color: var(--app-accent-hover);
 }
 .app-theme-dark[data-appearance="light"] .directory-page article.card :is(a[href^="tel:"], a[href^="mailto:"]):focus-visible {
   outline: 2px solid var(--app-focus-ring);

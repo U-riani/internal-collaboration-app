@@ -68,9 +68,6 @@
   color: var(--task-subtle);
 }
 
-.approvals-page .approval-group-header > [draggable]:hover {
-  color: var(--task-text);
-}
 
 .approvals-page .approval-group-header .task-group-count {
   margin-right: auto;

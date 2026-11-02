@@ -791,6 +791,73 @@ export default async function taskRoutes(app) {
     return { success: true, data: presentTask(task) };
   });
 
+  app.delete("/:id", async (request) => {
+    const existing = await app.prisma.task.findUnique({
+      where: { id: request.params.id },
+    });
+    if (!existing)
+      throw new HttpError(404, "TASK_NOT_FOUND", "Task was not found");
+    if (!existing.parentTaskId)
+      throw new HttpError(
+        400,
+        "SUBTASK_ONLY",
+        "Only subtasks can be deleted",
+      );
+
+    const canManage =
+      existing.creatorId === request.authUser.id ||
+      hasRole(request.authUser, "SYSTEM_ADMIN") ||
+      (hasPermission(request.authUser, "tasks.manage_department") &&
+        request.authUser.departmentId &&
+        existing.departmentId === request.authUser.departmentId);
+    if (!canManage)
+      throw new HttpError(
+        403,
+        "TASK_MANAGE_DENIED",
+        "Only the subtask creator or department manager may delete this subtask",
+      );
+
+    // Keep the parent task, and preserve an activity/audit trail even though
+    // the subtask and its dependent comments/attachments are removed.
+    await app.prisma.$transaction(async (tx) => {
+      await tx.notification.deleteMany({
+        where: { relatedEntityType: "TASK", relatedEntityId: existing.id },
+      });
+      await tx.task.delete({ where: { id: existing.id } });
+      await tx.taskHistory.create({
+        data: {
+          taskId: existing.parentTaskId,
+          actorId: request.authUser.id,
+          actionType: "SUBTASK_DELETED",
+          oldValue: { id: existing.id, title: existing.title, status: existing.status },
+        },
+      });
+      await tx.auditLog.create({
+        data: {
+          actorId: request.authUser.id,
+          actionType: "SUBTASK_DELETED",
+          entityType: "TASK",
+          entityId: existing.id,
+          requestId: request.id,
+          ipAddress: request.ip,
+          userAgent: request.headers?.["user-agent"],
+          beforeData: {
+            title: existing.title,
+            parentTaskId: existing.parentTaskId,
+            status: existing.status,
+            assigneeId: existing.assigneeId,
+          },
+        },
+      });
+    });
+
+    await emitTaskEvent(app, existing.parentTaskId, "task:updated");
+    return {
+      success: true,
+      data: { id: existing.id, parentTaskId: existing.parentTaskId },
+    };
+  });
+
   app.post("/:id/comments", async (request, reply) => {
     const input = parse(commentSchema, request.body);
     const task = await app.prisma.task.findUnique({

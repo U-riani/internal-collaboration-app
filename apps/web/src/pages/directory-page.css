@@ -72,11 +72,6 @@
 .directory-page article.card a[href^="mailto:"],
 .directory-page article.card a[href^="tel:"] {
   color: var(--app-ui-focus-ring, #2563eb);
-  transition: color .16s ease;
-}
-.directory-page article.card a[href^="mailto:"]:hover,
-.directory-page article.card a[href^="tel:"]:hover {
-  color: var(--app-ui-accent-selected-hover, #2563eb);
 }
 .directory-page article.card a[href^="mailto:"]:focus-visible,
 .directory-page article.card a[href^="tel:"]:focus-visible {

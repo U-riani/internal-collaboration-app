@@ -263,7 +263,7 @@ function ReactionDetailsMenu({ groups, align = "left" }) {
     <div ref={ref} className="relative">
       <button
         type="button"
-        className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-xs font-bold leading-none text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+        className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-xs font-bold leading-none text-slate-500 hover:bg-slate-50"
         title="View reactions"
         aria-label="View who reacted"
         aria-expanded={open}
@@ -524,7 +524,7 @@ function MessageReceiptStatus({ message, conversation, onOpen }) {
     <span className="flex items-center gap-1 text-[10px] text-slate-400">
       <button
         type="button"
-        className="hover:text-slate-700 hover:underline"
+        className="cursor-pointer"
         onClick={() => onOpen({ message, type: "delivered" })}
       >
         Delivered to {delivered}
@@ -532,7 +532,7 @@ function MessageReceiptStatus({ message, conversation, onOpen }) {
       <span>·</span>
       <button
         type="button"
-        className="hover:text-slate-700 hover:underline"
+        className="cursor-pointer"
         onClick={() => onOpen({ message, type: "read" })}
       >
         Read by {read}
@@ -1923,7 +1923,7 @@ export default function ChatPage() {
                                 <Attachments items={[{ file: result.file }]} />
                                 <button
                                   type="button"
-                                  className="mt-2 flex items-center gap-1 text-xs font-semibold text-blue-600 hover:underline"
+                                  className="mt-2 flex items-center gap-1 text-xs font-semibold text-blue-600"
                                   onClick={() =>
                                     jumpToMessage(result.messageId)
                                   }
@@ -1953,7 +1953,7 @@ export default function ChatPage() {
                                   </span>
                                 </div>
                                 <a
-                                  className="mt-2 flex items-center gap-2 text-sm font-medium text-blue-600 hover:underline"
+                                  className="mt-2 flex items-center gap-2 text-sm font-medium text-blue-600"
                                   href={result.url}
                                   target="_blank"
                                   rel="noreferrer"
@@ -1972,7 +1972,7 @@ export default function ChatPage() {
                                 </p>
                                 <button
                                   type="button"
-                                  className="mt-2 flex items-center gap-1 text-xs font-semibold text-blue-600 hover:underline"
+                                  className="mt-2 flex items-center gap-1 text-xs font-semibold text-blue-600"
                                   onClick={() =>
                                     jumpToMessage(result.messageId)
                                   }

@@ -446,7 +446,7 @@
   padding: 7px;
   border-radius: 7px;
 }
-.overview-update-link:hover { background: var(--app-ui-accent-tint, #2b3348); color: var(--app-ui-focus-ring, #fff); }
+.overview-update-link:hover { background: var(--app-ui-accent-tint, #2b3348); }
 .overview-empty--updates { min-height: 90px; }
 
 @media (max-width: 1320px) {

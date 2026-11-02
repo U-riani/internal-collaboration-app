@@ -250,7 +250,6 @@ dialog.modal:has(.drive-upload-modal) .modal-body {
   font-size: 10px;
   font-weight: 650;
 }
-.drive-upload-file-heading > button:hover:not(:disabled) { color: var(--upload-text); }
 .drive-upload-summary {
   margin: 0 19px 9px;
   padding: 9px;
