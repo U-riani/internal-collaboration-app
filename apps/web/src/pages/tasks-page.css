@@ -1395,6 +1395,33 @@
 .task-detail .task-detail-subtask-title.line-through { color: var(--detail-muted); }
 .task-detail .task-detail-subtask-toggle { color: var(--detail-accent); }
 .task-detail .task-detail-subtask-toggle:hover { background: var(--detail-control); }
+/* A cancelled task is not a completion toggle. X and its frame adapt to all
+   workspace appearance palettes, while the status dropdown remains editable. */
+.task-cancelled-checkbox {
+  display: grid;
+  place-items: center;
+  width: 19px;
+  height: 19px;
+  border: 1.5px solid currentColor;
+  border-radius: 5px;
+  color: var(--app-icon-muted, var(--app-muted, #8590a7));
+  background: var(--app-surface-raised, #f0f3fa);
+}
+.task-cancelled-checkbox svg {
+  display: block;
+  width: 12px;
+  height: 12px;
+}
+.tasks-page .task-list-row .task-status-toggle--cancelled:disabled,
+.task-detail .task-detail-subtask-toggle.task-status-toggle--cancelled:disabled {
+  color: var(--app-icon-muted, var(--app-muted, #8590a7));
+  cursor: not-allowed;
+  opacity: 1;
+}
+.tasks-page .task-list-row .task-status-toggle--cancelled:hover,
+.task-detail .task-detail-subtask-toggle.task-status-toggle--cancelled:hover {
+  background: transparent;
+}
 /* Destructive subtask controls inherit the active workspace/accent palette. */
 .task-detail .task-detail-subtask-delete {
   display: inline-grid;

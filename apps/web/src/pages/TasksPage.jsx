@@ -85,6 +85,14 @@ function completedCount(items = []) {
   return items.filter((item) => item.status === "COMPLETED").length;
 }
 
+function CancelledCheckbox() {
+  return (
+    <span className="task-cancelled-checkbox" aria-hidden="true">
+      <X size={12} strokeWidth={2.5} />
+    </span>
+  );
+}
+
 function canUserChangeTaskStatus(task, user, hasPermission) {
   if (!task || !user) return false;
   return (
@@ -641,6 +649,7 @@ function TaskDetail({ id, onClose }) {
                 <div>
                   {subtasks.map((subtask) => {
                     const completed = subtask.status === "COMPLETED";
+                    const cancelled = subtask.status === "CANCELLED";
                     const canChangeSubtaskStatus = canUserChangeTaskStatus(
                       subtask,
                       user,
@@ -660,22 +669,28 @@ function TaskDetail({ id, onClose }) {
                         <button
                           type="button"
                           aria-label={
-                            completed
-                              ? `Reopen ${subtask.title}`
-                              : `Complete ${subtask.title}`
+                            cancelled
+                              ? `Cancelled subtask ${subtask.title}`
+                              : completed
+                                ? `Reopen ${subtask.title}`
+                                : `Complete ${subtask.title}`
                           }
-                          className="task-detail-subtask-toggle grid h-6 w-6 shrink-0 place-items-center rounded-md text-blue-600 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-40"
+                          title={cancelled ? "Cancelled — change status in task details" : undefined}
+                          className={`task-detail-subtask-toggle grid h-6 w-6 shrink-0 place-items-center rounded-md text-blue-600 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-40 ${cancelled ? "task-status-toggle--cancelled" : ""}`}
                           disabled={
-                            updateStatus.isPending || !canChangeSubtaskStatus
+                            cancelled || updateStatus.isPending || !canChangeSubtaskStatus
                           }
-                          onClick={() =>
+                          onClick={() => {
+                            if (cancelled) return;
                             updateStatus.mutate({
                               taskId: subtask.id,
                               status: completed ? "OPEN" : "COMPLETED",
-                            })
-                          }
+                            });
+                          }}
                         >
-                          {completed ? (
+                          {cancelled ? (
+                            <CancelledCheckbox />
+                          ) : completed ? (
                             <CheckSquare size={18} />
                           ) : (
                             <span className="h-[17px] w-[17px] rounded-[5px] border-2 border-slate-300" />
@@ -1165,6 +1180,7 @@ export default function TasksPage() {
 
   const toggleCompleted = (event, task) => {
     event.stopPropagation();
+    if (task.status === "CANCELLED") return;
     const nextStatus = task.status === "COMPLETED" ? "OPEN" : "COMPLETED";
     const incomplete = task.parentTaskId ? [] : incompleteChildren(task);
     if (
@@ -1340,6 +1356,7 @@ export default function TasksPage() {
 
   const listRow = (task, { subtask = false } = {}) => {
     const completed = task.status === "COMPLETED";
+    const cancelled = task.status === "CANCELLED";
     const overdue = isOverdue(task);
     const children = childrenByParent.get(task.id) || [];
     const shownChildren = children.filter(
@@ -1399,14 +1416,20 @@ export default function TasksPage() {
             <button
               type="button"
               aria-label={
-                completed ? `Reopen ${task.title}` : `Complete ${task.title}`
+                cancelled
+                  ? `Cancelled task ${task.title}`
+                  : completed
+                    ? `Reopen ${task.title}`
+                    : `Complete ${task.title}`
               }
-              title={completed ? "Mark as open" : "Mark as completed"}
-              className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-md text-blue-600 transition hover:bg-blue-50 disabled:opacity-50"
-              disabled={updating || !canChangeStatus}
+              title={cancelled ? "Cancelled — change status in task details" : completed ? "Mark as open" : "Mark as completed"}
+              className={`task-status-toggle mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-md text-blue-600 transition hover:bg-blue-50 disabled:opacity-50 ${cancelled ? "task-status-toggle--cancelled" : ""}`}
+              disabled={cancelled || updating || !canChangeStatus}
               onClick={(event) => toggleCompleted(event, task)}
             >
-              {completed ? (
+              {cancelled ? (
+                <CancelledCheckbox />
+              ) : completed ? (
                 <CheckSquare size={19} />
               ) : (
                 <span className="h-[18px] w-[18px] rounded-[5px] border-2 border-slate-300 bg-white" />
