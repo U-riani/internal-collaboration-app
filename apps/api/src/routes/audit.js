@@ -24,6 +24,7 @@ const filtersSchema = z.object({
   severity: z.enum(["INFO", "WARNING", "ERROR", "CRITICAL"]).optional(),
   actorId: z.uuid().optional(),
   source: z.enum(["WEB", "MOBILE", "SYSTEM"]).optional(),
+  category: z.enum(["security"]).optional(),
 });
 function getFilters(request) {
   const input = parse(filtersSchema, request.query);
@@ -40,6 +41,12 @@ function auditWhere(f) {
   if (f.severity) where.severity = f.severity;
   if (f.actorId) where.actorId = f.actorId;
   if (f.source) where.source = f.source;
+  if (f.category === "security") where.AND = [{ OR: [
+    { actionType: { startsWith: "AUTH_" } },
+    { actionType: { startsWith: "ROLE_" } },
+    { actionType: { startsWith: "USER_PASSWORD_" } },
+    { outcome: "DENIED" },
+  ] }];
   if (f.q) where.OR = [
     { actionType: { contains: f.q, mode: "insensitive" } },
     { entityType: { contains: f.q, mode: "insensitive" } },
