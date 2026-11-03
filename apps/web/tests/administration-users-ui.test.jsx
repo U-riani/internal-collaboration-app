@@ -115,6 +115,23 @@ describe("Administration Users redesign", () => {
     expect(screen.getByText("Showing 1–1 of 1 directory accounts")).not.toBeNull();
   });
 
+  it("keeps all directory filters visible and removes avatar presence indicators", async () => {
+    const user = userEvent.setup();
+    renderAdmin();
+    await screen.findByRole("button", { name: "Edit Employee 01" });
+
+    expect(screen.getByRole("combobox", { name: "Filter users by department" })).not.toBeNull();
+    expect(screen.getByRole("combobox", { name: "Filter users by role" })).not.toBeNull();
+    expect(screen.getByRole("combobox", { name: "Filter users by status" })).not.toBeNull();
+    expect(screen.queryByRole("button", { name: "Filter" })).toBeNull();
+    expect(document.querySelector(".admin-avatar-status")).toBeNull();
+
+    await user.click(screen.getByRole("combobox", { name: "Filter users by role" }));
+    await user.click(await screen.findByRole("option", { name: "Manager" }));
+    expect(await screen.findByRole("button", { name: "Edit Manager Alpha" })).not.toBeNull();
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Edit Employee 01" })).toBeNull());
+  });
+
   it("reuses the task participant selector for a single Reports to manager", async () => {
     const user = userEvent.setup();
     renderAdmin();
