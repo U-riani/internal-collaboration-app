@@ -7,11 +7,11 @@ import { readFileSync } from "node:fs";
 import AppSelect from "../src/components/AppSelect.jsx";
 
 const adminSource = readFileSync(
-  new URL("../src/pages/AdminPage.jsx", import.meta.url),
+  "src/pages/AdminPage.jsx",
   "utf8",
 );
 const adminStyles = readFileSync(
-  new URL("../src/pages/administration-users.css", import.meta.url),
+  "src/pages/administration-users.css",
   "utf8",
 );
 
