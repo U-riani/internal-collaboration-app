@@ -10,6 +10,7 @@ import { api, getAccessToken } from "../lib/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import PageHeader from "../components/PageHeader.jsx";
 import { Avatar, Empty, ErrorBox, Loading, Modal, SearchBar } from "../components/UI.jsx";
+import { auditDateRange } from "../lib/audit-date-range.js";
 import "./audit-page.css";
 
 const MODULES = ["AUTHENTICATION", "MESSAGES", "TASKS", "APPROVALS", "DRIVE", "ADMINISTRATION", "NOTIFICATIONS", "SYSTEM"];
@@ -205,15 +206,12 @@ export default function AuditPage() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [selected, setSelected] = useState(null);
   const [exportError, setExportError] = useState("");
+  const [rangeAsOf, setRangeAsOf] = useState(() => Date.now());
 
-  const dateRange = useMemo(() => {
-    if (range === "custom" && customFrom && customTo) return {
-      start: new Date(customFrom + "T00:00:00").toISOString(),
-      end: new Date(customTo + "T23:59:59").toISOString(),
-    };
-    return { start: new Date(Date.now() - Number(range === "custom" ? 7 : range) * 86400000).toISOString(),
-      end: new Date().toISOString() };
-  }, [range, customFrom, customTo]);
+  const dateRange = useMemo(
+    () => auditDateRange(range, customFrom, customTo, rangeAsOf),
+    [range, customFrom, customTo, rangeAsOf],
+  );
 
   const filters = useMemo(() => {
     const params = new URLSearchParams();
@@ -251,6 +249,16 @@ export default function AuditPage() {
   });
 
   const update = (setter, value) => { setter(value); setPage(1); };
+  const refreshEvents = () => {
+    if (range === "custom" && customFrom && customTo) {
+      void logs.refetch();
+      void stats.refetch();
+    } else {
+      // Move the rolling range forward; a refetch with the old end timestamp
+      // would never include events created after this page was opened.
+      setRangeAsOf((previous) => Math.max(Date.now(), previous + 1));
+    }
+  };
   const clearFilters = () => {
     setModule(""); setOutcome(""); setSeverity(""); setSource(""); setActorId(""); setSearch(""); setPage(1);
   };
@@ -350,7 +358,12 @@ export default function AuditPage() {
         </select>
       </label>}
       <button className="icon-btn" type="button" title="Refresh events"
-        onClick={() => { void logs.refetch(); void stats.refetch(); }}><RefreshCw size={16}/></button>
+        aria-label="Refresh audit data"
+        aria-busy={logs.isFetching || stats.isFetching}
+        disabled={logs.isFetching || stats.isFetching}
+        onClick={refreshEvents}>
+        <RefreshCw size={16} className={logs.isFetching || stats.isFetching ? "animate-spin" : ""}/>
+      </button>
     </div>
 
     <ErrorBox error={exportError || logs.error || stats.error}/>
