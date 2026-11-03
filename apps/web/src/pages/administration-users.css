@@ -929,3 +929,91 @@
     transition: none;
   }
 }
+
+
+/* Unified native-free Administration dropdowns and restrained focus states. */
+.administration-page .admin-form-field > .app-select {
+  width: 100%;
+}
+.administration-page .app-select.admin-directory-select {
+  display: block;
+  width: 100%;
+  height: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.administration-page .admin-directory-select .app-select-trigger {
+  min-height: 35px;
+  height: 35px;
+  padding: 0 9px;
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  background: var(--admin-raised);
+  color: var(--admin-muted);
+  font-size: 11px;
+}
+.administration-page .admin-directory-select .app-select-value {
+  color: var(--admin-muted);
+  font-size: 11px;
+}
+.administration-page .admin-department-manager-select {
+  margin-top: 12px;
+}
+
+/* Modal header: icon + left-aligned title, no explanatory subtitle. */
+.app-theme-dark .admin-edit-modal .modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+}
+.app-theme-dark .admin-edit-modal .modal-head-leading {
+  flex: 0 0 auto;
+  margin: 0;
+}
+.app-theme-dark .admin-edit-modal .modal-head-copy {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  min-width: 0;
+  margin: 0;
+  text-align: left;
+}
+.app-theme-dark .admin-edit-modal .modal-head-title-row {
+  justify-content: flex-start;
+  width: 100%;
+  text-align: left;
+}
+.app-theme-dark .admin-edit-modal .modal-head h2 {
+  margin: 0;
+  text-align: left;
+}
+.app-theme-dark .admin-edit-modal .modal-close-btn {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+/* Suppress Tailwind/browser duplicate rings; one palette-aware 1px border. */
+.app-theme-dark .admin-edit-modal .admin-edit-fields .field .input:focus,
+.app-theme-dark .admin-edit-modal .admin-edit-fields .field .input:focus-visible,
+.app-theme-dark .admin-edit-modal .admin-password-fields .field .input:focus,
+.app-theme-dark .admin-edit-modal .admin-password-fields .field .input:focus-visible {
+  border: 1px solid var(--app-interactive-focus) !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  --tw-ring-shadow: 0 0 #0000;
+  --tw-ring-offset-shadow: 0 0 #0000;
+}
+.app-theme-dark .admin-edit-modal .admin-edit-fields .field .input {
+  border-width: 1px;
+}
+.app-theme-dark .admin-edit-modal .filter-multiselect-search:focus-within,
+.app-theme-dark .administration-page .admin-input-wrap:focus-within,
+.app-theme-dark .administration-page .admin-directory-search:focus-within {
+  border-color: var(--app-interactive-focus);
+  outline: 0;
+  box-shadow: none;
+}
