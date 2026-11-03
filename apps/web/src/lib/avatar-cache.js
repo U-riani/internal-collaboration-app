@@ -1,4 +1,4 @@
-import { fetchAvatarImage } from "./api.js";
+import { api, fetchAvatarImage } from "./api.js";
 
 // Share authenticated avatar responses across Message, Task and Drive rows.
 // Capping stored bytes prevents keeping large original photos indefinitely.
@@ -6,6 +6,26 @@ const entries = new Map();
 const MAX_ENTRIES = 120;
 const MAX_BYTES = 24 * 1024 * 1024;
 let cachedBytes = 0;
+let avatarManifestPromise = null;
+let avatarManifestLoadedAt = 0;
+const MANIFEST_MAX_AGE_MS = 2 * 60 * 1000;
+
+// A single authenticated request tells the whole workspace which colleagues
+// actually have photos. Bare user IDs no longer trigger expected 404s.
+export function cachedAvatarManifest() {
+  if (avatarManifestPromise && Date.now() - avatarManifestLoadedAt < MANIFEST_MAX_AGE_MS)
+    return avatarManifestPromise;
+
+  const pending = api("/users/avatars").then((response) => response.data || {});
+  const wrapped = pending.catch((error) => {
+    if (avatarManifestPromise === wrapped) avatarManifestPromise = null;
+    throw error;
+  });
+  avatarManifestPromise = wrapped;
+  avatarManifestLoadedAt = Date.now();
+  return wrapped;
+}
+
 
 function discard(key) {
   const entry = entries.get(key);
@@ -48,6 +68,7 @@ export function cachedAvatarImage(url) {
 
 export function invalidateUserAvatarCache(userId) {
   if (!userId) return;
+  avatarManifestPromise = null;
   const prefix = "/api/v1/users/" + userId + "/avatar";
   for (const url of entries.keys()) {
     if (url.startsWith(prefix)) discard(url);
@@ -55,6 +76,7 @@ export function invalidateUserAvatarCache(userId) {
 }
 
 export function clearAvatarImageCache() {
+  avatarManifestPromise = null;
   entries.clear();
   cachedBytes = 0;
 }

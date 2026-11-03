@@ -40,6 +40,10 @@ test("a colleague's avatar is uploaded, viewed privately, replaced and removed",
 
   assert.equal((await h.call(employee, "GET", url)).statusCode, 404);
   assert.equal((await h.call(null, "GET", url)).statusCode, 401);
+  const initialManifest = await h.call(employee, "GET", "/users/avatars");
+  assert.equal(initialManifest.statusCode, 200, initialManifest.body);
+  assert.equal(initialManifest.json().data[employee.user.id], undefined);
+  assert.equal((await h.call(null, "GET", "/users/avatars")).statusCode, 401);
 
   const upload = await uploadAvatar(employee);
   assert.equal(upload.statusCode, 201, upload.body);
@@ -49,6 +53,12 @@ test("a colleague's avatar is uploaded, viewed privately, replaced and removed",
   const original = await h.prisma.user.findUnique({ where: { id: employee.user.id } });
   assert.equal(original.avatarMimeType, "image/png");
   assert.ok(original.avatarObjectKey);
+
+  const manifest = await h.call(manager, "GET", "/users/avatars");
+  assert.equal(manifest.statusCode, 200, manifest.body);
+  assert.equal(manifest.json().data[employee.user.id], first.avatarUrl);
+  assert.equal(manifest.headers["cache-control"], "private, no-store");
+  assert.equal(JSON.stringify(manifest.json()).includes(original.avatarObjectKey), false);
 
   const image = await h.call(manager, "GET", url);
   assert.equal(image.statusCode, 200, image.body);
@@ -68,6 +78,9 @@ test("a colleague's avatar is uploaded, viewed privately, replaced and removed",
   const afterRemoval = await h.prisma.user.findUnique({ where: { id: employee.user.id } });
   assert.equal(afterRemoval.avatarObjectKey, null);
   assert.equal(afterRemoval.avatarMimeType, null);
+  const clearedManifest = await h.call(manager, "GET", "/users/avatars");
+  assert.equal(clearedManifest.statusCode, 200, clearedManifest.body);
+  assert.equal(clearedManifest.json().data[employee.user.id], undefined);
 
   const events = await h.prisma.auditLog.findMany({
     where: { actorId: employee.user.id, entityId: employee.user.id },
