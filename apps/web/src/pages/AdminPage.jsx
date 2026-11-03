@@ -25,6 +25,7 @@ import { api } from "../lib/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { Modal, Field, ErrorBox, Avatar } from "../components/UI.jsx";
 import FilterMultiSelect from "../components/FilterMultiSelect.jsx";
+import AppSelect from "../components/AppSelect.jsx";
 import "./administration-users.css";
 import PageHeader from "../components/PageHeader.jsx";
 import RoleManagement from "../components/RoleManagement.jsx";
@@ -346,31 +347,35 @@ export default function AdminPage() {
                       onChange={(event) => setUserForm({ ...userForm, jobTitle: event.target.value })} />
                   </span>
                 </label>
-                <label className="admin-form-field">
+                <div className="admin-form-field">
                   <span>Department</span>
-                  <span className="admin-input-wrap admin-select-wrap">
-                    <Building2 size={15} aria-hidden="true" />
-                    <select className="input" value={userForm.departmentId}
-                      onChange={(event) => setUserForm({ ...userForm, departmentId: event.target.value })}>
-                      <option value="">No department</option>
-                      {departments.data?.map((department) => (
-                        <option key={department.id} value={department.id}>{department.name}</option>
-                      ))}
-                    </select>
-                  </span>
-                </label>
-                <label className="admin-form-field">
+                  <AppSelect
+                    ariaLabel="Department"
+                    icon={Building2}
+                    value={userForm.departmentId}
+                    onChange={(value) => setUserForm({ ...userForm, departmentId: value })}
+                    options={[
+                      { value: "", label: "No department" },
+                      ...(departments.data || []).map((department) => ({
+                        value: department.id,
+                        label: department.name,
+                      })),
+                    ]}
+                  />
+                </div>
+                <div className="admin-form-field">
                   <span>Role</span>
-                  <span className="admin-input-wrap admin-select-wrap">
-                    <ShieldCheck size={15} aria-hidden="true" />
-                    <select className="input" value={userForm.roleCodes[0]}
-                      onChange={(event) => setUserForm({ ...userForm, roleCodes: [event.target.value] })}>
-                      {roleOptions.map((role) => (
-                        <option key={role.code} value={role.code}>{role.name}</option>
-                      ))}
-                    </select>
-                  </span>
-                </label>
+                  <AppSelect
+                    ariaLabel="Role"
+                    icon={ShieldCheck}
+                    value={userForm.roleCodes[0]}
+                    onChange={(value) => setUserForm({ ...userForm, roleCodes: [value] })}
+                    options={roleOptions.map((role) => ({
+                      value: role.code,
+                      label: role.name,
+                    }))}
+                  />
+                </div>
               </div>
 
               <button type="submit" className="btn-primary admin-create-submit"
@@ -406,35 +411,45 @@ export default function AdminPage() {
               </div>
               {showFilters && (
                 <div className="admin-directory-filters" id="admin-user-filters">
-                  <label className="admin-directory-select">
-                    <Building2 size={15} aria-hidden="true" />
-                    <select aria-label="Filter users by department" value={userFilters.departmentId}
-                      onChange={(event) => changeUserFilter("departmentId", event.target.value)}>
-                      <option value="">All departments</option>
-                      {departments.data?.map((department) => (
-                        <option key={department.id} value={department.id}>{department.name}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="admin-directory-select">
-                    <ShieldCheck size={15} aria-hidden="true" />
-                    <select aria-label="Filter users by role" value={userFilters.role}
-                      onChange={(event) => changeUserFilter("role", event.target.value)}>
-                      <option value="">All roles</option>
-                      {roleOptions.map((role) => (
-                        <option key={role.code} value={role.code}>{role.name}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="admin-directory-select">
-                    <span className="admin-status-filter-icon" aria-hidden="true" />
-                    <select aria-label="Filter users by status" value={userFilters.status}
-                      onChange={(event) => changeUserFilter("status", event.target.value)}>
-                      <option value="">All statuses</option>
-                      <option value="ACTIVE">Active</option>
-                      <option value="INACTIVE">Inactive</option>
-                    </select>
-                  </label>
+                  <AppSelect
+                    className="admin-directory-select"
+                    ariaLabel="Filter users by department"
+                    icon={Building2}
+                    value={userFilters.departmentId}
+                    onChange={(value) => changeUserFilter("departmentId", value)}
+                    options={[
+                      { value: "", label: "All departments" },
+                      ...(departments.data || []).map((department) => ({
+                        value: department.id,
+                        label: department.name,
+                      })),
+                    ]}
+                  />
+                  <AppSelect
+                    className="admin-directory-select"
+                    ariaLabel="Filter users by role"
+                    icon={ShieldCheck}
+                    value={userFilters.role}
+                    onChange={(value) => changeUserFilter("role", value)}
+                    options={[
+                      { value: "", label: "All roles" },
+                      ...roleOptions.map((role) => ({
+                        value: role.code,
+                        label: role.name,
+                      })),
+                    ]}
+                  />
+                  <AppSelect
+                    className="admin-directory-select"
+                    ariaLabel="Filter users by status"
+                    value={userFilters.status}
+                    onChange={(value) => changeUserFilter("status", value)}
+                    options={[
+                      { value: "", label: "All statuses" },
+                      { value: "ACTIVE", label: "Active" },
+                      { value: "INACTIVE", label: "Inactive" },
+                    ]}
+                  />
                 </div>
               )}
             </div>
@@ -572,26 +587,21 @@ export default function AdminPage() {
                 <p className="mt-4 text-sm text-slate-500">
                   Manager: {item.manager?.displayName || "Not assigned"}
                 </p>
-                <select
-                  aria-label={`Manager for ${item.name}`}
-                  className="input mt-3"
+                <AppSelect
+                  className="admin-department-manager-select"
+                  ariaLabel={"Manager for " + item.name}
                   value={item.managerId || ""}
-                  onChange={(e) =>
-                    updateDept.mutate({
-                      id: item.id,
-                      managerId: e.target.value,
-                    })
-                  }
-                >
-                  <option value="">No manager</option>
-                  {users.data
-                    ?.filter((u) => u.status === "ACTIVE")
-                    .map((u) => (
-                      <option key={u.id} value={u.id}>
-                        {u.displayName}
-                      </option>
-                    ))}
-                </select>
+                  onChange={(value) => updateDept.mutate({ id: item.id, managerId: value })}
+                  options={[
+                    { value: "", label: "No manager" },
+                    ...(users.data || [])
+                      .filter((user) => user.status === "ACTIVE")
+                      .map((user) => ({
+                        value: user.id,
+                        label: user.displayName,
+                      })),
+                  ]}
+                />
               </article>
             ))}
           </div>
@@ -602,7 +612,6 @@ export default function AdminPage() {
       {editing && (
         <Modal
           title="Edit user"
-          subtitle="Update directory information and account access"
           headerIcon={<UserPlus size={19} />}
           onClose={closeEditor}
           className="admin-edit-modal"
@@ -642,30 +651,45 @@ export default function AdminPage() {
                 onChange={(event) => setEditing({ ...editing, phone: event.target.value })} />
               <Field label="Job title" value={editing.jobTitle || ""}
                 onChange={(event) => setEditing({ ...editing, jobTitle: event.target.value })} />
-              <Field label="Department">
-                <select className="input" value={editing.departmentId || ""}
-                  onChange={(event) => setEditing({ ...editing, departmentId: event.target.value })}>
-                  <option value="">No department</option>
-                  {departments.data?.map((department) => (
-                    <option key={department.id} value={department.id}>{department.name}</option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Role">
-                <select className="input" value={editing.roles[0] || "EMPLOYEE"}
-                  onChange={(event) => setEditing({ ...editing, roles: [event.target.value] })}>
-                  {roleOptions.map((role) => (
-                    <option key={role.code} value={role.code}>{role.name}</option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Account status">
-                <select className="input" value={editing.status}
-                  onChange={(event) => setEditing({ ...editing, status: event.target.value })}>
-                  <option value="ACTIVE">Active</option>
-                  <option value="INACTIVE">Inactive</option>
-                </select>
-              </Field>
+              <div className="field admin-select-field">
+                <span>Department</span>
+                <AppSelect
+                  ariaLabel="Edit department"
+                  value={editing.departmentId || ""}
+                  onChange={(value) => setEditing({ ...editing, departmentId: value })}
+                  options={[
+                    { value: "", label: "No department" },
+                    ...(departments.data || []).map((department) => ({
+                      value: department.id,
+                      label: department.name,
+                    })),
+                  ]}
+                />
+              </div>
+              <div className="field admin-select-field">
+                <span>Role</span>
+                <AppSelect
+                  ariaLabel="Edit role"
+                  value={editing.roles[0] || "EMPLOYEE"}
+                  onChange={(value) => setEditing({ ...editing, roles: [value] })}
+                  options={roleOptions.map((role) => ({
+                    value: role.code,
+                    label: role.name,
+                  }))}
+                />
+              </div>
+              <div className="field admin-select-field">
+                <span>Account status</span>
+                <AppSelect
+                  ariaLabel="Edit account status"
+                  value={editing.status}
+                  onChange={(value) => setEditing({ ...editing, status: value })}
+                  options={[
+                    { value: "ACTIVE", label: "Active" },
+                    { value: "INACTIVE", label: "Inactive" },
+                  ]}
+                />
+              </div>
               <div className="admin-edit-span-2 admin-reports-to">
                 <FilterMultiSelect
                   label="Reports to"
