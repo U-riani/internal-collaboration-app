@@ -61,8 +61,8 @@
 }
 
 .administration-page .admin-section-tab:focus-visible,
-.administration-page .admin-directory-panel button:focus-visible,
-.administration-page .admin-create-panel button:focus-visible {
+.administration-page .admin-directory-panel button:not(.app-select-trigger):focus-visible,
+.administration-page .admin-create-panel button:not(.app-select-trigger):focus-visible {
   outline: 2px solid var(--app-interactive-focus);
   outline-offset: 2px;
 }
@@ -212,9 +212,6 @@
 .administration-page .admin-form-field .input::placeholder {
   color: var(--admin-subtle);
 }
-.administration-page .admin-select-wrap select {
-  cursor: pointer;
-}
 .administration-page .admin-password-toggle {
   display: grid;
   place-items: center;
@@ -245,7 +242,14 @@
   font-weight: 750;
 }
 .administration-page .admin-create-submit:hover:not(:disabled) {
-  filter: brightness(1.07);
+  opacity: .94;
+}
+.app-theme-dark .administration-page .admin-create-submit,
+.app-theme-dark .administration-page .admin-create-submit:hover:not(:disabled) {
+  /* Prevent the shared solid hover background from replacing this gradient. */
+  background: linear-gradient(105deg, var(--app-accent-gradient-start), var(--app-secondary));
+  filter: none;
+  transition: opacity .15s ease;
 }
 
 .administration-page .admin-directory-panel {
@@ -280,8 +284,7 @@
   background: var(--admin-control);
   color: var(--admin-muted);
 }
-.administration-page .admin-directory-search:focus-within,
-.administration-page .admin-directory-select:focus-within {
+.administration-page .admin-directory-search:focus-within {
   border-color: var(--app-interactive-focus);
   box-shadow: 0 0 0 2px var(--app-ui-accent-tint);
 }
@@ -326,22 +329,6 @@
   border-radius: 50%;
   background: var(--app-secondary);
 }
-.administration-page .admin-filter-toggle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  flex: 0 0 auto;
-  min-height: 36px;
-  padding: 7px 11px;
-  border-radius: 10px;
-  font-size: 11px;
-  font-weight: 700;
-}
-.administration-page .admin-filter-toggle.is-active {
-  border-color: var(--admin-border-strong);
-}
-
 .administration-page .admin-directory-filters {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -363,29 +350,6 @@
   flex: 0 0 15px;
   color: var(--admin-muted);
 }
-.administration-page .admin-directory-select select,
-.app-theme-dark .administration-page .admin-directory-select select {
-  flex: 1;
-  min-width: 0;
-  height: 33px;
-  padding: 0;
-  border: 0 !important;
-  border-radius: 0;
-  outline: 0 !important;
-  box-shadow: none !important;
-  background: transparent !important;
-  color: var(--admin-muted);
-  font-size: 11px;
-  font-weight: 650;
-  cursor: pointer;
-}
-.administration-page .admin-status-filter-icon {
-  flex: 0 0 11px;
-  height: 8px;
-  border: 2px solid currentColor;
-  border-radius: 5px;
-}
-
 .administration-page .admin-directory-list {
   display: flex;
   flex-direction: column;
@@ -424,18 +388,6 @@
   font-weight: 750;
   flex-shrink: 0;
 }
-.administration-page .admin-avatar-status {
-  position: absolute;
-  right: -1px;
-  bottom: -1px;
-  width: 12px;
-  height: 12px;
-  border: 2px solid var(--admin-surface);
-  border-radius: 50%;
-}
-.administration-page .admin-avatar-status.is-active { background: var(--app-success); }
-.administration-page .admin-avatar-status.is-inactive { background: var(--admin-subtle); }
-
 .administration-page .admin-user-details {
   flex: 1 1 190px;
   min-width: 0;
@@ -1016,4 +968,28 @@
   border-color: var(--app-interactive-focus);
   outline: 0;
   box-shadow: none;
+}
+
+/* A single thin focus border on all directory dropdowns. The wrapper never
+   draws a second ring and the button suppresses the generic panel outline. */
+.administration-page .app-select.admin-directory-select:focus-within {
+  border: 0;
+  outline: 0;
+  box-shadow: none;
+}
+.app-theme-dark .administration-page .admin-directory-select .app-select-trigger:focus,
+.app-theme-dark .administration-page .admin-directory-select .app-select-trigger:focus-visible,
+.app-theme-dark .administration-page .admin-directory-select .app-select-trigger.is-open {
+  border: 1px solid var(--app-interactive-focus);
+  outline: 0 !important;
+  outline-offset: 0;
+  box-shadow: none !important;
+  --tw-ring-shadow: 0 0 #0000;
+  --tw-ring-offset-shadow: 0 0 #0000;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-theme-dark .administration-page .admin-create-submit {
+    transition: none;
+  }
 }
