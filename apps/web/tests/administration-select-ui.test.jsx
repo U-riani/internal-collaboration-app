@@ -70,7 +70,7 @@ describe("palette-aware Administration dropdowns", () => {
 
   it("anchors a dropdown to the same dialog location while that dialog scrolls", async () => {
     const user = userEvent.setup();
-    render(<dialog data-testid="test-dialog"><SelectHarness /></dialog>);
+    render(<dialog open data-testid="test-dialog"><SelectHarness /></dialog>);
     const dialog = screen.getByTestId("test-dialog");
     const trigger = screen.getByRole("combobox", { name: "Department" });
     dialog.scrollTop = 85;
