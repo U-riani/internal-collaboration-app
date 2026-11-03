@@ -84,7 +84,7 @@ export default function AppSelect({
   }, [open, activeIndex, host]);
 
   const choose = (option) => {
-    if (option?.disabled) return;
+    if (!option || option.disabled) return;
     onChange(option.value);
     setOpen(false);
     triggerRef.current?.focus();
