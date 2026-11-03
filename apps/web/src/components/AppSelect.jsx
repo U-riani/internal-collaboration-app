@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Check, ChevronDown } from "lucide-react";
 import "./AppSelect.css";
@@ -29,7 +29,7 @@ export default function AppSelect({
   const selectedIndex = options.findIndex((option) => option.value === value);
   const selected = selectedIndex < 0 ? null : options[selectedIndex];
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!open || !rootRef.current) return undefined;
     const root = rootRef.current;
     const container = root.closest("dialog") || root.closest(".app-theme-dark") || document.body;
@@ -44,7 +44,7 @@ export default function AppSelect({
       const bottomLimit = bounds
         ? Math.min(bounds.bottom - 10, window.innerHeight - 8)
         : window.innerHeight - 8;
-      const desiredHeight = Math.min(240, Math.max(50, options.length * 37 + 10));
+      const desiredHeight = Math.min(240, Math.max(50, options.length * 40 + 10));
       const below = Math.max(0, bottomLimit - trigger.bottom - 5);
       const above = Math.max(0, trigger.top - topLimit - 5);
       const upward = below < desiredHeight && above > below;
@@ -53,8 +53,10 @@ export default function AppSelect({
       const left = Math.max(8, Math.min(trigger.left, window.innerWidth - trigger.width - 8));
       setMenuStyle({
         position: bounds ? "absolute" : "fixed",
-        top: (bounds ? top - bounds.top : top) + "px",
-        left: (bounds ? left - bounds.left : left) + "px",
+        // dialog is a scroll container. Absolute coordinates must include its
+        // scroll offsets, otherwise the popup moves twice as far as its anchor.
+        top: (bounds ? top - bounds.top + container.scrollTop : top) + "px",
+        left: (bounds ? left - bounds.left + container.scrollLeft : left) + "px",
         width: trigger.width + "px",
         maxHeight: height + "px",
       });
@@ -66,21 +68,35 @@ export default function AppSelect({
       }
     };
     placeMenu();
+    const handleScroll = (event) => {
+      // Scrolling options must not trigger repositioning of their own menu.
+      if (menuRef.current?.contains(event.target)) return;
+      placeMenu();
+    };
     document.addEventListener("pointerdown", handleOutside);
-    document.addEventListener("scroll", placeMenu, true);
+    document.addEventListener("scroll", handleScroll, true);
     window.addEventListener("resize", placeMenu);
     return () => {
       document.removeEventListener("pointerdown", handleOutside);
-      document.removeEventListener("scroll", placeMenu, true);
+      document.removeEventListener("scroll", handleScroll, true);
       window.removeEventListener("resize", placeMenu);
     };
   }, [open, options.length]);
 
   useEffect(() => {
     if (!open) return;
-    menuRef.current?.querySelector("[data-active='true']")?.scrollIntoView?.({
-      block: "nearest",
-    });
+    const menu = menuRef.current;
+    const active = menu?.querySelector("[data-active='true']");
+    if (!active) return;
+    // Scroll only the options panel. scrollIntoView() also scrolls the modal
+    // and is responsible for unwanted jumps when moving through options.
+    const menuBounds = menu.getBoundingClientRect();
+    const itemBounds = active.getBoundingClientRect();
+    if (itemBounds.top < menuBounds.top) {
+      menu.scrollTop -= menuBounds.top - itemBounds.top;
+    } else if (itemBounds.bottom > menuBounds.bottom) {
+      menu.scrollTop += itemBounds.bottom - menuBounds.bottom;
+    }
   }, [open, activeIndex, host]);
 
   const choose = (option) => {
