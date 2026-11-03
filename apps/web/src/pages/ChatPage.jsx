@@ -2,6 +2,7 @@ import {
   Fragment,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -13,6 +14,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
+import { createPortal } from "react-dom";
 import {
   Plus,
   Search,
@@ -53,6 +55,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { useSocket } from "../hooks/useSocket.js";
 import PageHeader from "../components/PageHeader.jsx";
 import "./messages-theme.css";
+import { getEmojiMenuPosition } from "../lib/emoji-picker-position.js";
 import { filterConversationMembers } from "../lib/conversation-member-search.js";
 import { filterAvailableColleagues, toggleColleagueSelection, addSelectedColleagues } from "../lib/group-member-selection.js";
 import {
@@ -204,7 +207,7 @@ function ReactionGlyph({ value, size = 18 }) {
     const Icon = custom.Icon;
     return (
       <span
-        className="inline-flex items-center justify-center rounded-md bg-slate-900 text-white"
+        className="chat-custom-reaction-glyph inline-flex items-center justify-center rounded-md bg-slate-900 text-white"
         style={{ width: size + 6, height: size + 6 }}
         title={custom.label}
       >
@@ -325,6 +328,7 @@ function ReactionDetailsMenu({ groups, align = "left" }) {
 }
 
 function EmojiMenu({
+  anchorRef,
   onSelect,
   onClose,
   align = "left",
@@ -333,7 +337,10 @@ function EmojiMenu({
   const ref = useRef(null);
   const scrollRef = useRef(null);
   const sectionRefs = useRef(new Map());
-  const [activeCategory, setActiveCategory] = useState("faces");
+  const [activeCategory, setActiveCategory] = useState(
+    includeCustom ? "custom" : "faces",
+  );
+  const [position, setPosition] = useState(null);
   const groups = includeCustom
     ? [
         {
@@ -346,20 +353,63 @@ function EmojiMenu({
       ]
     : EMOJI_GROUPS;
 
+  useLayoutEffect(() => {
+    const updatePosition = () => {
+      const anchor = anchorRef.current;
+      const menu = ref.current;
+      if (!anchor || !menu) return;
+
+      const bounds = anchor.getBoundingClientRect();
+      const scrollContainer = anchor.closest(".chat-messages-scroll");
+      const visibleArea = scrollContainer?.getBoundingClientRect();
+      if (
+        bounds.bottom <= 0 ||
+        bounds.top >= window.innerHeight ||
+        (visibleArea &&
+          (bounds.bottom <= visibleArea.top || bounds.top >= visibleArea.bottom))
+      ) {
+        onClose();
+        return;
+      }
+
+      setPosition(
+        getEmojiMenuPosition(
+          bounds,
+          menu.offsetHeight,
+          { width: window.innerWidth, height: window.innerHeight },
+          align,
+        ),
+      );
+    };
+
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [anchorRef, align, onClose]);
+
   useEffect(() => {
     const onPointerDown = (event) => {
-      if (ref.current && !ref.current.contains(event.target)) onClose();
+      if (
+        !ref.current?.contains(event.target) &&
+        !anchorRef.current?.contains(event.target)
+      ) {
+        onClose();
+      }
     };
     const onKeyDown = (event) => {
       if (event.key === "Escape") onClose();
     };
-    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("pointerdown", onPointerDown);
     document.addEventListener("keydown", onKeyDown);
     return () => {
-      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("pointerdown", onPointerDown);
       document.removeEventListener("keydown", onKeyDown);
     };
-  }, [onClose]);
+  }, [anchorRef, onClose]);
 
   const goToCategory = (id) => {
     setActiveCategory(id);
@@ -367,40 +417,61 @@ function EmojiMenu({
     const container = scrollRef.current;
     if (!section || !container) return;
     container.scrollTo({
-      top: Math.max(0, section.offsetTop - 2),
+      top: Math.max(0, section.offsetTop),
       behavior: "smooth",
     });
   };
 
-  return (
+  const portalRoot = anchorRef.current?.closest(".app-theme-dark") || document.body;
+
+  return createPortal(
     <div
       ref={ref}
-      className={`absolute bottom-full z-50 mb-2 w-[326px] max-w-[calc(100vw-24px)] overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-xl ${
-        align === "right" ? "right-0" : "left-0"
-      }`}
+      className="chat-emoji-menu"
+      role="dialog"
+      aria-label={includeCustom ? "Add a reaction" : "Choose an emoji"}
+      data-placement={position?.placement}
+      style={{
+        top: position?.top ?? -10000,
+        left: position?.left ?? -10000,
+        width: position?.width ?? 352,
+        visibility: position ? "visible" : "hidden",
+      }}
     >
-      <div className="flex gap-1 overflow-x-auto border-b border-slate-100 pb-2">
+      <div className="chat-emoji-menu-header">
+        <span>{includeCustom ? "Add reaction" : "Choose emoji"}</span>
+        <button
+          type="button"
+          className="chat-emoji-menu-close"
+          onClick={onClose}
+          aria-label="Close emoji picker"
+          title="Close"
+        >
+          <X size={16} />
+        </button>
+      </div>
+      <div className="chat-emoji-menu-tabs" role="group" aria-label="Emoji categories">
         {groups.map((group) => (
           <button
             key={group.id}
             type="button"
             title={group.label}
             aria-label={group.label}
-            className={`flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-lg text-base transition ${
-              activeCategory === group.id
-                ? "bg-blue-50 text-blue-700 ring-1 ring-blue-200"
-                : "text-slate-500 hover:bg-slate-100"
-            }`}
+            aria-pressed={activeCategory === group.id}
+            className="chat-emoji-menu-category"
             onClick={() => goToCategory(group.id)}
           >
-            {group.id === "custom" ? <Sparkles size={15} /> : group.icon}
+            {group.id === "custom" ? (
+              <Sparkles size={18} />
+            ) : (
+              <span aria-hidden="true">{group.icon}</span>
+            )}
           </button>
         ))}
       </div>
-
       <div
         ref={scrollRef}
-        className="relative mt-2 h-[142px] overflow-y-auto overscroll-contain pr-1"
+        className="chat-emoji-menu-list"
         onScroll={(event) => {
           const top = event.currentTarget.scrollTop + 12;
           let current = groups[0]?.id;
@@ -418,29 +489,28 @@ function EmojiMenu({
               if (node) sectionRefs.current.set(group.id, node);
               else sectionRefs.current.delete(group.id);
             }}
-            className="mb-2 last:mb-0"
+            className="chat-emoji-menu-section"
           >
-            <div className="sticky top-0 z-10 h-[18px] bg-white text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-              {group.label}
-            </div>
-            <div className="grid grid-cols-10 gap-px">
+            <div className="chat-emoji-menu-section-title">{group.label}</div>
+            <div className="chat-emoji-menu-grid">
               {group.emojis.map((emoji, index) => (
                 <button
-                  key={`${group.id}-${emoji}-${index}`}
+                  key={group.id + "-" + emoji + "-" + index}
                   type="button"
-                  className="flex h-[30px] w-[30px] items-center justify-center rounded-md border border-transparent text-[20px] leading-none transition hover:border-slate-200 hover:bg-slate-50 focus:outline-none focus:ring-1 focus:ring-blue-300"
+                  className="chat-emoji-menu-emoji"
                   onClick={() => onSelect(emoji)}
-                  aria-label={`Use ${reactionLabel(emoji)}`}
+                  aria-label={"Use " + reactionLabel(emoji)}
                   title={reactionLabel(emoji)}
                 >
-                  <ReactionGlyph value={emoji} size={15} />
+                  <ReactionGlyph value={emoji} size={16} />
                 </button>
               ))}
             </div>
           </section>
         ))}
       </div>
-    </div>
+    </div>,
+    portalRoot,
   );
 }
 
@@ -1139,6 +1209,8 @@ export default function ChatPage() {
   const [nearBottom, setNearBottom] = useState(true);
   const [composerEmojiOpen, setComposerEmojiOpen] = useState(false);
   const [reactionFor, setReactionFor] = useState(null);
+  const reactionEmojiAnchorRef = useRef(null);
+  const composerEmojiAnchorRef = useRef(null);
   const [pinsOpen, setPinsOpen] = useState(false);
   const [hasWindowAttention, setHasWindowAttention] = useState(
     () => document.visibilityState === "visible" && document.hasFocus(),
@@ -2288,16 +2360,18 @@ export default function ChatPage() {
                                       onMouseDown={(event) =>
                                         event.stopPropagation()
                                       }
-                                      onClick={() =>
+                                      onClick={(event) => {
+                                        reactionEmojiAnchorRef.current = event.currentTarget;
                                         setReactionFor((current) =>
                                           current === m.id ? null : m.id,
-                                        )
-                                      }
+                                        );
+                                      }}
                                     >
                                       <Smile size={12} />
                                     </button>
                                     {reactionFor === m.id && (
                                       <EmojiMenu
+                                        anchorRef={reactionEmojiAnchorRef}
                                         align={own ? "right" : "left"}
                                         includeCustom
                                         onClose={() => setReactionFor(null)}
@@ -2442,6 +2516,7 @@ export default function ChatPage() {
                   <div className="chat-compose-emoji relative mb-1">
                     <button
                       type="button"
+                      ref={composerEmojiAnchorRef}
                       className="icon-btn"
                       title="Add emoji"
                       aria-label="Add emoji"
@@ -2453,6 +2528,7 @@ export default function ChatPage() {
                     </button>
                     {composerEmojiOpen && (
                       <EmojiMenu
+                        anchorRef={composerEmojiAnchorRef}
                         onClose={() => setComposerEmojiOpen(false)}
                         onSelect={insertComposerEmoji}
                       />
