@@ -6,7 +6,6 @@ import {
   ChevronRight,
   Eye,
   EyeOff,
-  Filter,
   KeyRound,
   Mail,
   Pencil,
@@ -69,7 +68,6 @@ export default function AdminPage() {
   const [deptForm, setDeptForm] = useState({ name: "", code: "" });
   const [error, setError] = useState("");
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [showFilters, setShowFilters] = useState(true);
   const [userPage, setUserPage] = useState(1);
   const [showInitialPassword, setShowInitialPassword] = useState(false);
   const userQueryString = useMemo(() => {
@@ -399,59 +397,48 @@ export default function AdminPage() {
                   <span className="admin-count-dot" aria-hidden="true" />
                   {directoryUsers.length} {directoryUsers.length === 1 ? "user" : "users"}
                 </span>
-                <button
-                  type="button"
-                  className={"btn-secondary admin-filter-toggle " + (showFilters ? "is-active" : "")}
-                  onClick={() => setShowFilters((open) => !open)}
-                  aria-expanded={showFilters}
-                  aria-controls="admin-user-filters"
-                >
-                  <Filter size={15} /> Filter
-                </button>
               </div>
-              {showFilters && (
-                <div className="admin-directory-filters" id="admin-user-filters">
-                  <AppSelect
-                    className="admin-directory-select"
-                    ariaLabel="Filter users by department"
-                    icon={Building2}
-                    value={userFilters.departmentId}
-                    onChange={(value) => changeUserFilter("departmentId", value)}
-                    options={[
-                      { value: "", label: "All departments" },
-                      ...(departments.data || []).map((department) => ({
-                        value: department.id,
-                        label: department.name,
-                      })),
-                    ]}
-                  />
-                  <AppSelect
-                    className="admin-directory-select"
-                    ariaLabel="Filter users by role"
-                    icon={ShieldCheck}
-                    value={userFilters.role}
-                    onChange={(value) => changeUserFilter("role", value)}
-                    options={[
-                      { value: "", label: "All roles" },
-                      ...roleOptions.map((role) => ({
-                        value: role.code,
-                        label: role.name,
-                      })),
-                    ]}
-                  />
-                  <AppSelect
-                    className="admin-directory-select"
-                    ariaLabel="Filter users by status"
-                    value={userFilters.status}
-                    onChange={(value) => changeUserFilter("status", value)}
-                    options={[
-                      { value: "", label: "All statuses" },
-                      { value: "ACTIVE", label: "Active" },
-                      { value: "INACTIVE", label: "Inactive" },
-                    ]}
-                  />
-                </div>
-              )}
+              <div className="admin-directory-filters" id="admin-user-filters">
+                <AppSelect
+                  className="admin-directory-select"
+                  ariaLabel="Filter users by department"
+                  icon={Building2}
+                  value={userFilters.departmentId}
+                  onChange={(value) => changeUserFilter("departmentId", value)}
+                  options={[
+                    { value: "", label: "All departments" },
+                    ...(departments.data || []).map((department) => ({
+                      value: department.id,
+                      label: department.name,
+                    })),
+                  ]}
+                />
+                <AppSelect
+                  className="admin-directory-select"
+                  ariaLabel="Filter users by role"
+                  icon={ShieldCheck}
+                  value={userFilters.role}
+                  onChange={(value) => changeUserFilter("role", value)}
+                  options={[
+                    { value: "", label: "All roles" },
+                    ...roleOptions.map((role) => ({
+                      value: role.code,
+                      label: role.name,
+                    })),
+                  ]}
+                />
+                <AppSelect
+                  className="admin-directory-select"
+                  ariaLabel="Filter users by status"
+                  value={userFilters.status}
+                  onChange={(value) => changeUserFilter("status", value)}
+                  options={[
+                    { value: "", label: "All statuses" },
+                    { value: "ACTIVE", label: "Active" },
+                    { value: "INACTIVE", label: "Inactive" },
+                  ]}
+                />
+              </div>
             </div>
 
             <div className="admin-directory-list" aria-live="polite">
@@ -469,11 +456,6 @@ export default function AdminPage() {
                     <div className="admin-user-avatar-wrap">
                       <Avatar name={item.displayName} userId={item.id} photoUrl={item.avatarUrl}
                         className="admin-user-avatar" />
-                      <span
-                        className={"admin-avatar-status " + (item.status === "ACTIVE" ? "is-active" : "is-inactive")}
-                        title={item.status === "ACTIVE" ? "Account active" : "Account inactive"}
-                        aria-label={item.status === "ACTIVE" ? "Account active" : "Account inactive"}
-                      />
                     </div>
                     <div className="admin-user-details">
                       <h3 title={item.displayName}>{item.displayName}</h3>
