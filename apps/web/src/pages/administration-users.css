@@ -1,0 +1,931 @@
+/*
+ * Administration → Users. All colors come from the workspace appearance
+ * tokens so Midnight, OLED, Slate and Light share the same layout.
+ * Departments and Roles retain their existing page components.
+ */
+.administration-page {
+  --admin-surface: var(--app-surface);
+  --admin-raised: var(--app-surface-raised);
+  --admin-control: var(--app-surface-input);
+  --admin-border: var(--app-border);
+  --admin-border-strong: var(--app-border-strong);
+  --admin-text: var(--app-text-strong);
+  --admin-muted: var(--app-muted);
+  --admin-subtle: var(--app-subtle);
+  --admin-accent: var(--app-interactive-selected);
+}
+
+.administration-page .admin-page-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.administration-page .admin-section-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--admin-border);
+  border-radius: 12px;
+  background: var(--admin-surface);
+}
+
+.administration-page .admin-section-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 35px;
+  padding: 7px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--admin-muted);
+  font-size: 12px;
+  font-weight: 650;
+  white-space: nowrap;
+  transition: background-color .15s ease, color .15s ease;
+}
+
+.administration-page .admin-section-tab:hover:not(.is-active) {
+  background: var(--app-interactive-hover);
+  color: var(--app-interactive-hover-text);
+}
+
+.administration-page .admin-section-tab.is-active {
+  color: var(--app-interactive-selected-text);
+  background: var(--admin-accent);
+  box-shadow: 0 3px 10px var(--app-accent-shadow);
+}
+
+.administration-page .admin-section-tab:focus-visible,
+.administration-page .admin-directory-panel button:focus-visible,
+.administration-page .admin-create-panel button:focus-visible {
+  outline: 2px solid var(--app-interactive-focus);
+  outline-offset: 2px;
+}
+
+.administration-page .admin-mobile-create-toggle,
+.administration-page .admin-create-mobile-close {
+  display: none;
+}
+
+.administration-page .admin-users-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 288px) minmax(0, 1fr);
+  align-items: start;
+  gap: 18px;
+  padding: 3px 0 26px;
+}
+
+.administration-page .admin-create-panel,
+.administration-page .admin-directory-panel {
+  min-width: 0;
+  border: 1px solid var(--admin-border);
+  border-radius: 16px;
+  background: var(--admin-surface);
+  color: var(--admin-text);
+  box-shadow: 0 7px 24px color-mix(in srgb, var(--app-bg) 30%, transparent);
+}
+
+.administration-page .admin-create-panel {
+  overflow: hidden;
+  padding: 20px;
+}
+
+.administration-page .admin-create-form { min-width: 0; }
+
+.administration-page .admin-panel-heading {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding-bottom: 17px;
+  margin-bottom: 15px;
+  border-bottom: 1px solid var(--admin-border);
+}
+
+.administration-page .admin-panel-icon,
+.admin-edit-modal .admin-password-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  color: var(--app-icon-accent);
+  background: var(--app-icon-soft-bg);
+}
+
+.administration-page .admin-panel-heading h2 {
+  margin: 0;
+  color: var(--admin-text);
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 1.4;
+}
+.administration-page .admin-panel-heading p {
+  margin: 2px 0 0;
+  color: var(--admin-muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.administration-page .admin-create-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.administration-page .admin-create-name-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.administration-page .admin-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  color: var(--admin-muted);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.administration-page .admin-form-field > span:first-child {
+  line-height: 1.35;
+}
+
+.administration-page .admin-form-field > .input,
+.administration-page .admin-input-wrap {
+  width: 100%;
+  min-width: 0;
+  min-height: 39px;
+  border: 1px solid var(--admin-border-strong);
+  border-radius: 10px;
+  background: var(--admin-control);
+  color: var(--admin-text);
+}
+
+.administration-page .admin-form-field > .input {
+  padding: 9px 11px;
+  font-size: 12px;
+}
+
+.administration-page .admin-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  transition: border-color .16s ease, box-shadow .16s ease;
+}
+.administration-page .admin-input-wrap:focus-within,
+.administration-page .admin-form-field > .input:focus-visible {
+  border-color: var(--app-interactive-focus);
+  outline: none;
+  box-shadow: 0 0 0 2px var(--app-ui-accent-tint);
+}
+
+.administration-page .admin-input-wrap > svg {
+  flex: 0 0 15px;
+  color: var(--admin-subtle);
+}
+
+.administration-page .admin-input-wrap .input,
+.app-theme-dark .administration-page .admin-input-wrap .input {
+  width: 100%;
+  height: 37px;
+  min-height: 0;
+  min-width: 0;
+  padding: 7px 0;
+  border: 0 !important;
+  border-radius: 0;
+  outline: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  color: var(--admin-text);
+  font-size: 12px;
+}
+
+.administration-page .admin-form-field .input::placeholder {
+  color: var(--admin-subtle);
+}
+.administration-page .admin-select-wrap select {
+  cursor: pointer;
+}
+.administration-page .admin-password-toggle {
+  display: grid;
+  place-items: center;
+  flex: 0 0 25px;
+  width: 25px;
+  height: 25px;
+  padding: 4px;
+  color: var(--admin-subtle);
+  border-radius: 7px;
+}
+.administration-page .admin-password-toggle:hover {
+  color: var(--admin-text);
+  background: var(--app-interactive-hover);
+}
+
+.administration-page .admin-create-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 40px;
+  margin-top: 21px;
+  border-radius: 10px;
+  color: var(--app-interactive-selected-text);
+  background: linear-gradient(105deg, var(--app-accent-gradient-start), var(--app-secondary));
+  font-size: 12px;
+  font-weight: 750;
+}
+.administration-page .admin-create-submit:hover:not(:disabled) {
+  filter: brightness(1.07);
+}
+
+.administration-page .admin-directory-panel {
+  overflow: hidden;
+  padding: 14px;
+}
+
+.administration-page .admin-directory-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 0 14px;
+}
+
+.administration-page .admin-directory-search-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.administration-page .admin-directory-search {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 135px;
+  min-height: 39px;
+  gap: 10px;
+  padding: 0 12px;
+  border: 1px solid var(--admin-border-strong);
+  border-radius: 10px;
+  background: var(--admin-control);
+  color: var(--admin-muted);
+}
+.administration-page .admin-directory-search:focus-within,
+.administration-page .admin-directory-select:focus-within {
+  border-color: var(--app-interactive-focus);
+  box-shadow: 0 0 0 2px var(--app-ui-accent-tint);
+}
+
+.administration-page .admin-directory-search svg { flex: 0 0 auto; }
+.administration-page .admin-directory-search input,
+.app-theme-dark .administration-page .admin-directory-search input {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  height: 37px;
+  padding: 8px 0;
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  color: var(--admin-text);
+  font-size: 12px;
+}
+.administration-page .admin-directory-search input::placeholder {
+  color: var(--admin-subtle);
+}
+
+.administration-page .admin-users-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 7px 11px;
+  border: 1px solid var(--admin-border);
+  border-radius: 10px;
+  background: var(--admin-raised);
+  color: var(--admin-text);
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 700;
+}
+.administration-page .admin-count-dot {
+  flex: 0 0 7px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--app-secondary);
+}
+.administration-page .admin-filter-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 7px 11px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.administration-page .admin-filter-toggle.is-active {
+  border-color: var(--admin-border-strong);
+}
+
+.administration-page .admin-directory-filters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.administration-page .admin-directory-select {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  height: 35px;
+  padding: 0 9px;
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  background: var(--admin-raised);
+  color: var(--admin-muted);
+}
+.administration-page .admin-directory-select svg {
+  flex: 0 0 15px;
+  color: var(--admin-muted);
+}
+.administration-page .admin-directory-select select,
+.app-theme-dark .administration-page .admin-directory-select select {
+  flex: 1;
+  min-width: 0;
+  height: 33px;
+  padding: 0;
+  border: 0 !important;
+  border-radius: 0;
+  outline: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  color: var(--admin-muted);
+  font-size: 11px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.administration-page .admin-status-filter-icon {
+  flex: 0 0 11px;
+  height: 8px;
+  border: 2px solid currentColor;
+  border-radius: 5px;
+}
+
+.administration-page .admin-directory-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 70px;
+}
+
+.administration-page .admin-user-card {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-width: 0;
+  min-height: 94px;
+  padding: 15px 14px;
+  border: 1px solid var(--admin-border);
+  border-radius: 13px;
+  background: var(--admin-surface);
+}
+
+.administration-page .admin-user-avatar-wrap {
+  position: relative;
+  flex: 0 0 46px;
+  width: 46px;
+  height: 46px;
+}
+.administration-page .avatar.admin-user-avatar,
+.admin-edit-modal .avatar.admin-edit-avatar {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 750;
+  flex-shrink: 0;
+}
+.administration-page .admin-avatar-status {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--admin-surface);
+  border-radius: 50%;
+}
+.administration-page .admin-avatar-status.is-active { background: var(--app-success); }
+.administration-page .admin-avatar-status.is-inactive { background: var(--admin-subtle); }
+
+.administration-page .admin-user-details {
+  flex: 1 1 190px;
+  min-width: 0;
+}
+.administration-page .admin-user-details h3 {
+  overflow: hidden;
+  margin: 0 0 5px;
+  color: var(--admin-text);
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.administration-page .admin-department-tag {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--admin-raised);
+  color: var(--admin-muted);
+  font-size: 10px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.administration-page .admin-user-contact,
+.administration-page .admin-user-job {
+  overflow: hidden;
+  margin: 5px 0 0;
+  color: var(--admin-muted);
+  font-size: 11px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.administration-page .admin-user-job { margin-top: 2px; }
+.administration-page .admin-contact-divider { padding: 0 5px; }
+
+.administration-page .admin-user-badges {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex: 0 1 335px;
+  min-width: 0;
+}
+
+.administration-page .admin-role-badge,
+.administration-page .admin-account-badge,
+.admin-edit-modal .admin-account-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 26px;
+  padding: 5px 9px;
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  background: var(--admin-raised);
+  color: var(--admin-muted);
+  font-size: 10px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+.administration-page .admin-role-badge[data-role="MANAGER"] {
+  border-color: color-mix(in srgb, var(--app-accent) 32%, transparent);
+  color: var(--app-focus-ring);
+  background: color-mix(in srgb, var(--app-accent) 13%, var(--admin-surface));
+}
+.administration-page .admin-role-badge[data-role="SYSTEM_ADMIN"] {
+  border-color: color-mix(in srgb, var(--app-tertiary) 36%, transparent);
+  color: var(--app-tertiary);
+  background: color-mix(in srgb, var(--app-tertiary) 14%, var(--admin-surface));
+}
+.administration-page .admin-account-badge,
+.admin-edit-modal .admin-account-badge {
+  border-radius: 999px;
+  text-transform: uppercase;
+}
+.administration-page .admin-account-badge > span,
+.admin-edit-modal .admin-account-badge > span {
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.administration-page .admin-account-badge.is-active,
+.admin-edit-modal .admin-account-badge.is-active {
+  color: var(--app-success);
+  border-color: color-mix(in srgb, var(--app-success) 28%, transparent);
+  background: color-mix(in srgb, var(--app-success) 11%, var(--admin-surface));
+}
+.administration-page .admin-account-badge.is-inactive,
+.admin-edit-modal .admin-account-badge.is-inactive {
+  color: var(--admin-muted);
+  border-color: var(--admin-border);
+  background: var(--admin-raised);
+}
+.administration-page .admin-edit-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 29px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.administration-page .admin-directory-empty {
+  padding: 38px 14px;
+  color: var(--admin-muted);
+  text-align: center;
+  font-size: 12px;
+}
+.administration-page .admin-directory-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 51px;
+  margin-top: 12px;
+  padding: 10px 13px;
+  border: 1px solid var(--admin-border);
+  border-radius: 12px;
+  background: var(--admin-raised);
+  color: var(--admin-muted);
+  font-size: 11px;
+}
+.administration-page .admin-directory-pagination {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.administration-page .admin-page-arrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--admin-muted);
+  font-size: 11px;
+  font-weight: 650;
+}
+.administration-page .admin-page-arrow:not(:disabled):hover { color: var(--admin-text); }
+.administration-page .admin-page-arrow:disabled { opacity: .45; }
+.administration-page .admin-page-number {
+  display: grid;
+  place-items: center;
+  min-width: 27px;
+  height: 27px;
+  padding: 0 8px;
+  border-radius: 8px;
+  background: var(--admin-accent);
+  color: var(--app-interactive-selected-text);
+  font-weight: 750;
+}
+
+/* Edit user: shared Modal, Field, Avatar and Tasks FilterMultiSelect. */
+.admin-edit-modal {
+  --admin-surface: var(--app-surface);
+  --admin-raised: var(--app-surface-raised);
+  --admin-control: var(--app-surface-input);
+  --admin-border: var(--app-border);
+  --admin-border-strong: var(--app-border-strong);
+  --admin-text: var(--app-text-strong);
+  --admin-muted: var(--app-muted);
+  --admin-subtle: var(--app-subtle);
+  width: min(720px, calc(100vw - 24px));
+}
+.admin-edit-modal .admin-edit-form { min-width: 0; }
+.admin-edit-modal .admin-edit-person {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 13px;
+  margin-bottom: 18px;
+  border: 1px solid var(--admin-border);
+  border-radius: 13px;
+  background: var(--admin-raised);
+}
+.admin-edit-modal .admin-edit-person-copy {
+  flex: 1;
+  min-width: 0;
+}
+.admin-edit-modal .admin-edit-person-copy h3 {
+  overflow: hidden;
+  margin: 0;
+  color: var(--admin-text);
+  font-size: 14px;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.admin-edit-modal .admin-edit-person-copy p {
+  overflow: hidden;
+  margin: 3px 0 0;
+  color: var(--admin-muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.admin-edit-modal .admin-edit-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.admin-edit-modal .admin-edit-span-2 { grid-column: 1 / -1; }
+.admin-edit-modal .admin-edit-fields .field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+}
+.admin-edit-modal .admin-edit-fields .field > span,
+.admin-edit-modal .filter-multiselect-heading {
+  margin: 0;
+  color: var(--admin-muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+.admin-edit-modal .admin-edit-fields .field .input,
+.app-theme-dark .admin-edit-modal .admin-edit-fields .field .input {
+  width: 100%;
+  min-width: 0;
+  min-height: 39px;
+  padding: 9px 11px;
+  border: 1px solid var(--admin-border-strong);
+  border-radius: 10px;
+  background: var(--admin-control);
+  color: var(--admin-text);
+  font-size: 12px;
+}
+.admin-edit-modal .admin-reports-to { margin-top: 1px; }
+.admin-edit-modal .filter-multiselect { min-width: 0; padding: 0; border: 0; }
+.admin-edit-modal .filter-multiselect-heading {
+  display: block;
+  float: none;
+  padding: 0 0 7px;
+}
+.admin-edit-modal .filter-multiselect-panel {
+  padding: 9px;
+  border: 1px solid var(--admin-border);
+  border-radius: 12px;
+  background: var(--admin-raised);
+}
+.admin-edit-modal .filter-multiselect-search {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 37px;
+  margin-bottom: 6px;
+  padding: 0 10px;
+  border: 1px solid var(--admin-border-strong);
+  border-radius: 9px;
+  background: var(--admin-control);
+  color: var(--admin-muted);
+}
+.admin-edit-modal .filter-multiselect-search:focus-within {
+  border-color: var(--app-interactive-focus);
+  box-shadow: 0 0 0 2px var(--app-ui-accent-tint);
+}
+.admin-edit-modal .filter-multiselect-search input,
+.app-theme-dark .admin-edit-modal .filter-multiselect-search input {
+  flex: 1;
+  width: 100%;
+  height: 35px;
+  min-width: 0;
+  padding: 6px 0;
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  color: var(--admin-text);
+  font-size: 12px;
+}
+.admin-edit-modal .filter-multiselect-search input::placeholder { color: var(--admin-subtle); }
+.admin-edit-modal .filter-multiselect-options {
+  max-height: 168px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+.admin-edit-modal .filter-multiselect-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 6px 8px;
+  border-radius: 9px;
+  cursor: pointer;
+}
+.admin-edit-modal .filter-multiselect-option:hover { background: var(--app-interactive-hover); }
+.admin-edit-modal .filter-multiselect-option.is-selected { background: var(--app-ui-accent-tint); }
+.admin-edit-modal .avatar.filter-multiselect-avatar {
+  flex: 0 0 29px;
+  width: 29px;
+  height: 29px;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+}
+.admin-edit-modal .filter-multiselect-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--admin-text);
+  font-size: 12px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.admin-edit-modal .filter-multiselect-option input[type="checkbox"] {
+  display: grid;
+  place-content: center;
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  border: 1px solid var(--admin-border-strong);
+  border-radius: 5px;
+  background: var(--admin-surface);
+  appearance: none;
+  cursor: pointer;
+}
+.admin-edit-modal .filter-multiselect-option input[type="checkbox"]::before {
+  content: "";
+  width: 9px;
+  height: 5px;
+  border-bottom: 2px solid var(--app-interactive-selected-text);
+  border-left: 2px solid var(--app-interactive-selected-text);
+  transform: rotate(-45deg) scale(0);
+  transition: transform .12s ease;
+}
+.admin-edit-modal .filter-multiselect-option input[type="checkbox"]:checked {
+  border-color: var(--app-interactive-selected);
+  background: var(--app-interactive-selected);
+}
+.admin-edit-modal .filter-multiselect-option input[type="checkbox"]:checked::before {
+  transform: rotate(-45deg) scale(1);
+}
+.admin-edit-modal .filter-multiselect-empty {
+  padding: 13px 8px;
+  color: var(--admin-muted);
+  font-size: 12px;
+  text-align: center;
+}
+.admin-edit-modal .admin-reports-hint {
+  margin: 7px 1px 0;
+  color: var(--admin-subtle);
+  font-size: 11px;
+}
+.admin-edit-modal .admin-access-notice {
+  margin: 16px 0 0;
+  color: var(--admin-muted);
+  font-size: 11px;
+  line-height: 1.55;
+}
+.admin-edit-modal .admin-password-section {
+  margin-top: 21px;
+  padding-top: 19px;
+  border-top: 1px solid var(--admin-border);
+}
+.admin-edit-modal .admin-password-heading {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 14px;
+}
+.admin-edit-modal .admin-password-icon {
+  flex-basis: 35px;
+  width: 35px;
+  height: 35px;
+}
+.admin-edit-modal .admin-password-heading h3 {
+  margin: 0;
+  color: var(--admin-text);
+  font-size: 13px;
+  font-weight: 750;
+}
+.admin-edit-modal .admin-password-heading p {
+  margin: 3px 0 0;
+  color: var(--admin-muted);
+  font-size: 11px;
+}
+.admin-edit-modal .admin-password-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.admin-edit-modal .admin-password-fields .field {
+  min-width: 0;
+  margin: 0;
+}
+.admin-edit-modal .admin-password-fields .field .input {
+  width: 100%;
+  min-height: 39px;
+  padding: 9px 11px;
+  border-radius: 10px;
+}
+.admin-edit-modal .admin-password-action {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 13px;
+}
+.admin-edit-modal .admin-password-action .btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.admin-edit-modal .admin-password-success {
+  margin: 0;
+  color: var(--app-success);
+  font-size: 12px;
+}
+.admin-edit-modal .admin-edit-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 9px;
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid var(--admin-border);
+}
+.admin-edit-modal .admin-edit-footer > button {
+  min-height: 38px;
+  padding: 8px 15px;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+@media (max-width: 1100px) {
+  .administration-page .admin-users-layout {
+    grid-template-columns: minmax(230px, 270px) minmax(0, 1fr);
+    gap: 13px;
+  }
+  .administration-page .admin-user-card { flex-wrap: wrap; }
+  .administration-page .admin-user-badges {
+    flex: 1 1 100%;
+    justify-content: flex-start;
+    padding-left: 59px;
+  }
+}
+
+@media (max-width: 850px) {
+  .administration-page .admin-users-layout { grid-template-columns: minmax(0, 1fr); }
+  .administration-page .admin-create-panel { display: none; }
+  .administration-page .admin-create-panel.is-mobile-open { display: block; }
+  .administration-page .admin-mobile-create-toggle,
+  .administration-page .admin-create-mobile-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .administration-page .admin-create-mobile-close { margin-left: auto; }
+  .administration-page .admin-page-actions { gap: 7px; }
+}
+
+@media (max-width: 560px) {
+  .administration-page .admin-section-tab { gap: 5px; padding: 7px 9px; font-size: 11px; }
+  .administration-page .admin-section-tab svg { width: 13px; height: 13px; }
+  .administration-page .admin-directory-panel { padding: 10px; }
+  .administration-page .admin-directory-search-row { flex-wrap: wrap; }
+  .administration-page .admin-directory-search { flex: 1 0 100%; }
+  .administration-page .admin-users-count { margin-right: auto; }
+  .administration-page .admin-directory-filters { grid-template-columns: 1fr; }
+  .administration-page .admin-user-card { align-items: flex-start; gap: 10px; padding: 12px; }
+  .administration-page .admin-user-details { flex: 1 1 calc(100% - 60px); }
+  .administration-page .admin-user-badges { padding-left: 0; }
+  .administration-page .admin-directory-footer { align-items: flex-start; flex-direction: column; }
+  .administration-page .admin-directory-pagination { align-self: flex-end; }
+  .admin-edit-modal .admin-edit-fields,
+  .admin-edit-modal .admin-password-fields { grid-template-columns: minmax(0, 1fr); }
+  .admin-edit-modal .admin-edit-span-2 { grid-column: auto; }
+  .admin-edit-modal .admin-edit-person { flex-wrap: wrap; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .administration-page .admin-section-tab,
+  .administration-page .admin-input-wrap,
+  .admin-edit-modal .filter-multiselect-option input[type="checkbox"]::before {
+    transition: none;
+  }
+}
