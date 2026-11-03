@@ -75,7 +75,7 @@ describe("palette-aware Administration dropdowns", () => {
     const trigger = screen.getByRole("combobox", { name: "Department" });
     dialog.scrollTop = 85;
     dialog.getBoundingClientRect = () => ({ top: 100, bottom: 700, left: 80, right: 680, width: 600, height: 600 });
-    trigger.getBoundingClientRect = () => ({ top: 320, bottom: 358, left: 240, right: 440, width: 200, height: 38 });
+    trigger.closest(".app-select").getBoundingClientRect = () => ({ top: 320, bottom: 358, left: 240, right: 440, width: 200, height: 38 });
 
     await user.click(trigger);
     const menu = await screen.findByRole("listbox", { name: "Department" });
@@ -84,7 +84,7 @@ describe("palette-aware Administration dropdowns", () => {
     expect(menu.style.position).toBe("absolute");
 
     dialog.scrollTop = 125;
-    trigger.getBoundingClientRect = () => ({ top: 280, bottom: 318, left: 240, right: 440, width: 200, height: 38 });
+    trigger.closest(".app-select").getBoundingClientRect = () => ({ top: 280, bottom: 318, left: 240, right: 440, width: 200, height: 38 });
     fireEvent.scroll(dialog);
     await waitFor(() => expect(menu.style.top).toBe("348px"));
   });
