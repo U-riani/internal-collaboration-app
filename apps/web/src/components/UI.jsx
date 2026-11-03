@@ -8,7 +8,7 @@ import {
 } from "react";
 import { X, File, Download, LoaderCircle, Search } from "lucide-react";
 import { downloadFile } from "../lib/api.js";
-import { cachedAvatarImage } from "../lib/avatar-cache.js";
+import { cachedAvatarImage, cachedAvatarManifest } from "../lib/avatar-cache.js";
 export function Modal({ title, children, onClose, wide = false, headerIcon = null, subtitle = null, badge = null, className = "" }) {
   const ref = useRef(null);
   const id = useId();
@@ -123,11 +123,6 @@ export function Badge({ value }) {
 export function Avatar({ name = "", small = false, photoUrl, userId, className = "", style }) {
   const [imageUrl, setImageUrl] = useState(null);
   const [revision, setRevision] = useState(0);
-  // A null photoUrl means the caller knows the user has no photo.
-  // When only an ID is available, request the protected image on demand.
-  const source = photoUrl === undefined && userId
-    ? "/api/v1/users/" + userId + "/avatar?v=0"
-    : photoUrl;
 
   useEffect(() => {
     if (!userId) return;
@@ -142,22 +137,30 @@ export function Avatar({ name = "", small = false, photoUrl, userId, className =
     let active = true;
     let objectUrl = null;
     setImageUrl(null);
-    if (source) {
-      cachedAvatarImage(source)
-        .then((blob) => {
-          if (!active || !blob) return;
-          objectUrl = URL.createObjectURL(blob);
-          setImageUrl(objectUrl);
-        })
-        .catch(() => {
-          if (active) setImageUrl(null);
-        });
-    }
+
+    const loadImage = async () => {
+      try {
+        // An explicit null is authoritative: this person has no photo.
+        // For ID-only callers, resolve a shared manifest first to avoid 404 probes.
+        const source = photoUrl === undefined && userId
+          ? (await cachedAvatarManifest())[userId]
+          : photoUrl;
+        if (!active || !source) return;
+        const blob = await cachedAvatarImage(source);
+        if (!active || !blob) return;
+        objectUrl = URL.createObjectURL(blob);
+        setImageUrl(objectUrl);
+      } catch {
+        if (active) setImageUrl(null);
+      }
+    };
+    void loadImage();
+
     return () => {
       active = false;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [source, revision]);
+  }, [photoUrl, userId, revision]);
 
   return (
     <span className={["avatar", small ? "avatar-small" : "", className].filter(Boolean).join(" ")} style={style}>
