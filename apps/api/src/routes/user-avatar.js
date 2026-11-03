@@ -60,6 +60,26 @@ async function removeStoredAvatar(app, key) {
 }
 
 export default async function userAvatarRoutes(app) {
+  // One authenticated, lightweight lookup avoids probing every colleague's
+  // missing photo URL (and filling DevTools with expected 404 responses).
+  app.get("/avatars", async (request, reply) => {
+    const users = await app.prisma.user.findMany({
+      where: {
+        avatarObjectKey: { not: null },
+        avatarMimeType: { in: [...types] },
+      },
+      select: { id: true, avatarUpdatedAt: true },
+    });
+    reply.header("cache-control", "private, no-store");
+    return {
+      success: true,
+      data: Object.fromEntries(users.map((user) => [
+        user.id,
+        "/api/v1/users/" + user.id + "/avatar?v=" + (user.avatarUpdatedAt?.getTime() ?? 0),
+      ])),
+    };
+  });
+
   app.get("/:id/avatar", async (request, reply) => {
     const { id } = parse(z.object({ id: z.uuid() }), request.params);
     const user = await app.prisma.user.findUnique({
