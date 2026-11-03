@@ -199,6 +199,38 @@ export default async function taskRoutes(app) {
     );
   }
 
+  // Notify only newly added participants; unchanged edits must stay silent.
+  async function notifyAddedTaskParticipants(
+    task,
+    actor,
+    previousParticipantIds = [],
+    assignmentNotificationUserId = null,
+  ) {
+    const previous = new Set(previousParticipantIds);
+    const recipients = [...new Set((task.participants || []).map((entry) => entry.userId))]
+      .filter((userId) =>
+        userId &&
+        userId !== actor.id &&
+        userId !== assignmentNotificationUserId &&
+        !previous.has(userId),
+      );
+    if (!recipients.length) return;
+
+    const actorName = actor.displayName || "A colleague";
+    await Promise.all(
+      recipients.map((userId) =>
+        createNotification(app, {
+          userId,
+          type: "TASK_UPDATED",
+          title: "Added to task",
+          body: actorName + ' added you as a participant to "' + task.title + '".',
+          relatedEntityType: "TASK",
+          relatedEntityId: task.id,
+        }),
+      ),
+    );
+  }
+
   function directTaskAccessClauses(user) {
     return [
       { creatorId: user.id },
@@ -514,6 +546,8 @@ export default async function taskRoutes(app) {
         relatedEntityId: task.id,
       });
     }
+    // The assignee already receives TASK_ASSIGNED for this operation.
+    await notifyAddedTaskParticipants(task, request.authUser, [], task.assigneeId);
     await emitTaskEvent(app, task.id, "task:created");
     await audit(app, request, {
       actionType: "TASK_CREATED",
@@ -796,6 +830,20 @@ export default async function taskRoutes(app) {
         relatedEntityType: "TASK",
         relatedEntityId: task.id,
       });
+    }
+    if (input.participantIds !== undefined) {
+      const newlyAssignedUserId =
+        input.assigneeId &&
+        input.assigneeId !== existing.assigneeId &&
+        input.assigneeId !== request.authUser.id
+          ? input.assigneeId
+          : null;
+      await notifyAddedTaskParticipants(
+        task,
+        request.authUser,
+        existing.participants.map((participant) => participant.userId),
+        newlyAssignedUserId,
+      );
     }
     await emitTaskEvent(app, task.id, "task:updated");
     return { success: true, data: presentTask(task) };
