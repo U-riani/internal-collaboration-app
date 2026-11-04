@@ -268,30 +268,23 @@ function TaskForm({ existing, parentTask, defaultGroupId = "", onClose }) {
             onChange={(event) => change("description", event.target.value)}
           />
         </Field>
-        <div className="task-form-row grid gap-4 sm:grid-cols-2">
-          <Field label="Assigned to">
-            <select
-              aria-label="Assigned to"
-              className="input app-modern-select"
-              value={form.assigneeId}
-              onChange={(event) => change("assigneeId", event.target.value)}
-            >
-              <option value="">Unassigned</option>
-              {users.data
-                ?.filter(
-                  (member) =>
-                    member.status === "ACTIVE" &&
-                    (hasPermission("tasks.assign") ||
-                      member.id === user.id ||
-                      member.id === existing?.assigneeId),
-                )
-                .map((member) => (
-                  <option key={member.id} value={member.id}>
-                    {member.displayName}
+        <div className={`task-form-row grid gap-4 ${isSubtask ? "grid-cols-1" : "sm:grid-cols-2"}`}>
+          {!isSubtask && (
+            <Field label="Group">
+              <select
+                className="input app-modern-select"
+                value={form.groupId}
+                onChange={(event) => change("groupId", event.target.value)}
+              >
+                <option value="">Ungrouped</option>
+                {groups.data?.map((group) => (
+                  <option key={group.id} value={group.id}>
+                    {group.name}
                   </option>
                 ))}
-            </select>
-          </Field>
+              </select>
+            </Field>
+          )}
           <Field label="Priority">
             <select
               className="input app-modern-select"
@@ -305,22 +298,6 @@ function TaskForm({ existing, parentTask, defaultGroupId = "", onClose }) {
             
           </Field>
         </div>
-        {!isSubtask && (
-          <Field label="Group">
-            <select
-              className="input app-modern-select"
-              value={form.groupId}
-              onChange={(event) => change("groupId", event.target.value)}
-            >
-              <option value="">Ungrouped</option>
-              {groups.data?.map((group) => (
-                <option key={group.id} value={group.id}>
-                  {group.name}
-                </option>
-              ))}
-            </select>
-          </Field>
-        )}
         <Field label="Due date">
           <input
             className="input task-form-date"
@@ -329,6 +306,30 @@ function TaskForm({ existing, parentTask, defaultGroupId = "", onClose }) {
             onChange={(event) => change("dueDate", event.target.value)}
           />
         </Field>
+        <FilterMultiSelect
+          label="Assigned to"
+          options={[
+            { value: UNASSIGNED, label: "Unassigned" },
+            ...(users.data || [])
+              .filter(
+                (member) =>
+                  member.status === "ACTIVE" &&
+                  (hasPermission("tasks.assign") ||
+                    member.id === user.id ||
+                    member.id === existing?.assigneeId),
+              )
+              .map((member) => ({
+                value: member.id,
+                label: member.displayName,
+                userId: member.id,
+                photoUrl: member.avatarUrl,
+              })),
+          ]}
+          values={[form.assigneeId || UNASSIGNED]}
+          onToggle={(value) =>
+            change("assigneeId", value === UNASSIGNED ? "" : value)
+          }
+        />
         <FilterMultiSelect
           label="Participants"
           options={(users.data || [])

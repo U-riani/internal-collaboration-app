@@ -9,6 +9,7 @@ import ChatPage from "../src/pages/ChatPage.jsx";
 import TasksPage from "../src/pages/TasksPage.jsx";
 import ApprovalsPage from "../src/pages/ApprovalsPage.jsx";
 import { api, uploadFiles, fetchAvatarImage } from "../src/lib/api.js";
+const permissionState = vi.hoisted(() => ({ canAssignTasks: false }));
 vi.mock("../src/lib/api.js", () => ({
   api: vi.fn(),
   uploadFile: vi.fn(),
@@ -28,7 +29,8 @@ vi.mock("../src/context/AuthContext.jsx", () => ({
       roles: ["EMPLOYEE"],
     },
     hasPermission: (p) =>
-      ["drive.use", "tasks.create", "approvals.submit"].includes(p),
+      ["drive.use", "tasks.create", "approvals.submit"].includes(p) ||
+      (p === "tasks.assign" && permissionState.canAssignTasks),
   }),
 }));
 const people = [
@@ -50,6 +52,7 @@ function mount(Page) {
 }
 beforeEach(() => {
   vi.resetAllMocks();
+  permissionState.canAssignTasks = false;
   uploadFiles.mockResolvedValue([]);
   fetchAvatarImage.mockRejectedValue(Object.assign(new Error("Photo not found"), { status: 404 }));
   sessionStorage.clear();
@@ -232,11 +235,12 @@ describe("main workspace flows", () => {
     expect(dialog.querySelector(".task-form")?.classList.contains("task-form")).toBe(true);
     await user.type(screen.getByLabelText("Task title"), "Prepare handbook");
     expect(screen.getByLabelText("Priority").classList.contains("app-modern-select")).toBe(true);
-    const assignee = screen.getByLabelText("Assigned to");
-    await waitFor(() =>
-      expect(assignee.querySelectorAll("option")).toHaveLength(2),
-    );
-    await user.selectOptions(assignee, "me");
+    const assigneeSearch = screen.getByRole("searchbox", { name: "Search assigned to" });
+    await user.type(assigneeSearch, "Test");
+    expect(screen.queryByRole("checkbox", { name: "Assigned to: Test Colleague" })).toBeNull();
+    const self = await screen.findByRole("checkbox", { name: "Assigned to: Test User" });
+    await user.click(self);
+    expect(self.checked).toBe(true);
     await user.click(screen.getByRole("button", { name: "Save task" }));
     await waitFor(() =>
       expect(api).toHaveBeenCalledWith(
@@ -280,6 +284,87 @@ describe("main workspace flows", () => {
       expect(call).toBeDefined();
       expect(JSON.parse(call[1].body).participantIds).toEqual(["me", "colleague"]);
     });
+  });
+
+  it("keeps one searchable assignee, supports Unassigned, and positions fields in New Task", async () => {
+    permissionState.canAssignTasks = true;
+    api.mockImplementation(async (path, options = {}) =>
+      path === "/users"
+        ? { data: people }
+        : { data: options.method ? { id: "task" } : [] },
+    );
+    const user = mount(TasksPage);
+    await user.click(screen.getByRole("button", { name: "New task" }));
+    const dialog = screen.getByRole("dialog", { name: "New task" });
+    const form = dialog.querySelector(".task-form-scroll");
+    const group = screen.getByLabelText("Group");
+    const priority = screen.getByLabelText("Priority");
+    const dueDate = screen.getByLabelText("Due date");
+    const assigned = dialog.querySelectorAll(".filter-multiselect")[0];
+    const participants = dialog.querySelectorAll(".filter-multiselect")[1];
+    expect(group.closest(".task-form-row")).toBe(priority.closest(".task-form-row"));
+    expect(form.querySelector(".task-form-row").compareDocumentPosition(dueDate) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(dueDate.compareDocumentPosition(assigned) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(assigned.compareDocumentPosition(participants) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    const first = await screen.findByRole("checkbox", { name: "Assigned to: Test User" });
+    const second = screen.getByRole("checkbox", { name: "Assigned to: Test Colleague" });
+    const unassigned = screen.getByRole("checkbox", { name: "Assigned to: Unassigned" });
+    expect(unassigned.checked).toBe(true);
+    await user.click(first);
+    expect(first.checked).toBe(true);
+    expect(unassigned.checked).toBe(false);
+    await user.click(second);
+    expect(second.checked).toBe(true);
+    expect(first.checked).toBe(false);
+    await user.click(unassigned);
+    expect(second.checked).toBe(false);
+    expect(unassigned.checked).toBe(true);
+
+    await user.type(screen.getByLabelText("Task title"), "Review access");
+    await user.click(second);
+    await user.click(screen.getByRole("button", { name: "Save task" }));
+    await waitFor(() => {
+      const call = api.mock.calls.find(([path, options]) => path === "/tasks" && options?.method === "POST");
+      expect(JSON.parse(call[1].body).assigneeId).toBe("colleague");
+    });
+  });
+
+  it("reuses the searchable assignee in Edit Task and Add Sub Task without a subtask group", async () => {
+    permissionState.canAssignTasks = true;
+    const task = {
+      id: "task-1", title: "Parent task", description: "", status: "OPEN",
+      creatorId: "me", assigneeId: "colleague", assignee: people[1],
+      creator: people[0], priority: "NORMAL", dueDate: null,
+      parentTaskId: null, personalLayout: { groupId: null },
+      participants: [], attachments: [], subtasks: [], comments: [], history: [],
+      createdAt: "2026-11-04T09:00:00.000Z", _count: { comments: 0 },
+    };
+    api.mockImplementation(async (path, options = {}) => {
+      if (path === "/users") return { data: people };
+      if (path === "/tasks") return { data: [task] };
+      if (path === "/tasks/task-1") return { data: task };
+      if (path === "/tasks/groups") return { data: [] };
+      if (path === "/notifications/read-related") return { data: null };
+      if (options.method) return { data: null };
+      return { data: [] };
+    });
+    const user = mount(TasksPage);
+    await user.click(await screen.findByText("Parent task"));
+    await user.click(await screen.findByRole("button", { name: "Edit task" }));
+    const edit = screen.getByRole("dialog", { name: "Edit task" });
+    expect(edit.querySelectorAll(".filter-multiselect")).toHaveLength(2);
+    expect(screen.getByRole("checkbox", { name: "Assigned to: Test Colleague" }).checked).toBe(true);
+    expect(edit.querySelector(".task-form-row").querySelectorAll("select")).toHaveLength(2);
+    await user.click(edit.querySelector('button[aria-label="Close dialog"]'));
+
+    await user.click(screen.getByRole("button", { name: "Add subtask" }));
+    const subtask = screen.getByRole("dialog", { name: "New subtask" });
+    expect(subtask.querySelectorAll(".filter-multiselect")).toHaveLength(2);
+    expect(subtask.querySelector(".task-form-row").querySelectorAll("select")).toHaveLength(1);
+    expect(subtask.querySelector(".task-form-row select").value).toBe("NORMAL");
+    expect(subtask.querySelector(".task-form-row").textContent).not.toContain("Group");
+    expect(screen.getByRole("checkbox", { name: "Assigned to: Test Colleague" }).checked).toBe(true);
   });
 
   it("keeps long task group names compact and shows participants as user rows", async () => {
