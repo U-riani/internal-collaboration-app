@@ -2,18 +2,34 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Building2,
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  EyeOff,
   KeyRound,
+  Mail,
+  Pencil,
+  Phone,
   Plus,
   Search,
   ShieldCheck,
   UserPlus,
+  UsersRound,
+  X,
+  BriefcaseBusiness,
+  LockKeyhole,
 } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { api } from "../lib/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
-import { Modal, Field, ErrorBox } from "../components/UI.jsx";
+import { Modal, Field, ErrorBox, Avatar } from "../components/UI.jsx";
+import FilterMultiSelect from "../components/FilterMultiSelect.jsx";
+import AppSelect from "../components/AppSelect.jsx";
+import "./administration-users.css";
 import PageHeader from "../components/PageHeader.jsx";
 import RoleManagement from "../components/RoleManagement.jsx";
+
+const USER_PAGE_SIZE = 8;
 
 const fallbackRoles = [
   { code: "EMPLOYEE", name: "Employee" },
@@ -52,7 +68,8 @@ export default function AdminPage() {
   const [deptForm, setDeptForm] = useState({ name: "", code: "" });
   const [error, setError] = useState("");
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
+  const [userPage, setUserPage] = useState(1);
+  const [showInitialPassword, setShowInitialPassword] = useState(false);
   const userQueryString = useMemo(() => {
     const params = new URLSearchParams();
     for (const [key, value] of Object.entries(userFilters)) {
@@ -166,6 +183,27 @@ export default function AdminPage() {
       queryClient.invalidateQueries({ queryKey: ["departments"] }),
     onError: (e) => setError(e.message),
   });
+  const directoryUsers = filteredUsers.data || [];
+  const pageCount = Math.max(1, Math.ceil(directoryUsers.length / USER_PAGE_SIZE));
+  const currentPage = Math.min(userPage, pageCount);
+  const pageStart = (currentPage - 1) * USER_PAGE_SIZE;
+  const visibleUsers = directoryUsers.slice(pageStart, pageStart + USER_PAGE_SIZE);
+  const changeUserFilter = (name, value) => {
+    setUserFilters((filters) => ({ ...filters, [name]: value }));
+    setUserPage(1);
+  };
+  const openEditor = (user) => {
+    setError("");
+    setPasswordSuccess("");
+    setPasswordForm({ password: "", confirmPassword: "" });
+    setEditing(user);
+  };
+  const closeEditor = () => {
+    setEditing(null);
+    setError("");
+    setPasswordSuccess("");
+  };
+
   if (!hasPermission("users.manage"))
     return <Navigate to="/dashboard" replace />;
 
@@ -174,316 +212,301 @@ export default function AdminPage() {
       <PageHeader
         title="Administration"
         action={
-          <div className="flex items-center gap-2">
-            <button
-              className={"btn-secondary md:hidden!"}
-              onClick={() => setShowCreateForm(!showCreateForm)}
-            >
-              {showCreateForm ? "x" : "+"}
-            </button>
-            <button
-              className={tab === "users" ? "btn-primary" : "btn-secondary"}
-              onClick={() => setTab("users")}
-            >
-              Users
-            </button>
-            <button
-              className={
-                tab === "departments" ? "btn-primary" : "btn-secondary"
-              }
-              onClick={() => setTab("departments")}
-            >
-              Departments
-            </button>
-            {hasPermission("roles.manage") && (
+          <div className="admin-page-actions">
+            {tab === "users" && (
               <button
-                className={tab === "roles" ? "btn-primary" : "btn-secondary"}
-                onClick={() => setTab("roles")}
+                type="button"
+                className="admin-mobile-create-toggle btn-secondary"
+                onClick={() => setShowCreateForm((open) => !open)}
+                aria-expanded={showCreateForm}
               >
-                Roles
+                {showCreateForm ? <X size={15} /> : <Plus size={15} />}
+                <span>{showCreateForm ? "Close" : "Create"}</span>
               </button>
             )}
+            <nav className="admin-section-tabs" aria-label="Administration sections">
+              <button
+                type="button"
+                className={"admin-section-tab " + (tab === "users" ? "is-active" : "")}
+                aria-current={tab === "users" ? "page" : undefined}
+                onClick={() => setTab("users")}
+              >
+                <UsersRound size={15} /> Users
+              </button>
+              <button
+                type="button"
+                className={"admin-section-tab " + (tab === "departments" ? "is-active" : "")}
+                aria-current={tab === "departments" ? "page" : undefined}
+                onClick={() => setTab("departments")}
+              >
+                <Building2 size={15} /> Departments
+              </button>
+              {hasPermission("roles.manage") && (
+                <button
+                  type="button"
+                  className={"admin-section-tab " + (tab === "roles" ? "is-active" : "")}
+                  aria-current={tab === "roles" ? "page" : undefined}
+                  onClick={() => setTab("roles")}
+                >
+                  <ShieldCheck size={15} /> Roles
+                </button>
+              )}
+            </nav>
           </div>
         }
       />
-      {/* <div className="mb-5 flex gap-2 md:hidden">
-        <button
-          className={tab === "users" ? "btn-primary" : "btn-secondary"}
-          onClick={() => setTab("users")}
-        >
-          Users
-        </button>
-        <button
-          className={tab === "departments" ? "btn-primary" : "btn-secondary"}
-          onClick={() => setTab("departments")}
-        >
-          Departments
-        </button>
-        <div className="ml-auto text-sm text-slate-500">
-          <button
-            className={"btn-secondary"}
-            onClick={() => setShowCreateForm(!showCreateForm)}
-          >
-            +
-          </button>
-        </div>
-      </div> */}
       {error && (
         <div className="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">
           {error}
         </div>
       )}
       {tab === "users" ? (
-        <div className="grid gap-6 xl:grid-cols-[380px_1fr] ">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              createUser.mutate();
-            }}
-            className={`card h-fit px-5 ${showCreateForm ? "" : "hidden"}  md:block
-            max-h-[calc(100vh-127px)] overflow-y-auto `}
-          >
-            <div className="py-4 flex items-center gap-2 sticky top-0 bg-white pt-5">
-              <UserPlus className="text-blue-600" />
-              <h2 className="font-bold">Create user</h2>
-              <div className="ml-auto text-sm text-slate-500">
+        <div className="admin-users-layout">
+          <aside className={"admin-create-panel card " + (showCreateForm ? "is-mobile-open" : "")}>
+            <form
+              className="admin-create-form"
+              onSubmit={(event) => {
+                event.preventDefault();
+                setError("");
+                createUser.mutate();
+              }}
+            >
+              <div className="admin-panel-heading">
+                <span className="admin-panel-icon"><UserPlus size={20} /></span>
+                <div>
+                  <h2>Create user</h2>
+                  <p>Enroll member to directory</p>
+                </div>
                 <button
-                  className={"btn-secondary md:hidden!"}
-                  onClick={() => setShowCreateForm(!showCreateForm)}
+                  type="button"
+                  className="admin-create-mobile-close icon-btn"
+                  onClick={() => setShowCreateForm(false)}
+                  aria-label="Close create user form"
                 >
-                  {showCreateForm ? "x" : "+"}
+                  <X size={16} />
                 </button>
               </div>
-            </div>
-            <div className="space-y-4">
-              <input
-                className="input"
-                placeholder="First name"
-                value={userForm.firstName}
-                onChange={(e) =>
-                  setUserForm({ ...userForm, firstName: e.target.value })
-                }
-                required
-              />
-              <input
-                className="input"
-                placeholder="Last name"
-                value={userForm.lastName}
-                onChange={(e) =>
-                  setUserForm({ ...userForm, lastName: e.target.value })
-                }
-                required
-              />
-              <input
-                className="input"
-                type="email"
-                placeholder="Email"
-                value={userForm.email}
-                onChange={(e) =>
-                  setUserForm({ ...userForm, email: e.target.value })
-                }
-                required
-              />
-              <input
-                className="input"
-                placeholder="Phone number"
-                value={userForm.phone}
-                onChange={(e) =>
-                  setUserForm({ ...userForm, phone: e.target.value })
-                }
-              />
-              <input
-                className="input"
-                type="password"
-                placeholder="Initial password"
-                minLength={8}
-                value={userForm.password}
-                onChange={(e) =>
-                  setUserForm({ ...userForm, password: e.target.value })
-                }
-                required
-              />
-              <input
-                className="input"
-                placeholder="Job title"
-                value={userForm.jobTitle}
-                onChange={(e) =>
-                  setUserForm({ ...userForm, jobTitle: e.target.value })
-                }
-              />
-              <select
-                className="input"
-                value={userForm.departmentId}
-                onChange={(e) =>
-                  setUserForm({ ...userForm, departmentId: e.target.value })
-                }
-              >
-                <option value="">No department</option>
-                {departments.data?.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.name}
-                  </option>
-                ))}
-              </select>
-              <select
-                className="input"
-                value={userForm.roleCodes[0]}
-                onChange={(e) =>
-                  setUserForm({ ...userForm, roleCodes: [e.target.value] })
-                }
-              >
-                {roleOptions.map((role) => (
-                  <option key={role.code} value={role.code}>
-                    {role.name}
-                  </option>
-                ))}
-              </select>
-              <button
-                className="btn-primary w-full mb-5"
-                disabled={createUser.isPending}
-              >
-                <Plus size={16} className="mr-2 inline" />
-                Create user
-              </button>
-            </div>
-          </form>
-          <div className="card overflow-hidden max-h-[calc(100vh-127px)] overflow-y-auto">
-            <div className="border-b border-slate-200 py-2 px-5 sticky top-0 bg-white">
-              {/* <div className="font-bold">Organization users</div> */}
-              <div className=" grid gap-2 md:grid-cols-2 xl:grid-cols-4 ">
-                <div className="flex items-center gap-2">
-                  <label className="relative">
-                    <span className="sr-only">Search users</span>
-                    <Search
-                      size={16}
-                      className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                    />
-                    <input
-                      className="input pl-9"
-                      placeholder="Search users..."
-                      value={userFilters.q}
-                      onChange={(e) =>
-                        setUserFilters({ ...userFilters, q: e.target.value })
-                      }
-                    />
+
+              <div className="admin-create-fields">
+                <div className="admin-create-name-row">
+                  <label className="admin-form-field">
+                    <span>First name</span>
+                    <input className="input" placeholder="First name" value={userForm.firstName}
+                      onChange={(event) => setUserForm({ ...userForm, firstName: event.target.value })}
+                      autoComplete="given-name" required />
                   </label>
-                  <div className="mt-1 flex flex-1 items-center justify-end text-xs text-slate-400">
-                    <span>{filteredUsers.data?.length || 0} users</span>
-                    <button
-                      className="btn-secondary"
-                      onClick={() => setShowFilters((prev) => !prev)}
-                    >
-                      fltr
+                  <label className="admin-form-field">
+                    <span>Last name</span>
+                    <input className="input" placeholder="Last name" value={userForm.lastName}
+                      onChange={(event) => setUserForm({ ...userForm, lastName: event.target.value })}
+                      autoComplete="family-name" required />
+                  </label>
+                </div>
+
+                <label className="admin-form-field">
+                  <span>Email</span>
+                  <span className="admin-input-wrap">
+                    <Mail size={15} aria-hidden="true" />
+                    <input className="input" type="email" placeholder="Email" value={userForm.email}
+                      onChange={(event) => setUserForm({ ...userForm, email: event.target.value })}
+                      autoComplete="email" required />
+                  </span>
+                </label>
+                <label className="admin-form-field">
+                  <span>Phone number</span>
+                  <span className="admin-input-wrap">
+                    <Phone size={15} aria-hidden="true" />
+                    <input className="input" type="tel" placeholder="Phone number" value={userForm.phone}
+                      onChange={(event) => setUserForm({ ...userForm, phone: event.target.value })}
+                      autoComplete="tel" />
+                  </span>
+                </label>
+                <div className="admin-form-field">
+                  <label htmlFor="admin-initial-password">Initial password</label>
+                  <span className="admin-input-wrap">
+                    <LockKeyhole size={15} aria-hidden="true" />
+                    <input id="admin-initial-password" className="input"
+                      type={showInitialPassword ? "text" : "password"}
+                      placeholder="Initial password" minLength={8} value={userForm.password}
+                      onChange={(event) => setUserForm({ ...userForm, password: event.target.value })}
+                      autoComplete="new-password" required />
+                    <button type="button" className="admin-password-toggle icon-btn"
+                      aria-label={showInitialPassword ? "Hide password" : "Show password"}
+                      onClick={() => setShowInitialPassword((visible) => !visible)}>
+                      {showInitialPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                     </button>
-                  </div>
+                  </span>
                 </div>
-                <div className={`md:row-start-1 md:col-start-2 md:col-end-5 flex  flex-wrap md:flex-nowrap items-center gap-2 ${showFilters ? "" : "hidden md:flex"} `}>
-                  <select
-                    className="input"
-                    aria-label="Filter users by department"
-                    value={userFilters.departmentId}
-                    onChange={(e) =>
-                      setUserFilters({
-                        ...userFilters,
-                        departmentId: e.target.value,
-                      })
-                    }
-                  >
-                    <option value="">All departments</option>
-                    {departments.data?.map((department) => (
-                      <option key={department.id} value={department.id}>
-                        {department.name}
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    className="input"
-                    aria-label="Filter users by role"
-                    value={userFilters.role}
-                    onChange={(e) =>
-                      setUserFilters({ ...userFilters, role: e.target.value })
-                    }
-                  >
-                    <option value="">All roles</option>
-                    {roleOptions.map((role) => (
-                  <option key={role.code} value={role.code}>
-                    {role.name}
-                  </option>
-                ))}
-                  </select>
-                  <select
-                    className="input"
-                    aria-label="Filter users by status"
-                    value={userFilters.status}
-                    onChange={(e) =>
-                      setUserFilters({ ...userFilters, status: e.target.value })
-                    }
-                  >
-                    <option value="">All statuses</option>
-                    <option value="ACTIVE">Active</option>
-                    <option value="INACTIVE">Inactive</option>
-                  </select>
+                <label className="admin-form-field">
+                  <span>Job title</span>
+                  <span className="admin-input-wrap">
+                    <BriefcaseBusiness size={15} aria-hidden="true" />
+                    <input className="input" placeholder="Job title" value={userForm.jobTitle}
+                      onChange={(event) => setUserForm({ ...userForm, jobTitle: event.target.value })} />
+                  </span>
+                </label>
+                <div className="admin-form-field">
+                  <span>Department</span>
+                  <AppSelect
+                    ariaLabel="Department"
+                    icon={Building2}
+                    value={userForm.departmentId}
+                    onChange={(value) => setUserForm({ ...userForm, departmentId: value })}
+                    options={[
+                      { value: "", label: "No department" },
+                      ...(departments.data || []).map((department) => ({
+                        value: department.id,
+                        label: department.name,
+                      })),
+                    ]}
+                  />
                 </div>
+                <div className="admin-form-field">
+                  <span>Role</span>
+                  <AppSelect
+                    ariaLabel="Role"
+                    icon={ShieldCheck}
+                    value={userForm.roleCodes[0]}
+                    onChange={(value) => setUserForm({ ...userForm, roleCodes: [value] })}
+                    options={roleOptions.map((role) => ({
+                      value: role.code,
+                      label: role.name,
+                    }))}
+                  />
+                </div>
+              </div>
+
+              <button type="submit" className="btn-primary admin-create-submit"
+                disabled={createUser.isPending}>
+                <UserPlus size={17} />
+                {createUser.isPending ? "Creating…" : "Create user"}
+              </button>
+            </form>
+          </aside>
+
+          <section className="admin-directory-panel" aria-label="User directory">
+            <div className="admin-directory-toolbar">
+              <div className="admin-directory-search-row">
+                <label className="admin-directory-search">
+                  <Search size={16} aria-hidden="true" />
+                  <input type="search" aria-label="Search users" placeholder="Search users..."
+                    value={userFilters.q}
+                    onChange={(event) => changeUserFilter("q", event.target.value)} />
+                </label>
+                <span className="admin-users-count">
+                  <span className="admin-count-dot" aria-hidden="true" />
+                  {directoryUsers.length} {directoryUsers.length === 1 ? "user" : "users"}
+                </span>
+              </div>
+              <div className="admin-directory-filters" id="admin-user-filters">
+                <AppSelect
+                  className="admin-directory-select"
+                  ariaLabel="Filter users by department"
+                  icon={Building2}
+                  value={userFilters.departmentId}
+                  onChange={(value) => changeUserFilter("departmentId", value)}
+                  options={[
+                    { value: "", label: "All departments" },
+                    ...(departments.data || []).map((department) => ({
+                      value: department.id,
+                      label: department.name,
+                    })),
+                  ]}
+                />
+                <AppSelect
+                  className="admin-directory-select"
+                  ariaLabel="Filter users by role"
+                  icon={ShieldCheck}
+                  value={userFilters.role}
+                  onChange={(value) => changeUserFilter("role", value)}
+                  options={[
+                    { value: "", label: "All roles" },
+                    ...roleOptions.map((role) => ({
+                      value: role.code,
+                      label: role.name,
+                    })),
+                  ]}
+                />
+                <AppSelect
+                  className="admin-directory-select"
+                  ariaLabel="Filter users by status"
+                  value={userFilters.status}
+                  onChange={(value) => changeUserFilter("status", value)}
+                  options={[
+                    { value: "", label: "All statuses" },
+                    { value: "ACTIVE", label: "Active" },
+                    { value: "INACTIVE", label: "Inactive" },
+                  ]}
+                />
               </div>
             </div>
-            {filteredUsers.isLoading ? (
-              <div className="p-5 text-sm text-slate-500">Loading…</div>
-            ) : filteredUsers.data?.length === 0 ? (
-              <div className="p-5 text-sm text-slate-500">
-                No users match the selected filters.
-              </div>
-            ) : (
-              <div className="divide-y divide-slate-100">
-                {filteredUsers.data?.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex flex-wrap items-center justify-between gap-3 p-5"
-                  >
-                    <div>
-                      <div className="font-semibold">{item.displayName}</div>
-                      <div className="text-sm text-slate-500">
-                        {item.email} · {item.phone || "No phone"} ·{" "}
-                        {item.jobTitle || "Employee"}
-                      </div>
-                      <div className="mt-1 text-xs text-slate-400">
-                        {item.department?.name || "No department"}
-                      </div>
+
+            <div className="admin-directory-list" aria-live="polite">
+              {filteredUsers.isLoading ? (
+                <p className="admin-directory-empty">Loading directory…</p>
+              ) : filteredUsers.isError ? (
+                <p className="admin-directory-empty" role="alert">
+                  Unable to load users. Please try again.
+                </p>
+              ) : visibleUsers.length === 0 ? (
+                <p className="admin-directory-empty">No users match the selected filters.</p>
+              ) : (
+                visibleUsers.map((item) => (
+                  <article key={item.id} className="admin-user-card">
+                    <div className="admin-user-avatar-wrap">
+                      <Avatar name={item.displayName} userId={item.id} photoUrl={item.avatarUrl}
+                        className="admin-user-avatar" />
                     </div>
-                    <div className="flex gap-2">
-                      <button
-                        className="text-xs text-blue-600"
-                        onClick={() => {
-                          setError("");
-                          setPasswordSuccess("");
-                          setPasswordForm({
-                            password: "",
-                            confirmPassword: "",
-                          });
-                          setEditing(item);
-                        }}
-                      >
-                        Edit
-                      </button>
+                    <div className="admin-user-details">
+                      <h3 title={item.displayName}>{item.displayName}</h3>
+                      <span className="admin-department-tag">
+                        {item.department?.name || "No department"}
+                      </span>
+                      <p className="admin-user-contact" title={item.email}>
+                        {item.email}
+                        <span className="admin-contact-divider">·</span>
+                        {item.phone || "No phone"}
+                      </p>
+                      {item.jobTitle && <p className="admin-user-job">{item.jobTitle}</p>}
+                    </div>
+                    <div className="admin-user-badges">
                       {item.roles.map((role) => (
-                        <span
-                          key={role}
-                          className="badge bg-blue-50 text-blue-700"
-                        >
-                          <ShieldCheck size={12} className="mr-1" />
+                        <span key={role} className="admin-role-badge" data-role={role}>
+                          <ShieldCheck size={13} aria-hidden="true" />
                           {role}
                         </span>
                       ))}
-                      <span
-                        className={`badge ${item.status === "ACTIVE" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}
-                      >
-                        {item.status}
+                      <span className={"admin-account-badge " + (item.status === "ACTIVE" ? "is-active" : "is-inactive")}>
+                        <span aria-hidden="true" />
+                        {item.status === "ACTIVE" ? "Active" : "Inactive"}
                       </span>
+                      <button type="button" className="btn-secondary admin-edit-button"
+                        onClick={() => openEditor(item)} aria-label={"Edit " + item.displayName}>
+                        <Pencil size={14} aria-hidden="true" /> Edit
+                      </button>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+                  </article>
+                ))
+              )}
+            </div>
+            <footer className="admin-directory-footer">
+              <span>
+                Showing {directoryUsers.length ? pageStart + 1 : 0}–{Math.min(pageStart + USER_PAGE_SIZE, directoryUsers.length)}
+                {" "}of {directoryUsers.length} directory accounts
+              </span>
+              <nav className="admin-directory-pagination" aria-label="User directory pages">
+                <button type="button" className="admin-page-arrow" disabled={currentPage === 1}
+                  onClick={() => setUserPage(currentPage - 1)} aria-label="Previous page">
+                  <ChevronLeft size={15} /> <span>Previous</span>
+                </button>
+                <span className="admin-page-number" aria-label={"Page " + currentPage}>{currentPage}</span>
+                <button type="button" className="admin-page-arrow" disabled={currentPage === pageCount}
+                  onClick={() => setUserPage(currentPage + 1)} aria-label="Next page">
+                  <span>Next</span> <ChevronRight size={15} />
+                </button>
+              </nav>
+            </footer>
+          </section>
         </div>
       ) : tab === "departments" ? (
         <div className="grid gap-6 xl:grid-cols-[380px_1fr]">
@@ -546,26 +569,21 @@ export default function AdminPage() {
                 <p className="mt-4 text-sm text-slate-500">
                   Manager: {item.manager?.displayName || "Not assigned"}
                 </p>
-                <select
-                  aria-label={`Manager for ${item.name}`}
-                  className="input mt-3"
+                <AppSelect
+                  className="admin-department-manager-select"
+                  ariaLabel={"Manager for " + item.name}
                   value={item.managerId || ""}
-                  onChange={(e) =>
-                    updateDept.mutate({
-                      id: item.id,
-                      managerId: e.target.value,
-                    })
-                  }
-                >
-                  <option value="">No manager</option>
-                  {users.data
-                    ?.filter((u) => u.status === "ACTIVE")
-                    .map((u) => (
-                      <option key={u.id} value={u.id}>
-                        {u.displayName}
-                      </option>
-                    ))}
-                </select>
+                  onChange={(value) => updateDept.mutate({ id: item.id, managerId: value })}
+                  options={[
+                    { value: "", label: "No manager" },
+                    ...(users.data || [])
+                      .filter((user) => user.status === "ACTIVE")
+                      .map((user) => ({
+                        value: user.id,
+                        label: user.displayName,
+                      })),
+                  ]}
+                />
               </article>
             ))}
           </div>
@@ -575,169 +593,164 @@ export default function AdminPage() {
       )}
       {editing && (
         <Modal
-          title={`Edit ${editing.displayName}`}
-          onClose={() => setEditing(null)}
+          title="Edit user"
+          headerIcon={<UserPlus size={19} />}
+          onClose={closeEditor}
+          className="admin-edit-modal"
+          wide
         >
           <form
-            onSubmit={(e) => {
-              e.preventDefault();
+            className="admin-edit-form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              setError("");
               updateUser.mutate();
             }}
           >
-            <Field
-              label="Display name"
-              required
-              value={editing.displayName}
-              onChange={(e) =>
-                setEditing({ ...editing, displayName: e.target.value })
-              }
-            />
-            <Field
-              label="Phone number"
-              value={editing.phone || ""}
-              onChange={(e) =>
-                setEditing({ ...editing, phone: e.target.value })
-              }
-            />
-            <Field
-              label="Job title"
-              value={editing.jobTitle || ""}
-              onChange={(e) =>
-                setEditing({ ...editing, jobTitle: e.target.value })
-              }
-            />
-            <Field label="Role">
-              <select
-                className="input"
-                value={editing.roles[0]}
-                onChange={(e) =>
-                  setEditing({ ...editing, roles: [e.target.value] })
-                }
-              >
-                {roleOptions.map((role) => (
-                  <option key={role.code} value={role.code}>
-                    {role.name}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Department">
-              <select
-                className="input"
-                value={editing.departmentId || ""}
-                onChange={(e) =>
-                  setEditing({ ...editing, departmentId: e.target.value })
-                }
-              >
-                <option value="">No department</option>
-                {departments.data?.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.name}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Reports to">
-              <select
-                className="input"
-                value={editing.managerId || ""}
-                onChange={(e) =>
-                  setEditing({ ...editing, managerId: e.target.value })
-                }
-              >
-                <option value="">No manager</option>
-                {users.data
-                  ?.filter((u) => u.id !== editing.id && u.status === "ACTIVE")
-                  .map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.displayName}
-                    </option>
-                  ))}
-              </select>
-            </Field>
-            <Field label="Account status">
-              <select
-                className="input"
-                value={editing.status}
-                onChange={(e) =>
-                  setEditing({ ...editing, status: e.target.value })
-                }
-              >
-                <option value="ACTIVE">Active</option>
-                <option value="INACTIVE">Inactive</option>
-              </select>
-            </Field>
-            <p className="mt-4 text-xs text-slate-400">
-              Changing roles or departments signs this person out so the new
-              access takes effect.
-            </p>
-            {hasPermission("users.password.reset") && (
-              <div className="mt-6 border-t border-slate-200 pt-5">
-                <div className="mb-3 flex items-center gap-2">
-                  <KeyRound size={17} className="text-blue-600" />
-                  <h3 className="font-semibold">Set new password</h3>
-                </div>
-                <div className="space-y-3">
-                  <Field
-                    label="New password"
-                    type="password"
-                    minLength={8}
-                    maxLength={128}
-                    value={passwordForm.password}
-                    onChange={(e) =>
-                      setPasswordForm({
-                        ...passwordForm,
-                        password: e.target.value,
-                      })
-                    }
-                  />
-                  <Field
-                    label="Confirm new password"
-                    type="password"
-                    minLength={8}
-                    maxLength={128}
-                    value={passwordForm.confirmPassword}
-                    onChange={(e) =>
-                      setPasswordForm({
-                        ...passwordForm,
-                        confirmPassword: e.target.value,
-                      })
-                    }
-                  />
-                  <button
-                    type="button"
-                    className="btn-secondary"
-                    disabled={
-                      resetPassword.isPending ||
-                      passwordForm.password.length < 8 ||
-                      passwordForm.confirmPassword.length < 8
-                    }
-                    onClick={() => {
-                      setError("");
-                      setPasswordSuccess("");
-                      if (
-                        passwordForm.password !== passwordForm.confirmPassword
-                      ) {
-                        setError("Passwords do not match");
-                        return;
-                      }
-                      resetPassword.mutate();
-                    }}
-                  >
-                    Set password
-                  </button>
-                  {passwordSuccess && (
-                    <p className="text-sm text-emerald-700">
-                      {passwordSuccess}
-                    </p>
-                  )}
-                </div>
+            <div className="admin-edit-person">
+              <Avatar name={editing.displayName} userId={editing.id}
+                photoUrl={editing.avatarUrl} className="admin-edit-avatar" />
+              <div className="admin-edit-person-copy">
+                <h3>{editing.displayName}</h3>
+                <p>{editing.email}</p>
               </div>
+              <span className={"admin-account-badge " + (editing.status === "ACTIVE" ? "is-active" : "is-inactive")}>
+                <span aria-hidden="true" />
+                {editing.status === "ACTIVE" ? "Active" : "Inactive"}
+              </span>
+            </div>
+
+            <div className="admin-edit-fields">
+              <Field label="First name" required value={editing.firstName || ""}
+                onChange={(event) => setEditing({ ...editing, firstName: event.target.value })} />
+              <Field label="Last name" required value={editing.lastName || ""}
+                onChange={(event) => setEditing({ ...editing, lastName: event.target.value })} />
+              <div className="admin-edit-span-2">
+                <Field label="Display name" required value={editing.displayName}
+                  onChange={(event) => setEditing({ ...editing, displayName: event.target.value })} />
+              </div>
+              <Field label="Phone number" value={editing.phone || ""}
+                onChange={(event) => setEditing({ ...editing, phone: event.target.value })} />
+              <Field label="Job title" value={editing.jobTitle || ""}
+                onChange={(event) => setEditing({ ...editing, jobTitle: event.target.value })} />
+              <div className="field admin-select-field">
+                <span>Department</span>
+                <AppSelect
+                  ariaLabel="Edit department"
+                  value={editing.departmentId || ""}
+                  onChange={(value) => setEditing({ ...editing, departmentId: value })}
+                  options={[
+                    { value: "", label: "No department" },
+                    ...(departments.data || []).map((department) => ({
+                      value: department.id,
+                      label: department.name,
+                    })),
+                  ]}
+                />
+              </div>
+              <div className="field admin-select-field">
+                <span>Role</span>
+                <AppSelect
+                  ariaLabel="Edit role"
+                  value={editing.roles[0] || "EMPLOYEE"}
+                  onChange={(value) => setEditing({ ...editing, roles: [value] })}
+                  options={roleOptions.map((role) => ({
+                    value: role.code,
+                    label: role.name,
+                  }))}
+                />
+              </div>
+              <div className="field admin-select-field">
+                <span>Account status</span>
+                <AppSelect
+                  ariaLabel="Edit account status"
+                  value={editing.status}
+                  onChange={(value) => setEditing({ ...editing, status: value })}
+                  options={[
+                    { value: "ACTIVE", label: "Active" },
+                    { value: "INACTIVE", label: "Inactive" },
+                  ]}
+                />
+              </div>
+              <div className="admin-edit-span-2 admin-reports-to">
+                <FilterMultiSelect
+                  label="Reports to"
+                  options={(users.data || [])
+                    .filter((user) => user.id !== editing.id &&
+                      (user.status === "ACTIVE" || user.id === editing.managerId))
+                    .map((user) => ({
+                      value: user.id,
+                      label: user.displayName || user.email || "Unknown",
+                      userId: user.id,
+                      photoUrl: user.avatarUrl,
+                    }))}
+                  values={editing.managerId ? [editing.managerId] : []}
+                  onToggle={(value) =>
+                    setEditing((current) => ({
+                      ...current,
+                      managerId: current.managerId === value ? null : value,
+                    }))
+                  }
+                />
+                <p className="admin-reports-hint">
+                  Select one reporting manager, or uncheck the selected person for no manager.
+                </p>
+              </div>
+            </div>
+
+            <p className="admin-access-notice">
+              Changing a user's roles or department signs them out so their new access takes effect.
+            </p>
+
+            {hasPermission("users.password.reset") && (
+              <section className="admin-password-section" aria-label="Reset user password">
+                <div className="admin-password-heading">
+                  <span className="admin-password-icon"><KeyRound size={17} /></span>
+                  <div>
+                    <h3>Set new password</h3>
+                    <p>Existing sessions will be revoked after a password reset.</p>
+                  </div>
+                </div>
+                <div className="admin-password-fields">
+                  <Field label="New password" type="password" minLength={8} maxLength={128}
+                    autoComplete="new-password" value={passwordForm.password}
+                    onChange={(event) =>
+                      setPasswordForm({ ...passwordForm, password: event.target.value })
+                    } />
+                  <Field label="Confirm new password" type="password" minLength={8} maxLength={128}
+                    autoComplete="new-password" value={passwordForm.confirmPassword}
+                    onChange={(event) =>
+                      setPasswordForm({ ...passwordForm, confirmPassword: event.target.value })
+                    } />
+                </div>
+                <div className="admin-password-action">
+                  <button type="button" className="btn-secondary" disabled={
+                    resetPassword.isPending ||
+                    passwordForm.password.length < 8 ||
+                    passwordForm.confirmPassword.length < 8
+                  } onClick={() => {
+                    setError("");
+                    setPasswordSuccess("");
+                    if (passwordForm.password !== passwordForm.confirmPassword) {
+                      setError("Passwords do not match");
+                      return;
+                    }
+                    resetPassword.mutate();
+                  }}>
+                    <KeyRound size={15} />
+                    {resetPassword.isPending ? "Updating…" : "Set password"}
+                  </button>
+                  {passwordSuccess && <p className="admin-password-success">{passwordSuccess}</p>}
+                </div>
+              </section>
             )}
             <ErrorBox error={error} />
-            <div className="form-actions">
-              <button className="btn-primary" disabled={updateUser.isPending}>
-                Save changes
+            <div className="admin-edit-footer">
+              <button type="button" className="btn-secondary" onClick={closeEditor}>
+                Close
+              </button>
+              <button type="submit" className="btn-primary" disabled={updateUser.isPending}>
+                {updateUser.isPending ? "Saving…" : "Save changes"}
               </button>
             </div>
           </form>
