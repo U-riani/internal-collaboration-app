@@ -137,10 +137,10 @@ function AccountSecurity() {
     setRevealed((previous) => ({ ...previous, [key]: !previous[key] }));
   }
 
-  // Match the authenticated POST /auth/password schema (12–200 characters;
+  // Match the authenticated POST /auth/password schema (6–200 characters;
   // different from current). Confirmation is a frontend safeguard.
   const rules = [
-    { id: "minimum", label: "At least 12 characters", met: newPassword.length >= 12 },
+    { id: "minimum", label: "At least 6 characters", met: newPassword.length >= 6 },
     { id: "maximum", label: "No more than 200 characters", met: newPassword.length > 0 && newPassword.length <= 200 },
     { id: "different", label: "Different from current password", met: currentPassword.length > 0 && newPassword.length > 0 && newPassword !== currentPassword },
     { id: "matching", label: "Confirmation matches new password", met: confirmation.length > 0 && newPassword === confirmation },
@@ -172,7 +172,7 @@ function AccountSecurity() {
           </div>
         </div>
         <p className="account-settings-description">
-          Use at least 12 characters. After saving, sign in again with your new password on each device.
+          Use at least 6 characters. After saving, sign in again with your new password on each device.
         </p>
         <form
           className="account-password-form"
@@ -194,11 +194,11 @@ function AccountSecurity() {
           />
           <PasswordInput
             label="New password"
-            placeholder="At least 12 characters"
+            placeholder="At least 6 characters"
             autoComplete="new-password"
             value={newPassword}
             onChange={setNew}
-            minLength={12}
+            minLength={6}
             maxLength={200}
             visible={revealed.next}
             onToggle={() => toggleVisibility("next")}

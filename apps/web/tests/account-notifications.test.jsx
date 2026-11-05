@@ -244,7 +244,7 @@ describe("My Account notification design", () => {
     await user.click(screen.getByRole("button", { name: "Security" }));
 
     expect(screen.getByText("Password Policy Requirements")).not.toBeNull();
-    expect(screen.getByText("At least 12 characters")).not.toBeNull();
+    expect(screen.getByText("At least 6 characters")).not.toBeNull();
     expect(screen.getByText("No more than 200 characters")).not.toBeNull();
     expect(screen.getByText("Different from current password")).not.toBeNull();
     expect(screen.getByText("Confirmation matches new password")).not.toBeNull();
@@ -253,6 +253,7 @@ describe("My Account notification design", () => {
     const current = screen.getByLabelText("Current password");
     const next = screen.getByLabelText("New password");
     const confirmation = screen.getByLabelText("Confirm new password");
+    expect(next.minLength).toBe(6);
     expect(current.type).toBe("password");
     expect(next.type).toBe("password");
     expect(confirmation.type).toBe("password");
@@ -291,12 +292,18 @@ describe("My Account notification design", () => {
     expect(saveButton.disabled).toBe(true);
 
     await user.clear(next);
-    await user.type(next, "New password with sufficient length");
+    await user.type(next, "Ab123");
+    await user.clear(confirmation);
+    await user.type(confirmation, "Ab123");
+    expect(saveButton.disabled).toBe(true);
+
+    await user.clear(next);
+    await user.type(next, "Ab1234");
     expect(saveButton.disabled).toBe(true);
     expect(screen.getByText("Passwords do not match.")).not.toBeNull();
 
     await user.clear(confirmation);
-    await user.type(confirmation, "New password with sufficient length");
+    await user.type(confirmation, "Ab1234");
     expect(saveButton.disabled).toBe(false);
     await user.click(saveButton);
     await waitFor(() =>
@@ -304,7 +311,7 @@ describe("My Account notification design", () => {
         method: "POST",
         body: JSON.stringify({
           currentPassword: "PreviousPassword1",
-          newPassword: "New password with sufficient length",
+          newPassword: "Ab1234",
         }),
       }),
     );
