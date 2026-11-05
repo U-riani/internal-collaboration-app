@@ -13,7 +13,7 @@ import { audit } from "../lib/audit.js";
 
 const loginSchema = z.object({
   email: z.email().transform((value) => value.toLowerCase()),
-  password: z.string().min(8),
+  password: z.string().min(6),
 });
 
 const refreshCookie = "collab_refresh_token";
@@ -46,7 +46,7 @@ export default async function authRoutes(app) {
       const input = parse(
         z.object({
           currentPassword: z.string().min(1).max(200),
-          newPassword: z.string().min(12).max(200),
+          newPassword: z.string().min(6).max(200),
         }),
         request.body,
       );

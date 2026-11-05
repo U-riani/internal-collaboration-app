@@ -1145,15 +1145,24 @@ test("changing a password verifies the old secret and revokes every session", as
     ).statusCode,
     400,
   );
+  assert.equal(
+    (
+      await h.call(actor, "POST", "/auth/password", {
+        currentPassword: "InitialSecret123!",
+        newPassword: "Ab123",
+      })
+    ).statusCode,
+    400,
+  );
   ok(
     await h.call(actor, "POST", "/auth/password", {
       currentPassword: "InitialSecret123!",
-      newPassword: "NewPassword123!",
+      newPassword: "Ab1234",
     }),
   );
   assert.equal((await h.call(second, "GET", "/auth/me")).statusCode, 401);
   assert.equal((await h.call(actor, "GET", "/auth/me")).statusCode, 401);
-  const renewed = await h.login("password@example.com", "NewPassword123!");
+  const renewed = await h.login("password@example.com", "Ab1234");
   ok(await h.call(renewed, "GET", "/auth/me"));
 });
 
