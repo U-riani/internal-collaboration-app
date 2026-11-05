@@ -1,8 +1,7 @@
 import { Readable } from "node:stream";
 
-// Dependency-free ZIP64 STORE stream. Images are already compressed: ZIP
-// compression adds CPU load but almost no savings. Only tiny entry metadata
-// is kept in memory; original images are streamed directly from storage.
+// Dependency-free ZIP64 STORE stream. Used for message images and Drive files.
+// Only entry metadata is retained while original bytes stream from storage.
 const CRC_TABLE = Uint32Array.from({ length: 256 }, (_, n) => {
   let value = n;
   for (let i = 0; i < 8; i++)
@@ -26,12 +25,16 @@ function zip64Extra(values) {
   return bytes;
 }
 
-// No folders, path traversal, control characters or duplicate archive entries.
-export function uniqueImageNames(entries) {
+// By default flatten paths. Trusted internal XLSX parts may keep sanitized
+// subdirectories; traversal, control chars and duplicate names are removed.
+export function uniqueImageNames(entries, { allowPaths = false } = {}) {
   const seen = new Set();
   return entries.map((entry) => {
-    let name = String(entry.originalName || "image").replaceAll("\\", "/").split("/").pop()
-      .replace(/[\x00-\x1f\x7f]/g, "").trim();
+    const segments = String(entry.originalName || "image").replaceAll("\\", "/").split("/");
+    let name = (allowPaths ? segments : [segments.at(-1)])
+      .filter((segment) => segment && segment !== "." && segment !== "..")
+      .map((segment) => segment.replace(/[\x00-\x1f\x7f]/g, "").trim())
+      .filter(Boolean).join("/");
     if (!name || name === "." || name === "..") name = "image";
     const dot = name.lastIndexOf(".");
     const stem = dot > 0 ? name.slice(0, dot) : name;
@@ -44,16 +47,20 @@ export function uniqueImageNames(entries) {
   });
 }
 
-export function createImageZipStream(entries) {
-  const named = uniqueImageNames(entries);
+export function createImageZipStream(entries, options) {
+  const named = uniqueImageNames(entries, options);
   async function* generate() {
     let position = 0n;
     const central = [];
     for (const entry of named) {
+      // Virtual Drive spreadsheets have to be rendered into XLSX first.
+      // Prepare only the current entry so hundreds of files never materialize
+      // in memory simultaneously.
+      const source = entry.prepare ? await entry.prepare() : entry;
       const filename = Buffer.from(entry.archiveName, "utf8");
       if (filename.length > 65535) throw new Error("Archive filename too long");
       const start = position;
-      const size = BigInt(entry.sizeBytes);
+      const size = BigInt(source.sizeBytes);
       if (size < 0n) throw new Error("Invalid file size");
       const extra = zip64Extra([size, size]);
       const local = Buffer.alloc(30);
@@ -73,7 +80,7 @@ export function createImageZipStream(entries) {
 
       let crc = 0xffffffff;
       let bytesRead = 0n;
-      const input = await entry.open();
+      const input = await source.open();
       try {
         for await (const piece of input) {
           const data = Buffer.isBuffer(piece) ? piece : Buffer.from(piece);
@@ -147,3 +154,7 @@ export function createImageZipStream(entries) {
   }
   return Readable.from(generate());
 }
+
+// Neutral names for callers that archive files other than chat images.
+export const createFileZipStream = createImageZipStream;
+export const uniqueArchiveNames = uniqueImageNames;

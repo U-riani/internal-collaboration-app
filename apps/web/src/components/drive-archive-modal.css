@@ -1,0 +1,33 @@
+.app-theme-dark .modal.drive-archive-modal {
+  background: var(--app-surface);
+  color: var(--app-text);
+  border: 1px solid var(--app-border-strong);
+  width: min(540px, calc(100vw - 24px));
+}
+.drive-archive-content { display: flex; flex-direction: column; gap: 14px; }
+.drive-archive-help { color: var(--app-muted); font-size: 12px; line-height: 1.5; margin: 0; }
+.drive-archive-types { display: flex; flex-direction: column; gap: 5px; max-height: min(48dvh, 420px); overflow-y: auto; }
+.drive-archive-type {
+  display: flex; align-items: center; gap: 12px;
+  min-height: 54px; padding: 10px 12px;
+  border: 1px solid var(--app-border);
+  border-radius: 10px;
+  background: var(--app-surface-raised);
+  color: var(--app-text-strong);
+  cursor: pointer;
+}
+.drive-archive-type:hover { background: var(--app-interactive-hover); }
+.drive-archive-type:focus-within { border-color: var(--app-ui-focus-ring, #7670dd); }
+.drive-archive-type input { width: 16px; height: 16px; flex: 0 0 16px; accent-color: var(--app-ui-accent-start, #7a6dfe); }
+.drive-archive-type--all { font-weight: 700; background: var(--app-surface-input); }
+.drive-archive-type-icon { display: inline-flex; color: var(--app-muted); }
+.drive-archive-type-text { display: flex; flex: 1; flex-direction: column; min-width: 0; gap: 3px; }
+.drive-archive-type-text strong { font-size: 12px; font-weight: 650; }
+.drive-archive-type-text > span { font-size: 11px; color: var(--app-muted); }
+.drive-archive-count { flex: 0 0 auto; padding: 4px 7px; font-size: 11px; border-radius: 7px; background: var(--app-surface-input); color: var(--app-muted); font-variant-numeric: tabular-nums; }
+.drive-archive-empty { color: var(--app-muted); font-size: 12px; padding: 18px 8px; text-align: center; }
+.drive-archive-footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding-top: 12px; border-top: 1px solid var(--app-border); }
+.drive-archive-selection { display: flex; flex-direction: column; gap: 3px; }
+.drive-archive-selection strong { font-size: 12px; }
+.drive-archive-selection span { color: var(--app-muted); font-size: 11px; }
+.drive-archive-submit { display: inline-flex; align-items: center; gap: 8px; min-height: 38px; }
