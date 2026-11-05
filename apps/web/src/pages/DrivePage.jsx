@@ -860,7 +860,7 @@ export default function DrivePage() {
 
       <div
         className={
-          section === "shared" ? "drive-directory-layout drive-shared-view grid gap-4 lg:grid-cols-[230px_1fr]" : "drive-directory-layout"
+          section === "shared" ? "drive-shared-view grid gap-4 lg:grid-cols-[230px_1fr]" : ""
         }
       >
         {section === "shared" && (
@@ -919,7 +919,7 @@ export default function DrivePage() {
           </aside>
         )}
 
-        <main className="drive-directory-column min-w-0">
+        <main className="min-w-0">
           {section === "shared" && selectedSpace && (
             <div className="drive-shared-space-heading mb-4 flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
               {selectedSpace.type === "GLOBAL" ? (

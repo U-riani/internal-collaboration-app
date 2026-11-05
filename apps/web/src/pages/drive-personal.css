@@ -944,8 +944,15 @@ dialog.modal:has(.drive-permission-access-select) input.input:focus {
   }
 }
 
-/* The file count and Download action are outside the directory's scroll area.
- * Keep the footer visible even when a folder contains hundreds of items. */
+/* Natural-height rows for small folders, bounded scrolling for large folders.
+ * Reserve viewport room for the summary + Download action instead of forcing
+ * the list to fill every available pixel. Applies to every Drive tab. */
+.drive-page .drive-directory-list {
+  max-height: clamp(180px, calc(100dvh - 395px), 520px) !important;
+  overflow-y: auto;
+}
+/* The footer is a sibling of the scrollable list, so it never scrolls with
+ * the files or covers the final row. Keep it visible on compact viewports. */
 .drive-page .drive-directory-summary {
   position: sticky;
   bottom: 0;
@@ -954,41 +961,13 @@ dialog.modal:has(.drive-permission-access-select) input.input:focus {
   min-height: 44px;
   padding-bottom: max(8px, env(safe-area-inset-bottom));
 }
-@media (min-width: 1024px) and (min-height: 600px) {
-  .drive-page {
-    display: flex;
-    flex-direction: column;
-    height: calc(100dvh - 28px);
-    min-height: 0;
+@media (max-width: 900px) {
+  .drive-page .drive-directory-list {
+    max-height: clamp(170px, calc(100dvh - 350px), 460px) !important;
   }
-  .drive-page > :is(.page-header, .drive-toolbar) { flex: 0 0 auto; }
-  .drive-page .drive-directory-layout {
-    display: grid;
-    flex: 1 1 auto;
-    min-height: 0;
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .drive-page .drive-directory-layout.drive-shared-view {
-    grid-template-columns: 230px minmax(0, 1fr);
-    align-items: stretch;
-  }
-  .drive-page .drive-directory-column {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-    min-height: 0;
-  }
-  .drive-page .drive-directory-column > :not(.drive-directory-list):not(.drive-directory-summary) {
-    flex: 0 0 auto;
-  }
-  .drive-page .drive-directory-layout .drive-directory-list {
-    flex: 1 1 auto;
-    min-height: 0;
-    max-height: none !important;
-    overflow-y: auto;
-  }
-  .drive-page .drive-directory-layout .drive-space-nav {
-    max-height: 100%;
-    overflow-y: auto;
+}
+@media (max-width: 640px) {
+  .drive-page .drive-directory-list {
+    max-height: clamp(150px, calc(100dvh - 440px), 400px) !important;
   }
 }
