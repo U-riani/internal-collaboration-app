@@ -943,3 +943,52 @@ dialog.modal:has(.drive-permission-access-select) input.input:focus {
     width: 120px !important;
   }
 }
+
+/* The file count and Download action are outside the directory's scroll area.
+ * Keep the footer visible even when a folder contains hundreds of items. */
+.drive-page .drive-directory-summary {
+  position: sticky;
+  bottom: 0;
+  z-index: 6;
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
+}
+@media (min-width: 1024px) and (min-height: 600px) {
+  .drive-page {
+    display: flex;
+    flex-direction: column;
+    height: calc(100dvh - 28px);
+    min-height: 0;
+  }
+  .drive-page > :is(.page-header, .drive-toolbar) { flex: 0 0 auto; }
+  .drive-page .drive-directory-layout {
+    display: grid;
+    flex: 1 1 auto;
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .drive-page .drive-directory-layout.drive-shared-view {
+    grid-template-columns: 230px minmax(0, 1fr);
+    align-items: stretch;
+  }
+  .drive-page .drive-directory-column {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+  }
+  .drive-page .drive-directory-column > :not(.drive-directory-list):not(.drive-directory-summary) {
+    flex: 0 0 auto;
+  }
+  .drive-page .drive-directory-layout .drive-directory-list {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none !important;
+    overflow-y: auto;
+  }
+  .drive-page .drive-directory-layout .drive-space-nav {
+    max-height: 100%;
+    overflow-y: auto;
+  }
+}
