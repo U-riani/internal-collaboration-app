@@ -1,33 +1,275 @@
+/* Drive archive chooser. Layout follows the shared Modal and Messages checkbox
+ * design system; palette tokens also cover OLED, Slate and Light appearances. */
 .app-theme-dark .modal.drive-archive-modal {
+  width: min(600px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  border: 1px solid var(--app-border);
+  border-radius: 16px;
   background: var(--app-surface);
   color: var(--app-text);
-  border: 1px solid var(--app-border-strong);
-  width: min(540px, calc(100vw - 24px));
+  overflow: hidden;
 }
-.drive-archive-content { display: flex; flex-direction: column; gap: 14px; }
-.drive-archive-help { color: var(--app-muted); font-size: 12px; line-height: 1.5; margin: 0; }
-.drive-archive-types { display: flex; flex-direction: column; gap: 5px; max-height: min(48dvh, 420px); overflow-y: auto; }
+.app-theme-dark .modal.drive-archive-modal[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.app-theme-dark .modal.drive-archive-modal .modal-head {
+  display: flex;
+  flex: 0 0 auto;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 13px;
+  padding: 30px 32px 15px;
+  border: 0;
+  background: transparent;
+}
+.app-theme-dark .modal.drive-archive-modal .modal-head-leading {
+  display: grid;
+  place-items: center;
+  flex: 0 0 43px;
+  width: 43px;
+  height: 43px;
+  border-radius: 11px;
+  background: var(--app-surface-raised);
+  color: var(--app-icon-accent);
+}
+.app-theme-dark .modal.drive-archive-modal .modal-head-copy {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+  text-align: left;
+}
+.app-theme-dark .modal.drive-archive-modal .modal-head-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+.app-theme-dark .modal.drive-archive-modal .modal-head h2 {
+  margin: 0;
+  color: var(--app-text-strong);
+  font-size: 20px;
+  font-weight: 750;
+  letter-spacing: -.035em;
+  line-height: 1.2;
+}
+.app-theme-dark .modal.drive-archive-modal .modal-head-badge {
+  padding: 3px 8px;
+  border-radius: 6px;
+  color: var(--app-icon-accent);
+  background: var(--app-surface-raised);
+  font-size: 10px;
+  font-weight: 750;
+  line-height: 1.2;
+}
+.app-theme-dark .modal.drive-archive-modal .modal-head-subtitle {
+  max-width: 100%;
+  margin: 6px 0 0;
+  color: var(--app-muted);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+.drive-archive-context {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.drive-archive-location {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--app-secondary);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.drive-archive-location svg { flex: 0 0 auto; }
+.app-theme-dark .modal.drive-archive-modal .modal-head > .modal-close-btn {
+  flex: 0 0 35px !important;
+  width: 35px !important;
+  height: 35px !important;
+  margin-left: auto;
+  color: var(--app-muted) !important;
+  background: var(--app-surface-raised) !important;
+}
+.app-theme-dark .modal.drive-archive-modal .modal-head > .modal-close-btn:hover:not(:disabled) {
+  color: var(--app-text-strong) !important;
+  background: var(--app-interactive-hover) !important;
+}
+.app-theme-dark .modal.drive-archive-modal .modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 12px 32px 32px;
+  background: transparent;
+  overflow-y: auto;
+}
+
+.drive-archive-content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.drive-archive-help {
+  margin: 0 0 26px;
+  color: var(--app-muted);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.6;
+}
+.drive-archive-types {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  max-height: min(49dvh, 425px);
+  padding: 1px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--app-border-strong) transparent;
+}
 .drive-archive-type {
-  display: flex; align-items: center; gap: 12px;
-  min-height: 54px; padding: 10px 12px;
-  border: 1px solid var(--app-border);
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-height: 73px;
+  padding: 13px 15px;
+  border: 1px solid transparent;
   border-radius: 10px;
   background: var(--app-surface-raised);
   color: var(--app-text-strong);
   cursor: pointer;
+  transition: background-color .16s ease;
 }
 .drive-archive-type:hover { background: var(--app-interactive-hover); }
-.drive-archive-type:focus-within { border-color: var(--app-ui-focus-ring, #7670dd); }
-.drive-archive-type input { width: 16px; height: 16px; flex: 0 0 16px; accent-color: var(--app-ui-accent-start, #7a6dfe); }
-.drive-archive-type--all { font-weight: 700; background: var(--app-surface-input); }
-.drive-archive-type-icon { display: inline-flex; color: var(--app-muted); }
-.drive-archive-type-text { display: flex; flex: 1; flex-direction: column; min-width: 0; gap: 3px; }
-.drive-archive-type-text strong { font-size: 12px; font-weight: 650; }
-.drive-archive-type-text > span { font-size: 11px; color: var(--app-muted); }
-.drive-archive-count { flex: 0 0 auto; padding: 4px 7px; font-size: 11px; border-radius: 7px; background: var(--app-surface-input); color: var(--app-muted); font-variant-numeric: tabular-nums; }
-.drive-archive-empty { color: var(--app-muted); font-size: 12px; padding: 18px 8px; text-align: center; }
-.drive-archive-footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding-top: 12px; border-top: 1px solid var(--app-border); }
-.drive-archive-selection { display: flex; flex-direction: column; gap: 3px; }
-.drive-archive-selection strong { font-size: 12px; }
-.drive-archive-selection span { color: var(--app-muted); font-size: 11px; }
-.drive-archive-submit { display: inline-flex; align-items: center; gap: 8px; min-height: 38px; }
+.drive-archive-type:focus-within { outline: 2px solid var(--app-interactive-focus); outline-offset: -2px; }
+.app-theme-dark .drive-archive-type .selection-checkbox {
+  flex-basis: 21px;
+  width: 21px;
+  height: 21px;
+  border-radius: 6px;
+}
+.drive-archive-type-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 39px;
+  width: 39px;
+  height: 39px;
+  border-radius: 10px;
+  color: var(--app-icon-accent);
+  background: var(--app-surface-input);
+}
+.drive-archive-type-icon--excel { color: var(--app-secondary); }
+.drive-archive-type-icon--images { color: var(--app-tertiary); }
+.drive-archive-type-icon--pdf { color: var(--app-danger); }
+.drive-archive-type-icon--word { color: var(--app-icon-accent); }
+.drive-archive-type-icon--presentations { color: var(--app-success); }
+.drive-archive-type-text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+}
+.drive-archive-type-text strong {
+  color: var(--app-text-strong);
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.2;
+}
+.drive-archive-type-text > span {
+  color: var(--app-muted);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+.drive-archive-count {
+  flex: 0 0 auto;
+  min-width: 29px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: var(--app-bg);
+  color: var(--app-text);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.1;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.drive-archive-empty {
+  padding: 20px 8px;
+  color: var(--app-muted);
+  font-size: 12px;
+  text-align: center;
+}
+.drive-archive-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 29px;
+}
+.drive-archive-selection {
+  color: var(--app-text);
+  font-size: 13px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+.app-theme-dark .drive-archive-submit.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-width: 181px;
+  min-height: 46px;
+  padding: 12px 20px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--app-interactive-selected);
+  color: var(--app-interactive-selected-text);
+  box-shadow: 0 5px 18px var(--app-accent-shadow);
+  font-size: 13px;
+  font-weight: 750;
+  transition: background-color .16s ease;
+}
+.app-theme-dark .drive-archive-submit.btn-primary:hover:not(:disabled) {
+  background: var(--app-interactive-selected-hover);
+  color: var(--app-interactive-selected-text);
+}
+.app-theme-dark .drive-archive-submit.btn-primary:disabled {
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.app-theme-dark .drive-archive-submit.btn-primary:focus-visible {
+  outline: 2px solid var(--app-interactive-focus);
+  outline-offset: 3px;
+}
+@media (max-width: 640px) {
+  .app-theme-dark .modal.drive-archive-modal {
+    width: 100vw;
+    max-height: 94dvh;
+    border-radius: 18px 18px 0 0;
+  }
+  .app-theme-dark .modal.drive-archive-modal .modal-head { padding: 19px 18px 12px; gap: 10px; }
+  .app-theme-dark .modal.drive-archive-modal .modal-head h2 { font-size: 18px; }
+  .app-theme-dark .modal.drive-archive-modal .modal-body { padding: 10px 18px 24px; }
+  .drive-archive-help { margin-bottom: 19px; }
+  .drive-archive-types { max-height: 47dvh; }
+  .drive-archive-type { min-height: 68px; gap: 10px; padding: 11px 12px; }
+  .drive-archive-type-icon { flex-basis: 35px; width: 35px; height: 35px; }
+  .drive-archive-footer { padding-top: 22px; }
+  .app-theme-dark .drive-archive-submit.btn-primary { min-width: 155px; }
+}
+@media (max-width: 380px) {
+  .drive-archive-footer { flex-wrap: wrap; }
+  .app-theme-dark .drive-archive-submit.btn-primary { flex: 1 1 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .drive-archive-type,
+  .app-theme-dark .drive-archive-submit.btn-primary { transition: none; }
+}

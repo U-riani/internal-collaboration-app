@@ -39,6 +39,10 @@ describe("Drive archive selection modal", () => {
       <DriveArchiveModal scope={scope} locationName="December 2026" onClose={close} />
     </QueryClientProvider>);
     await waitFor(() => expect(screen.getByText("4 files selected")).toBeTruthy());
+    expect(screen.getByText("ZIP")).toBeTruthy();
+    expect(screen.getByText("Folder context:")).toBeTruthy();
+    expect(screen.getByText("December 2026")).toBeTruthy();
+    expect(screen.getByText("Every file stored in this directory")).toBeTruthy();
     expect(api).toHaveBeenCalledWith("/drive/archive/options?view=shared&spaceId=shops&parentId=december");
     expect(screen.getAllByRole("checkbox").every((checkbox) => checkbox.checked)).toBe(true);
     fireEvent.click(screen.getByText("Images"));

@@ -62,6 +62,7 @@ import {
   Modal,
   Field,
   SearchBar,
+  SelectionCheckbox,
   ErrorBox,
   Empty,
   Loading,
@@ -976,8 +977,7 @@ function Members({ conversation, currentUserId, onClose }) {
                               {person.email}
                             </small>
                           </span>
-                          <input
-                            type="checkbox"
+                          <SelectionCheckbox
                             className="conversation-members-checkbox"
                             checked={checked}
                             disabled={busy}
