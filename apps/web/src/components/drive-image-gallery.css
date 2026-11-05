@@ -1,0 +1,19 @@
+/* The same lightbox, arrows and palette tokens used by Messages. */
+.drive-image-lightbox .drive-gallery-notice {
+  align-self: flex-start;
+  margin: 0;
+  color: var(--app-muted);
+  font-size: 12px;
+}
+.drive-page .drive-directory-list .drive-item-icon--image {
+  color: var(--app-ui-accent-start, #9385fe);
+  background: var(--app-ui-accent-tint, rgba(118, 112, 221, .16));
+}
+.drive-page .drive-image-name-button {
+  cursor: zoom-in;
+}
+.drive-page .drive-image-name-button:focus-visible {
+  outline: 2px solid var(--app-ui-focus-ring, #7670dd);
+  outline-offset: 3px;
+  border-radius: 5px;
+}
