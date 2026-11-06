@@ -17,3 +17,95 @@
   outline-offset: 3px;
   border-radius: 5px;
 }
+
+/* The image occupies a clipped viewport, so panning never moves the arrows,
+   header or download footer. All colors come from the active app palette. */
+.drive-image-lightbox .drive-gallery-viewport {
+  position: absolute;
+  inset: 12px 52px 57px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+  cursor: zoom-in;
+}
+.drive-image-lightbox .drive-gallery-viewport.is-zoomed { cursor: grab; }
+.drive-image-lightbox .drive-gallery-viewport.is-zoomed:active { cursor: grabbing; }
+.drive-image-lightbox .drive-gallery-zoom-image {
+  display: block;
+  flex: 0 1 auto;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  transform-origin: center;
+  user-select: none;
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+.drive-image-lightbox .drive-gallery-zoom-controls {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px;
+  border: 1px solid var(--app-border);
+  border-radius: 10px;
+  background: var(--app-surface-raised);
+  color: var(--app-text-strong);
+  transform: translateX(-50%);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, .12);
+}
+.drive-image-lightbox .drive-gallery-zoom-controls button {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 30px;
+  height: 29px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+}
+.drive-image-lightbox .drive-gallery-zoom-controls button:hover:not(:disabled),
+.drive-image-lightbox .drive-gallery-zoom-controls button:focus-visible {
+  background: var(--app-interactive-hover);
+  color: var(--app-interactive-hover-text);
+}
+.drive-image-lightbox .drive-gallery-zoom-controls button:focus-visible {
+  outline: 2px solid var(--app-ui-focus-ring, #7670dd);
+  outline-offset: 1px;
+}
+.drive-image-lightbox .drive-gallery-zoom-controls button:disabled {
+  opacity: .35;
+  cursor: default;
+}
+.drive-image-lightbox .drive-gallery-zoom-value {
+  min-width: 48px;
+  padding: 0 4px;
+  font-size: 12px;
+  font-weight: 650;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.drive-image-lightbox .drive-gallery-zoom-divider {
+  width: 1px;
+  height: 19px;
+  margin: 0 3px;
+  background: var(--app-border-strong);
+}
+@media (max-width: 600px) {
+  .drive-image-lightbox .drive-gallery-viewport { inset: 8px 39px 54px; }
+  .drive-image-lightbox .drive-gallery-zoom-controls { bottom: 7px; }
+}

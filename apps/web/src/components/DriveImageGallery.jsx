@@ -1,14 +1,159 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, Download, Image as ImageIcon, LoaderCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, Image as ImageIcon, LoaderCircle, Minus, Plus, RotateCcw } from "lucide-react";
 import { api, downloadFile, fetchImagePreview } from "../lib/api.js";
 import { adjacentDriveImage, driveFolderImages, driveGalleryPath } from "../lib/drive-image-gallery.js";
+import {
+  IMAGE_ZOOM_STEP, INITIAL_IMAGE_VIEW, MAX_IMAGE_SCALE, MIN_IMAGE_SCALE,
+  clampImageView, panImageBy, pinchImageFrom, zoomImageAt,
+} from "../lib/drive-image-zoom.js";
 import { Modal } from "./UI.jsx";
 import "./message-image-preview.css";
 import "./drive-image-gallery.css";
 
 function DriveGalleryPhoto({ item }) {
   const [preview, setPreview] = useState({ url: null, error: "" });
+  const [loaded, setLoaded] = useState(false);
+  const [view, setView] = useState(INITIAL_IMAGE_VIEW);
+  const viewportRef = useRef(null);
+  const imageRef = useRef(null);
+  const pointersRef = useRef(new Map());
+  const gestureRef = useRef(null);
+
+  const dimensions = () => {
+    const viewport = viewportRef.current;
+    const image = imageRef.current;
+    if (!viewport || !image || !loaded) return null;
+    const frame = viewport.getBoundingClientRect();
+    return {
+      frame,
+      viewportWidth: frame.width,
+      viewportHeight: frame.height,
+      imageWidth: image.clientWidth,
+      imageHeight: image.clientHeight,
+    };
+  };
+
+  const center = (frame, clientX, clientY) => ({
+    x: clientX - frame.left - frame.width / 2,
+    y: clientY - frame.top - frame.height / 2,
+  });
+
+  const zoomTo = (nextScale, clientX, clientY) => {
+    const size = dimensions();
+    if (!size) return;
+    const origin = clientX == null
+      ? { x: 0, y: 0 }
+      : center(size.frame, clientX, clientY);
+    setView((previous) => zoomImageAt(previous, nextScale, origin, size));
+  };
+
+  // React's delegated wheel listener can be passive. The native non-passive
+  // listener prevents scrolling the dialog while zooming over the picture.
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    const onWheel = (event) => {
+      const size = dimensions();
+      if (!size) return;
+      event.preventDefault();
+      const origin = center(size.frame, event.clientX, event.clientY);
+      const pixels = event.deltaY * (event.deltaMode === 1 ? 18 : event.deltaMode === 2 ? 120 : 1);
+      const delta = Math.max(-160, Math.min(160, pixels));
+      setView((previous) => zoomImageAt(previous, previous.scale * Math.exp(-delta * .003), origin, size));
+    };
+    viewport?.addEventListener("wheel", onWheel, { passive: false });
+    return () => viewport?.removeEventListener("wheel", onWheel);
+  }, [loaded]);
+
+  useEffect(() => {
+    if (!loaded) return;
+    const onResize = () => {
+      const size = dimensions();
+      if (size) setView((previous) => clampImageView(previous, size));
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [loaded]);
+
+  // A window focus change can interrupt a drag without delivering pointerup.
+  // Never carry that stale gesture into the next mouse press.
+  useEffect(() => {
+    const cancelGesture = () => {
+      pointersRef.current.clear();
+      gestureRef.current = null;
+    };
+    window.addEventListener("blur", cancelGesture);
+    return () => window.removeEventListener("blur", cancelGesture);
+  }, []);
+
+  const pointerDown = (event) => {
+    if (!loaded || (event.pointerType === "mouse" && event.button !== 0)) return;
+    const pointers = pointersRef.current;
+    // Mouse devices reuse the same pointer ID for every drag. A lost pointerup
+    // must never leave a previous session active when a new one begins.
+    if (event.pointerType === "mouse") {
+      pointers.clear();
+      gestureRef.current = null;
+    }
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (pointers.size === 2) {
+      const [a, b] = [...pointers.values()];
+      gestureRef.current = {
+        type: "pinch",
+        distance: Math.hypot(a.x - b.x, a.y - b.y) || 1,
+        midpoint: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 },
+        startView: view,
+      };
+    } else if (pointers.size === 1 && view.scale > MIN_IMAGE_SCALE) {
+      gestureRef.current = { type: "pan", last: { x: event.clientX, y: event.clientY } };
+    }
+  };
+
+  const pointerMove = (event) => {
+    const pointers = pointersRef.current;
+    if (!pointers.has(event.pointerId)) return;
+    // A button release outside the viewer can miss pointerup if capture was
+    // interrupted; stop dragging as soon as the browser reports no button.
+    if (event.pointerType === "mouse" && event.buttons === 0) {
+      pointerEnd(event);
+      return;
+    }
+    pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    const size = dimensions();
+    if (!size) return;
+    const gesture = gestureRef.current;
+    if (pointers.size === 2 && gesture?.type === "pinch") {
+      const [a, b] = [...pointers.values()];
+      const distance = Math.hypot(a.x - b.x, a.y - b.y);
+      const midpoint = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+      const nextScale = gesture.startView.scale * distance / gesture.distance;
+      setView(pinchImageFrom(
+        gesture.startView,
+        center(size.frame, gesture.midpoint.x, gesture.midpoint.y),
+        center(size.frame, midpoint.x, midpoint.y),
+        nextScale,
+        size,
+      ));
+    } else if (pointers.size === 1 && gesture?.type === "pan") {
+      const dx = event.clientX - gesture.last.x;
+      const dy = event.clientY - gesture.last.y;
+      gesture.last = { x: event.clientX, y: event.clientY };
+      setView((previous) => panImageBy(previous, dx, dy, size));
+    }
+  };
+
+  const pointerEnd = (event, release = true) => {
+    const pointers = pointersRef.current;
+    if (!pointers.has(event.pointerId)) return;
+    pointers.delete(event.pointerId);
+    if (release && event.currentTarget.hasPointerCapture?.(event.pointerId))
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    const remaining = [...pointers.values()];
+    gestureRef.current = remaining.length === 1
+      ? { type: "pan", last: remaining[0] }
+      : null;
+  };
 
   // Keep only the currently viewed file in memory. Navigation aborts an
   // unfinished request and releases its blob URL before fetching the next.
@@ -34,17 +179,47 @@ function DriveGalleryPhoto({ item }) {
     };
   }, [item.file.id]);
 
-  return preview.url ? (
-    <img
-      src={preview.url}
-      alt={item.name}
-      onError={() => setPreview({ url: null, error: "This image could not be displayed" })}
-    />
-  ) : (
-    <div className="chat-image-gallery-placeholder" role="status">
-      {preview.error ? <ImageIcon size={26} /> : <LoaderCircle size={26} className="message-image-loading" />}
-      <span>{preview.error || "Loading image…"}</span>
-    </div>
+  return (
+    <>
+      <div ref={viewportRef} className={`drive-gallery-viewport${view.scale > 1 ? " is-zoomed" : ""}`}
+        onPointerDown={pointerDown} onPointerMove={pointerMove}
+        onPointerUp={pointerEnd} onPointerCancel={pointerEnd}
+        onLostPointerCapture={(event) => pointerEnd(event, false)}
+        onDragStart={(event) => event.preventDefault()}
+        onDoubleClick={(event) => {
+          if (view.scale > MIN_IMAGE_SCALE) setView({ ...INITIAL_IMAGE_VIEW });
+          else zoomTo(2, event.clientX, event.clientY);
+        }}>
+        {preview.url ? (
+          <img ref={imageRef} className="drive-gallery-zoom-image"
+            src={preview.url} alt={item.name} draggable={false}
+            style={{ transform: `translate3d(${view.x}px, ${view.y}px, 0) scale(${view.scale})` }}
+            onLoad={() => setLoaded(true)}
+            onError={() => {
+              setLoaded(false);
+              setPreview({ url: null, error: "This image could not be displayed" });
+            }}
+          />
+        ) : (
+          <div className="chat-image-gallery-placeholder" role="status">
+            {preview.error ? <ImageIcon size={26} /> : <LoaderCircle size={26} className="message-image-loading" />}
+            <span>{preview.error || "Loading image…"}</span>
+          </div>
+        )}
+      </div>
+      <div className="drive-gallery-zoom-controls" role="group" aria-label="Image zoom controls">
+        <button type="button" aria-label="Zoom out" title="Zoom out" disabled={!loaded || view.scale <= MIN_IMAGE_SCALE}
+          onClick={() => zoomTo(view.scale - IMAGE_ZOOM_STEP)}><Minus size={17} /></button>
+        <output className="drive-gallery-zoom-value" aria-label="Zoom level" aria-live="off">
+          {Math.round(view.scale * 100)}%
+        </output>
+        <button type="button" aria-label="Zoom in" title="Zoom in" disabled={!loaded || view.scale >= MAX_IMAGE_SCALE}
+          onClick={() => zoomTo(view.scale + IMAGE_ZOOM_STEP)}><Plus size={17} /></button>
+        <span className="drive-gallery-zoom-divider" aria-hidden="true" />
+        <button type="button" aria-label="Reset zoom" title="Reset zoom" disabled={!loaded || view.scale <= MIN_IMAGE_SCALE}
+          onClick={() => setView({ ...INITIAL_IMAGE_VIEW })}><RotateCcw size={17} /></button>
+      </div>
+    </>
   );
 }
 
