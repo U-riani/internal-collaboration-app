@@ -75,10 +75,27 @@ function DriveGalleryPhoto({ item }) {
     return () => window.removeEventListener("resize", onResize);
   }, [loaded]);
 
+  // A window focus change can interrupt a drag without delivering pointerup.
+  // Never carry that stale gesture into the next mouse press.
+  useEffect(() => {
+    const cancelGesture = () => {
+      pointersRef.current.clear();
+      gestureRef.current = null;
+    };
+    window.addEventListener("blur", cancelGesture);
+    return () => window.removeEventListener("blur", cancelGesture);
+  }, []);
+
   const pointerDown = (event) => {
     if (!loaded || (event.pointerType === "mouse" && event.button !== 0)) return;
-    event.currentTarget.setPointerCapture?.(event.pointerId);
     const pointers = pointersRef.current;
+    // Mouse devices reuse the same pointer ID for every drag. A lost pointerup
+    // must never leave a previous session active when a new one begins.
+    if (event.pointerType === "mouse") {
+      pointers.clear();
+      gestureRef.current = null;
+    }
+    event.currentTarget.setPointerCapture?.(event.pointerId);
     pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
     if (pointers.size === 2) {
       const [a, b] = [...pointers.values()];
@@ -96,6 +113,12 @@ function DriveGalleryPhoto({ item }) {
   const pointerMove = (event) => {
     const pointers = pointersRef.current;
     if (!pointers.has(event.pointerId)) return;
+    // A button release outside the viewer can miss pointerup if capture was
+    // interrupted; stop dragging as soon as the browser reports no button.
+    if (event.pointerType === "mouse" && event.buttons === 0) {
+      pointerEnd(event);
+      return;
+    }
     pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
     const size = dimensions();
     if (!size) return;
@@ -120,10 +143,11 @@ function DriveGalleryPhoto({ item }) {
     }
   };
 
-  const pointerEnd = (event) => {
+  const pointerEnd = (event, release = true) => {
     const pointers = pointersRef.current;
+    if (!pointers.has(event.pointerId)) return;
     pointers.delete(event.pointerId);
-    if (event.currentTarget.hasPointerCapture?.(event.pointerId))
+    if (release && event.currentTarget.hasPointerCapture?.(event.pointerId))
       event.currentTarget.releasePointerCapture(event.pointerId);
     const remaining = [...pointers.values()];
     gestureRef.current = remaining.length === 1
@@ -160,6 +184,8 @@ function DriveGalleryPhoto({ item }) {
       <div ref={viewportRef} className={`drive-gallery-viewport${view.scale > 1 ? " is-zoomed" : ""}`}
         onPointerDown={pointerDown} onPointerMove={pointerMove}
         onPointerUp={pointerEnd} onPointerCancel={pointerEnd}
+        onLostPointerCapture={(event) => pointerEnd(event, false)}
+        onDragStart={(event) => event.preventDefault()}
         onDoubleClick={(event) => {
           if (view.scale > MIN_IMAGE_SCALE) setView({ ...INITIAL_IMAGE_VIEW });
           else zoomTo(2, event.clientX, event.clientY);

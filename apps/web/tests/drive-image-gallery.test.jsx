@@ -136,4 +136,50 @@ describe("Drive folder-scoped image previews", () => {
     await waitFor(() => expect(screen.getByRole("img", { name: "first.jpg" })).toBeTruthy());
     expect(screen.getByText("1 / 2")).toBeTruthy();
   });
+
+  it("allows repeated mouse drags and blocks the browser's native image drag", async () => {
+    showGallery();
+    const image = await screen.findByRole("img", { name: "third.jpg" });
+    const viewport = document.querySelector(".drive-gallery-viewport");
+    viewport.getBoundingClientRect = () => ({ left: 0, top: 0, width: 600, height: 400 });
+    Object.defineProperty(image, "clientWidth", { configurable: true, value: 600 });
+    Object.defineProperty(image, "clientHeight", { configurable: true, value: 300 });
+    fireEvent.load(image);
+    for (let index = 0; index < 4; index++)
+      fireEvent.click(screen.getByRole("button", { name: "Zoom in" }));
+    expect(screen.getByText("200%")).toBeTruthy();
+
+    fireEvent.pointerDown(viewport, { pointerId: 1, pointerType: "mouse", button: 0, buttons: 1, clientX: 200, clientY: 150 });
+    fireEvent.pointerMove(viewport, { pointerId: 1, pointerType: "mouse", buttons: 1, clientX: 230, clientY: 150 });
+    fireEvent.pointerUp(viewport, { pointerId: 1, pointerType: "mouse", button: 0, buttons: 0, clientX: 230, clientY: 150 });
+    expect(image.style.transform).toContain("translate3d(30px, 0px, 0)");
+
+    fireEvent.pointerDown(viewport, { pointerId: 1, pointerType: "mouse", button: 0, buttons: 1, clientX: 230, clientY: 150 });
+    fireEvent.pointerMove(viewport, { pointerId: 1, pointerType: "mouse", buttons: 1, clientX: 260, clientY: 150 });
+    fireEvent.pointerUp(viewport, { pointerId: 1, pointerType: "mouse", button: 0, buttons: 0, clientX: 260, clientY: 150 });
+    expect(image.style.transform).toContain("translate3d(60px, 0px, 0)");
+
+    expect(image.draggable).toBe(false);
+    const nativeDrag = new Event("dragstart", { bubbles: true, cancelable: true });
+    image.dispatchEvent(nativeDrag);
+    expect(nativeDrag.defaultPrevented).toBe(true);
+  });
+
+  it("recovers when pointer capture is lost between drags", async () => {
+    showGallery();
+    const image = await screen.findByRole("img", { name: "third.jpg" });
+    const viewport = document.querySelector(".drive-gallery-viewport");
+    viewport.getBoundingClientRect = () => ({ left: 0, top: 0, width: 600, height: 400 });
+    Object.defineProperty(image, "clientWidth", { configurable: true, value: 600 });
+    Object.defineProperty(image, "clientHeight", { configurable: true, value: 300 });
+    fireEvent.load(image);
+    for (let index = 0; index < 4; index++)
+      fireEvent.click(screen.getByRole("button", { name: "Zoom in" }));
+
+    fireEvent.pointerDown(viewport, { pointerId: 4, pointerType: "mouse", button: 0, buttons: 1, clientX: 200, clientY: 150 });
+    fireEvent.lostPointerCapture(viewport, { pointerId: 4, pointerType: "mouse" });
+    fireEvent.pointerDown(viewport, { pointerId: 4, pointerType: "mouse", button: 0, buttons: 1, clientX: 200, clientY: 150 });
+    fireEvent.pointerMove(viewport, { pointerId: 4, pointerType: "mouse", buttons: 1, clientX: 240, clientY: 150 });
+    expect(image.style.transform).toContain("translate3d(40px, 0px, 0)");
+  });
 });

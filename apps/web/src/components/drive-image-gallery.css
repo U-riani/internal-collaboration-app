@@ -30,6 +30,9 @@
   min-height: 0;
   overflow: hidden;
   touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
   cursor: zoom-in;
 }
 .drive-image-lightbox .drive-gallery-viewport.is-zoomed { cursor: grab; }
