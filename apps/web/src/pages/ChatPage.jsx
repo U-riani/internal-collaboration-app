@@ -51,6 +51,7 @@ import { api, uploadFiles } from "../lib/api.js";
 import { SelectedFiles, useSelectedFiles } from "../components/SelectedFiles.jsx";
 import MessageAttachments from "../components/MessageAttachments.jsx";
 import { isImageOnlyMessage } from "../lib/image-preview.js";
+import { getMessageGroupPosition } from "../lib/message-grouping.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useSocket } from "../hooks/useSocket.js";
 import PageHeader from "../components/PageHeader.jsx";
@@ -1209,6 +1210,8 @@ export default function ChatPage() {
   const [nearBottom, setNearBottom] = useState(true);
   const [composerEmojiOpen, setComposerEmojiOpen] = useState(false);
   const [reactionFor, setReactionFor] = useState(null);
+  const [activeMessageId, setActiveMessageId] = useState(null);
+  const [messageActionsAbove, setMessageActionsAbove] = useState(false);
   const reactionEmojiAnchorRef = useRef(null);
   const composerEmojiAnchorRef = useRef(null);
   const [pinsOpen, setPinsOpen] = useState(false);
@@ -1258,6 +1261,29 @@ export default function ChatPage() {
       document.removeEventListener("keydown", onKeyDown);
     };
   }, [groupMenuOpen]);
+
+  useEffect(() => {
+    if (!activeMessageId) return;
+    const onPointerDown = (event) => {
+      if (
+        event.target.closest?.("[data-chat-message-id]") ||
+        event.target.closest?.(".chat-emoji-menu")
+      ) return;
+      setActiveMessageId(null);
+      setReactionFor(null);
+    };
+    const onKeyDown = (event) => {
+      if (event.key !== "Escape") return;
+      setActiveMessageId(null);
+      setReactionFor(null);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [activeMessageId]);
 
   const conversations = useQuery({
     queryKey: ["conversations"],
@@ -1521,6 +1547,7 @@ export default function ChatPage() {
     setSearchOpen(false);
     setComposerEmojiOpen(false);
     setReactionFor(null);
+    setActiveMessageId(null);
     setPinsOpen(false);
     setGroupMenuOpen(false);
     setRenameGroup(false);
@@ -1745,7 +1772,22 @@ export default function ChatPage() {
   const startReply = (message) => {
     setReply(message);
     setReactionFor(null);
+    setActiveMessageId(null);
     window.requestAnimationFrame(() => composer.current?.focus());
+  };
+  const toggleMessageActions = (event, messageId) => {
+    // Attachments and links must keep their existing click behavior.
+    const control = event.target.closest?.("button, a, input, textarea, select, [role='button']");
+    if (control && control !== event.currentTarget) return;
+    const messageBounds = event.currentTarget.getBoundingClientRect();
+    const scrollBounds = scrollArea.current?.getBoundingClientRect();
+    const bottomEdge = scrollBounds?.bottom ?? window.innerHeight;
+    const topEdge = scrollBounds?.top ?? 0;
+    setMessageActionsAbove(
+      bottomEdge - messageBounds.bottom < 85 && messageBounds.top - topEdge >= 85,
+    );
+    setReactionFor(null);
+    setActiveMessageId((current) => current === messageId ? null : messageId);
   };
   const insertComposerEmoji = (emoji) => {
     const input = composer.current;
@@ -2191,8 +2233,10 @@ export default function ChatPage() {
               </header>
               <div
                 ref={scrollArea}
-                className="chat-messages-scroll flex-1 overflow-y-auto p-3 sm:p-5 space-y-5 bg-slate-50/50"
+                className="chat-messages-scroll flex-1 overflow-y-auto p-3 sm:p-5 bg-slate-50/50"
                 onScroll={(event) => {
+                  setActiveMessageId(null);
+                  setReactionFor(null);
                   const element = event.currentTarget;
                   const distanceFromBottom = Math.max(
                     0,
@@ -2222,6 +2266,12 @@ export default function ChatPage() {
                     {allMessages.map((m, index) => {
                       const own = m.senderId === user.id;
                       const imageOnly = isImageOnlyMessage(m);
+                      const { startsGroup, endsGroup } = getMessageGroupPosition(
+                        allMessages,
+                        index,
+                        unreadMarker?.conversationId === selectedId ? unreadMarker.messageId : null,
+                      );
+                      const actionsOpen = activeMessageId === m.id;
                       const showDateDivider = index === 0 ||
                         chatDateKey(allMessages[index - 1].createdAt) !== chatDateKey(m.createdAt);
                       const reactionGroups = groupedReactions(
@@ -2258,25 +2308,37 @@ export default function ChatPage() {
                             enabled={Boolean(unread)}
                             messageId={m.id}
                             onRead={queueMessageRead}
-                            className={`chat-message-row flex gap-2 ${own ? "chat-message-own flex-row-reverse" : "chat-message-incoming"} ${focusMessageId === m.id ? "rounded-xl ring-2 ring-blue-300 ring-offset-2" : ""}`}
+                            className={`chat-message-row flex gap-2 ${own ? "chat-message-own flex-row-reverse" : "chat-message-incoming"} ${startsGroup ? "chat-message-group-start" : "chat-message-group-continuation"} ${focusMessageId === m.id ? "rounded-xl ring-2 ring-blue-300 ring-offset-2" : ""}`}
                           >
                             {!own && (
-                              <Avatar small name={m.sender.displayName} userId={m.sender.id} />
-                            )}
-                            <div className="max-w-[90%] sm:max-w-[78%] min-w-0">
-                              <div
-                                className={`chat-message-meta mb-1 text-[10px] text-slate-400 ${own ? "text-right" : ""}`}
-                              >
-                                {own ? "You" : m.sender.displayName} ·{" "}
-                                {new Date(m.createdAt).toLocaleTimeString([], {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}
-                                {m.editedAt ? " · edited" : ""}
-                                {m.pin ? " · 📌 Pinned" : ""}
+                              <div className="chat-message-avatar-slot" aria-hidden={!startsGroup}>
+                                {startsGroup && <Avatar small name={m.sender.displayName} userId={m.sender.id} />}
                               </div>
+                            )}
+                            <div className="chat-message-content max-w-[90%] sm:max-w-[78%] min-w-0">
+                              {startsGroup && (
+                                <div className={`chat-message-meta mb-1 text-[10px] text-slate-400 ${own ? "text-right" : ""}`}>
+                                  {own ? "You" : m.sender.displayName} ·{" "}
+                                  {new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                  {m.editedAt ? " · edited" : ""}
+                                  {m.pin ? " · 📌 Pinned" : ""}
+                                </div>
+                              )}
+                              <div className="chat-message-shell" data-chat-message-id={m.id}>
                               <div
-                                className={`chat-message-bubble px-2.5 py-2 rounded-2xl ${own ? "bg-blue-600 text-white rounded-tr-md" : "bg-white border border-slate-200 rounded-tl-md"} ${imageOnly ? "chat-image-only-bubble" : ""}`}
+                                className={`chat-message-bubble px-2.5 py-2 rounded-2xl ${own ? "bg-blue-600 text-white rounded-tr-md" : "bg-white border border-slate-200 rounded-tl-md"} ${imageOnly ? "chat-image-only-bubble" : ""} ${!m.deletedAt ? "chat-message-interactive" : ""}`}
+                                role={!m.deletedAt ? "button" : undefined}
+                                tabIndex={!m.deletedAt ? 0 : undefined}
+                                aria-expanded={!m.deletedAt ? actionsOpen : undefined}
+                                aria-label={!m.deletedAt ? `${m.content || "Attachment"}. Press Enter to show message actions.` : undefined}
+                                aria-controls={!m.deletedAt && actionsOpen ? `message-actions-${m.id}` : undefined}
+                                title={`${new Date(m.createdAt).toLocaleString()}${m.editedAt ? " · edited" : ""}${m.pin ? " · Pinned" : ""}`}
+                                onClick={!m.deletedAt ? (event) => toggleMessageActions(event, m.id) : undefined}
+                                onKeyDown={!m.deletedAt ? (event) => {
+                                  if (event.target !== event.currentTarget || !["Enter", " "].includes(event.key)) return;
+                                  event.preventDefault();
+                                  toggleMessageActions(event, m.id);
+                                } : undefined}
                               >
                                 {m.replyToMessage && (
                                   <div className="border-l-2 pl-2 mb-3 opacity-60 text-xs truncate">
@@ -2339,9 +2401,12 @@ export default function ChatPage() {
                                   />
                                 </div>
                               )}
-                              {!m.deletedAt && (
+                              {!m.deletedAt && actionsOpen && (
                                 <div
-                                  className={`chat-message-actions flex gap-1 mt-1 ${own ? "justify-end" : ""}`}
+                                  id={`message-actions-${m.id}`}
+                                  role="toolbar"
+                                  aria-label="Message actions"
+                                  className={`chat-message-actions flex gap-1 ${messageActionsAbove ? "chat-message-actions-above" : ""} ${own ? "justify-end" : ""}`}
                                 >
                                   <button
                                     title="Reply"
@@ -2412,6 +2477,7 @@ export default function ChatPage() {
                                         aria-label="Edit message"
                                         className="icon-btn p-1"
                                         onClick={() => {
+                                          setActiveMessageId(null);
                                           setEditing(m);
                                           setEditText(m.content);
                                         }}
@@ -2422,15 +2488,33 @@ export default function ChatPage() {
                                         title="Delete message"
                                         aria-label="Delete message"
                                         className="icon-btn p-1"
-                                        onClick={() => setDeleting(m)}
+                                        onClick={() => {
+                                          setActiveMessageId(null);
+                                          setDeleting(m);
+                                        }}
                                       >
                                         <Trash2 size={12} />
                                       </button>
                                     </>
                                   )}
+                                  {own && !endsGroup && (
+                                    <div className="chat-message-actions-receipt">
+                                      <MessageReceiptStatus
+                                        message={m}
+                                        conversation={selected}
+                                        onOpen={setReceiptDetails}
+                                      />
+                                    </div>
+                                  )}
+                                  <div className="chat-message-actions-meta">
+                                    {new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                    {m.editedAt ? " · edited" : ""}
+                                    {m.pin ? " · Pinned" : ""}
+                                  </div>
                                 </div>
                               )}
-                              {own && !m.deletedAt && (
+                              </div>
+                              {own && !m.deletedAt && endsGroup && (
                                 <div className="mt-1 flex justify-end">
                                   <MessageReceiptStatus
                                     message={m}
