@@ -318,6 +318,38 @@ body:has(.app-theme-dark) { background: #0a0f1d; }
   background: var(--app-interactive-hover);
   color: var(--app-interactive-hover-text);
 }
+/* Shared Messages / Drive selection checkbox, independent of browser defaults. */
+.app-theme-dark .selection-checkbox {
+  appearance: none;
+  display: inline-grid;
+  place-content: center;
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  border: 1px solid var(--app-border-strong);
+  border-radius: 5px;
+  background: var(--app-surface-input);
+  cursor: pointer;
+}
+.app-theme-dark .selection-checkbox:checked {
+  border-color: var(--app-interactive-selected);
+  background: var(--app-interactive-selected);
+}
+.app-theme-dark .selection-checkbox:checked::after {
+  content: "";
+  width: 5px;
+  height: 9px;
+  margin-top: -2px;
+  border: solid var(--app-interactive-selected-text);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.app-theme-dark .selection-checkbox:focus-visible {
+  outline: 2px solid var(--app-interactive-focus);
+  outline-offset: 3px;
+}
+.app-theme-dark .selection-checkbox:disabled { cursor: not-allowed; }
 .app-theme-dark .btn-danger {
   color: var(--app-danger);
   border-color: #713747;

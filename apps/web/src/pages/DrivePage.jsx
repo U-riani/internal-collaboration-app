@@ -6,6 +6,7 @@ import {
   Folder,
   FileText,
   FileSpreadsheet,
+  FileImage,
   Upload,
   FolderPlus,
   ChevronRight,
@@ -24,6 +25,9 @@ import {
   LockKeyhole,
 } from "lucide-react";
 import { api, downloadFile } from "../lib/api.js";
+import { isInlineImage } from "../lib/image-preview.js";
+import DriveImageGallery from "../components/DriveImageGallery.jsx";
+import DriveArchiveModal from "../components/DriveArchiveModal.jsx";
 import DriveUploadModal from "../components/DriveUploadModal.jsx";
 import { importExcelToUniverSnapshot } from "../lib/xlsx.js";
 import PageHeader from "../components/PageHeader.jsx";
@@ -69,6 +73,7 @@ function driveFileExtension(item, spreadsheet) {
 function driveFileTone(item, spreadsheet) {
   if (item.kind === "FOLDER") return "folder";
   if (spreadsheet) return "sheet";
+  if (isInlineImage(item.file)) return "image";
   const ext = driveFileExtension(item, false);
   if (["XLSX", "XLS", "XLSM", "CSV"].includes(ext)) return "sheet";
   if (ext === "PDF") return "pdf";
@@ -982,6 +987,10 @@ export default function DrivePage() {
                   item.access === "OWNER" || item.access === "MANAGER";
                 const canDelete = deleteAccess.has(item.access);
                 const spreadsheet = isSpreadsheet(item);
+                const previewable =
+                  section !== "trash" &&
+                  item.kind === "FILE" &&
+                  isInlineImage(item.file);
                 const fileType = driveFileExtension(item, spreadsheet);
                 return (
                   <div className={`drive-item-row list-row ${unifiedDirectoryView ? "drive-directory-row" : ""} ${section === "personal" ? "drive-personal-row" : section === "shared" ? "drive-shared-row" : section === "shared-with-me" ? "drive-shared-with-me-row" : section === "trash" ? "drive-trash-row" : ""}`} key={item.id}>
@@ -998,18 +1007,29 @@ export default function DrivePage() {
                         <Folder size={21} />
                       ) : spreadsheet ? (
                         <FileSpreadsheet size={21} />
+                      ) : previewable ? (
+                        <FileImage size={21} />
                       ) : (
                         <FileText size={21} />
                       )}
                     </div>
                     <button
-                      className="min-w-0 flex-1 text-left"
+                      className={`min-w-0 flex-1 text-left ${previewable ? "drive-image-name-button" : ""}`}
                       disabled={section === "trash"}
+                      title={previewable ? `Preview ${item.name}` : undefined}
                       onClick={() => {
                         if (item.kind === "FOLDER") {
                           setParent(item.id);
                         } else if (spreadsheet) {
                           window.location.assign(`/drive/sheets/${item.id}`);
+                        } else if (previewable) {
+                          setModal({
+                            kind: "image",
+                            item,
+                            items: query.data?.data || [],
+                            section,
+                            search,
+                          });
                         } else {
                           act(() => downloadFile(item.file.id, item.name));
                         }
@@ -1081,22 +1101,24 @@ export default function DrivePage() {
                           </div>
                           <div>
                             {item.kind === "FILE" && (
-                              <button
-                                aria-label={`Download ${item.name}`}
-                                title={
-                                  spreadsheet
-                                    ? "Download as Excel (.xlsx)"
-                                    : "Download"
-                                }
-                                className="icon-btn"
-                                onClick={() =>
-                                  act(() =>
-                                    downloadFile(item.file.id, item.name),
-                                  )
-                                }
-                              >
-                                <Download size={16} />
-                              </button>
+                              <>
+                                <button
+                                  aria-label={`Download ${item.name}`}
+                                  title={
+                                    spreadsheet
+                                      ? "Download as Excel (.xlsx)"
+                                      : "Download"
+                                  }
+                                  className="icon-btn"
+                                  onClick={() =>
+                                    act(() =>
+                                      downloadFile(item.file.id, item.name),
+                                    )
+                                  }
+                                >
+                                  <Download size={16} />
+                                </button>
+                              </>
                             )}
                             {canEdit && (
                               <button
@@ -1173,14 +1195,36 @@ export default function DrivePage() {
             </div>
           </div>
 
-          <p className={`mt-0 text-xs text-slate-400 ${unifiedDirectoryView ? "drive-directory-summary" : ""} ${section === "personal" ? "drive-personal-summary" : section === "shared" ? "drive-shared-summary" : section === "shared-with-me" ? "drive-shared-with-me-summary" : section === "trash" ? "drive-trash-summary" : ""}`}>
-            {query.data?.data.length || 0} items
-            {section === "personal" &&
-              ` · ${fileSize(query.data?.meta.usedBytes || 0)} in Personal`}
-            {section === "shared" && ` · ${listedFilesSize} in Shared`}
-            {section === "shared-with-me" && ` · ${listedFilesSize} in Shared with me`}
-            {section === "trash" && ` · ${listedFilesSize} in Trash`}
-          </p>
+          <div className={`mt-0 text-xs text-slate-400 ${unifiedDirectoryView ? "drive-directory-summary" : ""} ${section === "personal" ? "drive-personal-summary" : section === "shared" ? "drive-shared-summary" : section === "shared-with-me" ? "drive-shared-with-me-summary" : section === "trash" ? "drive-trash-summary" : ""}`}>
+            <span>
+              {query.data?.data.length || 0} items
+              {section === "personal" &&
+                ` · ${fileSize(query.data?.meta.usedBytes || 0)} in Personal`}
+              {section === "shared" && ` · ${listedFilesSize} in Shared`}
+              {section === "shared-with-me" && ` · ${listedFilesSize} in Shared with me`}
+              {section === "trash" && ` · ${listedFilesSize} in Trash`}
+            </span>
+            {section !== "trash" && (
+              <button
+                type="button"
+                className="btn-secondary drive-footer-download"
+                disabled={!queryEnabled || query.isLoading}
+                onClick={() => setModal({
+                  kind: "archive",
+                  scope: {
+                    view: section,
+                    ...(section !== "shared-with-me" && spaceId ? { spaceId } : {}),
+                    ...(parent ? { parentId: parent } : {}),
+                  },
+                  locationName: query.data?.meta?.folder?.name ||
+                    selectedSpace?.name ||
+                    (section === "shared-with-me" ? "Shared with me" : "Personal"),
+                })}
+              >
+                <Download size={14} /> Download
+              </button>
+            )}
+          </div>
         </main>
       </div>
       </div>
@@ -1191,6 +1235,24 @@ export default function DrivePage() {
           initialParentId={modal.parentId}
           initialName={modal.name}
           onUploaded={reload}
+          onClose={() => setModal(null)}
+        />
+      )}
+
+      {modal?.kind === "image" && (
+        <DriveImageGallery
+          selected={modal.item}
+          visibleItems={modal.items}
+          section={modal.section}
+          search={modal.search}
+          onClose={() => setModal(null)}
+        />
+      )}
+
+      {modal?.kind === "archive" && (
+        <DriveArchiveModal
+          scope={modal.scope}
+          locationName={modal.locationName}
           onClose={() => setModal(null)}
         />
       )}

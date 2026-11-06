@@ -49,6 +49,11 @@ export function Modal({ title, children, onClose, wide = false, headerIcon = nul
     </dialog>
   );
 }
+// Shared checkbox styling, originally used by Messages' member selector.
+// Keep the native input accessible and let its parent label handle row clicks.
+export function SelectionCheckbox({ className = "", ...props }) {
+  return <input type="checkbox" className={`selection-checkbox ${className}`.trim()} {...props} />;
+}
 export function Field({ label, children, ...props }) {
   const id = useId();
   return (

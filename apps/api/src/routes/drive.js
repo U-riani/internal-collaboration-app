@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { Readable } from "node:stream";
 import { z } from "zod";
 import { parse } from "../lib/validation.js";
 import { hasPermission, hasRole, requirePermission } from "../lib/authz.js";
@@ -18,6 +19,14 @@ import {
 } from "../lib/drive-access.js";
 import { requireOwnUploads } from "../lib/file-access.js";
 import { audit } from "../lib/audit.js";
+import { createFileZipStream } from "../lib/image-zip.js";
+import {
+  archiveItemsInLocation,
+  driveArchiveCategory,
+  driveArchiveTypes,
+  UNIVER_SHEET_MIME,
+} from "../lib/drive-archive.js";
+import { univerSnapshotToXlsxBuffer } from "../lib/univer-xlsx.js";
 
 const name = z
   .string()
@@ -53,6 +62,12 @@ const memberSchema = z.object({
   role: z.enum(["VIEWER", "EDITOR", "MANAGER"]),
 });
 
+const archiveScopeSchema = z.object({
+  view: z.enum(["personal", "shared", "shared-with-me"]),
+  spaceId: z.uuid().optional(),
+  parentId: z.uuid().nullable().optional(),
+});
+
 export default async function driveRoutes(app) {
   app.addHook("preHandler", app.authenticate);
   app.addHook("preHandler", async (request) =>
@@ -80,6 +95,100 @@ export default async function driveRoutes(app) {
       include: spaceInclude,
     });
   }
+
+  async function resolveArchiveLocation(user, scope) {
+    const tree = await driveTree(app.prisma);
+    const folder = scope.parentId ? tree.get(scope.parentId) : null;
+    if (scope.parentId && !folder)
+      throw new HttpError(404, "DRIVE_NOT_FOUND", "Folder was not found");
+    if (folder && scope.spaceId && folder.spaceId !== scope.spaceId)
+      throw new HttpError(400, "DRIVE_SPACE_MISMATCH", "Folder is in another space");
+    if (scope.view !== "shared-with-me" && !scope.spaceId && !folder)
+      throw new HttpError(400, "DRIVE_SPACE_REQUIRED", "Select a Drive space");
+    const space = !folder && scope.view !== "shared-with-me"
+      ? await loadSpace(app.prisma, scope.spaceId)
+      : null;
+    if (!folder && scope.view !== "shared-with-me" && !space)
+      throw new HttpError(404, "DRIVE_SPACE_NOT_FOUND", "Drive space was not found");
+
+    const visible = archiveItemsInLocation({ tree, user, view: scope.view, space, folder });
+    if (!visible.length) return [];
+    const fullFiles = await app.prisma.fileObject.findMany({
+      where: {
+        id: { in: visible.map((item) => item.fileId) },
+        deletedAt: null,
+        scanStatus: { not: "INFECTED" },
+      },
+    });
+    const byId = new Map(fullFiles.map((file) => [file.id, file]));
+    return visible
+      .filter((item) => byId.has(item.fileId))
+      .map((item) => ({ ...item, file: byId.get(item.fileId) }));
+  }
+
+  app.get("/archive/options", async (request) => {
+    const scope = parse(archiveScopeSchema, request.query);
+    const items = await resolveArchiveLocation(request.authUser, scope);
+    return {
+      success: true,
+      data: {
+        types: driveArchiveTypes(items),
+        totalFiles: items.length,
+      },
+    };
+  });
+
+  app.post("/archive", { config: { rateLimit: { max: 6, timeWindow: "1 minute" } } }, async (request, reply) => {
+    const input = parse(archiveScopeSchema.extend({
+      types: z.array(z.string().regex(/^(?:[a-z]+|ext:[a-z0-9]{1,12})$/)).min(1).max(100).optional(),
+    }), request.body);
+    const items = await resolveArchiveLocation(request.authUser, input);
+    const available = new Set(driveArchiveTypes(items).map((type) => type.id));
+    if (input.types?.some((type) => !available.has(type)))
+      throw new HttpError(400, "DRIVE_ARCHIVE_TYPE_NOT_FOUND", "A file type is not available in this folder");
+    const selected = items.filter((item) => !input.types || input.types.includes(driveArchiveCategory(item)));
+    if (!selected.length)
+      throw new HttpError(404, "DRIVE_ARCHIVE_EMPTY", "No files to download in this location");
+
+    const archive = createFileZipStream(selected.map((item) => {
+      const file = item.file;
+      if (file.mimeType === UNIVER_SHEET_MIME) {
+        return {
+          originalName: /\.xlsx$/i.test(item.name) ? item.name : `${item.name}.xlsx`,
+          prepare: async () => {
+            const rows = await app.prisma.$queryRaw`
+              SELECT "snapshot" FROM "DriveSheet"
+              WHERE "driveItemId" = ${item.id}::uuid LIMIT 1
+            `;
+            if (!rows[0]) throw new Error("Spreadsheet snapshot not found");
+            const bytes = await univerSnapshotToXlsxBuffer(rows[0].snapshot);
+            return {
+              sizeBytes: bytes.length,
+              open: () => Readable.from([bytes]),
+            };
+          },
+        };
+      }
+      return {
+        originalName: item.name,
+        sizeBytes: file.sizeBytes,
+        open: () => app.minio.getObject(file.bucket, file.objectKey),
+      };
+    }));
+    await audit(app, request, {
+      actionType: "DRIVE_ARCHIVE_DOWNLOAD_STARTED",
+      entityType: "DRIVE_ITEM",
+      entityId: input.parentId || null,
+      metadata: { spaceId: input.spaceId || selected[0].spaceId, fileCount: selected.length },
+    });
+    return reply
+      .header("cache-control", "private, no-store")
+      .header("x-content-type-options", "nosniff")
+      .header("x-accel-buffering", "no")
+      .header("content-disposition", 'attachment; filename="drive-files.zip"')
+      .type("application/zip")
+      .send(archive);
+  });
 
   async function manageItem(user, item, tree) {
     if (!item)

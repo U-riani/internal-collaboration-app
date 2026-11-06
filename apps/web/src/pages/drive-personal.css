@@ -338,6 +338,24 @@
   border-radius: 50%;
   background: var(--app-secondary, #06b6d4);
 }
+.drive-page .drive-footer-download.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-left: auto;
+  padding: 5px 10px;
+  border: 1px solid var(--app-border-strong);
+  border-radius: 8px;
+  color: var(--app-text-strong);
+  background: var(--app-surface-input);
+  font-size: 11px;
+  font-weight: 650;
+}
+.drive-page .drive-footer-download.btn-secondary:hover:not(:disabled),
+.drive-page .drive-footer-download.btn-secondary:focus-visible {
+  color: var(--app-interactive-hover-text);
+  background: var(--app-interactive-hover);
+}
 @media (max-width: 900px) {
   .drive-page {
     margin: 0 -14px;
@@ -923,5 +941,33 @@ dialog.modal:has(.drive-permission-access-select) input.input:focus {
   .drive-permission-access-select {
     flex-basis: 120px;
     width: 120px !important;
+  }
+}
+
+/* Natural-height rows for small folders, bounded scrolling for large folders.
+ * Reserve viewport room for the summary + Download action instead of forcing
+ * the list to fill every available pixel. Applies to every Drive tab. */
+.drive-page .drive-directory-list {
+  max-height: clamp(180px, calc(100dvh - 395px), 520px) !important;
+  overflow-y: auto;
+}
+/* The footer is a sibling of the scrollable list, so it never scrolls with
+ * the files or covers the final row. Keep it visible on compact viewports. */
+.drive-page .drive-directory-summary {
+  position: sticky;
+  bottom: 0;
+  z-index: 6;
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
+}
+@media (max-width: 900px) {
+  .drive-page .drive-directory-list {
+    max-height: clamp(170px, calc(100dvh - 350px), 460px) !important;
+  }
+}
+@media (max-width: 640px) {
+  .drive-page .drive-directory-list {
+    max-height: clamp(150px, calc(100dvh - 440px), 400px) !important;
   }
 }

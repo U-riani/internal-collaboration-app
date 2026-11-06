@@ -317,6 +317,36 @@ export async function downloadMessageImages(conversationId, messageId) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+// The server resolves the current Drive location and verifies each file's
+// access before streaming one ZIP. Never trust client-selected file IDs.
+export async function downloadDriveArchive(scope, types, filename = "drive-files") {
+  const load = () => fetch("/api/v1/drive/archive", {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${getAccessToken()}`,
+      "content-type": "application/json",
+    },
+    credentials: "include",
+    body: JSON.stringify({ ...scope, ...(types ? { types } : {}) }),
+  });
+  let response = await load();
+  if (response.status === 401) {
+    await refreshSession();
+    response = await load();
+  }
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.error?.message || "Could not prepare Drive archive");
+  }
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${filename.replace(/[^\p{L}\p{N} _.-]/gu, "_").slice(0, 100) || "drive-files"}.zip`;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 export async function downloadFile(id, filename) {
   try {
     const sheetLink = await api(`/drive/sheets/by-file/${id}`);
