@@ -1702,7 +1702,18 @@
 
 /* Messages: conversation-only drag-and-drop attachment overlay. Matches the
    Drive uploader's dashed frame and file/folder icon family. */
-.messages-page .chat-conversation { position: relative; }
+.messages-page .chat-messages-drop-zone {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+.messages-page .chat-messages-drop-zone > .chat-messages-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+}
 .messages-page .chat-file-drop-overlay {
   position: absolute;
   z-index: 45;

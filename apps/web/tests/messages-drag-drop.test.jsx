@@ -46,7 +46,7 @@ function mount() {
 async function openChat(name) {
   const user = userEvent.setup();
   await user.click(await screen.findByRole("button", { name }));
-  const zone = document.querySelector(".chat-conversation");
+  const zone = document.querySelector(".chat-messages-drop-zone");
   expect(zone).toBeTruthy();
   return { zone, user };
 }
@@ -61,11 +61,36 @@ describe("Messages drag-and-drop attachments", () => {
     expect(screen.queryByText("Drop files here")).toBeNull();
     fireEvent.dragEnter(zone, drag([]));
     expect(screen.getByText("Drop files here")).toBeTruthy();
-    fireEvent.dragEnter(zone.querySelector("header"), drag([]));
-    fireEvent.dragLeave(zone.querySelector("header"), drag([]));
+    fireEvent.dragEnter(zone.querySelector(".chat-messages-scroll"), drag([]));
+    fireEvent.dragLeave(zone.querySelector(".chat-messages-scroll"), drag([]));
     expect(screen.getByText("Drop files here")).toBeTruthy();
     fireEvent.dragLeave(zone, drag([]));
     expect(screen.queryByText("Drop files here")).toBeNull();
+  });
+
+  it("confines the overlay and drop handler to messages content, not header or composer", async () => {
+    conversationType = "DIRECT";
+    mount();
+    const { zone } = await openChat(/Colleague/);
+    const header = document.querySelector(".chat-conversation > header");
+    const footer = document.querySelector(".chat-composer");
+    const file = new File(["draft"], "inside.txt");
+    expect(zone.previousElementSibling).toBe(header);
+    expect(zone.nextElementSibling).toBe(footer);
+    fireEvent.dragEnter(header, drag([file]));
+    fireEvent.drop(header, drag([file]));
+    fireEvent.dragEnter(footer, drag([file]));
+    fireEvent.drop(footer, drag([file]));
+    expect(screen.queryByText("Drop files here")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Remove inside.txt" })).toBeNull();
+    fireEvent.dragEnter(zone, drag([file]));
+    const overlay = screen.getByRole("status", { name: "Drop files here" });
+    expect(overlay.parentElement).toBe(zone);
+    expect(zone.contains(overlay)).toBe(true);
+    expect(header.contains(overlay)).toBe(false);
+    expect(footer.contains(overlay)).toBe(false);
+    fireEvent.drop(zone, drag([file]));
+    expect(screen.getByRole("button", { name: "Remove inside.txt" })).toBeTruthy();
   });
 
   it("queues multiple dropped files without uploading or sending until Send is clicked", async () => {
