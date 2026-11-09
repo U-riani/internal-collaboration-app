@@ -1932,20 +1932,20 @@ export default function ChatPage() {
                     </div>
                   )}
                   <div className="chat-conversation-header-identity flex-1 min-w-0">
-                    {selected.type === "DIRECT" ? (
-                      <button
-                        type="button"
-                        className="chat-profile-name-trigger font-semibold text-sm truncate"
-                        aria-label={`View ${displayName(selected, user.id)} profile`}
-                        aria-expanded={userProfileOpen}
-                        aria-haspopup="dialog"
-                        onClick={() => setUserProfileOpen((open) => !open)}
-                      >
-                        {displayName(selected, user.id)}
-                      </button>
-                    ) : (
-                      <h2 className="font-semibold text-sm truncate">{displayName(selected, user.id)}</h2>
-                    )}
+                    <h2 className="font-semibold text-sm truncate">
+                      {selected.type === "DIRECT" ? (
+                        <button
+                          type="button"
+                          className="chat-profile-name-trigger font-semibold text-sm truncate"
+                          aria-label={`View ${displayName(selected, user.id)} profile`}
+                          aria-expanded={userProfileOpen}
+                          aria-haspopup="dialog"
+                          onClick={() => setUserProfileOpen((open) => !open)}
+                        >
+                          {displayName(selected, user.id)}
+                        </button>
+                      ) : displayName(selected, user.id)}
+                    </h2>
                     <p className="text-xs text-slate-400 mt-1">
                       {selected.members.length} members
                     </p>
