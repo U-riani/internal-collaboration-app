@@ -6,10 +6,12 @@ export function useSelectedFiles(maxFiles = Infinity) {
   const [files, setFiles] = useState([]);
   const [selectionError, setSelectionError] = useState("");
 
-  function addFiles(event) {
-    const incoming = Array.from(event.target.files || []);
+  function addFiles(input) {
+    // The native file picker and Messages drag & drop use the same selection
+    // pipeline (deduplication, limit, previews and manual send).
+    const incoming = Array.from(input?.target?.files ?? input ?? []);
     // Allow choosing the same file again after removing it.
-    event.target.value = "";
+    if (input?.target) input.target.value = "";
     if (!incoming.length) return;
 
     const next = [...files];

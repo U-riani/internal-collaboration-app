@@ -46,6 +46,8 @@ import {
   UserRoundPlus,
   UserRoundMinus,
   ShieldCheck,
+  FolderOpen,
+  FileImage,
 } from "lucide-react";
 import { api, uploadFiles } from "../lib/api.js";
 import { SelectedFiles, useSelectedFiles } from "../components/SelectedFiles.jsx";
@@ -82,6 +84,10 @@ const directPartnerId = (conversation, me) =>
     : undefined;
 
 const LAST_CHAT_KEY = "collab:last-selected-chat";
+
+// Restrict the chat drop surface to actual dragged files (not text or links).
+const hasDraggedFiles = (event) =>
+  Array.from(event.dataTransfer?.types || []).includes("Files");
 const CONVERSATION_FILTERS = [
   { id: "all", label: "All" },
   { id: "direct", label: "Direct" },
@@ -1191,6 +1197,8 @@ export default function ChatPage() {
   const [focusMessageId, setFocusMessageId] = useState(linkedMessageId);
   const [text, setText] = useState("");
   const { files, addFiles, removeFile, clearFiles, selectionError } = useSelectedFiles(10);
+  const [fileDragActive, setFileDragActive] = useState(false);
+  const fileDragDepth = useRef(0);
   const attachmentUploads = useRef(new Map());
   const [reply, setReply] = useState(null);
   const [newChat, setNewChat] = useState(false);
@@ -1225,6 +1233,30 @@ export default function ChatPage() {
   const composer = useRef(null);
   const scrollArea = useRef(null);
   const groupMenuRef = useRef(null);
+
+  useEffect(() => {
+    const resetDrag = () => {
+      fileDragDepth.current = 0;
+      setFileDragActive(false);
+    };
+    // Prevent the browser from navigating to a dropped local file.
+    // Other app drop handlers can still receive and process the event.
+    const preventBrowserFileOpen = (event) => {
+      if (hasDraggedFiles(event)) event.preventDefault();
+    };
+    window.addEventListener("dragover", preventBrowserFileOpen);
+    window.addEventListener("drop", preventBrowserFileOpen);
+    window.addEventListener("drop", resetDrag);
+    window.addEventListener("dragend", resetDrag);
+    window.addEventListener("blur", resetDrag);
+    return () => {
+      window.removeEventListener("dragover", preventBrowserFileOpen);
+      window.removeEventListener("drop", preventBrowserFileOpen);
+      window.removeEventListener("drop", resetDrag);
+      window.removeEventListener("dragend", resetDrag);
+      window.removeEventListener("blur", resetDrag);
+    };
+  }, []);
   const positionedConversation = useRef(null);
   const previousTail = useRef({ conversationId: null, messageId: null });
   const submittedReads = useRef(new Set());
@@ -1553,6 +1585,8 @@ export default function ChatPage() {
     setActiveMessageId(null);
     setPinsOpen(false);
     setUserProfileOpen(false);
+    fileDragDepth.current = 0;
+    setFileDragActive(false);
     setGroupMenuOpen(false);
     setRenameGroup(false);
     setLeaveGroupConfirm(false);
@@ -1902,7 +1936,9 @@ export default function ChatPage() {
             )}
           </div>
         </aside>
-        <section className={`chat-conversation flex-1 min-w-0 flex-col ${selectedId ? "flex" : "hidden sm:flex"}`}>
+        <section
+          className={`chat-conversation flex-1 min-w-0 flex-col ${selectedId ? "flex" : "hidden sm:flex"}`}
+        >
           {selected ? (
             <>
               <header className="flex items-center gap-2 border-b border-slate-100 px-3 py-3 sm:gap-3 sm:px-5 sm:py-4">
@@ -2269,7 +2305,34 @@ export default function ChatPage() {
                   </div>
                 )}
               </header>
-              <div
+              <div className="chat-messages-drop-zone"
+          onDragEnter={(event) => {
+            if (!selected || send.isPending || !hasDraggedFiles(event)) return;
+            event.preventDefault();
+            fileDragDepth.current += 1;
+            setFileDragActive(true);
+          }}
+          onDragOver={(event) => {
+            if (!selected || !hasDraggedFiles(event)) return;
+            event.preventDefault();
+            event.dataTransfer.dropEffect = send.isPending ? "none" : "copy";
+          }}
+          onDragLeave={(event) => {
+            if (!hasDraggedFiles(event)) return;
+            event.preventDefault();
+            fileDragDepth.current = Math.max(0, fileDragDepth.current - 1);
+            if (fileDragDepth.current === 0) setFileDragActive(false);
+          }}
+          onDrop={(event) => {
+            if (!hasDraggedFiles(event)) return;
+            event.preventDefault();
+            event.stopPropagation();
+            fileDragDepth.current = 0;
+            setFileDragActive(false);
+            if (selected && !send.isPending) addFiles(event.dataTransfer.files);
+          }}
+              >
+                <div
                 ref={scrollArea}
                 className="chat-messages-scroll flex-1 overflow-y-auto p-3 sm:p-5 bg-slate-50/50"
                 onScroll={(event) => {
@@ -2592,6 +2655,18 @@ export default function ChatPage() {
                   </>
                 )}
                 <ErrorBox error={messages.error} />
+                </div>
+                {selected && fileDragActive && (
+                  <div className="chat-file-drop-overlay" role="status" aria-label="Drop files here">
+                    <div className="chat-file-drop-icon" aria-hidden="true">
+                      <FileText size={18} className="chat-file-drop-float upper" />
+                      <FolderOpen size={38} />
+                      <FileImage size={17} className="chat-file-drop-float lower" />
+                    </div>
+                    <strong>Drop files here</strong>
+                    <span>Release to attach files to your message</span>
+                  </div>
+                )}
               </div>
               <div className="chat-composer border-t border-slate-100 p-4">
                 {reply && (

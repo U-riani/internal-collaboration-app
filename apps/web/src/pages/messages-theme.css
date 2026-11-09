@@ -1698,3 +1698,80 @@
   .app-theme-dark .chat-user-profile-card { padding: 16px 12px 12px; }
   .app-theme-dark .chat-user-profile-fields { gap: 9px; }
 }
+
+
+/* Messages: conversation-only drag-and-drop attachment overlay. Matches the
+   Drive uploader's dashed frame and file/folder icon family. */
+.messages-page .chat-messages-drop-zone {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+.messages-page .chat-messages-drop-zone > .chat-messages-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.messages-page .chat-file-drop-overlay {
+  position: absolute;
+  z-index: 45;
+  inset: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  gap: 7px;
+  border: 2px dashed var(--app-ui-focus-ring, #9187ff);
+  border-radius: 14px;
+  background: var(--app-ui-accent-tint, rgba(116, 102, 248, .16));
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+  color: var(--app-text-strong, #f2f3ff);
+  text-align: center;
+  pointer-events: none;
+}
+.messages-page .chat-file-drop-icon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 92px;
+  height: 70px;
+  margin-bottom: 3px;
+  color: var(--app-ui-focus-ring, #b5aeff);
+  filter: drop-shadow(0 4px 10px var(--app-ui-accent-shadow, rgba(115, 108, 245, .27)));
+}
+.messages-page .chat-file-drop-float {
+  position: absolute;
+  box-sizing: content-box;
+  padding: 5px;
+  border-radius: 7px;
+  background: var(--app-surface-raised, #293047);
+}
+.messages-page .chat-file-drop-float.upper {
+  top: 0;
+  right: 5px;
+  color: var(--app-ui-focus-ring, #70c9ed);
+}
+.messages-page .chat-file-drop-float.lower {
+  bottom: 1px;
+  left: 6px;
+  color: var(--app-ui-accent-selected, #b5a1ff);
+}
+.messages-page .chat-file-drop-overlay strong {
+  font-size: 15px;
+  font-weight: 750;
+}
+.messages-page .chat-file-drop-overlay > span {
+  padding: 0 16px;
+  color: var(--app-text, #e5e8f5);
+  font-size: 12px;
+}
+@media (max-width: 639px) {
+  .messages-page .chat-file-drop-overlay { inset: 5px; border-radius: 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .messages-page .chat-file-drop-overlay { transition: none; }
+}
