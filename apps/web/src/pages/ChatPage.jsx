@@ -55,6 +55,7 @@ import { getMessageGroupPosition } from "../lib/message-grouping.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useSocket } from "../hooks/useSocket.js";
 import PageHeader from "../components/PageHeader.jsx";
+import ChatUserProfileCard from "../components/ChatUserProfileCard.jsx";
 import "./messages-theme.css";
 import { getEmojiMenuPosition } from "../lib/emoji-picker-position.js";
 import { filterConversationMembers } from "../lib/conversation-member-search.js";
@@ -1215,6 +1216,8 @@ export default function ChatPage() {
   const reactionEmojiAnchorRef = useRef(null);
   const composerEmojiAnchorRef = useRef(null);
   const [pinsOpen, setPinsOpen] = useState(false);
+  const [userProfileOpen, setUserProfileOpen] = useState(false);
+  const profileAnchorRef = useRef(null);
   const [hasWindowAttention, setHasWindowAttention] = useState(
     () => document.visibilityState === "visible" && document.hasFocus(),
   );
@@ -1549,6 +1552,7 @@ export default function ChatPage() {
     setReactionFor(null);
     setActiveMessageId(null);
     setPinsOpen(false);
+    setUserProfileOpen(false);
     setGroupMenuOpen(false);
     setRenameGroup(false);
     setLeaveGroupConfirm(false);
@@ -1910,17 +1914,51 @@ export default function ChatPage() {
                 >
                   <ArrowLeft size={19} />
                 </button>
-                <div className="chat-conversation-header-avatar">
-                  <Avatar name={displayName(selected, user.id)} userId={directPartnerId(selected, user.id)} />
+                <div ref={profileAnchorRef} className="chat-header-person flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                  {selected.type === "DIRECT" ? (
+                    <button
+                      type="button"
+                      className="chat-profile-avatar-trigger chat-conversation-header-avatar"
+                      aria-label={`View ${displayName(selected, user.id)} profile`}
+                      aria-expanded={userProfileOpen}
+                      aria-haspopup="dialog"
+                      onClick={() => setUserProfileOpen((open) => !open)}
+                    >
+                      <Avatar name={displayName(selected, user.id)} userId={directPartnerId(selected, user.id)} />
+                    </button>
+                  ) : (
+                    <div className="chat-conversation-header-avatar">
+                      <Avatar name={displayName(selected, user.id)} />
+                    </div>
+                  )}
+                  <div className="chat-conversation-header-identity flex-1 min-w-0">
+                    {selected.type === "DIRECT" ? (
+                      <button
+                        type="button"
+                        className="chat-profile-name-trigger font-semibold text-sm truncate"
+                        aria-label={`View ${displayName(selected, user.id)} profile`}
+                        aria-expanded={userProfileOpen}
+                        aria-haspopup="dialog"
+                        onClick={() => setUserProfileOpen((open) => !open)}
+                      >
+                        {displayName(selected, user.id)}
+                      </button>
+                    ) : (
+                      <h2 className="font-semibold text-sm truncate">{displayName(selected, user.id)}</h2>
+                    )}
+                    <p className="text-xs text-slate-400 mt-1">
+                      {selected.members.length} members
+                    </p>
+                  </div>
                 </div>
-                <div className="chat-conversation-header-identity flex-1 min-w-0">
-                  <h2 className="font-semibold text-sm truncate">
-                    {displayName(selected, user.id)}
-                  </h2>
-                  <p className="text-xs text-slate-400 mt-1">
-                    {selected.members.length} members
-                  </p>
-                </div>
+                {userProfileOpen && selected.type === "DIRECT" && (
+                  <ChatUserProfileCard
+                    userId={directPartnerId(selected, user.id)}
+                    fallbackName={displayName(selected, user.id)}
+                    anchorRef={profileAnchorRef}
+                    onClose={() => setUserProfileOpen(false)}
+                  />
+                )}
                 <div className="chat-message-search relative">
                   <div className="relative">
                     <Search size={16} className="chat-search-icon" />
