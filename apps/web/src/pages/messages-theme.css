@@ -1602,3 +1602,99 @@
 @media (prefers-reduced-motion: reduce) {
   .app-theme-dark .chat-emoji-menu-category { transition: none; }
 }
+
+
+/* Direct-message header profile card. Uses shared palette tokens, not a
+   separate fixed-color popover; portal avoids chat-shell overflow clipping. */
+.messages-page .chat-header-person { min-width: 0; }
+.messages-page .chat-profile-avatar-trigger {
+  display: inline-flex; flex: none; padding: 0; border: 0;
+  border-radius: 999px; background: transparent; cursor: pointer;
+}
+.messages-page .chat-profile-name-trigger {
+  max-width: 100%; padding: 0; border: 0; background: transparent;
+  color: var(--app-text-strong); text-align: left; cursor: pointer;
+}
+.messages-page :is(.chat-profile-avatar-trigger, .chat-profile-name-trigger):focus-visible {
+  outline: 2px solid var(--app-interactive-focus); outline-offset: 3px;
+}
+.app-theme-dark .chat-user-profile-card {
+  position: fixed; z-index: 120; box-sizing: border-box;
+  max-height: calc(100dvh - 20px); overflow-y: auto; overscroll-behavior: contain;
+  padding: 20px 16px 16px; border: 1px solid var(--app-border-strong);
+  border-radius: 16px; background: var(--app-surface-raised);
+  color: var(--app-text); box-shadow: 0 20px 55px rgba(0,0,0,.30);
+  font-family: var(--app-font-family);
+}
+.app-theme-dark .chat-user-profile-heading {
+  display: flex; align-items: center; gap: 12px; min-width: 0; padding-right: 24px;
+}
+.app-theme-dark .chat-user-profile-card .avatar.chat-user-profile-avatar {
+  display: grid; place-items: center; flex: 0 0 54px;
+  width: 54px; height: 54px; border-radius: 50%;
+  background: var(--app-accent-soft); color: var(--app-focus-ring);
+  font-size: 18px; font-weight: 750;
+}
+.app-theme-dark .chat-user-profile-heading-name {
+  min-width: 0; overflow-wrap: anywhere; font-size: 14px; font-weight: 750;
+  color: var(--app-text-strong);
+}
+.app-theme-dark .chat-user-profile-close {
+  position: absolute; top: 13px; right: 12px; display: grid;
+  place-items: center; width: 28px; height: 28px; border: 0;
+  border-radius: 8px; background: transparent; color: var(--app-muted);
+}
+.app-theme-dark .chat-user-profile-close:hover { background: var(--app-interactive-hover); color: var(--app-interactive-hover-text); }
+.app-theme-dark .chat-user-profile-fields {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+  margin-top: 15px; padding: 12px; border-radius: 11px;
+  background: var(--app-surface-input);
+}
+.app-theme-dark .chat-user-profile-fields > div { min-width: 0; }
+.app-theme-dark .chat-user-profile-fields span {
+  display: block; margin-bottom: 4px; color: var(--app-muted);
+  font-size: 10px; font-weight: 650;
+}
+.app-theme-dark .chat-user-profile-fields strong {
+  display: block; overflow-wrap: anywhere; color: var(--app-text-strong);
+  font-size: 12px; line-height: 1.45;
+}
+.app-theme-dark .chat-user-profile-section-title {
+  margin: 16px 3px 7px; color: var(--app-muted);
+  font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+}
+.app-theme-dark .chat-user-profile-contact {
+  display: flex; align-items: center; min-width: 0; gap: 11px;
+  margin-top: 5px; padding: 9px 7px; border-radius: 10px;
+  background: var(--app-surface);
+}
+.app-theme-dark .chat-user-profile-contact-icon {
+  display: grid; place-items: center; flex: 0 0 30px;
+  width: 30px; height: 30px; border-radius: 8px;
+  color: var(--app-focus-ring); background: var(--app-accent-soft);
+}
+.app-theme-dark .chat-user-profile-contact-info { flex: 1; min-width: 0; }
+.app-theme-dark .chat-user-profile-contact-label {
+  display: block; color: var(--app-muted); font-size: 10px; font-weight: 550;
+}
+.app-theme-dark .chat-user-profile-contact-value {
+  display: block; margin-top: 2px; overflow-wrap: anywhere;
+  color: var(--app-text-strong); font-size: 12px; font-weight: 650;
+}
+.app-theme-dark .chat-user-profile-copy {
+  display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  flex: 0 0 auto; padding: 7px 8px; border-radius: 8px;
+  color: var(--app-text); background: var(--app-surface-input);
+  font-size: 10px; font-weight: 650;
+}
+.app-theme-dark .chat-user-profile-copy:hover { background: var(--app-interactive-hover); color: var(--app-interactive-hover-text); }
+.app-theme-dark .chat-user-profile-card button:focus-visible {
+  outline: 2px solid var(--app-interactive-focus); outline-offset: 2px;
+}
+.app-theme-dark .chat-user-profile-state {
+  padding: 20px 8px 5px; color: var(--app-muted); font-size: 12px;
+}
+@media (max-width: 420px) {
+  .app-theme-dark .chat-user-profile-card { padding: 16px 12px 12px; }
+  .app-theme-dark .chat-user-profile-fields { gap: 9px; }
+}
