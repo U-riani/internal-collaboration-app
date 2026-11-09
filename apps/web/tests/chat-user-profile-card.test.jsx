@@ -65,6 +65,31 @@ describe("Messages user profile card", () => {
     await u.keyboard("{Escape}");
     expect(screen.queryByRole("dialog", { name: /profile information/ })).toBeNull();
   });
+  it("positions the card below the header divider rather than the avatar", async () => {
+    group = false;
+    const originalBounds = HTMLElement.prototype.getBoundingClientRect;
+    const bounds = (left, top, width, height) => ({
+      left, top, width, height,
+      right: left + width, bottom: top + height, x: left, y: top,
+      toJSON: () => ({}),
+    });
+    const spy = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function () {
+      if (this.matches(".chat-conversation > header")) return bounds(0, 8, 600, 68);
+      if (this.matches(".chat-header-person")) return bounds(68, 22, 230, 36);
+      return bounds(0, 0, 0, 0);
+    });
+    try {
+      mount();
+      const u = userEvent.setup();
+      await u.click(await screen.findByRole("button", { name: /Alex Example/i }));
+      await u.click((await screen.findAllByRole("button", { name: "View Alex Example profile" }))[0]);
+      const card = await screen.findByRole("dialog", { name: /profile information/ });
+      expect(card.style.top).toBe("88px"); // header bottom (76) + 12px
+    } finally {
+      spy.mockRestore();
+      HTMLElement.prototype.getBoundingClientRect = originalBounds;
+    }
+  });
   it("does not add profile triggers to group chat headers", async () => {
     group = true;
     mount();

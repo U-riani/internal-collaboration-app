@@ -6,14 +6,15 @@ import { api } from "../lib/api.js";
 import { Avatar } from "./UI.jsx";
 
 const cardWidth = 362;
-function cardPosition(bounds) {
+// Anchor the popover below the *entire chat header*, not below the avatar.
+// This keeps the header/chat divider visible even when the avatar sits higher.
+const PROFILE_CARD_HEADER_GAP = 12;
+function cardPosition(bounds, headerBounds) {
   const width = Math.min(cardWidth, window.innerWidth - 20);
   const left = Math.max(10, Math.min(bounds.left, window.innerWidth - width - 10));
-  const below = bounds.bottom + 9;
-  const top = below + 305 > window.innerHeight && bounds.top > 320
-    ? Math.max(10, bounds.top - 314)
-    : Math.min(below, Math.max(10, window.innerHeight - 70));
-  return { left, top, width };
+  const top = Math.max(10, (headerBounds?.bottom ?? bounds.bottom) + PROFILE_CARD_HEADER_GAP);
+  const maxHeight = Math.max(80, window.innerHeight - top - 12);
+  return { left, top, width, maxHeight };
 }
 
 function roleLabel(profile) {
@@ -66,7 +67,11 @@ export default function ChatUserProfileCard({ userId, fallbackName, anchorRef, o
   useLayoutEffect(() => {
     const reposition = () => {
       if (!anchorRef.current) return;
-      setPosition(cardPosition(anchorRef.current.getBoundingClientRect()));
+      const header = anchorRef.current.closest("header");
+      setPosition(cardPosition(
+        anchorRef.current.getBoundingClientRect(),
+        header?.getBoundingClientRect(),
+      ));
     };
     reposition();
     window.addEventListener("resize", reposition);
