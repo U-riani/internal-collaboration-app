@@ -33,6 +33,9 @@ export const formSchema = z
   )
   .superRefine((fields, ctx) => {
     for (const [key, field] of Object.entries(fields)) {
+      if (field.type === "multi_select" && field.options && new Set(field.options).size !== field.options.length) {
+        ctx.addIssue({ code: "custom", path: [key, "options"], message: "Multi Select options must be unique" });
+      }
       if (!field.validationRegex) continue;
       if (field.type === "checkbox") {
         ctx.addIssue({ code: "custom", path: [key, "validationRegex"], message: "Regex validation does not apply to checkboxes" });
