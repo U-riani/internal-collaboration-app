@@ -838,6 +838,10 @@ function RequestForm({ existing, onClose }) {
   const type = types.data?.find((x) => x.id === typeId);
   const schema = existing?.workflowSnapshot?.formSchema || type?.formSchema;
   const hasInvalidRegex = Object.entries(schema || {}).some(([key, field]) => Boolean(regexError(field, values[key])));
+  const hasMissingRequiredMultiSelect = Object.entries(schema || {}).some(
+    ([key, field]) => field.type === "multi_select" && field.required &&
+      (!Array.isArray(values[key]) || values[key].length === 0),
+  );
   const liveValues = useRef({ typeId, title, values });
   liveValues.current = { typeId, title, values };
   const save = useMutation({
@@ -896,7 +900,7 @@ function RequestForm({ existing, onClose }) {
         className="approval-request-form"
         onSubmit={(e) => {
           e.preventDefault();
-          if (!hasInvalidRegex) save.mutate(true);
+          if (!hasInvalidRegex && !hasMissingRequiredMultiSelect) save.mutate(true);
         }}
       >
         <div className="approval-request-fields">
@@ -957,7 +961,7 @@ function RequestForm({ existing, onClose }) {
           >
             Save draft
           </button>
-          <button className="btn-primary" disabled={save.isPending || hasInvalidRegex}>
+          <button className="btn-primary" disabled={save.isPending || hasInvalidRegex || hasMissingRequiredMultiSelect}>
             Submit request
           </button>
         </div>
