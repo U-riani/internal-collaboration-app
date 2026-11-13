@@ -512,6 +512,16 @@ function Configure({ existing, onClose }) {
                         </button>
                         </div>
                       </div>
+                      {importFieldIndex === index && (
+                        <ApprovalOptionsImport
+                          fieldLabel={field.label || field.key}
+                          currentOptions={field.options || []}
+                          onClose={() => setImportFieldIndex(null)}
+                          onImport={(options) => setFields((previous) => previous.map((current, i) =>
+                            i === index ? { ...current, options } : current
+                          ))}
+                        />
+                      )}
                       <div className="approval-config-option-list">
                         {(expandedOptionFieldIndex === index ? (field.options || ["Option 1"]) : (field.options || ["Option 1"]).slice(0, 30)).map((option, optionIndex) => (
                           <div className="approval-config-option-row" key={optionIndex}>
@@ -565,16 +575,6 @@ function Configure({ existing, onClose }) {
                           onClick={() => setExpandedOptionFieldIndex(expandedOptionFieldIndex === index ? null : index)}>
                           {expandedOptionFieldIndex === index ? "Show first 30 options" : `Show all ${field.options.length} options`}
                         </button>
-                      )}
-                      {importFieldIndex === index && (
-                        <ApprovalOptionsImport
-                          fieldLabel={field.label || field.key}
-                          currentOptions={field.options || []}
-                          onClose={() => setImportFieldIndex(null)}
-                          onImport={(options) => setFields((previous) => previous.map((current, i) =>
-                            i === index ? { ...current, options } : current
-                          ))}
-                        />
                       )}
                     </div>
                   )}
