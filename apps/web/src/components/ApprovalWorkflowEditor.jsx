@@ -1,7 +1,7 @@
 import { Plus, Trash2, ArrowUp, ArrowDown } from "lucide-react";
 
 // Editor uses the same existing form/input palette as the approval type modal.
-const newId = () => `node-${crypto.randomUUID()}`;
+const newId = () => `node-${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`}`;
 export const newReviewer = () => ({
   id: newId(), kind: "APPROVER", name: "Review",
   approverRule: "REQUESTER_MANAGER", approverValue: null,
