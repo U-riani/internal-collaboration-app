@@ -28,3 +28,60 @@ test("regex on checkbox is rejected and legacy fields remain valid", () => {
   assert.throws(() => formSchema.parse({ check: { type: "checkbox", label: "Check", validationRegex: "true" } }));
   assert.doesNotThrow(() => formSchema.parse({ note: { type: "textarea", label: "Note", required: false } }));
 });
+
+test("multi select accepts one or several configured options as an array", () => {
+  const schema = formSchema.parse({
+    equipment: {
+      type: "multi_select",
+      label: "Required Equipment",
+      options: ["Laptop", "Monitor", "Mouse"],
+      required: true,
+    },
+  });
+  assert.doesNotThrow(() => validateForm(schema, { equipment: ["Laptop"] }));
+  assert.doesNotThrow(() => validateForm(schema, { equipment: ["Laptop", "Mouse"] }));
+  assert.throws(() => validateForm(schema, { equipment: [] }), /required/);
+  assert.throws(() => validateForm(schema, {}), /required/);
+  assert.throws(() => validateForm(schema, { equipment: "Laptop" }), /invalid value/);
+  assert.throws(() => validateForm(schema, { equipment: ["Laptop", "Laptop"] }), /invalid value/);
+  assert.throws(() => validateForm(schema, { equipment: ["Camera"] }), /invalid value/);
+  assert.throws(() => validateForm(schema, { equipment: ["Laptop", 42] }), /invalid value/);
+});
+
+test("optional multi select accepts missing or empty choices but rejects invalid selections", () => {
+  const schema = formSchema.parse({
+    equipment: {
+      type: "multi_select", label: "Optional equipment",
+      options: ["Laptop", "Monitor"], required: false,
+    },
+  });
+  assert.doesNotThrow(() => validateForm(schema, {}));
+  assert.doesNotThrow(() => validateForm(schema, { equipment: [] }));
+  assert.doesNotThrow(() => validateForm(schema, { equipment: ["Monitor"] }));
+  assert.throws(() => validateForm(schema, { equipment: ["Unknown"] }), /invalid value/);
+});
+
+test("multi select requires unique configured options and validates regex for every selected entry", () => {
+  assert.throws(() => formSchema.parse({
+    equipment: { type: "multi_select", label: "Equipment", options: ["Laptop", "Laptop"] },
+  }));
+  assert.throws(() => formSchema.parse({
+    equipment: { type: "multi_select", label: "Equipment" },
+  }));
+  const schema = formSchema.parse({
+    code: {
+      type: "multi_select", label: "Code", options: ["A1", "B2", "WRONG"],
+      validationRegex: "^[A-Z][0-9]$",
+    },
+  });
+  assert.doesNotThrow(() => validateForm(schema, { code: ["A1", "B2"] }));
+  assert.throws(() => validateForm(schema, { code: ["A1", "WRONG"] }), /required format/);
+});
+
+test("legacy single Select still accepts a string and not an array", () => {
+  const schema = formSchema.parse({
+    one: { type: "select", label: "Choose one", required: true, options: ["A", "B"] },
+  });
+  assert.doesNotThrow(() => validateForm(schema, { one: "A" }));
+  assert.throws(() => validateForm(schema, { one: ["A"] }), /invalid value/);
+});
