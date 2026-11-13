@@ -6,7 +6,7 @@ import { scrubAuditData } from "../lib/audit.js";
 import { resolveApprover, requireResolvedApprover } from "../lib/approval.js";
 import { createNotification } from "../lib/notifications.js";
 import { requireOwnUploads } from "../lib/file-access.js";
-import { formSchema, validateForm } from "../lib/approval-form.js";
+import { formSchema, validateForm, validateAssignedPeople } from "../lib/approval-form.js";
 import { advanceWorkflow, legacyWorkflow, validateWorkflow, workflowApprovers } from "../lib/approval-workflow.js";
 
 const typeSchema = z.object({
@@ -249,6 +249,7 @@ async function submit(tx, id, actor, revision) {
   if (!["DRAFT", "CHANGES_REQUESTED"].includes(item.status)) conflict();
   const snapshot = item.workflowSnapshot;
   validateForm(snapshot?.formSchema ?? item.approvalType.formSchema, item.data);
+  await validateAssignedPeople(tx, snapshot?.formSchema ?? item.approvalType.formSchema, item.data);
   const definitions = snapshot?.definitions ??
     (await tx.approvalTypeStep.findMany({
       where: { approvalTypeId: item.approvalTypeId },
@@ -765,6 +766,7 @@ export default async function approvalRoutes(app) {
         "Select an active request type",
       );
     validateForm(type.formSchema, input.data, { draft: !input.submit });
+    await validateAssignedPeople(app.prisma, type.formSchema, input.data);
     await requireOwnUploads(app, request.authUser, input.attachmentIds);
     const item = await app.prisma.$transaction(async (tx) => {
       const item = await tx.approvalRequest.create({
@@ -918,6 +920,7 @@ export default async function approvalRoutes(app) {
         input.data,
         { draft: true },
       );
+      await validateAssignedPeople(tx, item.workflowSnapshot?.formSchema ?? item.approvalType.formSchema, input.data);
       await log(tx, request.authUser, item.id, "APPROVAL_EDITED", {
         previousData: item.data,
       });

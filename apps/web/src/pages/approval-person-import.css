@@ -1,0 +1,112 @@
+/* Approval person-field and spreadsheet importer — existing task design tokens. */
+.approval-person-field { min-width: 0; position: relative; }
+.approval-person-control {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 5px 8px;
+  border: 1px solid var(--task-border); border-radius: 9px;
+  min-height: 41px; background: var(--task-control);
+}
+.approval-person-control:focus-within { outline: 2px solid color-mix(in srgb,var(--task-text) 20%,transparent); outline-offset: 1px; }
+.approval-person-chip {
+  display: inline-flex; align-items: center; gap: 6px; border-radius: 7px;
+  padding: 4px 6px; max-width: 100%; font-size: 12px;
+  color: var(--task-text); background: var(--task-surface-raised);
+}
+.approval-person-chip > span:not(.avatar) { overflow-wrap: anywhere; }
+.approval-person-chip .avatar { flex: 0 0 auto; }
+.approval-person-remove {
+  display: grid; place-items: center; flex: 0 0 auto; border: 0;
+  border-radius: 5px; background: transparent; color: var(--task-muted);
+  padding: 3px; cursor: pointer;
+}
+.approval-person-remove:hover { background: var(--task-hover); color: var(--task-text); }
+.approval-person-trigger {
+  display: flex; justify-content: space-between; align-items: center; gap: 6px;
+  flex: 1 1 120px; min-width: 110px; background: transparent; border: 0;
+  color: var(--task-muted); font: inherit; padding: 7px 4px; text-align: left;
+  cursor: pointer; font-size: 12px;
+}
+.approval-person-trigger:focus-visible, .approval-person-remove:focus-visible {
+  outline: 2px solid currentColor; outline-offset: 2px;
+}
+.approval-person-dropdown {
+  border: 1px solid var(--task-border); background: var(--task-surface-raised);
+  border-radius: 9px; padding: 6px; margin-top: 6px; min-width: 0;
+}
+.approval-person-search {
+  display: flex; align-items: center; gap: 8px; padding: 0 9px;
+  border-radius: 8px; border: 1px solid var(--task-border);
+  color: var(--task-muted); background: var(--task-control);
+}
+.approval-person-search input {
+  min-width: 0; flex: 1; border: 0; outline: 0; background: transparent;
+  padding: 9px 2px; color: var(--task-text); font-size: 12px;
+}
+.approval-person-list { overflow-y: auto; max-height: 230px; scrollbar-width: thin; }
+.approval-person-option {
+  display: flex; align-items: center; gap: 9px; padding: 8px;
+  border-radius: 7px; cursor: pointer; font-size: 12px; color: var(--task-text);
+}
+.approval-person-option > span:not(.avatar) { flex: 1; overflow-wrap: anywhere; }
+.approval-person-option:hover, .approval-person-option.is-selected { background: var(--task-hover); }
+.approval-person-option input { flex: 0 0 auto; accent-color: var(--task-text); }
+.approval-person-count, .approval-person-empty { color: var(--task-muted); font-size: 11px; }
+.approval-person-empty { padding: 12px; }
+.approval-detail-person-values { display: flex; flex-wrap: wrap; gap: 7px; }
+.approval-detail-person-tag {
+  display: inline-flex; align-items: center; gap: 6px; padding: 5px 8px;
+  border-radius: 7px; border: 1px solid var(--task-border);
+  background: var(--task-surface-raised); font-size: 12px; color: var(--task-text);
+}
+.approval-import-panel {
+  min-width: 0; border-top: 1px solid var(--task-border); padding-top: 13px;
+  margin-top: 13px; display: grid; gap: 11px; color: var(--task-text);
+}
+.approval-import-title { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.approval-import-title strong { font-size: 12px; }
+.approval-import-title p { margin-top: 4px; font-size: 11px; color: var(--task-muted); }
+.approval-import-upload { display: flex; gap: 7px; align-items: center; flex-wrap: wrap; }
+.approval-import-file { position: relative; overflow: hidden; cursor: pointer; }
+.approval-import-file-input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+.approval-import-filename { display: flex; gap: 7px; align-items: center; font-size: 11px; overflow-wrap: anywhere; color: var(--task-muted); }
+.approval-import-controls { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
+.approval-import-controls label { display: grid; gap: 5px; font-size: 11px; color: var(--task-muted); }
+.approval-import-controls .input { width: 100%; }
+.approval-import-header { display: flex; align-items: center; gap: 8px; font-size: 11px; cursor: pointer; color: var(--task-muted); }
+.approval-import-preview {
+  background: var(--task-surface); border: 1px solid var(--task-border); border-radius: 9px;
+  padding: 11px 13px; min-width: 0;
+}
+.approval-import-preview strong { font-size: 11px; }
+.approval-import-preview ol { list-style: decimal; padding-left: 22px; margin-top: 6px; max-height: 130px; overflow-y: auto; }
+.approval-import-preview li { font-size: 11px; line-height: 1.8; overflow-wrap: anywhere; }
+.approval-import-summary { font-size: 11px; color: var(--task-muted); }
+.approval-import-error { font-size: 11px; color: var(--danger,#dc2626); }
+.approval-import-footer { display: flex; justify-content: flex-end; gap: 8px; }
+.approval-config-options-heading > div { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+@media(max-width:650px) { .approval-import-controls { grid-template-columns: 1fr; } }
+
+.approval-person-mode { display: grid; gap: 7px; margin-top: 11px; font-size: 11px; color: var(--task-muted); }
+.approval-person-mode .input { min-width: 0; width: 100%; }
+.approval-config-option-buttons { display: flex; gap: 7px; align-items: center; flex-wrap: wrap; }
+.approval-search-select { min-width: 0; }
+.approval-search-select-control {
+  display: flex; align-items: center; min-height: 42px; border: 1px solid var(--task-border);
+  border-radius: 9px; background: var(--task-control);
+}
+.approval-search-select-trigger {
+  display: flex; align-items: center; justify-content: space-between; flex: 1;
+  gap: 10px; min-width: 0; padding: 10px 12px; cursor: pointer;
+  background: transparent; border: 0; color: var(--task-text);
+  text-align: left; font: inherit; font-size: 12px;
+}
+.approval-search-select-trigger > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.approval-search-select-control:focus-within { outline: 2px solid color-mix(in srgb,var(--task-text) 20%,transparent); outline-offset: 1px; }
+.approval-search-select-panel { min-width: 0; border-radius: 9px; margin-top: 6px; border: 1px solid var(--task-border); background: var(--task-surface-raised); padding: 6px; }
+.approval-search-select-list { max-height: 220px; overflow-y: auto; scrollbar-width: thin; }
+.approval-search-select-option {
+  width: 100%; display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; min-width: 0; background: transparent; border: 0; border-radius: 7px;
+  color: var(--task-text); font: inherit; font-size: 12px; padding: 8px; text-align: left; cursor: pointer;
+}
+.approval-search-select-option span { overflow-wrap: anywhere; }
+.approval-search-select-option:hover, .approval-search-select-option.is-selected { background: var(--task-hover); }

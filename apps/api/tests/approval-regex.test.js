@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { formSchema, validateForm } from "../src/lib/approval-form.js";
+import { formSchema, validateForm, validateAssignedPeople } from "../src/lib/approval-form.js";
 
 const schema = {
   mobile: {
@@ -84,4 +84,61 @@ test("legacy single Select still accepts a string and not an array", () => {
   });
   assert.doesNotThrow(() => validateForm(schema, { one: "A" }));
   assert.throws(() => validateForm(schema, { one: ["A"] }), /invalid value/);
+});
+
+const alice = "11111111-1111-4111-8111-111111111111";
+const bob = "22222222-2222-4222-8222-222222222222";
+test("single assigned person saves exactly one user ID and enforces required", () => {
+  const schema = formSchema.parse({
+    assignee: { type: "assigned_persons", label: "Assigned person", required: true, selectionMode: "single" },
+  });
+  assert.doesNotThrow(() => validateForm(schema, { assignee: alice }));
+  assert.throws(() => validateForm(schema, {}), /required/);
+  assert.throws(() => validateForm(schema, { assignee: "" }), /required/);
+  assert.throws(() => validateForm(schema, { assignee: [alice] }), /invalid value/);
+  assert.throws(() => validateForm(schema, { assignee: "not a user ID" }), /invalid value/);
+});
+test("multiple assigned persons validates distinct IDs and optional empties", () => {
+  const schema = formSchema.parse({
+    assignees: { type: "assigned_persons", label: "Assignees", selectionMode: "multiple", required: false },
+  });
+  assert.doesNotThrow(() => validateForm(schema, { assignees: [alice, bob] }));
+  assert.doesNotThrow(() => validateForm(schema, { assignees: [] }));
+  assert.doesNotThrow(() => validateForm(schema, {}));
+  assert.throws(() => validateForm(schema, { assignees: alice }), /invalid value/);
+  assert.throws(() => validateForm(schema, { assignees: [alice, alice] }), /invalid value/);
+  assert.throws(() => validateForm(schema, { assignees: ["invalid"] }), /invalid value/);
+  assert.throws(() => formSchema.parse({
+    assignees: { type: "assigned_persons", label: "Assignees", validationRegex: ".*" },
+  }));
+});
+test("assigned-person IDs must resolve to active users", async () => {
+  const schema = formSchema.parse({
+    members: { type: "assigned_persons", label: "Members", selectionMode: "multiple", required: true },
+  });
+  const prisma = {
+    user: {
+      findMany: async ({ where }) => {
+        assert.deepEqual(where.id.in, [alice, bob]);
+        assert.equal(where.status, "ACTIVE");
+        return [{ id: alice }];
+      },
+    },
+  };
+  await assert.rejects(() => validateAssignedPeople(prisma, schema, { members: [alice, bob] }), /active employees/);
+  await assert.doesNotReject(() => validateAssignedPeople({
+    user: { findMany: async () => [{ id: alice }, { id: bob }] },
+  }, schema, { members: [alice, bob] }));
+  await assert.doesNotReject(() => validateAssignedPeople(prisma, schema, { members: [] }));
+});
+test("500 Select options are supported without changing single-Select payloads", () => {
+  const options = Array.from({ length: 500 }, (_, index) => "Store " + index);
+  const schema = formSchema.parse({ store: { type: "select", label: "Store", options } });
+  assert.doesNotThrow(() => validateForm(schema, { store: "Store 499" }));
+  assert.throws(() => formSchema.parse({
+    store: { type: "select", label: "Store", options: [...options, "Store 500"] },
+  }));
+  assert.throws(() => formSchema.parse({
+    store: { type: "select", label: "Store", options: ["Store 1", "Store 1"] },
+  }));
 });

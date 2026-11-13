@@ -526,4 +526,49 @@ describe("main workspace flows", () => {
     );
   });
 
+
+  it("submits one or multiple active people by ID without changing workflow reviewers", async () => {
+    const alice = "11111111-1111-4111-8111-111111111111";
+    const bob = "22222222-2222-4222-8222-222222222222";
+    const type = {
+      id: "people-request", name: "Team request",
+      formSchema: {
+        team: { label: "Team", type: "assigned_persons", required: true, selectionMode: "multiple" },
+        owner: { label: "Owner", type: "assigned_persons", required: false, selectionMode: "single" },
+      },
+    };
+    api.mockImplementation(async (path, options = {}) => ({
+      data: path === "/approval-types" ? [type]
+        : path === "/users?status=ACTIVE" ? [
+          { id: alice, displayName: "Alice Example", status: "ACTIVE" },
+          { id: bob, displayName: "Bob Example", status: "ACTIVE" },
+        ]
+        : options.method ? { id: "created-request" } : [],
+    }));
+    const user = mount(ApprovalsPage);
+    await user.click(screen.getByRole("button", { name: "New request" }));
+    await user.selectOptions(await screen.findByLabelText("Request type"), "people-request");
+    await user.type(screen.getByLabelText("Title"), "Approve team training");
+    const submit = screen.getByRole("button", { name: "Submit request" });
+    expect(submit.disabled).toBe(true);
+    await user.click(screen.getByRole("button", { name: "Team *" }));
+    await user.click(await screen.findByRole("checkbox", { name: "Team: Alice Example" }));
+    await user.click(screen.getByRole("checkbox", { name: "Team: Bob Example" }));
+    await user.click(screen.getByRole("button", { name: "Owner" }));
+    await user.click(await screen.findByRole("radio", { name: "Owner: Alice Example" }));
+    expect(screen.getByText("2 people selected")).toBeTruthy();
+    await waitFor(() => expect(submit.disabled).toBe(false));
+    await user.click(submit);
+    await waitFor(() => expect(api).toHaveBeenCalledWith("/approval-requests", {
+      method: "POST",
+      body: JSON.stringify({
+        approvalTypeId: "people-request",
+        title: "Approve team training",
+        data: { team: [alice, bob], owner: alice },
+        submit: true,
+        attachmentIds: [],
+      }),
+    }));
+  });
+
 });
