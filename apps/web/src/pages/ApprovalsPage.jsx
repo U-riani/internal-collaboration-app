@@ -1187,7 +1187,7 @@ export function RequestDetail({ item, onClose }) {
                           const name = person?.displayName || person?.email || "Unavailable employee";
                           return (
                             <span key={id} className="approval-detail-person-tag">
-                              <Avatar small userId={id} name={name} photoUrl={person?.photoUrl} />
+                              <Avatar small userId={id} name={name} photoUrl={person?.avatarUrl} />
                               {name}
                             </span>
                           );
