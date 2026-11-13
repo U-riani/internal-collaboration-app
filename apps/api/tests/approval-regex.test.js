@@ -5,10 +5,10 @@ import { formSchema, validateForm } from "../src/lib/approval-form.js";
 const schema = {
   mobile: {
     type: "text", label: "Mobile", required: true,
-    validationRegex: String.raw`^\\+9955\\d{8}$`,
+    validationRegex: String.raw`^\+9955\d{8}$`,
     validationMessage: "Enter a Georgian mobile number beginning with +9955",
   },
-  id: { type: "text", label: "Personal ID", required: false, validationRegex: String.raw`^\\d{11}$` },
+  id: { type: "text", label: "Personal ID", required: false, validationRegex: String.raw`^\d{11}$` },
 };
 test("validates configured regex and custom error message", () => {
   const validated = formSchema.parse(schema);
