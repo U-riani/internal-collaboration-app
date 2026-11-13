@@ -25,6 +25,8 @@ import {
 import { api, uploadFiles } from "../lib/api.js";
 import ApprovalWorkflowEditor, { fromLegacySteps } from "../components/ApprovalWorkflowEditor.jsx";
 import ApprovalMultiSelect from "../components/ApprovalMultiSelect.jsx";
+import ApprovalPersonSelect from "../components/ApprovalPersonSelect.jsx";
+import ApprovalOptionsImport from "../components/ApprovalOptionsImport.jsx";
 import { SelectedFiles, useSelectedFiles } from "../components/SelectedFiles.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import PageHeader from "../components/PageHeader.jsx";
@@ -44,6 +46,7 @@ import "./tasks-page.css";
 import "./approvals-page.css";
 import "./approval-workflow-tree.css";
 import "./approval-multi-select.css";
+import "./approval-person-import.css";
 
 const approvalStatuses = [
   "DRAFT",
@@ -122,13 +125,22 @@ function regexError(field, value) {
   catch { return "Invalid validation pattern. Contact your administrator."; }
 }
 
-function FormFields({ schema, values, setValues, draft = false }) {
+function FormFields({ schema, values, setValues, people = [], draft = false }) {
   const updateField = (key, value) => { setValues((previous) => ({ ...previous, [key]: value })); };
   return (
     <>
       {Object.entries(schema || {}).map(([key, field]) => (
         <Fragment key={key}>
-          {field.type === "multi_select" ? (
+          {field.type === "assigned_persons" ? (
+            <ApprovalPersonSelect
+              label={field.label}
+              value={values[key]}
+              people={people}
+              mode={field.selectionMode || "single"}
+              required={field.required && !draft}
+              onChange={(value) => updateField(key, value)}
+            />
+          ) : field.type === "multi_select" ? (
             <ApprovalMultiSelect
               label={field.label}
               options={field.options || []}
@@ -201,6 +213,7 @@ function Configure({ existing, onClose }) {
   const [name, setName] = useState(existing?.name || "");
   const [code, setCode] = useState(existing?.code || "");
   const [description, setDescription] = useState(existing?.description || "");
+  const [importFieldIndex, setImportFieldIndex] = useState(null);
   const [fields, setFields] = useState(() =>
     existing
       ? Object.entries(existing.formSchema || {}).map(([key, field]) => ({
@@ -233,17 +246,18 @@ function Configure({ existing, onClose }) {
           code,
           description: description || undefined,
           formSchema: Object.fromEntries(
-            fields.map(({ key, label, type, required, options, validationEnabled, validationRegex, validationMessage }) => [
+            fields.map(({ key, label, type, required, options, selectionMode, validationEnabled, validationRegex, validationMessage }) => [
               key,
               {
                 label,
                 type,
                 required,
-                ...(validationEnabled && validationRegex && type !== "checkbox" ? {
+                ...(validationEnabled && validationRegex && !["checkbox", "assigned_persons"].includes(type) ? {
                   validationRegex,
                   ...(validationMessage ? { validationMessage } : {}),
                 } : {}),
                 ...(["select", "multi_select"].includes(type) ? { options } : {}),
+                ...(type === "assigned_persons" ? { selectionMode: selectionMode || "single" } : {}),
               },
             ]),
           ),
@@ -380,7 +394,8 @@ function Configure({ existing, onClose }) {
                               ? {
                                   ...current,
                                   type: event.target.value,
-                                  ...(event.target.value === "checkbox" ? { validationEnabled: false } : {}),
+                                  ...(["checkbox", "assigned_persons"].includes(event.target.value) ? { validationEnabled: false } : {}),
+                                  ...(event.target.value === "assigned_persons" ? { selectionMode: current.selectionMode || "single" } : {}),
                                   ...(["select", "multi_select"].includes(event.target.value)
                                     ? {
                                         options: current.options?.length
@@ -394,9 +409,9 @@ function Configure({ existing, onClose }) {
                         )
                       }
                     >
-                      {["text", "textarea", "number", "date", "select", "multi_select", "checkbox"].map((type) => (
+                      {["text", "textarea", "number", "date", "select", "multi_select", "assigned_persons", "checkbox"].map((type) => (
                         <option key={type} value={type}>
-                          {type === "multi_select" ? "Multi Select" : type}
+                          {type === "multi_select" ? "Multi Select" : type === "assigned_persons" ? "Assigned Person(s)" : type}
                         </option>
                       ))}
                     </select>
@@ -428,7 +443,20 @@ function Configure({ existing, onClose }) {
                     </button>
                   </div>
 
-                  {field.type !== "checkbox" && (
+                  {field.type === "assigned_persons" && (
+                    <label className="approval-person-mode">
+                      <span>Selection mode</span>
+                      <select className="input app-modern-select" aria-label={`Field ${index + 1} person selection mode`}
+                        value={field.selectionMode || "single"}
+                        onChange={(event) => setFields(fields.map((current, i) =>
+                          i === index ? { ...current, selectionMode: event.target.value } : current))}>
+                        <option value="single">Single person</option>
+                        <option value="multiple">Multiple persons</option>
+                      </select>
+                      <span className="approval-config-help">Choose employees from the existing People directory. This field does not assign approval reviewers.</span>
+                    </label>
+                  )}
+                  {!["checkbox", "assigned_persons"].includes(field.type) && (
                     <div className="approval-field-regex">
                       <label className="task-filter-choice approval-config-required">
                         <input type="checkbox" checked={Boolean(field.validationEnabled)}
@@ -454,10 +482,16 @@ function Configure({ existing, onClose }) {
                     <div className="approval-config-options">
                       <div className="approval-config-options-heading">
                         <span>Options</span>
+                        <div className="approval-config-option-buttons">
+                        <button type="button" className="btn-secondary approval-config-secondary"
+                          aria-label={`Import options for field ${index + 1}`}
+                          onClick={() => setImportFieldIndex(importFieldIndex === index ? null : index)}>
+                          Import from Excel
+                        </button>
                         <button
                           type="button"
                           className="btn-secondary approval-config-secondary"
-                          disabled={(field.options || []).length >= 50}
+                          disabled={(field.options || []).length >= 500}
                           onClick={() =>
                             setFields(
                               fields.map((current, i) =>
@@ -471,6 +505,7 @@ function Configure({ existing, onClose }) {
                           <Plus size={14} />
                           Add option
                         </button>
+                        </div>
                       </div>
                       <div className="approval-config-option-list">
                         {(field.options || ["Option 1"]).map((option, optionIndex) => (
@@ -520,6 +555,16 @@ function Configure({ existing, onClose }) {
                           </div>
                         ))}
                       </div>
+                      {importFieldIndex === index && (
+                        <ApprovalOptionsImport
+                          fieldLabel={field.label || field.key}
+                          currentOptions={field.options || []}
+                          onClose={() => setImportFieldIndex(null)}
+                          onImport={(options) => setFields((previous) => previous.map((current, i) =>
+                            i === index ? { ...current, options } : current
+                          ))}
+                        />
+                      )}
                     </div>
                   )}
                 </div>
@@ -837,6 +882,18 @@ function RequestForm({ existing, onClose }) {
   });
   const type = types.data?.find((x) => x.id === typeId);
   const schema = existing?.workflowSnapshot?.formSchema || type?.formSchema;
+  const needsPeople = Object.values(schema || {}).some((field) => field.type === "assigned_persons");
+  const peopleQuery = useQuery({
+    queryKey: ["approval-active-people"],
+    queryFn: () => api("/users?status=ACTIVE").then((response) => response.data),
+    enabled: needsPeople,
+  });
+  const hasMissingRequiredPeople = Object.entries(schema || {}).some(([key, field]) =>
+    field.type === "assigned_persons" && field.required &&
+    (field.selectionMode === "multiple"
+      ? !Array.isArray(values[key]) || values[key].length === 0
+      : typeof values[key] !== "string" || !values[key])
+  );
   const hasInvalidRegex = Object.entries(schema || {}).some(([key, field]) => Boolean(regexError(field, values[key])));
   const hasMissingRequiredMultiSelect = Object.entries(schema || {}).some(
     ([key, field]) => field.type === "multi_select" && field.required &&
@@ -900,7 +957,7 @@ function RequestForm({ existing, onClose }) {
         className="approval-request-form"
         onSubmit={(e) => {
           e.preventDefault();
-          if (!hasInvalidRegex && !hasMissingRequiredMultiSelect) save.mutate(true);
+          if (!hasInvalidRegex && !hasMissingRequiredMultiSelect && !hasMissingRequiredPeople && (!needsPeople || !peopleQuery.isError)) save.mutate(true);
         }}
       >
         <div className="approval-request-fields">
@@ -931,7 +988,8 @@ function RequestForm({ existing, onClose }) {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
           />
-          <FormFields schema={schema} values={values} setValues={setValues} />
+          <FormFields schema={schema} values={values} setValues={setValues} people={peopleQuery.data || []} />
+          {needsPeople && peopleQuery.isError && <p role="alert" className="approval-field-validation-error">Could not load the employee directory. Please retry.</p>}
           {!existing && (
             <>
               <Field
@@ -961,7 +1019,7 @@ function RequestForm({ existing, onClose }) {
           >
             Save draft
           </button>
-          <button className="btn-primary" disabled={save.isPending || hasInvalidRegex || hasMissingRequiredMultiSelect}>
+          <button className="btn-primary" disabled={save.isPending || hasInvalidRegex || hasMissingRequiredMultiSelect || hasMissingRequiredPeople || (needsPeople && (peopleQuery.isError || peopleQuery.isPending))}>
             Submit request
           </button>
         </div>
@@ -1014,6 +1072,13 @@ export function RequestDetail({ item, onClose }) {
   const canAct = item.status === "PENDING" && current?.approverId === user.id;
   const schema =
     item.workflowSnapshot?.formSchema || item.approvalType.formSchema;
+  const hasPeopleFields = Object.values(schema || {}).some((field) => field.type === "assigned_persons");
+  const peopleQuery = useQuery({
+    queryKey: ["approval-all-people"],
+    queryFn: () => api("/users").then((response) => response.data),
+    enabled: hasPeopleFields,
+  });
+  const peopleById = new Map((peopleQuery.data || []).map((person) => [person.id, person]));
   const save = useMutation({
     mutationFn: ({ action, commentOnly } = {}) =>
       api(
@@ -1115,7 +1180,20 @@ export function RequestDetail({ item, onClose }) {
                 <div className="approval-detail-field" key={key}>
                   <p className="approval-detail-field-label">{field.label}</p>
                   <div className="approval-detail-field-value">
-                    {Array.isArray(item.data[key]) ? (
+                    {field.type === "assigned_persons" ? (
+                      <div className="approval-detail-person-values">
+                        {(Array.isArray(item.data[key]) ? item.data[key] : item.data[key] ? [item.data[key]] : []).map((id) => {
+                          const person = peopleById.get(id);
+                          const name = person?.displayName || person?.email || "Unavailable employee";
+                          return (
+                            <span key={id} className="approval-detail-person-tag">
+                              <Avatar small userId={id} name={name} photoUrl={person?.photoUrl} />
+                              {name}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    ) : Array.isArray(item.data[key]) ? (
                       item.data[key].length ? (
                         <div className="approval-detail-multi-values">
                           {item.data[key].map((option, index) => (
