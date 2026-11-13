@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { api, uploadFiles } from "../lib/api.js";
 import ApprovalWorkflowEditor, { fromLegacySteps } from "../components/ApprovalWorkflowEditor.jsx";
+import ApprovalMultiSelect from "../components/ApprovalMultiSelect.jsx";
 import { SelectedFiles, useSelectedFiles } from "../components/SelectedFiles.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import PageHeader from "../components/PageHeader.jsx";
@@ -42,6 +43,7 @@ import {
 import "./tasks-page.css";
 import "./approvals-page.css";
 import "./approval-workflow-tree.css";
+import "./approval-multi-select.css";
 
 const approvalStatuses = [
   "DRAFT",
@@ -109,8 +111,14 @@ function ApprovalStepProgress({ steps }) {
 }
 
 function regexError(field, value) {
-  if (!field?.validationRegex || value === null || value === undefined || value === "") return null;
-  try { return new RegExp(field.validationRegex).test(String(value)) ? null : (field.validationMessage || `${field.label} does not match the required format`); }
+  if (!field?.validationRegex || value === null || value === undefined || value === "" || (Array.isArray(value) && !value.length)) return null;
+  try {
+    const pattern = new RegExp(field.validationRegex);
+    const valid = Array.isArray(value)
+      ? value.every((option) => pattern.test(option))
+      : pattern.test(String(value));
+    return valid ? null : (field.validationMessage || `${field.label} does not match the required format`);
+  }
   catch { return "Invalid validation pattern. Contact your administrator."; }
 }
 
@@ -120,6 +128,15 @@ function FormFields({ schema, values, setValues, draft = false }) {
     <>
       {Object.entries(schema || {}).map(([key, field]) => (
         <Fragment key={key}>
+          {field.type === "multi_select" ? (
+            <ApprovalMultiSelect
+              label={field.label}
+              options={field.options || []}
+              values={values[key]}
+              required={field.required && !draft}
+              onChange={(selected) => updateField(key, selected)}
+            />
+          ) : (
           <Field label={`${field.label}${field.required ? " *" : ""}`}>
           {field.type === "textarea" ? (
             <textarea
@@ -164,6 +181,7 @@ function FormFields({ schema, values, setValues, draft = false }) {
             />
           )}
           </Field>
+          )}
           {regexError(field, values[key]) && (
             <p role="alert" className="approval-field-validation-error">{regexError(field, values[key])}</p>
           )}
@@ -225,7 +243,7 @@ function Configure({ existing, onClose }) {
                   validationRegex,
                   ...(validationMessage ? { validationMessage } : {}),
                 } : {}),
-                ...(type === "select" ? { options } : {}),
+                ...(["select", "multi_select"].includes(type) ? { options } : {}),
               },
             ]),
           ),
@@ -363,7 +381,7 @@ function Configure({ existing, onClose }) {
                                   ...current,
                                   type: event.target.value,
                                   ...(event.target.value === "checkbox" ? { validationEnabled: false } : {}),
-                                  ...(event.target.value === "select"
+                                  ...(["select", "multi_select"].includes(event.target.value)
                                     ? {
                                         options: current.options?.length
                                           ? current.options
@@ -376,8 +394,10 @@ function Configure({ existing, onClose }) {
                         )
                       }
                     >
-                      {["text", "textarea", "number", "date", "select", "checkbox"].map((type) => (
-                        <option key={type}>{type}</option>
+                      {["text", "textarea", "number", "date", "select", "multi_select", "checkbox"].map((type) => (
+                        <option key={type} value={type}>
+                          {type === "multi_select" ? "Multi Select" : type}
+                        </option>
                       ))}
                     </select>
                   </div>
@@ -430,7 +450,7 @@ function Configure({ existing, onClose }) {
                       )}
                     </div>
                   )}
-                  {field.type === "select" && (
+                  {["select", "multi_select"].includes(field.type) && (
                     <div className="approval-config-options">
                       <div className="approval-config-options-heading">
                         <span>Options</span>
@@ -1090,11 +1110,19 @@ export function RequestDetail({ item, onClose }) {
               {Object.entries(schema).map(([key, field]) => (
                 <div className="approval-detail-field" key={key}>
                   <p className="approval-detail-field-label">{field.label}</p>
-                  <p className="approval-detail-field-value">
-                    {typeof item.data[key] === "boolean"
+                  <div className="approval-detail-field-value">
+                    {Array.isArray(item.data[key]) ? (
+                      item.data[key].length ? (
+                        <div className="approval-detail-multi-values">
+                          {item.data[key].map((option, index) => (
+                            <span className="approval-detail-multi-value" key={`${index}-${option}`}>{option}</span>
+                          ))}
+                        </div>
+                      ) : "—"
+                    ) : typeof item.data[key] === "boolean"
                       ? item.data[key] ? "Yes" : "No"
                       : String(item.data[key] ?? "—")}
-                  </p>
+                  </div>
                 </div>
               ))}
             </div>
