@@ -115,7 +115,7 @@ function regexError(field, value) {
 }
 
 function FormFields({ schema, values, setValues, draft = false }) {
-  const updateField = (key, value) => setValues((previous) => ({ ...previous, [key]: value }));
+  const updateField = (key, value) => { if (import.meta.env.MODE === "test") console.info("approval-form-debug-field", key, value); setValues((previous) => ({ ...previous, [key]: value })); };
   return (
     <>
       {Object.entries(schema || {}).map(([key, field]) => (
@@ -822,6 +822,7 @@ function RequestForm({ existing, onClose }) {
     mutationFn: async (submit) => {
       // Mutations may retain an older render callback while inputs are changing.
       const { typeId, title, values } = liveValues.current;
+      if (import.meta.env.MODE === "test") console.info("approval-form-debug-submit", typeId, title, JSON.stringify(values));
       if (existing) {
         await api(`/approval-requests/${existing.id}`, {
           method: "PATCH",
