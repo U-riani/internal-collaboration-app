@@ -254,7 +254,7 @@ async function submit(tx, id, actor, revision) {
       where: { approvalTypeId: item.approvalTypeId },
       orderBy: { stepNumber: "asc" },
     }));
-  const workflow = snapshot?.workflowDefinition ?? item.approvalType.workflowDefinition ?? legacyWorkflow(definitions);
+  const workflow = snapshot?.workflowDefinition ?? legacyWorkflow(definitions);
   const resolved = [];
   for (const step of workflowApprovers(workflow)) {
     const id = await resolveApprover(
@@ -703,16 +703,15 @@ export default async function approvalRoutes(app) {
           createdAt: true,
           updatedAt: true,
           steps: {
-            where: { status: "PENDING" },
             select: {
               stepNumber: true,
               stepName: true,
+              status: true,
               approver: {
                 select: { id: true, displayName: true },
               },
             },
             orderBy: { stepNumber: "asc" },
-            take: 1,
           },
         },
         orderBy: { createdAt: "desc" },
@@ -784,14 +783,13 @@ export default async function approvalRoutes(app) {
             },
             formSchema: type.formSchema,
             workflowDefinition: type.workflowDefinition ?? legacyWorkflow(type.steps),
-            definitions: type.steps.map(
-              ({ stepNumber, name, approverRule, approverValue }) => ({
-                stepNumber,
-                name,
-                approverRule,
-                approverValue,
-              }),
-            ),
+            definitions: workflowApprovers(type.workflowDefinition ?? legacyWorkflow(type.steps))
+              .map((step, index) => ({
+                stepNumber: index + 1,
+                name: step.name,
+                approverRule: step.approverRule,
+                approverValue: step.approverValue,
+              })),
           },
           attachments: {
             create: input.attachmentIds.map((fileId) => ({ fileId })),
@@ -1011,7 +1009,12 @@ export default async function approvalRoutes(app) {
         throw new HttpError(403, "CURRENT_APPROVER_REQUIRED", "Only an active assigned approver can decide");
 
       const workflow = item.workflowSnapshot?.workflowDefinition ??
-        legacyWorkflow(item.workflowSnapshot?.definitions ?? item.approvalType.steps ?? []);
+        legacyWorkflow(item.workflowSnapshot?.definitions?.length
+          ? item.workflowSnapshot.definitions
+          : item.steps.map((s) => ({
+              stepNumber: s.stepNumber, name: s.stepName,
+              approverRule: "USER", approverValue: s.approverId,
+            })));
       const rows = item.steps.map((s) => ({
         ...s,
         nodeId: s.nodeId ?? `legacy-${s.stepNumber}`,
