@@ -66,16 +66,21 @@ const BASE_SORT_OPTIONS = [
   ["status", "Status"],
 ];
 
-function formatBaseValue(value, column) {
+function formatBaseValue(value, column, peopleById = new Map()) {
   if (value === undefined || value === null || value === "") return "—";
   if (column?.type === "checkbox") return value ? "Yes" : "No";
+  if (column?.type === "assigned_persons") {
+    const ids = Array.isArray(value) ? value : [value];
+    return ids.map((id) => peopleById.get(id)?.displayName || "Unavailable employee").join(", ") || "—";
+  }
   if (Array.isArray(value)) return value.join(", ");
   if (typeof value === "object") return JSON.stringify(value);
   return String(value);
 }
 
-function searchableBaseValue(value) {
+function searchableBaseValue(value, column, peopleById) {
   if (value === undefined || value === null) return "";
+  if (column?.type === "assigned_persons") return formatBaseValue(value, column, peopleById);
   if (Array.isArray(value)) return value.join(" ");
   if (typeof value === "object") return JSON.stringify(value);
   return String(value);
@@ -178,6 +183,14 @@ export default function ApprovalBasesPage() {
   });
 
   const selectedBase = (bases.data || []).find((item) => item.id === typeId);
+  const hasPeopleColumns = (records.data?.columns || []).some((column) => column.type === "assigned_persons");
+  const people = useQuery({
+    queryKey: ["approval-all-people"],
+    queryFn: () => api("/users").then((response) => response.data),
+    enabled: hasPeopleColumns,
+  });
+  const peopleById = useMemo(() => new Map((people.data || []).map((person) => [person.id, person])), [people.data]);
+  const columnsByKey = useMemo(() => new Map((records.data?.columns || []).map((column) => [column.key, column])), [records.data?.columns]);
   const allRecords = records.data?.records || [];
 
   const filterOptions = useMemo(() => {
@@ -220,7 +233,8 @@ export default function ApprovalBasesPage() {
           record.requester?.email,
           record.department?.name,
           approver?.displayName,
-          ...Object.values(record.data || {}).map(searchableBaseValue),
+          ...Object.entries(record.data || {}).map(([key, value]) =>
+            searchableBaseValue(value, columnsByKey.get(key), peopleById)),
         ]
           .filter(Boolean)
           .join(" ")
@@ -272,7 +286,7 @@ export default function ApprovalBasesPage() {
         submittedToMatch
       );
     });
-  }, [allRecords, search, filters]);
+  }, [allRecords, search, filters, columnsByKey, peopleById]);
 
   const sortedRecords = useMemo(() => {
     const requesterName = (record) => record.requester?.displayName || "";
@@ -776,6 +790,7 @@ export default function ApprovalBasesPage() {
                                     {formatBaseValue(
                                       record.data?.[column.key],
                                       column,
+                                      peopleById,
                                     )}
                                   </span>
                                 </td>
