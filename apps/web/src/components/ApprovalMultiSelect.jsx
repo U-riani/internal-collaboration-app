@@ -75,6 +75,7 @@ export default function ApprovalMultiSelect({
           aria-expanded={open}
           aria-controls={listId}
           aria-haspopup="true"
+          aria-required={required}
           disabled={disabled}
           onClick={() => setOpen((previous) => !previous)}
         >
@@ -117,7 +118,9 @@ export default function ApprovalMultiSelect({
         </div>
       )}
       <span className="approval-multiselect-count">
-        {selected.length} {selected.length === 1 ? "option" : "options"} selected
+        {required && !selected.length
+          ? "Select at least one option"
+          : `${selected.length} ${selected.length === 1 ? "option" : "options"} selected`}
       </span>
     </div>
   );
