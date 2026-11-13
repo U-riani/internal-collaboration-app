@@ -7,6 +7,7 @@ import { resolveApprover, requireResolvedApprover } from "../lib/approval.js";
 import { createNotification } from "../lib/notifications.js";
 import { requireOwnUploads } from "../lib/file-access.js";
 import { formSchema, validateForm } from "../lib/approval-form.js";
+import { advanceWorkflow, legacyWorkflow, validateWorkflow, workflowApprovers } from "../lib/approval-workflow.js";
 
 const typeSchema = z.object({
   code: z
@@ -34,8 +35,10 @@ const typeSchema = z.object({
       }),
     )
     .min(1)
-    .max(20),
-});
+    .max(20)
+    .optional(),
+  workflowDefinition: z.unknown().optional(),
+}).refine((input) => Boolean(input.workflowDefinition || input.steps?.length), "Configure at least one approval step");
 const requestSchema = z.object({
   approvalTypeId: z.uuid(),
   title: z.string().trim().min(2).max(250),
@@ -212,7 +215,7 @@ async function logType(tx, user, id, action, metadata = {}) {
     },
   });
 }
-function normalizeSteps(steps) {
+function normalizeSteps(steps = []) {
   const sorted = [...steps].sort((a, b) => a.stepNumber - b.stepNumber);
   if (sorted.some((step, i) => step.stepNumber !== i + 1))
     throw new HttpError(
@@ -221,6 +224,11 @@ function normalizeSteps(steps) {
       "Steps must be numbered consecutively from 1",
     );
   return sorted;
+}
+function parseWorkflowInput(input) {
+  const tree = input.workflowDefinition ?? legacyWorkflow(normalizeSteps(input.steps));
+  try { return validateWorkflow(tree); }
+  catch (error) { throw new HttpError(400, "INVALID_APPROVAL_WORKFLOW", error.message); }
 }
 async function submit(tx, id, actor, revision) {
   const item = await tx.approvalRequest.findUnique({
@@ -241,14 +249,14 @@ async function submit(tx, id, actor, revision) {
   if (!["DRAFT", "CHANGES_REQUESTED"].includes(item.status)) conflict();
   const snapshot = item.workflowSnapshot;
   validateForm(snapshot?.formSchema ?? item.approvalType.formSchema, item.data);
-  const definitions =
-    snapshot?.definitions ??
+  const definitions = snapshot?.definitions ??
     (await tx.approvalTypeStep.findMany({
       where: { approvalTypeId: item.approvalTypeId },
       orderBy: { stepNumber: "asc" },
     }));
+  const workflow = snapshot?.workflowDefinition ?? item.approvalType.workflowDefinition ?? legacyWorkflow(definitions);
   const resolved = [];
-  for (const step of definitions) {
+  for (const step of workflowApprovers(workflow)) {
     const id = await resolveApprover(
       { prisma: tx },
       step.approverRule,
@@ -263,10 +271,11 @@ async function submit(tx, id, actor, revision) {
         `${step.name} needs an active approver`,
       );
     resolved.push({
-      stepNumber: step.stepNumber,
+      stepNumber: resolved.length + 1,
       stepName: step.name,
+      nodeId: step.id,
       approverId: id,
-      status: resolved.length ? "WAITING" : "PENDING",
+      status: "WAITING",
     });
   }
   if (!resolved.length)
@@ -275,6 +284,8 @@ async function submit(tx, id, actor, revision) {
       "WORKFLOW_EMPTY",
       "Configure an approval step first",
     );
+  const plan = advanceWorkflow(workflow, resolved);
+  for (const row of resolved) row.status = plan.statuses.get(row.nodeId);
   const rounds = [...(Array.isArray(item.rounds) ? item.rounds : [])];
   if (item.steps.length)
     rounds.push(
@@ -291,11 +302,11 @@ async function submit(tx, id, actor, revision) {
     item,
     {
       status: "PENDING",
-      currentStepNumber: resolved[0].stepNumber,
+      currentStepNumber: resolved.find((s) => s.status === "PENDING")?.stepNumber ?? null,
       submittedAt: new Date(),
       completedAt: null,
       rounds,
-      workflowSnapshot: { ...snapshot, roundData: item.data },
+      workflowSnapshot: { ...snapshot, workflowDefinition: workflow, roundData: item.data },
     },
     revision,
   );
@@ -312,21 +323,16 @@ async function submit(tx, id, actor, revision) {
 export default async function approvalRoutes(app) {
   app.addHook("preHandler", app.authenticate);
   async function notify(item) {
-    const current = item.steps.find((x) => x.status === "PENDING");
-    const ids = [
-      ...new Set([item.requesterId, current?.approverId].filter(Boolean)),
-    ];
+    const currentApproverIds = new Set(
+      item.steps.filter((x) => x.status === "PENDING").map((x) => x.approverId),
+    );
+    const ids = new Set([item.requesterId, ...currentApproverIds]);
     for (const userId of ids) {
+      const needsReview = currentApproverIds.has(userId);
       await createNotification(app, {
         userId,
-        type:
-          userId === current?.approverId
-            ? "APPROVAL_PENDING"
-            : "APPROVAL_UPDATED",
-        title:
-          userId === current?.approverId
-            ? "A request needs your review"
-            : "Your request was updated",
+        type: needsReview ? "APPROVAL_PENDING" : "APPROVAL_UPDATED",
+        title: needsReview ? "A request needs your review" : "Your request was updated",
         body: item.title,
         relatedEntityType: "APPROVAL_REQUEST",
         relatedEntityId: item.id,
@@ -475,12 +481,14 @@ export default async function approvalRoutes(app) {
   app.post("/approval-types", async (request, reply) => {
     requirePermission(request.authUser, "approvals.configure");
     const input = parse(typeSchema, request.body);
-    const steps = normalizeSteps(input.steps);
-    const { steps: _steps, ...fields } = input;
+    const workflowDefinition = parseWorkflowInput(input);
+    const steps = input.workflowDefinition ? [] : normalizeSteps(input.steps);
+    const { steps: _steps, workflowDefinition: _workflow, ...fields } = input;
     const data = await app.prisma.$transaction(async (tx) => {
       const created = await tx.approvalType.create({
         data: {
           ...fields,
+          workflowDefinition,
           status: "ACTIVE",
           createdById: request.authUser.id,
           steps: { create: steps },
@@ -498,7 +506,8 @@ export default async function approvalRoutes(app) {
   app.patch("/approval-types/:id", async (request) => {
     requirePermission(request.authUser, "approvals.configure");
     const input = parse(typeUpdateSchema, request.body);
-    const steps = normalizeSteps(input.steps);
+    const workflowDefinition = parseWorkflowInput(input);
+    const steps = input.workflowDefinition ? [] : normalizeSteps(input.steps);
     const data = await app.prisma.$transaction(async (tx) => {
       const existing = await tx.approvalType.findUnique({
         where: { id: request.params.id },
@@ -525,6 +534,7 @@ export default async function approvalRoutes(app) {
           name: input.name,
           description: input.description ?? null,
           formSchema: input.formSchema,
+          workflowDefinition,
           status: input.status ?? existing.status,
           version: { increment: 1 },
           steps: { create: steps },
@@ -773,6 +783,7 @@ export default async function approvalRoutes(app) {
               version: type.version,
             },
             formSchema: type.formSchema,
+            workflowDefinition: type.workflowDefinition ?? legacyWorkflow(type.steps),
             definitions: type.steps.map(
               ({ stepNumber, name, approverRule, approverValue }) => ({
                 stepNumber,
@@ -970,6 +981,7 @@ export default async function approvalRoutes(app) {
       revisionSchema.extend({
         action: z.enum(["APPROVE", "REJECT", "REQUEST_CHANGES"]),
         comment: z.string().trim().max(5000).default(""),
+        stepId: z.uuid().optional(),
       }),
       request.body,
     );
@@ -991,55 +1003,50 @@ export default async function approvalRoutes(app) {
       )
         conflict();
       const current = item.steps.find(
-        (s) =>
-          s.stepNumber === item.currentStepNumber && s.status === "PENDING",
+        (s) => s.status === "PENDING" &&
+          s.approverId === request.authUser.id &&
+          (!input.stepId || s.id === input.stepId),
       );
-      if (!current || current.approverId !== request.authUser.id)
-        throw new HttpError(
-          403,
-          "CURRENT_APPROVER_REQUIRED",
-          "Only the current assigned approver can decide",
-        );
-      const next =
-        input.action === "APPROVE"
-          ? item.steps.find(
-              (s) =>
-                s.stepNumber > current.stepNumber && s.status === "WAITING",
-            )
-          : null;
-      const status =
-        input.action === "APPROVE"
-          ? next
-            ? "PENDING"
-            : "APPROVED"
-          : input.action === "REJECT"
-            ? "REJECTED"
-            : "CHANGES_REQUESTED";
-      await claim(
-        tx,
-        item,
-        {
-          status,
-          currentStepNumber: next?.stepNumber ?? null,
-          completedAt: ["APPROVED", "REJECTED"].includes(status)
-            ? new Date()
-            : null,
-        },
-        input.revision,
-      );
-      await tx.approvalRequestStep.update({
-        where: { id: current.id },
-        data: {
-          status: input.action === "APPROVE" ? "APPROVED" : status,
-          comment: input.comment,
-          actedAt: new Date(),
-        },
-      });
-      if (next)
-        await tx.approvalRequestStep.update({
-          where: { id: next.id },
-          data: { status: "PENDING" },
-        });
+      if (!current)
+        throw new HttpError(403, "CURRENT_APPROVER_REQUIRED", "Only an active assigned approver can decide");
+
+      const workflow = item.workflowSnapshot?.workflowDefinition ??
+        legacyWorkflow(item.workflowSnapshot?.definitions ?? item.approvalType.steps ?? []);
+      const rows = item.steps.map((s) => ({
+        ...s,
+        nodeId: s.nodeId ?? `legacy-${s.stepNumber}`,
+        status: s.id === current.id
+          ? input.action === "APPROVE" ? "APPROVED" : input.action === "REJECT" ? "REJECTED" : "CHANGES_REQUESTED"
+          : s.status,
+      }));
+      const plan = input.action === "APPROVE" ? advanceWorkflow(workflow, rows) : null;
+      const status = input.action === "APPROVE"
+        ? plan.complete ? "APPROVED" : "PENDING"
+        : input.action === "REJECT" ? "REJECTED" : "CHANGES_REQUESTED";
+      const nextPending = input.action === "APPROVE"
+        ? rows.find((s) => plan.statuses.get(s.nodeId) === "PENDING")
+        : null;
+
+      await claim(tx, item, {
+        status,
+        currentStepNumber: nextPending?.stepNumber ?? null,
+        completedAt: ["APPROVED", "REJECTED"].includes(status) ? new Date() : null,
+      }, input.revision);
+
+      for (const row of rows) {
+        let target = plan ? plan.statuses.get(row.nodeId) : row.status;
+        if (input.action !== "APPROVE" && row.id !== current.id &&
+            ["PENDING", "WAITING"].includes(target)) target = "SKIPPED";
+        if (target !== item.steps.find((s) => s.id === row.id).status || row.id === current.id) {
+          await tx.approvalRequestStep.update({
+            where: { id: row.id },
+            data: {
+              status: target,
+              ...(row.id === current.id ? { comment: input.comment, actedAt: new Date() } : {}),
+            },
+          });
+        }
+      }
       await log(tx, request.authUser, item.id, `APPROVAL_${input.action}`, {
         stepNumber: current.stepNumber,
         comment: input.comment,
