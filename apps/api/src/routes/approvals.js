@@ -46,7 +46,7 @@ const requestSchema = z.object({
   attachmentIds: z.array(z.uuid()).max(50).default([]),
   submit: z.boolean().default(false),
 });
-const typeUpdateSchema = typeSchema.extend({
+const typeUpdateSchema = typeSchema.safeExtend({
   status: z.enum(["ACTIVE", "INACTIVE"]).optional(),
 });
 const baseRecordsQuerySchema = z.object({
