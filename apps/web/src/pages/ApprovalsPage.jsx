@@ -124,7 +124,7 @@ function FormFields({ schema, values, setValues, draft = false }) {
               className="input min-h-24"
               required={field.required && !draft}
               value={values[key] ?? ""}
-              onChange={(e) => setValues({ ...values, [key]: e.target.value })}
+              onChange={(e) => setValues((previous) => ({ ...previous, [key]: e.target.value }))}
             />
           ) : field.type === "select" ? (
             <select
@@ -144,7 +144,7 @@ function FormFields({ schema, values, setValues, draft = false }) {
               className="approval-request-checkbox h-5 w-5"
               checked={values[key] ?? false}
               onChange={(e) =>
-                setValues({ ...values, [key]: e.target.checked })
+                setValues((previous) => ({ ...previous, [key]: e.target.checked }))
               }
             />
           ) : (
@@ -157,13 +157,11 @@ function FormFields({ schema, values, setValues, draft = false }) {
               required={field.required && !draft}
               value={values[key] ?? ""}
               onChange={(e) =>
-                setValues({
-                  ...values,
-                  [key]:
-                    field.type === "number" && e.target.value !== ""
-                      ? Number(e.target.value)
-                      : e.target.value,
-                })
+                setValues((previous) => ({
+                  ...previous,
+                  [key]: field.type === "number" && e.target.value !== ""
+                    ? Number(e.target.value) : e.target.value,
+                }))
               }
             />
           )}
