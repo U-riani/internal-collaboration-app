@@ -26,6 +26,7 @@ import { api, uploadFiles } from "../lib/api.js";
 import ApprovalWorkflowEditor, { fromLegacySteps } from "../components/ApprovalWorkflowEditor.jsx";
 import ApprovalMultiSelect from "../components/ApprovalMultiSelect.jsx";
 import ApprovalPersonSelect from "../components/ApprovalPersonSelect.jsx";
+import ApprovalSearchSelect from "../components/ApprovalSearchSelect.jsx";
 import ApprovalOptionsImport from "../components/ApprovalOptionsImport.jsx";
 import { SelectedFiles, useSelectedFiles } from "../components/SelectedFiles.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -140,6 +141,9 @@ function FormFields({ schema, values, setValues, people = [], draft = false }) {
               required={field.required && !draft}
               onChange={(value) => updateField(key, value)}
             />
+          ) : field.type === "select" && (field.options?.length || 0) > 25 ? (
+            <ApprovalSearchSelect label={field.label} options={field.options} value={values[key] || ""}
+              required={field.required && !draft} onChange={(value) => updateField(key, value)} />
           ) : field.type === "multi_select" ? (
             <ApprovalMultiSelect
               label={field.label}
@@ -894,6 +898,9 @@ function RequestForm({ existing, onClose }) {
       ? !Array.isArray(values[key]) || values[key].length === 0
       : typeof values[key] !== "string" || !values[key])
   );
+  const hasMissingRequiredLongSelect = Object.entries(schema || {}).some(([key, field]) =>
+    field.type === "select" && field.required && (field.options?.length || 0) > 25 && !values[key]
+  );
   const hasInvalidRegex = Object.entries(schema || {}).some(([key, field]) => Boolean(regexError(field, values[key])));
   const hasMissingRequiredMultiSelect = Object.entries(schema || {}).some(
     ([key, field]) => field.type === "multi_select" && field.required &&
@@ -957,7 +964,7 @@ function RequestForm({ existing, onClose }) {
         className="approval-request-form"
         onSubmit={(e) => {
           e.preventDefault();
-          if (!hasInvalidRegex && !hasMissingRequiredMultiSelect && !hasMissingRequiredPeople && (!needsPeople || !peopleQuery.isError)) save.mutate(true);
+          if (!hasInvalidRegex && !hasMissingRequiredMultiSelect && !hasMissingRequiredPeople && !hasMissingRequiredLongSelect && (!needsPeople || !peopleQuery.isError)) save.mutate(true);
         }}
       >
         <div className="approval-request-fields">
@@ -1019,7 +1026,7 @@ function RequestForm({ existing, onClose }) {
           >
             Save draft
           </button>
-          <button className="btn-primary" disabled={save.isPending || hasInvalidRegex || hasMissingRequiredMultiSelect || hasMissingRequiredPeople || (needsPeople && (peopleQuery.isError || peopleQuery.isPending))}>
+          <button className="btn-primary" disabled={save.isPending || hasInvalidRegex || hasMissingRequiredMultiSelect || hasMissingRequiredPeople || hasMissingRequiredLongSelect || (needsPeople && (peopleQuery.isError || peopleQuery.isPending))}>
             Submit request
           </button>
         </div>
