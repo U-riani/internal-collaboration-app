@@ -441,6 +441,7 @@ model ApprovalType {
   version     Int                       @default(1)
   status      ApprovalTypeStatus        @default(DRAFT)
   formSchema  Json
+  workflowDefinition Json?
   createdById String                    @db.Uuid
   createdBy   User                      @relation(fields: [createdById], references: [id], onDelete: Restrict)
   steps       ApprovalTypeStep[]
@@ -530,6 +531,7 @@ model ApprovalRequestStep {
   approvalRequest   ApprovalRequest     @relation(fields: [approvalRequestId], references: [id], onDelete: Cascade)
   stepNumber        Int
   stepName          String
+  nodeId            String?
   approverId        String              @db.Uuid
   approver          User                @relation("ApprovalStepApprover", fields: [approverId], references: [id], onDelete: Restrict)
   status            ApprovalStepStatus  @default(WAITING)
@@ -537,6 +539,7 @@ model ApprovalRequestStep {
   comment           String?
 
   @@unique([approvalRequestId, stepNumber])
+  @@unique([approvalRequestId, nodeId])
   @@index([approverId, status])
 }
 

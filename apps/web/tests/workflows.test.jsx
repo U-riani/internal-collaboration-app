@@ -474,4 +474,56 @@ describe("main workspace flows", () => {
       }),
     );
   });
+  it("saves Multi Select arrays while retaining a single Select value", async () => {
+    const type = {
+      id: "equipment-multi",
+      name: "Equipment request with multiple choices",
+      formSchema: {
+        equipment: {
+          label: "Equipment", type: "multi_select", required: true,
+          options: ["Laptop", "Monitor", "Mouse"],
+        },
+        urgency: {
+          label: "Urgency", type: "select", required: false,
+          options: ["Standard", "Urgent"],
+        },
+      },
+    };
+    api.mockImplementation(async (path, options = {}) => ({
+      data: path === "/approval-types"
+        ? [type]
+        : options.method ? { id: "request" } : [],
+    }));
+    const user = mount(ApprovalsPage);
+    await user.click(screen.getByRole("button", { name: "New request" }));
+    await user.selectOptions(await screen.findByLabelText("Request type"), "equipment-multi");
+    await user.type(screen.getByLabelText("Title"), "New equipment");
+
+    const submit = screen.getByRole("button", { name: "Submit request" });
+    expect(submit.disabled).toBe(true);
+    await user.click(screen.getByRole("button", { name: "Equipment *" }));
+    await user.click(screen.getByRole("checkbox", { name: "Equipment: Laptop" }));
+    await user.click(screen.getByRole("checkbox", { name: "Equipment: Monitor" }));
+    expect(screen.getByText("2 options selected")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Remove Monitor" }));
+    expect(screen.getByText("1 option selected")).toBeTruthy();
+    await user.click(screen.getByRole("checkbox", { name: "Equipment: Monitor" }));
+    await user.selectOptions(screen.getByLabelText("Urgency"), "Urgent");
+    expect(submit.disabled).toBe(false);
+    await user.click(submit);
+
+    await waitFor(() =>
+      expect(api).toHaveBeenCalledWith("/approval-requests", {
+        method: "POST",
+        body: JSON.stringify({
+          approvalTypeId: "equipment-multi",
+          title: "New equipment",
+          data: { equipment: ["Laptop", "Monitor"], urgency: "Urgent" },
+          submit: true,
+          attachmentIds: [],
+        }),
+      }),
+    );
+  });
+
 });

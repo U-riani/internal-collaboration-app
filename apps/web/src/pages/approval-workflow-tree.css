@@ -1,0 +1,17 @@
+
+/* Configurable approval tree — respects app palette and shared inputs */
+.approval-tree-editor { display: grid; gap: 12px; }
+.approval-tree-node { border-left: 2px solid var(--border, #cbd5e1); border-radius: 8px; padding: 10px 10px 10px 14px; background: color-mix(in srgb, var(--surface, transparent) 94%, transparent); min-width: 0; }
+.approval-tree-node .approval-tree-node { margin-top: 8px; }
+.approval-tree-header, .approval-tree-actions, .approval-tree-add { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.approval-tree-header { justify-content: space-between; margin-bottom: 8px; }
+.approval-tree-node-tag { font-size: 12px; font-weight: 600; opacity: .8; }
+.approval-tree-reviewer { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 10px; }
+.approval-tree-kind { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; font-size: 12px; }
+.approval-tree-kind select { max-width: 270px; }
+.approval-tree-add { padding: 10px 0 2px; }
+.approval-tree-node .icon-btn:disabled { opacity: .3; cursor: not-allowed; }
+.approval-field-regex { margin-top: 9px; display: grid; gap: 7px; }
+.approval-field-regex-help { font-size: 12px; opacity: .75; }
+.approval-field-validation-error { font-size: 12px; color: var(--danger, #dc2626); margin: 4px 0 0; }
+@media (max-width: 650px) { .approval-tree-reviewer { grid-template-columns: 1fr; } .approval-tree-node { padding: 8px; } }
