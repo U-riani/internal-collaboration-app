@@ -23,6 +23,7 @@ import {
   Ban,
 } from "lucide-react";
 import { api, uploadFiles } from "../lib/api.js";
+import ApprovalWorkflowEditor, { fromLegacySteps } from "../components/ApprovalWorkflowEditor.jsx";
 import { SelectedFiles, useSelectedFiles } from "../components/SelectedFiles.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import PageHeader from "../components/PageHeader.jsx";
@@ -40,6 +41,7 @@ import {
 } from "../components/UI.jsx";
 import "./tasks-page.css";
 import "./approvals-page.css";
+import "./approval-workflow-tree.css";
 
 const approvalStatuses = [
   "DRAFT",
@@ -81,7 +83,7 @@ function ApprovalStepProgress({ steps }) {
     (left, right) => (left.stepNumber || 0) - (right.stepNumber || 0),
   );
   const approvedCount = orderedSteps.filter(
-    (step) => step.status === "APPROVED",
+    (step) => ["APPROVED", "SKIPPED"].includes(step.status),
   ).length;
   const progressLabel = `${approvedCount}/${orderedSteps.length} approval steps completed`;
 
@@ -95,7 +97,7 @@ function ApprovalStepProgress({ steps }) {
         <span
           key={step.id || step.stepNumber}
           className={`h-2.5 w-2.5 rounded-full ${
-            step.status === "APPROVED" ? "bg-emerald-500" : "bg-slate-200"
+            ["APPROVED", "SKIPPED"].includes(step.status) ? "bg-emerald-500" : "bg-slate-200"
           }`}
         />
       ))}
@@ -104,6 +106,12 @@ function ApprovalStepProgress({ steps }) {
       </span>
     </div>
   );
+}
+
+function regexError(field, value) {
+  if (!field?.validationRegex || value === null || value === undefined || value === "") return null;
+  try { return new RegExp(field.validationRegex).test(String(value)) ? null : (field.validationMessage || `${field.label} does not match the required format`); }
+  catch { return "Invalid validation pattern. Contact your administrator."; }
 }
 
 function FormFields({ schema, values, setValues, draft = false }) {
@@ -159,6 +167,9 @@ function FormFields({ schema, values, setValues, draft = false }) {
               }
             />
           )}
+          {regexError(field, values[key]) && (
+            <p role="alert" className="approval-field-validation-error">{regexError(field, values[key])}</p>
+          )}
         </Field>
       ))}
     </>
@@ -180,6 +191,7 @@ function Configure({ existing, onClose }) {
       ? Object.entries(existing.formSchema || {}).map(([key, field]) => ({
           key,
           ...field,
+          validationEnabled: Boolean(field.validationRegex),
         }))
       : [
           {
@@ -190,20 +202,8 @@ function Configure({ existing, onClose }) {
           },
         ],
   );
-  const [steps, setSteps] = useState(() =>
-    existing?.steps?.length
-      ? existing.steps.map(({ name, approverRule, approverValue }) => ({
-          name,
-          approverRule,
-          approverValue: approverValue || "",
-        }))
-      : [
-          {
-            name: "Manager review",
-            approverRule: "REQUESTER_MANAGER",
-            approverValue: "",
-          },
-        ],
+  const [workflow, setWorkflow] = useState(() =>
+    existing?.workflowDefinition || fromLegacySteps(existing?.steps),
   );
   const users = useQuery({
     queryKey: ["users"],
@@ -218,21 +218,21 @@ function Configure({ existing, onClose }) {
           code,
           description: description || undefined,
           formSchema: Object.fromEntries(
-            fields.map(({ key, label, type, required, options }) => [
+            fields.map(({ key, label, type, required, options, validationEnabled, validationRegex, validationMessage }) => [
               key,
               {
                 label,
                 type,
                 required,
+                ...(validationEnabled && validationRegex && type !== "checkbox" ? {
+                  validationRegex,
+                  ...(validationMessage ? { validationMessage } : {}),
+                } : {}),
                 ...(type === "select" ? { options } : {}),
               },
             ]),
           ),
-          steps: steps.map((s, i) => ({
-            ...s,
-            stepNumber: i + 1,
-            approverValue: s.approverValue || null,
-          })),
+          workflowDefinition: workflow,
         }),
       }),
     onSuccess: () => {
@@ -365,6 +365,7 @@ function Configure({ existing, onClose }) {
                               ? {
                                   ...current,
                                   type: event.target.value,
+                                  ...(event.target.value === "checkbox" ? { validationEnabled: false } : {}),
                                   ...(event.target.value === "select"
                                     ? {
                                         options: current.options?.length
@@ -410,6 +411,28 @@ function Configure({ existing, onClose }) {
                     </button>
                   </div>
 
+                  {field.type !== "checkbox" && (
+                    <div className="approval-field-regex">
+                      <label className="task-filter-choice approval-config-required">
+                        <input type="checkbox" checked={Boolean(field.validationEnabled)}
+                          onChange={(event) => setFields(fields.map((current, i) => index === i ? { ...current, validationEnabled: event.target.checked } : current))}/>
+                        <span>Custom validation (Regex)</span>
+                      </label>
+                      {field.validationEnabled && (
+                        <>
+                          <input className="input" required maxLength={256} aria-label={`Field ${index + 1} regex`}
+                            placeholder="Regular expression, e.g. ^\\d{11}$"
+                            value={field.validationRegex || ""}
+                            onChange={(event) => setFields(fields.map((current, i) => index === i ? { ...current, validationRegex: event.target.value } : current))}/>
+                          <input className="input" maxLength={250} aria-label={`Field ${index + 1} validation message`}
+                            placeholder="Custom error message (optional)"
+                            value={field.validationMessage || ""}
+                            onChange={(event) => setFields(fields.map((current, i) => index === i ? { ...current, validationMessage: event.target.value } : current))}/>
+                          <span className="approval-field-regex-help">The pattern is validated on the server when the type is saved and when requests are submitted.</span>
+                        </>
+                      )}
+                    </div>
+                  )}
                   {field.type === "select" && (
                     <div className="approval-config-options">
                       <div className="approval-config-options-heading">
@@ -507,96 +530,10 @@ function Configure({ existing, onClose }) {
 
           <section className="approval-config-section" aria-label="Approval steps">
             <div className="approval-config-section-heading">
-              <h3>Approval steps, in order</h3>
-              <span className="approval-config-section-hint">Sequential step triggers</span>
+              <h3>Approval workflow</h3>
+              <span className="approval-config-section-hint">Sequential · Any one · All reviewers</span>
             </div>
-            <div className="approval-config-items">
-              {steps.map((step, index) => (
-                <div className="approval-config-step-row" key={index}>
-                  <span className="approval-config-step-number">{index + 1}</span>
-                  <input
-                    className="input approval-config-step-name"
-                    aria-label={`Step ${index + 1} name`}
-                    placeholder="Step name"
-                    required
-                    value={step.name}
-                    onChange={(event) =>
-                      setSteps(
-                        steps.map((current, i) =>
-                          index === i ? { ...current, name: event.target.value } : current,
-                        ),
-                      )
-                    }
-                  />
-                  <select
-                    className="input app-modern-select approval-config-step-approver"
-                    aria-label={`Step ${index + 1} approver`}
-                    value={step.approverRule === "USER" ? step.approverValue : step.approverRule}
-                    onChange={(event) =>
-                      setSteps(
-                        steps.map((current, i) =>
-                          index === i
-                            ? {
-                                ...current,
-                                approverRule: [
-                                  "REQUESTER_MANAGER",
-                                  "DEPARTMENT_MANAGER",
-                                ].includes(event.target.value)
-                                  ? event.target.value
-                                  : "USER",
-                                approverValue: [
-                                  "REQUESTER_MANAGER",
-                                  "DEPARTMENT_MANAGER",
-                                ].includes(event.target.value)
-                                  ? ""
-                                  : event.target.value,
-                              }
-                            : current,
-                        ),
-                      )
-                    }
-                  >
-                    <option value="REQUESTER_MANAGER">Requester’s manager</option>
-                    <option value="DEPARTMENT_MANAGER">Department manager</option>
-                    {users.data
-                      ?.filter((person) => person.status === "ACTIVE")
-                      .map((person) => (
-                        <option key={person.id} value={person.id}>
-                          {person.displayName}
-                        </option>
-                      ))}
-                  </select>
-                  {steps.length > 1 && (
-                    <button
-                      type="button"
-                      className="icon-btn approval-config-remove approval-config-step-remove"
-                      aria-label={`Remove step ${index + 1}`}
-                      title="Remove step"
-                      onClick={() => setSteps(steps.filter((_, i) => i !== index))}
-                    >
-                      <Trash2 size={15} />
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-            <button
-              type="button"
-              className="btn-secondary approval-config-secondary approval-config-add"
-              onClick={() =>
-                setSteps([
-                  ...steps,
-                  {
-                    name: "Review",
-                    approverRule: "REQUESTER_MANAGER",
-                    approverValue: "",
-                  },
-                ])
-              }
-            >
-              <Plus size={14} />
-              Add step
-            </button>
+            <ApprovalWorkflowEditor workflow={workflow} onChange={setWorkflow} users={users.data || []} />
           </section>
           <ErrorBox error={save.error} />
         </div>
@@ -883,6 +820,7 @@ function RequestForm({ existing, onClose }) {
   });
   const type = types.data?.find((x) => x.id === typeId);
   const schema = existing?.workflowSnapshot?.formSchema || type?.formSchema;
+  const hasInvalidRegex = Object.entries(schema || {}).some(([key, field]) => Boolean(regexError(field, values[key])));
   const save = useMutation({
     mutationFn: async (submit) => {
       if (existing) {
@@ -937,7 +875,7 @@ function RequestForm({ existing, onClose }) {
         className="approval-request-form"
         onSubmit={(e) => {
           e.preventDefault();
-          save.mutate(true);
+          if (!hasInvalidRegex) save.mutate(true);
         }}
       >
         <div className="approval-request-fields">
@@ -998,7 +936,7 @@ function RequestForm({ existing, onClose }) {
           >
             Save draft
           </button>
-          <button className="btn-primary" disabled={save.isPending}>
+          <button className="btn-primary" disabled={save.isPending || hasInvalidRegex}>
             Submit request
           </button>
         </div>
@@ -1046,7 +984,7 @@ export function RequestDetail({ item, onClose }) {
   }, [item.id, qc]);
   const [edit, setEdit] = useState(false);
   const [decision, setDecision] = useState("APPROVE");
-  const current = item.steps.find((s) => s.status === "PENDING");
+  const current = item.steps.find((s) => s.status === "PENDING" && s.approverId === user.id);
   const mine = item.requesterId === user.id;
   const canAct = item.status === "PENDING" && current?.approverId === user.id;
   const schema =
@@ -1063,6 +1001,7 @@ export function RequestDetail({ item, onClose }) {
               : {
                   revision: item.revision,
                   action: action || decision,
+                  stepId: current?.id,
                   comment,
                 },
           ),
