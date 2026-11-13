@@ -12,6 +12,7 @@ export const formSchema = z
           "number",
           "date",
           "select",
+          "multi_select",
           "checkbox",
         ]),
         label: z.string().trim().min(1).max(120),
@@ -26,7 +27,7 @@ export const formSchema = z
     (fields) =>
       Object.keys(fields).length <= 40 &&
       Object.values(fields).every(
-        (f) => f.type !== "select" || f.options?.length,
+        (f) => !["select", "multi_select"].includes(f.type) || f.options?.length,
       ),
     "Use at most 40 fields and provide options for select fields",
   )
@@ -58,7 +59,8 @@ export function validateForm(schema, data, { draft = false } = {}) {
     const empty =
       value === undefined ||
       value === null ||
-      (typeof value === "string" && !value.trim());
+      (typeof value === "string" && !value.trim()) ||
+      (field.type === "multi_select" && Array.isArray(value) && value.length === 0);
     if (empty) {
       if (field.required && !draft) errors.push(`${field.label} is required`);
       continue;
@@ -79,7 +81,15 @@ export function validateForm(schema, data, { draft = false } = {}) {
           new Date(value).toISOString().slice(0, 10) === value;
         break;
       case "select":
-        valid = typeof value === "string" && field.options.includes(value);
+        valid = typeof value === "string" && field.options?.includes(value);
+        break;
+      case "multi_select":
+        valid =
+          Array.isArray(value) &&
+          value.length > 0 &&
+          value.length <= (field.options?.length ?? 0) &&
+          value.every((option) => typeof option === "string" && field.options?.includes(option)) &&
+          new Set(value).size === value.length;
         break;
       default:
         valid =
@@ -88,7 +98,10 @@ export function validateForm(schema, data, { draft = false } = {}) {
     }
     if (valid && field.validationRegex) {
       try {
-        valid = new RegExp(field.validationRegex).test(String(value));
+        const pattern = new RegExp(field.validationRegex);
+        valid = Array.isArray(value)
+          ? value.every((option) => pattern.test(option))
+          : pattern.test(String(value));
       } catch { valid = false; }
       if (!valid) {
         errors.push(field.validationMessage || `${field.label} does not match the required format`);
