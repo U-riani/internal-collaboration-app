@@ -58,7 +58,7 @@ export default function ApprovalPersonSelect({
           const displayName = person?.displayName || person?.email || "Unavailable employee";
           return (
             <span key={id} className="approval-person-chip">
-              <Avatar small name={displayName} userId={id} photoUrl={person?.photoUrl} />
+              <Avatar small name={displayName} userId={id} photoUrl={person?.avatarUrl} />
               <span>{displayName}</span>
               <button type="button" className="approval-person-remove" aria-label={"Remove " + displayName}
                 onClick={() => toggle(id)}><X size={12} /></button>
