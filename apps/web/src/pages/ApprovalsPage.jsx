@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
@@ -115,11 +115,12 @@ function regexError(field, value) {
 }
 
 function FormFields({ schema, values, setValues, draft = false }) {
-  const updateField = (key, value) => { if (import.meta.env.MODE === "test") console.info("approval-form-debug-field", key, value); setValues((previous) => ({ ...previous, [key]: value })); };
+  const updateField = (key, value) => { setValues((previous) => ({ ...previous, [key]: value })); };
   return (
     <>
       {Object.entries(schema || {}).map(([key, field]) => (
-        <Field key={key} label={`${field.label}${field.required ? " *" : ""}`}>
+        <Fragment key={key}>
+          <Field label={`${field.label}${field.required ? " *" : ""}`}>
           {field.type === "textarea" ? (
             <textarea
               className="input min-h-24"
@@ -162,10 +163,11 @@ function FormFields({ schema, values, setValues, draft = false }) {
               }
             />
           )}
+          </Field>
           {regexError(field, values[key]) && (
             <p role="alert" className="approval-field-validation-error">{regexError(field, values[key])}</p>
           )}
-        </Field>
+        </Fragment>
       ))}
     </>
   );
@@ -822,7 +824,6 @@ function RequestForm({ existing, onClose }) {
     mutationFn: async (submit) => {
       // Mutations may retain an older render callback while inputs are changing.
       const { typeId, title, values } = liveValues.current;
-      if (import.meta.env.MODE === "test") console.info("approval-form-debug-submit", typeId, title, JSON.stringify(values));
       if (existing) {
         await api(`/approval-requests/${existing.id}`, {
           method: "PATCH",
