@@ -218,6 +218,7 @@ function Configure({ existing, onClose }) {
   const [code, setCode] = useState(existing?.code || "");
   const [description, setDescription] = useState(existing?.description || "");
   const [importFieldIndex, setImportFieldIndex] = useState(null);
+  const [expandedOptionFieldIndex, setExpandedOptionFieldIndex] = useState(null);
   const [fields, setFields] = useState(() =>
     existing
       ? Object.entries(existing.formSchema || {}).map(([key, field]) => ({
@@ -512,7 +513,7 @@ function Configure({ existing, onClose }) {
                         </div>
                       </div>
                       <div className="approval-config-option-list">
-                        {(field.options || ["Option 1"]).map((option, optionIndex) => (
+                        {(expandedOptionFieldIndex === index ? (field.options || ["Option 1"]) : (field.options || ["Option 1"]).slice(0, 30)).map((option, optionIndex) => (
                           <div className="approval-config-option-row" key={optionIndex}>
                             <input
                               className="input"
@@ -559,6 +560,12 @@ function Configure({ existing, onClose }) {
                           </div>
                         ))}
                       </div>
+                      {(field.options || []).length > 30 && (
+                        <button type="button" className="btn-secondary approval-config-secondary"
+                          onClick={() => setExpandedOptionFieldIndex(expandedOptionFieldIndex === index ? null : index)}>
+                          {expandedOptionFieldIndex === index ? "Show first 30 options" : `Show all ${field.options.length} options`}
+                        </button>
+                      )}
                       {importFieldIndex === index && (
                         <ApprovalOptionsImport
                           fieldLabel={field.label || field.key}
