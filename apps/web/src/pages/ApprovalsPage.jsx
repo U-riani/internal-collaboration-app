@@ -821,8 +821,12 @@ function RequestForm({ existing, onClose }) {
   const type = types.data?.find((x) => x.id === typeId);
   const schema = existing?.workflowSnapshot?.formSchema || type?.formSchema;
   const hasInvalidRegex = Object.entries(schema || {}).some(([key, field]) => Boolean(regexError(field, values[key])));
+  const liveValues = useRef({ typeId, title, values });
+  liveValues.current = { typeId, title, values };
   const save = useMutation({
     mutationFn: async (submit) => {
+      // Mutations may retain an older render callback while inputs are changing.
+      const { typeId, title, values } = liveValues.current;
       if (existing) {
         await api(`/approval-requests/${existing.id}`, {
           method: "PATCH",
